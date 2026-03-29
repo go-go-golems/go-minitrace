@@ -1,0 +1,67 @@
+# go-minitrace
+
+Glazed-based Go port of minitrace, focused first on Claude Code and Codex session conversion.
+
+## What it does
+
+- Boots a Glazed-based CLI for the Go port of minitrace
+- Implements real discovery commands for Claude Code and Codex session stores
+- Scaffolds conversion commands for Claude Code and Codex with structured planning output
+- Includes a basic JSON validation command while full schema validation is ported
+- Keeps the repo focused on the Go implementation, separate from the Python/spec reference repo
+
+## Install
+
+### Homebrew
+
+This repo is intended to be released via GoReleaser and published to the go-go-golems Homebrew tap.
+
+```bash
+brew tap go-go-golems/go-go-go
+brew install go-minitrace
+```
+
+### Go install (from source)
+
+```bash
+go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
+```
+
+## Quick start
+
+```bash
+go-minitrace --help
+go-minitrace discover claude-code --source-dir ~/.claude/projects
+go-minitrace discover codex --source-dir ~/.codex
+go-minitrace validate --path /path/to/file-or-dir --recursive
+```
+
+The `convert` commands are scaffolded but not implemented yet.
+
+## Development
+
+```bash
+make lint
+make test
+make build
+```
+
+Pre-commit hooks are managed via `lefthook.yml`:
+
+```bash
+lefthook install
+```
+
+Snapshot release:
+
+```bash
+make goreleaser
+```
+
+## Security notes
+
+Treat CLI output, logs, and exported data as sensitive until you’ve reviewed what the tool emits.
+
+## License
+
+MIT. See `LICENSE`.

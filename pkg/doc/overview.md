@@ -1,0 +1,27 @@
+---
+Title: go-minitrace Overview
+Slug: go-minitrace-overview
+Short: Overview of the Go port bootstrap and current command surface
+Topics:
+- minitrace
+- go
+- glazed
+IsTemplate: false
+IsTopLevel: true
+ShowPerDefault: true
+SectionType: GeneralTopic
+---
+
+# go-minitrace Overview
+
+`go-minitrace` is the new Go repository for the minitrace port.
+
+The initial bootstrap focuses on:
+
+- a Glazed-based root CLI,
+- Claude Code discovery,
+- Codex discovery,
+- conversion command scaffolding for those two frameworks,
+- basic JSON validation while the full schema validator is ported.
+
+The long-term source of truth for format semantics remains the Python/reference repo until the Go validator and converters reach parity.
