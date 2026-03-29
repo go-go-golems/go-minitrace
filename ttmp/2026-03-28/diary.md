@@ -159,3 +159,68 @@ The successful help output confirmed these top-level commands exist:
 - `completion`
 
 It also confirmed the root logging flags were wired through Glazed as intended.
+
+## Step 3: Shared minitrace Core Package
+
+With the repo shape stable, the next useful slice was the shared data model and helper semantics that both Claude Code and Codex need. The Python reference implementation centralizes this behavior in `adapters/minitrace_common.py`; porting that logic early avoids duplicating timestamp handling, truncation behavior, metrics rules, and session skeleton defaults in each adapter.
+
+This step does not yet convert native session files into final `.minitrace.json` outputs. Instead, it establishes the typed Go foundation that the adapter implementations will target.
+
+### What I added
+
+- New package: `pkg/minitrace`
+- Typed schema structs for:
+  - `Session`
+  - `Turn`
+  - `ToolCall`
+  - `Annotation`
+  - supporting nested objects like `Timing`, `Metrics`, `Environment`, and `Usage`
+- Builder helpers for:
+  - session skeleton creation
+  - turn construction
+  - tool-call construction
+  - annotation construction
+- Utility helpers ported from the Python common layer:
+  - ISO timestamp parsing/formatting
+  - home-relative path normalization
+  - safe integer conversion
+  - content truncation with SHA-256 hashing
+  - tool-call deduplication
+  - PII path detection
+  - title extraction
+- Metric helpers:
+  - active-duration calculation
+  - timing derivation
+  - session metrics derivation
+  - tool-call context backfilling
+  - quality-tier assignment
+- Tests covering:
+  - truncation behavior
+  - timing semantics
+  - ghost-session null semantics for metrics
+  - session skeleton defaults
+
+### Why this matters
+
+Claude Code and Codex are different at the raw transcript level, but they both need to land on the same minitrace semantics. The most fragile parts are not the CLI flags; they are the details that affect downstream analysis:
+
+- when metrics are `null` versus `0`,
+- how timestamps are normalized,
+- how tool outputs are truncated,
+- how session defaults are initialized.
+
+By putting these rules in one package now, later adapter work can focus on extraction and mapping instead of re-implementing the schema rules ad hoc.
+
+### Validation
+
+Ran successfully:
+
+- `go fmt ./...`
+- `go test ./...`
+- `go build ./...`
+
+### What should happen next
+
+- Wire Claude Code conversion onto `pkg/minitrace`
+- Wire Codex conversion onto `pkg/minitrace`
+- Add golden parity fixtures against the Python adapters
