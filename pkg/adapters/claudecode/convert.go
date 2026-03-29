@@ -41,6 +41,27 @@ func ConvertLocator(locator adapters.SessionLocator) (*minitrace.Session, error)
 	}
 }
 
+func ConvertSubagentLocator(locator SubagentLocator) (*minitrace.Session, string, error) {
+	records, err := parseJSONLFile(locator.SourcePath)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(records) == 0 {
+		return nil, "", errors.New("empty subagent transcript")
+	}
+
+	first := records[0]
+	agentID := firstNonEmpty(stringValue(first["agentId"]), locator.AgentID)
+	slug := stringValue(first["slug"])
+
+	session, err := ConvertRecords(records, agentID, locator.SourcePath)
+	if err != nil {
+		return nil, "", err
+	}
+	AdjustSubagentSession(session, agentID, locator.ParentSessionID, slug)
+	return session, agentID, nil
+}
+
 func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*minitrace.Session, error) {
 	session := minitrace.BuildSessionSkeleton(sessionID, "claude-code", SourceFormatV2, AdapterVersion)
 	session.Environment.PlatformType = ptr("agent")
@@ -404,6 +425,55 @@ func convertDirSession(sessionDir, sessionID string) (*minitrace.Session, error)
 	return &session, nil
 }
 
+func AdjustSubagentSession(session *minitrace.Session, agentID, parentSessionID, slug string) {
+	if session == nil {
+		return
+	}
+
+	session.ID = agentID
+	session.Provenance.OriginalSessionID = &agentID
+	session.Provenance.SourceFormat = SourceFormatV2 + "+subagent"
+	session.Flags.Category = appendUnique(session.Flags.Category, "subagent")
+
+	switch {
+	case slug != "":
+		title := "[subagent] " + slug
+		session.Title = &title
+	case session.Title != nil && *session.Title != "":
+		title := "[subagent] " + *session.Title
+		session.Title = &title
+	default:
+		title := "[subagent] " + agentID
+		session.Title = &title
+	}
+
+	config, _ := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if config == nil {
+		config = map[string]any{}
+	}
+	config["parent_session"] = parentSessionID
+	session.OperationalContext.FrameworkConfig = config
+}
+
+func LinkParentSubagents(session *minitrace.Session, subagentIDs []string) {
+	if session == nil || len(subagentIDs) == 0 {
+		return
+	}
+
+	index := 0
+	for i := range session.ToolCalls {
+		if session.ToolCalls[i].SpawnedAgent == nil {
+			continue
+		}
+		if index >= len(subagentIDs) {
+			return
+		}
+		subSessionID := subagentIDs[index]
+		session.ToolCalls[i].SpawnedAgent.SubSessionID = &subSessionID
+		index++
+	}
+}
+
 func parseJSONLFile(path string) ([]map[string]any, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -719,6 +789,24 @@ func truncateID(value string) string {
 		return value
 	}
 	return value[:8]
+}
+
+func appendUnique(values []string, additions ...string) []string {
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		seen[value] = struct{}{}
+	}
+	for _, value := range additions {
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		values = append(values, value)
+	}
+	return values
 }
 
 func ptr[T any](value T) *T {

@@ -6,7 +6,8 @@ Glazed-based Go port of minitrace, focused first on Claude Code and Codex sessio
 
 - Boots a Glazed-based CLI for the Go port of minitrace
 - Implements real discovery commands for Claude Code and Codex session stores
-- Scaffolds conversion commands for Claude Code and Codex with structured planning output
+- Converts Claude Code sessions into minitrace JSON archives, including dir-v1 tool-results sessions and subagent transcripts with parent backlinking
+- Converts Codex session JSONL and exec JSONL data into minitrace JSON archives
 - Includes a basic JSON validation command while full schema validation is ported
 - Keeps the repo focused on the Go implementation, separate from the Python/spec reference repo
 
@@ -33,10 +34,10 @@ go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
 go-minitrace --help
 go-minitrace discover claude-code --source-dir ~/.claude/projects
 go-minitrace discover codex --source-dir ~/.codex
+go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./output
+go-minitrace convert codex --source-dir ~/.codex --output-dir ./output
 go-minitrace validate --path /path/to/file-or-dir --recursive
 ```
-
-The `convert` commands are scaffolded but not implemented yet.
 
 ## Development
 

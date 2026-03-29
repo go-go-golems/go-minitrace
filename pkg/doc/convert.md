@@ -1,7 +1,7 @@
 ---
 Title: Convert Commands
 Slug: convert-commands
-Short: Planned conversion surface for Claude Code and Codex
+Short: Convert Claude Code and Codex sessions into minitrace archives
 Topics:
 - minitrace
 - convert
@@ -15,7 +15,7 @@ SectionType: GeneralTopic
 
 # Convert Commands
 
-The `convert` group is scaffolded first so the final CLI shape is stable early.
+The `convert` group writes minitrace session archives and manifests.
 
 Examples:
 
@@ -24,5 +24,13 @@ go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./
 go-minitrace convert codex --source-dir ~/.codex --dry-run --output json
 ```
 
-At the moment these commands emit planning rows based on discovery. The actual
-session conversion engine is the next milestone.
+Current Claude Code coverage:
+
+- JSONL v2 transcripts
+- dir-v1 tool-results sessions
+- subagent transcripts with parent-session backlinking
+
+Current Codex coverage:
+
+- session JSONL from `~/.codex/sessions/`
+- exec JSONL from `codex exec --json`

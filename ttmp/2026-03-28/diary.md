@@ -360,3 +360,72 @@ Also ran an end-to-end smoke conversion with a synthetic Codex session JSONL fix
 - Add golden fixture parity tests for Claude Code and Codex
 - Implement Claude Code subagent linking
 - Decide whether to port the validator semantics next or broaden adapter coverage further
+
+## Step 6: Claude Code Subagent Support
+
+The remaining major Claude Code gap was subagents. The primary session converter already detected delegation tool calls and filled `spawned_agent`, but it did not yet:
+
+- discover subagent transcript files,
+- convert them into their own minitrace sessions,
+- or backlink the parent session's delegation tool calls with `sub_session_id`.
+
+This step closes that gap, which means Claude Code support is now functionally complete enough for the current repo goal: primary sessions, dir-v1 fallbacks, subagent sessions, and parent-child linking.
+
+### What I added
+
+- `pkg/adapters/claudecode/discover.go`
+  - subagent discovery via `DiscoverSubagents`
+- `pkg/adapters/claudecode/convert.go`
+  - subagent conversion helper
+  - subagent session adjustment helper
+  - parent backlink helper
+- `cmd/go-minitrace/cmds/convert/claude_code.go`
+  - now processes subagent transcripts after primary sessions
+  - writes child sessions
+  - rewrites parent sessions with `spawned_agent.sub_session_id`
+  - writes manifests after backlinking so the archive is internally consistent
+- `pkg/adapters/claudecode/convert_test.go`
+  - test covering subagent session adjustment and parent backlinking
+- repo docs:
+  - `README.md`
+  - `pkg/doc/convert.md`
+
+### What worked
+
+I ran a synthetic parent-plus-subagent smoke conversion and verified:
+
+- the parent session was written,
+- the child subagent session was written,
+- the child session got a `[subagent] ...` title and `subagent` category,
+- the child session recorded `parent_session` in framework config,
+- the parent delegation tool call got `spawned_agent.sub_session_id = <child-id>`.
+
+### Validation
+
+Ran successfully:
+
+- `go fmt ./...`
+- `go test ./...`
+- `go build ./...`
+
+Also ran an end-to-end Claude Code subagent smoke conversion and inspected both the rewritten parent session JSON and the child session JSON.
+
+### Claude status after this step
+
+Claude Code support now includes:
+
+- JSONL v2 primary sessions
+- dir-v1 tool-results sessions
+- token usage
+- tool-result matching
+- delegated tool-call metadata
+- subagent transcript conversion
+- parent-child session backlinking
+
+### Remaining work around Claude Code
+
+What remains is parity hardening rather than missing support:
+
+- golden fixture tests against Python adapter outputs
+- possible canary checks / validator parity
+- polish on discover output if needed

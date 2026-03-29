@@ -1,6 +1,10 @@
 package claudecode
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+)
 
 func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	records := []map[string]any{
@@ -132,5 +136,59 @@ func TestConvertRecordsAnnotatesOrphanToolCalls(t *testing.T) {
 	}
 	if len(session.Annotations) != 1 {
 		t.Fatalf("expected orphan annotation, got %d", len(session.Annotations))
+	}
+}
+
+func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
+	parent := minitrace.BuildSessionSkeleton("parent-1", "claude-code", SourceFormatV2, AdapterVersion)
+	turnIndex := 0
+	parent.ToolCalls = []minitrace.ToolCall{
+		minitrace.BuildToolCall(
+			"tool-1",
+			&turnIndex,
+			nil,
+			"Agent",
+			"DELEGATE",
+			nil,
+			nil,
+			map[string]any{"prompt": "inspect"},
+			true,
+			nil,
+			nil,
+			nil,
+			nil,
+			&minitrace.SpawnedAgent{
+				AgentType:      "general",
+				TaskScope:      "inspect",
+				SubSessionID:   nil,
+				OutcomeSummary: "",
+			},
+			classifyContentOrigin("Agent"),
+			nil,
+		),
+	}
+
+	child := minitrace.BuildSessionSkeleton("child-raw", "claude-code", SourceFormatV2, AdapterVersion)
+	title := "Investigate file"
+	child.Title = &title
+
+	AdjustSubagentSession(&child, "agent-123", "parent-1", "bug-hunt")
+	if child.ID != "agent-123" {
+		t.Fatalf("expected adjusted child ID, got %s", child.ID)
+	}
+	if child.Title == nil || *child.Title != "[subagent] bug-hunt" {
+		t.Fatalf("expected subagent title prefix, got %+v", child.Title)
+	}
+	if child.OperationalContext.FrameworkConfig == nil {
+		t.Fatalf("expected framework_config with parent_session")
+	}
+	config := child.OperationalContext.FrameworkConfig.(map[string]any)
+	if config["parent_session"] != "parent-1" {
+		t.Fatalf("expected parent_session backlink metadata, got %+v", config)
+	}
+
+	LinkParentSubagents(&parent, []string{"agent-123"})
+	if parent.ToolCalls[0].SpawnedAgent == nil || parent.ToolCalls[0].SpawnedAgent.SubSessionID == nil || *parent.ToolCalls[0].SpawnedAgent.SubSessionID != "agent-123" {
+		t.Fatalf("expected parent tool call to backlink subagent, got %+v", parent.ToolCalls[0].SpawnedAgent)
 	}
 }
