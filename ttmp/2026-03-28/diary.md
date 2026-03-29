@@ -290,3 +290,73 @@ Also ran an end-to-end smoke conversion with a synthetic Claude JSONL fixture an
 - Port Codex conversion on top of the same archive path
 - Add fixture-based parity checks for Claude Code
 - Add subagent linking for Claude Code
+
+## Step 5: First Real Codex Converter
+
+After Claude Code was working end-to-end, I implemented the first Codex converter using the same archive writer and shared minitrace package. This keeps the two highest-priority adapters on the same core semantics instead of drifting into framework-specific output behavior.
+
+The Codex implementation supports:
+
+- session JSONL (`~/.codex/sessions/...`)
+- exec JSONL (`codex exec --json`)
+
+The session JSONL path is the richer and more important one. It captures:
+
+- user messages
+- assistant messages
+- reasoning summaries
+- function calls and outputs
+- token usage
+- model / sandbox / approval metadata
+
+The exec JSONL path is intentionally thinner, but it is good enough to avoid dead-end discovery results and to preserve shell-command sessions exported directly from `codex exec --json`.
+
+### What I added
+
+- `pkg/adapters/codex/convert.go`
+  - session JSONL parsing
+  - exec JSONL parsing
+  - command-to-operation classification
+  - best-effort file-path extraction from shell commands
+  - structured parsing of Codex `function_call_output` payloads
+  - Codex-specific framework metadata mapping
+- `pkg/adapters/codex/convert_test.go`
+  - session JSONL conversion test
+  - exec JSONL conversion test
+- `cmd/go-minitrace/cmds/convert/codex.go`
+  - now writes real converted sessions and manifests instead of a planning row
+
+### What worked
+
+- `convert codex` now writes:
+  - session files under `active/YYYY-MM/`
+  - period manifests
+  - root manifest
+- The session JSONL smoke run produced:
+  - normalized working directory
+  - mapped autonomy and sandbox fields
+  - model/provider/system prompt metadata
+  - `exec_command` tool calls with parsed output and duration
+  - token totals attached to the session and most recent assistant turn
+
+### Validation
+
+Ran successfully:
+
+- `go fmt ./...`
+- `go test ./...`
+- `go build ./...`
+
+Also ran an end-to-end smoke conversion with a synthetic Codex session JSONL fixture and inspected the resulting manifest and session JSON output.
+
+### Known limitations after this step
+
+- Claude Code subagent transcript linking is still missing
+- Claude/Codex parity is tested with synthetic fixtures, not yet with golden outputs from the Python adapters
+- The exec JSONL adapter is intentionally basic compared to the richer session JSONL path
+
+### What should happen next
+
+- Add golden fixture parity tests for Claude Code and Codex
+- Implement Claude Code subagent linking
+- Decide whether to port the validator semantics next or broaden adapter coverage further
