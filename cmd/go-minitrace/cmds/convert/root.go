@@ -21,7 +21,11 @@ the actual conversion engine is ported.`,
 	if err != nil {
 		return nil, err
 	}
+	piCmd, err := NewPiCommand()
+	if err != nil {
+		return nil, err
+	}
 
-	root.AddCommand(claudeCmd, codexCmd)
+	root.AddCommand(claudeCmd, codexCmd, piCmd)
 	return root, nil
 }

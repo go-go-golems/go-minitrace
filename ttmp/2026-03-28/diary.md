@@ -258,6 +258,132 @@ Subagent linking is not implemented yet. The converter does detect delegation ca
 ### What worked
 
 - `go run ./cmd/go-minitrace convert claude-code ...` now emits real session rows and writes actual archive files.
+
+## Step 7: Pi Discovery And Conversion Support
+
+The next slice broadened framework coverage without increasing architectural complexity much. Pi stores local JSONL sessions under `~/.pi/agent/sessions`, so it fits the same discovery-plus-convert model as Claude Code and Codex, but the native transcript semantics differ in a few important ways: Pi uses explicit `session`, `model_change`, and `thinking_level_change` records, and actual tool results often arrive as top-level `role="toolResult"` messages rather than inline `toolResult` content blocks.
+
+I implemented Pi as its own adapter package and command pair, then validated it against a real local transcript rather than stopping at synthetic tests. That real-run check matters here because the Python reference adapter appears to underspecify the top-level tool-result shape, while the local data clearly uses it.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, anyway, let's move on with pi and chatgpt/claude.ai support"
+
+**Assistant interpretation:** Extend the Go port beyond Claude Code and Codex, starting with Pi and then continuing to the web-export adapters.
+
+**Inferred user intent:** Expand practical framework coverage in focused checkpoints, keeping the implementation validated against real local data and documented for continuation.
+
+### What I did
+
+- Added Pi discovery under `pkg/adapters/pi/discover.go`.
+- Added Pi conversion under `pkg/adapters/pi/convert.go`.
+- Added Pi adapter tests in `pkg/adapters/pi/convert_test.go`.
+- Added Glazed commands:
+  - `cmd/go-minitrace/cmds/discover/pi.go`
+  - `cmd/go-minitrace/cmds/convert/pi.go`
+- Registered Pi in both command groups:
+  - `cmd/go-minitrace/cmds/discover/root.go`
+  - `cmd/go-minitrace/cmds/convert/root.go`
+- Updated `README.md` and `ttmp/2026-03-29/tasks.md`.
+- Ran:
+  - `go fmt ./...`
+  - `go test ./...`
+  - `go build ./...`
+  - `go run ./cmd/go-minitrace discover pi --source-dir ~/.pi/agent/sessions --output json | sed -n '1,12p'`
+  - `go run ./cmd/go-minitrace convert pi --source-session /home/manuel/.pi/agent/sessions/--home-manuel-code-others-llms-minitrace--/2026-03-28T21-19-08-451Z_bda24bdb-9762-4e1e-b749-f29dbe2dd0b8.jsonl --output-dir /tmp/go-minitrace-pi-tVa7DG/output --output json`
+
+### Why
+
+Pi is a good checkpoint framework because it exercises a real agent-style transcript with tool calls and token usage, but it does not require ZIP parsing or tree linearization. That makes it a clean intermediate step before the ChatGPT and claude.ai export adapters.
+
+### What worked
+
+- The adapter mapped Pi message/tool-call semantics onto the shared `pkg/minitrace` model cleanly.
+- The real local Pi session converted successfully.
+- The smoke conversion produced:
+  - session id `bda24bdb-9762-4e1e-b749-f29dbe2dd0b8`
+  - quality `A`
+  - `132` turns
+  - `83` tool calls
+- Unit tests passed immediately after formatting.
+
+### What didn't work
+
+- The first local export search for ChatGPT/claude.ai test files used broad `find ~` invocations and hit:
+
+```text
+find: ‘/home/manuel/apps/postgres’: Permission denied
+```
+
+- That was not a blocker for Pi. I narrowed the reconnaissance enough to confirm local Claude ZIPs exist under `~/Downloads/claude.site/`.
+
+### What I learned
+
+- Real Pi transcripts rely on `message.role="toolResult"` plus `toolCallId`, so the Go adapter must match results at the message layer, not only at the content-block layer.
+- Pi exposes usable cost/token information directly in message usage payloads, so the Go adapter can already fill `session_cost` and cache-token totals for this framework.
+- The local Pi file naming pattern (`timestamp_uuid.jsonl`) is stable enough that discovery can derive the session id from the suffix after `_`.
+
+### What was tricky to build
+
+The tricky part was distinguishing between the Python reference behavior and the actual Pi transcript shape. The Python adapter documents `toolResult` blocks, but the local data uses top-level tool-result messages with text content and `toolCallId`. If I had copied the Python logic literally, tool results would have remained orphaned in real Pi sessions. I resolved this by supporting both shapes: inline `toolResult` content blocks and top-level `role="toolResult"` messages.
+
+### What warrants a second pair of eyes
+
+- The Pi command-classification heuristics for `bash` are still string-based and should eventually be compared against more real transcripts.
+- The adapter currently emits a turn for every Pi tool-result message, mirroring the observed transcript semantics. That is likely correct, but it is worth verifying against the spec expectations for downstream analysis consistency.
+
+### What should be done in the future
+
+- Port ChatGPT export conversion.
+- Port claude.ai export conversion.
+- Revisit whether Pi should also expose `input_channel` or additional framework metadata beyond the current minimal mapping.
+
+### Code review instructions
+
+- Start with:
+  - `pkg/adapters/pi/convert.go`
+  - `pkg/adapters/pi/discover.go`
+  - `pkg/adapters/pi/convert_test.go`
+- Then review:
+  - `cmd/go-minitrace/cmds/discover/pi.go`
+  - `cmd/go-minitrace/cmds/convert/pi.go`
+  - `cmd/go-minitrace/cmds/discover/root.go`
+  - `cmd/go-minitrace/cmds/convert/root.go`
+- Validate with:
+  - `go test ./...`
+  - `go build ./...`
+  - `go run ./cmd/go-minitrace discover pi --source-dir ~/.pi/agent/sessions --output json`
+  - `go run ./cmd/go-minitrace convert pi --source-session /home/manuel/.pi/agent/sessions/--home-manuel-code-others-llms-minitrace--/2026-03-28T21-19-08-451Z_bda24bdb-9762-4e1e-b749-f29dbe2dd0b8.jsonl --output-dir /tmp/go-minitrace-pi-tVa7DG/output --output json`
+
+### Technical details
+
+Representative discovery output:
+
+```json
+[
+  {
+    "format_hint": "jsonl-v3",
+    "id": "3fbb0b31-2438-41a2-94e7-8377af7181f2",
+    "source_path": "/home/manuel/.pi/agent/sessions/--home-manuel-code-others-goja--/2026-02-10T14-23-44-404Z_3fbb0b31-2438-41a2-94e7-8377af7181f2.jsonl"
+  }
+]
+```
+
+Representative conversion output:
+
+```json
+[
+  {
+    "classification": "internal",
+    "dry_run": false,
+    "framework": "pi",
+    "quality": "A",
+    "session_id": "bda24bdb-9762-4e1e-b749-f29dbe2dd0b8",
+    "tool_call_count": 83,
+    "turn_count": 132
+  }
+]
+```
 - The smoke test produced:
   - a root `manifest.json`
   - a period manifest under `active/YYYY-MM/manifest.json`

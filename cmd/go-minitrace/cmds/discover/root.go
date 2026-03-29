@@ -18,7 +18,11 @@ rows describing the sessions that would be considered for conversion.`,
 	if err != nil {
 		return nil, err
 	}
+	piCmd, err := NewPiCommand()
+	if err != nil {
+		return nil, err
+	}
 
-	root.AddCommand(claudeCmd, codexCmd)
+	root.AddCommand(claudeCmd, codexCmd, piCmd)
 	return root, nil
 }
