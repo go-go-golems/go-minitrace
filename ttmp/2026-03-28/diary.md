@@ -384,6 +384,100 @@ Representative conversion output:
   }
 ]
 ```
+
+## Step 8: Preserve Repro Scripts In The Ticket Folder
+
+The investigation had already accumulated several ad hoc shell and Python snippets by the time you asked for them to be preserved. Rather than leave those steps trapped in shell history, I reconstructed them as numbered scripts under the current ticket workspace so the trail is inspectable and rerunnable.
+
+This is intentionally a ticket-layer artifact, not product code. The scripts document how I validated Pi, how I identified the correct claude.ai privacy export, and how I scanned local downloads for candidate export files.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Save all scripts (retroactively too) in a scripts/ folder in the ticket, numbered with XX-... so I can trace your steps"
+
+**Assistant interpretation:** Create a numbered script bundle in the ticket workspace that captures the reproducible exploration and validation commands already used during this implementation.
+
+**Inferred user intent:** Make the work traceable and auditable beyond the diary text alone.
+
+### What I did
+
+- Created `ttmp/2026-03-29/scripts/`.
+- Added:
+  - `00-README.md`
+  - `01-pi-discover.sh`
+  - `02-pi-convert-real-session.sh`
+  - `03-claude-export-preflight.sh`
+  - `04-claude-export-inspect.py`
+  - `05-claude-export-tool-summary.py`
+  - `06-find-candidate-exports.sh`
+- Marked the shell and Python helpers executable.
+- Ran:
+  - `chmod +x ttmp/2026-03-29/scripts/*.sh ttmp/2026-03-29/scripts/*.py`
+  - `ttmp/2026-03-29/scripts/03-claude-export-preflight.sh`
+  - `ttmp/2026-03-29/scripts/05-claude-export-tool-summary.py`
+
+### Why
+
+The diary explains what happened, but scripts make the critical steps replayable. For this phase of the port, that matters most for source-format reconnaissance and smoke validation against real local data.
+
+### What worked
+
+- The preflight script confirmed the claude.ai export ZIP has the expected four members:
+  - `conversations.json`
+  - `users.json`
+  - `projects.json`
+  - `memories.json`
+- The tool-summary script confirmed the actual export contains:
+  - `93` text blocks
+  - `92` thinking blocks
+  - `92` `tool_use` blocks
+  - `92` `tool_result` blocks
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The claude.ai export available locally is structurally richer than the older Python adapter comments suggest: it includes real `id` and `tool_use_id` values, not just positional pairing with null IDs.
+- Preserving the exploration scripts early is cheaper than reconstructing them from memory later.
+
+### What was tricky to build
+
+The main subtlety was deciding what “retroactive” means in a useful way. I did not try to dump raw shell history. Instead, I turned the important steps into stable, named scripts with comments and fixed defaults so they can be rerun and reviewed.
+
+### What warrants a second pair of eyes
+
+- Whether we want to continue keeping all ticket scripts under a dated `ttmp/2026-03-29/scripts/` folder, or eventually consolidate them under a more formal ticket directory once the repo has a stricter doc/workflow convention.
+
+### What should be done in the future
+
+- Add numbered scripts for the actual ChatGPT and claude.ai conversion runs once those commands land.
+
+### Code review instructions
+
+- Start with:
+  - `ttmp/2026-03-29/scripts/00-README.md`
+  - `ttmp/2026-03-29/scripts/03-claude-export-preflight.sh`
+  - `ttmp/2026-03-29/scripts/05-claude-export-tool-summary.py`
+- Validate with:
+  - `ttmp/2026-03-29/scripts/03-claude-export-preflight.sh`
+  - `ttmp/2026-03-29/scripts/05-claude-export-tool-summary.py`
+
+### Technical details
+
+Representative preflight output:
+
+```text
+FILE: /home/manuel/Downloads/data-2026-03-29-11-53-11-batch-0000.zip
+Archive:  /home/manuel/Downloads/data-2026-03-29-11-53-11-batch-0000.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      168  2026-03-29 11:53   users.json
+  1173922  2026-03-29 11:53   projects.json
+     3003  2026-03-29 11:53   memories.json
+  2562404  1980-01-01 00:00   conversations.json
+```
 - The smoke test produced:
   - a root `manifest.json`
   - a period manifest under `active/YYYY-MM/manifest.json`
