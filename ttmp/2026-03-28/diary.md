@@ -429,3 +429,62 @@ What remains is parity hardening rather than missing support:
 - golden fixture tests against Python adapter outputs
 - possible canary checks / validator parity
 - polish on discover output if needed
+
+## Step 7: DuckDB Query Workflow For Converted Archives
+
+After the conversion paths were in place, the next practical gap was post-conversion analysis. The original Python repo ships a `queries/` folder, but those files query JSON directly with `read_json(...)` in every SQL file. That is simple, but it repeats the JSON scan every time you run a separate query.
+
+The user explicitly called out that cost for multi-query workflows. So instead of copying the original files verbatim, I added a query folder that keeps the same schema-on-read idea but changes the ergonomics:
+
+- load the archive once per DuckDB session,
+- materialize a temporary `sessions_base` table,
+- run multiple SQL files against that temp table.
+
+This preserves the no-ingest workflow while making repeated analysis cheaper inside one DuckDB session.
+
+### What I added
+
+- `queries/README.md`
+  - recommended DuckDB workflow
+  - one-shot and interactive usage
+- `queries/load.sql`
+  - creates `TEMP TABLE sessions_base AS SELECT * FROM read_json(...)`
+- representative query files:
+  - `queries/session-list.sql`
+  - `queries/framework-summary.sql`
+  - `queries/tool-operation-breakdown.sql`
+  - `queries/timing-analysis.sql`
+  - `queries/read-ratio-distribution.sql`
+  - `queries/annotations.sql`
+- `ttmp/2026-03-29/tasks.md`
+  - small task tracker for this slice
+- updated docs:
+  - `README.md`
+  - `pkg/doc/overview.md`
+
+### Why this shape
+
+This is a middle ground between:
+
+- the original Python-side "just run `read_json(...)` everywhere" model,
+- and a more elaborate import/index pipeline.
+
+For one-off queries, the original pattern is fine. For analyst workflows where several queries are run in sequence, loading once into a temp table is a better default.
+
+### Validation
+
+I tested the full workflow end to end:
+
+1. Generated a tiny Claude Code sample archive into `./output`
+2. Generated a tiny Codex sample archive into the same `./output`
+3. Opened one DuckDB session with `queries/load.sql`
+4. Ran:
+   - `queries/session-list.sql`
+   - `queries/framework-summary.sql`
+   - `queries/tool-operation-breakdown.sql`
+
+The smoke test loaded 2 sessions and returned the expected rows for both frameworks. After the test, the temporary `output/` directory was removed.
+
+### Query status after this step
+
+The repo now has a documented, tested answer for "how do I query converted minitraces?" without requiring a built-in Go query command yet.

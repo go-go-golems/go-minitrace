@@ -16,12 +16,12 @@ SectionType: GeneralTopic
 
 `go-minitrace` is the new Go repository for the minitrace port.
 
-The initial bootstrap focuses on:
+The current implementation focuses on:
 
 - a Glazed-based root CLI,
-- Claude Code discovery,
-- Codex discovery,
-- conversion command scaffolding for those two frameworks,
+- Claude Code discovery and conversion, including subagents,
+- Codex discovery and conversion,
+- DuckDB query recipes for converted archives,
 - basic JSON validation while the full schema validator is ported.
 
 The long-term source of truth for format semantics remains the Python/reference repo until the Go validator and converters reach parity.
