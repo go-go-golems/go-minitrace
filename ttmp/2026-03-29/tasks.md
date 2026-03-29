@@ -9,8 +9,9 @@
 - [x] Port Pi discovery and conversion support
 - [x] Validate Pi conversion against a real `~/.pi` session
 - [x] Preserve numbered repro scripts under `ttmp/2026-03-29/scripts/`
-- [ ] Port ChatGPT export conversion support
-- [ ] Port claude.ai export conversion support
-- [ ] Validate ZIP-export adapters against real export files
-- [ ] Update docs and diary for the new web-export adapters
-- [ ] Commit the export-adapter checkpoints
+- [x] Port ChatGPT export conversion support
+- [x] Port claude.ai export conversion support
+- [ ] Validate ChatGPT export conversion against a real export ZIP
+- [x] Validate claude.ai conversion against a real export ZIP
+- [x] Update docs and diary for the new web-export adapters
+- [ ] Commit the web-export adapter checkpoint

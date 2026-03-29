@@ -1,6 +1,6 @@
 # go-minitrace
 
-Glazed-based Go port of minitrace, focused first on Claude Code, Codex, and Pi session conversion.
+Glazed-based Go port of minitrace, focused first on Claude Code, Codex, Pi, claude.ai, and ChatGPT session conversion.
 
 ## What it does
 
@@ -9,6 +9,8 @@ Glazed-based Go port of minitrace, focused first on Claude Code, Codex, and Pi s
 - Converts Claude Code sessions into minitrace JSON archives, including dir-v1 tool-results sessions and subagent transcripts with parent backlinking
 - Converts Codex session JSONL and exec JSONL data into minitrace JSON archives
 - Converts Pi local JSONL sessions into minitrace JSON archives
+- Converts claude.ai privacy export ZIPs into minitrace JSON archives
+- Converts ChatGPT data export ZIPs into minitrace JSON archives
 - Ships DuckDB query recipes for converted archives under `queries/`
 - Includes a basic JSON validation command while full schema validation is ported
 - Keeps the repo focused on the Go implementation, separate from the Python/spec reference repo
@@ -40,6 +42,8 @@ go-minitrace discover pi --source-dir ~/.pi/agent/sessions
 go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./output
 go-minitrace convert codex --source-dir ~/.codex --output-dir ./output
 go-minitrace convert pi --source-dir ~/.pi/agent/sessions --output-dir ./output
+go-minitrace convert claude-ai --source ~/Downloads/data-2026-03-29-11-53-11-batch-0000.zip --output-dir ./output
+go-minitrace convert chatgpt --source ~/Downloads/chatgpt-export.zip --output-dir ./output
 go-minitrace validate --path /path/to/file-or-dir --recursive
 ```
 

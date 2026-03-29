@@ -18,4 +18,6 @@ Current coverage:
 
 - Pi discovery and real-session conversion
 - claude.ai export ZIP validation and inspection
+- claude.ai dry-run and filtered conversion
+- ChatGPT smoke harness using a non-export JSON source to prove it is not the right input shape
 - local download scanning for candidate ChatGPT and claude.ai exports

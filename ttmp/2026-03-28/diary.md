@@ -478,6 +478,207 @@ Archive:  /home/manuel/Downloads/data-2026-03-29-11-53-11-batch-0000.zip
      3003  2026-03-29 11:53   memories.json
   2562404  1980-01-01 00:00   conversations.json
 ```
+
+## Step 9: claude.ai Export Conversion Support
+
+Once the correct claude.ai privacy export ZIP was identified, the web-export path was straightforward to finish. The Go implementation now streams `conversations.json` directly from the ZIP, converts each conversation into a minitrace session, preserves tool metadata from the export blocks, and writes manifests just like the local-session adapters.
+
+The most important discovery here is that the real export on disk is slightly richer than the older Python adapter comments claim. In the local export, `tool_use` blocks have real IDs and `tool_result` blocks carry `tool_use_id`, so the Go port can pair results with the actual identifier while still preserving the positional fallback assumption from the reference adapter.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 7)
+
+**Assistant interpretation:** Continue from Pi into the claude.ai web-export path and validate it against the real local export ZIP.
+
+**Inferred user intent:** Get the Anthropic web export support working end-to-end, using real input data rather than only synthetic tests.
+
+### What I did
+
+- Added `pkg/adapters/claudeai/convert.go`.
+- Added tests in `pkg/adapters/claudeai/convert_test.go`.
+- Added the Glazed command:
+  - `cmd/go-minitrace/cmds/convert/claude_ai.go`
+- Registered the command in:
+  - `cmd/go-minitrace/cmds/convert/root.go`
+- Added reproducibility scripts:
+  - `ttmp/2026-03-29/scripts/07-claude-ai-convert-dry-run.sh`
+  - `ttmp/2026-03-29/scripts/08-claude-ai-convert-filtered.sh`
+- Ran:
+  - `go fmt ./...`
+  - `go test ./...`
+  - `go build ./...`
+  - `go run ./cmd/go-minitrace convert claude-ai --source /home/manuel/Downloads/data-2026-03-29-11-53-11-batch-0000.zip --dry-run --output json`
+  - `go run ./cmd/go-minitrace convert claude-ai --source /home/manuel/Downloads/data-2026-03-29-11-53-11-batch-0000.zip --uuid-filter 7756135a --output-dir /tmp/go-minitrace-claudeai-ImmTKk/output --output json`
+
+### Why
+
+claude.ai is one of the two requested web-export targets, and the repo now has a real export ZIP available locally. That makes it the right place to establish the ZIP-reader and web-conversation conversion pattern before handling ChatGPT.
+
+### What worked
+
+- The adapter handled the real export ZIP successfully.
+- Dry-run conversion processed all `11` conversations.
+- The filtered write run produced a real `.minitrace.json` session plus manifests.
+- The live export inspection showed:
+  - `93` text blocks
+  - `92` thinking blocks
+  - `92` `tool_use` blocks
+  - `92` `tool_result` blocks
+- Tool name coverage in the local export included:
+  - `view`
+  - `present_files`
+  - `create_file`
+  - `str_replace`
+  - `bash_tool`
+  - `visualize:read_me`
+  - `visualize:show_widget`
+
+### What didn't work
+
+- The older Python adapter comments say tool IDs are always null and pairing is purely positional. The real local export disproves that assumption. That mismatch was not a runtime failure, but it was an important correction during implementation.
+
+### What I learned
+
+- The real claude.ai export format is richer than the earlier notes:
+  - `tool_use.id` is present
+  - `tool_result.tool_use_id` is present
+  - MCP-related fields like `integration_name`, `is_mcp_app`, and `mcp_server_url` are present on tool blocks
+- It is still correct to preserve the “next block is the result” assumption as a fallback, because the content ordering is clearly paired in the export.
+
+### What was tricky to build
+
+The tricky part was deciding how faithful to be to the Python adapter versus the actual export. The reference implementation assumes positional pairing, while the local export provides real tool IDs. I resolved that by keeping the positional-next-block rule as the primary structural assumption, but validating and recording ID mismatches when a `tool_result.tool_use_id` is present and does not match the preceding `tool_use.id`.
+
+### What warrants a second pair of eyes
+
+- Whether `visualize:show_widget` and similar visualization-oriented tools should stay `OTHER` or receive a more opinionated operation mapping.
+- Whether `thinking` blocks should continue to be preserved on assistant turns in the Go adapter even though the older Python claude.ai adapter omitted them from the session output.
+
+### What should be done in the future
+
+- Add parity fixtures or golden comparisons for claude.ai once the Python and Go outputs are compared side by side.
+- Consider whether the claude.ai adapter should preserve more MCP block metadata in `framework_metadata`.
+
+### Code review instructions
+
+- Start with:
+  - `pkg/adapters/claudeai/convert.go`
+  - `pkg/adapters/claudeai/convert_test.go`
+  - `cmd/go-minitrace/cmds/convert/claude_ai.go`
+- Validate with:
+  - `go test ./...`
+  - `go build ./...`
+  - `ttmp/2026-03-29/scripts/07-claude-ai-convert-dry-run.sh`
+  - `ttmp/2026-03-29/scripts/08-claude-ai-convert-filtered.sh`
+
+### Technical details
+
+Representative dry-run output:
+
+```json
+[
+  {
+    "framework": "claude.ai",
+    "session_id": "9d9671be-1f1a-467b-bd02-9bec2907a983",
+    "quality": "A",
+    "tool_call_count": 15,
+    "turn_count": 7
+  },
+  {
+    "framework": "claude.ai",
+    "converted": 11,
+    "skipped_trivial": 0
+  }
+]
+```
+
+## Step 10: ChatGPT Export Conversion Support
+
+The ChatGPT export path is also implemented now, but local validation is weaker because there is not yet a confirmed full ChatGPT account export ZIP on disk. I still completed the converter and test coverage, then used a local non-export JSON file wrapped into a temporary ZIP to prove that the adapter correctly treats it as the wrong shape and skips everything rather than hallucinating structure.
+
+That is enough to land the feature behind a stable CLI surface, but not enough to call it fully field-validated. A real ChatGPT export ZIP with `conversations.json`, `chat.html`, `user.json`, `user_settings.json`, and `export_manifest.json` is still needed for final smoke validation.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 7)
+
+**Assistant interpretation:** Finish the second web-export target, even if the local machine does not currently have the proper ChatGPT export ZIP.
+
+**Inferred user intent:** Make the Go port structurally ready for ChatGPT exports now, and be explicit about any remaining validation gap.
+
+### What I did
+
+- Added `pkg/adapters/chatgpt/convert.go`.
+- Added tests in `pkg/adapters/chatgpt/convert_test.go`.
+- Added the Glazed command:
+  - `cmd/go-minitrace/cmds/convert/chatgpt.go`
+- Registered the command in:
+  - `cmd/go-minitrace/cmds/convert/root.go`
+- Added reproducibility script:
+  - `ttmp/2026-03-29/scripts/09-chatgpt-selected-json-smoke.py`
+- Ran:
+  - `go fmt ./...`
+  - `go test ./...`
+  - `go build ./...`
+  - `ttmp/2026-03-29/scripts/09-chatgpt-selected-json-smoke.py`
+
+### Why
+
+The user asked for both Pi and ChatGPT/claude.ai support. The ChatGPT adapter is simpler than claude.ai because it has no tool calls, but it has one unique complexity: tree linearization from `current_node` back through the `mapping` parent pointers.
+
+### What worked
+
+- The ChatGPT package tests passed.
+- The command compiled and wired into the CLI cleanly.
+- The temporary ZIP smoke harness returned:
+  - `converted = 0`
+  - `skipped_trivial = 2565`
+- That behavior is correct for the local `selected-conversations` JSON source because it is not a true ChatGPT export and contains no `mapping` / `current_node` tree.
+
+### What didn't work
+
+- No real ChatGPT export ZIP is currently available locally, so there is no end-to-end validation against the true export shape yet.
+
+### What I learned
+
+- The local `selected-conversations` JSON files are not substitutes for the full ChatGPT export. Their top-level objects contain report-like fields such as `channel_id`, `thread_ts`, and `workspace_id`, not the conversation tree fields the adapter expects.
+- The converter should fail soft on wrong-shape inputs where possible, skipping trivial/unusable entries instead of inventing conversation structure.
+
+### What was tricky to build
+
+The only real subtlety is the tree model. ChatGPT exports are not stored as a flat message array; they are stored as a `mapping` of nodes plus `current_node`. The adapter has to reconstruct the active branch by walking parent pointers backward and reversing the path, while skipping synthetic root/system artifact nodes and empty reasoning/code artifacts.
+
+### What warrants a second pair of eyes
+
+- Whether the current behavior on wrong-shape `conversations.json` payloads should remain “skip as trivial” or become a stronger validation error for obviously non-ChatGPT sources.
+- Whether we want to preserve additional per-conversation branch metadata beyond the current turn/model extraction once provenance schema support grows.
+
+### What should be done in the future
+
+- Validate the ChatGPT adapter against a real export ZIP from `Settings > Data controls > Export data`.
+- Add a dedicated preflight validator for export ZIP shape so users get a clearer error before conversion.
+
+### Code review instructions
+
+- Start with:
+  - `pkg/adapters/chatgpt/convert.go`
+  - `pkg/adapters/chatgpt/convert_test.go`
+  - `cmd/go-minitrace/cmds/convert/chatgpt.go`
+- Validate with:
+  - `go test ./...`
+  - `go build ./...`
+  - `ttmp/2026-03-29/scripts/09-chatgpt-selected-json-smoke.py`
+
+### Technical details
+
+Observed non-export local JSON shape:
+
+```text
+keys ['channel_id', 'channel_name', 'channel_type', 'date', 'manager_id', 'manager_ids', 'message_date', 'message_datetime', 'message_datetime_utc', 'message_id', 'message_type', 'reply_count', 'report_ids', 'text', 'thread_date', 'thread_datetime', 'thread_ts', 'timestamp', 'user_id', 'workspace_id']
+current_node None
+mapping type NoneType
+```
 - The smoke test produced:
   - a root `manifest.json`
   - a period manifest under `active/YYYY-MM/manifest.json`

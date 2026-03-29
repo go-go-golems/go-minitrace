@@ -25,7 +25,15 @@ the actual conversion engine is ported.`,
 	if err != nil {
 		return nil, err
 	}
+	claudeAICmd, err := NewClaudeAICommand()
+	if err != nil {
+		return nil, err
+	}
+	chatGPTCmd, err := NewChatGPTCommand()
+	if err != nil {
+		return nil, err
+	}
 
-	root.AddCommand(claudeCmd, codexCmd, piCmd)
+	root.AddCommand(claudeCmd, codexCmd, piCmd, claudeAICmd, chatGPTCmd)
 	return root, nil
 }
