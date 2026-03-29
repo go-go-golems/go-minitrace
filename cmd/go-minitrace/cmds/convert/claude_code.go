@@ -2,6 +2,7 @@ package convert
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -13,6 +14,8 @@ import (
 	"github.com/go-go-golems/glazed/pkg/types"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode"
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -38,13 +41,13 @@ func NewConvertClaudeCodeGlazeCommand() (*ConvertClaudeCodeCommand, error) {
 
 	desc := cmds.NewCommandDescription(
 		"claude-code",
-		cmds.WithShort("Plan Claude Code conversion"),
+		cmds.WithShort("Convert Claude Code sessions into minitrace"),
 		cmds.WithLong(`
-Bootstrap conversion command for Claude Code.
+Convert Claude Code sessions into minitrace JSON files.
 
-The current implementation performs source discovery and emits a structured
-summary row. Actual JSONL-to-minitrace conversion will be implemented next on
-top of the shared Go normalization and validator packages.
+The current implementation supports:
+  - Claude Code JSONL v2 transcripts
+  - Claude Code dir-v1 tool-results sessions
 
 Examples:
   go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./output
@@ -74,16 +77,58 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		return err
 	}
 
-	row := types.NewRow(
-		types.MRP("framework", "claude-code"),
-		types.MRP("source_dir", settings_.SourceDir),
-		types.MRP("output_dir", settings_.OutputDir),
-		types.MRP("dry_run", settings_.DryRun),
-		types.MRP("discovered_sessions", len(locators)),
-		types.MRP("implemented", false),
-		types.MRP("status", "conversion engine not implemented yet"),
-	)
-	return gp.AddRow(ctx, row)
+	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
+	for _, locator := range locators {
+		session, err := claudecode.ConvertLocator(locator)
+		if err != nil {
+			return errors.Wrapf(err, "converting Claude Code session %s", locator.ID)
+		}
+
+		var sessionPath string
+		if !settings_.DryRun {
+			entry, err := minitrace.WriteSession(session, settings_.OutputDir)
+			if err != nil {
+				return errors.Wrapf(err, "writing minitrace session %s", locator.ID)
+			}
+			indexEntries = append(indexEntries, entry)
+			sessionPath = entry.FilePath
+		}
+
+		quality := ""
+		if session.Quality != nil {
+			quality = *session.Quality
+		}
+		row := types.NewRow(
+			types.MRP("framework", "claude-code"),
+			types.MRP("session_id", session.ID),
+			types.MRP("source_format", locator.FormatHint),
+			types.MRP("source_path", locator.SourcePath),
+			types.MRP("turn_count", session.Metrics.TurnCount),
+			types.MRP("tool_call_count", session.Metrics.ToolCallCount),
+			types.MRP("quality", quality),
+			types.MRP("classification", session.Classification),
+			types.MRP("dry_run", settings_.DryRun),
+			types.MRP("session_path", sessionPath),
+		)
+		if err := gp.AddRow(ctx, row); err != nil {
+			return err
+		}
+	}
+
+	if !settings_.DryRun {
+		if err := minitrace.WriteManifests(indexEntries, settings_.OutputDir); err != nil {
+			return errors.Wrap(err, "writing Claude Code manifests")
+		}
+		manifestRow := types.NewRow(
+			types.MRP("framework", "claude-code"),
+			types.MRP("manifest_path", filepath.Join(settings_.OutputDir, "manifest.json")),
+			types.MRP("session_count", len(indexEntries)),
+			types.MRP("dry_run", false),
+		)
+		return gp.AddRow(ctx, manifestRow)
+	}
+
+	return nil
 }
 
 func NewClaudeCodeCommand() (*cobra.Command, error) {

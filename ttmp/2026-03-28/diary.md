@@ -224,3 +224,69 @@ Ran successfully:
 - Wire Claude Code conversion onto `pkg/minitrace`
 - Wire Codex conversion onto `pkg/minitrace`
 - Add golden parity fixtures against the Python adapters
+
+## Step 4: First Real Claude Code Converter
+
+The next checkpoint turned `convert claude-code` from a planning stub into a working converter. I stayed scoped to Claude Code first because it is one of the two priority adapters and because its native transcript format is structured enough to validate the shared minitrace package under real use.
+
+This implementation supports the two Claude Code source shapes already documented in the Python reference:
+
+- JSONL v2 transcripts
+- dir-v1 sessions with `tool-results/` but no full conversation transcript
+
+Subagent linking is not implemented yet. The converter does detect delegation calls and fills `spawned_agent` on the parent tool call, but it does not yet walk child subagent transcripts and backfill `sub_session_id`.
+
+### What I added
+
+- `pkg/adapters/claudecode/convert.go`
+  - JSONL parsing
+  - Claude-specific operation classification
+  - Claude-specific `source`, `input_channel`, and `content_origin` mapping
+  - tool-use / tool-result matching
+  - orphan tool-call annotation when a result never arrives
+  - dir-v1 reconstruction from `tool-results/*.txt`
+- `pkg/minitrace/archive.go`
+  - session writer for `.minitrace.json`
+  - root and period manifest generation
+- `cmd/go-minitrace/cmds/convert/claude_code.go`
+  - now writes actual converted sessions instead of a planning row
+  - writes manifests when not in `--dry-run`
+- `pkg/adapters/claudecode/convert_test.go`
+  - converter test for successful tool-result matching
+  - converter test for orphan tool-call annotation
+
+### What worked
+
+- `go run ./cmd/go-minitrace convert claude-code ...` now emits real session rows and writes actual archive files.
+- The smoke test produced:
+  - a root `manifest.json`
+  - a period manifest under `active/YYYY-MM/manifest.json`
+  - a session file under `active/YYYY-MM/<session-id>.minitrace.json`
+- The emitted session included:
+  - normalized paths
+  - Claude model and agent version
+  - token totals
+  - tool-call provenance
+  - quality tier
+
+### Validation
+
+Ran successfully:
+
+- `go fmt ./...`
+- `go test ./...`
+- `go build ./...`
+
+Also ran an end-to-end smoke conversion with a synthetic Claude JSONL fixture and inspected the resulting manifest and session JSON output.
+
+### Known limitations after this step
+
+- No subagent transcript capture or parent-child linking yet
+- No archive writer usage from the Codex path yet
+- No parity tests against real Python adapter fixtures yet
+
+### What should happen next
+
+- Port Codex conversion on top of the same archive path
+- Add fixture-based parity checks for Claude Code
+- Add subagent linking for Claude Code
