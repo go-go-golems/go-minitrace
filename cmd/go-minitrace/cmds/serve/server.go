@@ -60,6 +60,7 @@ func NewServer(conn *sql.Conn, settings *ServeSettings, sessionIndex map[string]
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/sessions", s.handleGetSessions)
 	s.mux.HandleFunc("GET /api/sessions/{id}", s.handleGetSession)
+	s.mux.HandleFunc("GET /api/sessions/{id}/blocks", s.handleGetSessionBlocks)
 	s.mux.HandleFunc("POST /api/query", s.handleExecuteQuery)
 }
 

@@ -120,22 +120,6 @@ type BlockArtifacts struct {
 	DiaryWrites    int      `json:"diary_writes"`
 }
 
-type rawBlockTurn struct {
-	Turn        TurnResponse
-	ToolCallIDs []string
-}
-
-type rawSessionBlock struct {
-	BlockNum    int
-	UserTurnIdx int
-	UserTs      string
-	UserContent string
-	AgentTurns  int
-	ToolCalls   int
-	GapMinutes  *float64
-	Turns       []rawBlockTurn
-}
-
 func (s *Server) handleGetSessions(w http.ResponseWriter, r *http.Request) {
 	sqlText, err := buildSessionListSQL(s.tableName)
 	if err != nil {
@@ -228,6 +212,27 @@ func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, normalizeSessionDetail(session))
 }
 
+func (s *Server) handleGetSessionBlocks(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	session, err := loadSessionByID(s.sessionIndex, sessionID)
+	if err != nil {
+		if isSessionNotFound(err) {
+			http.NotFound(w, r)
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, QueryResponse{
+			Columns:    []string{},
+			Rows:       []map[string]any{},
+			DurationMS: 0,
+			RowCount:   0,
+			Error:      &QueryError{Message: err.Error()},
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, buildSessionBlocks(session))
+}
+
 func buildSessionListSQL(tableName string) (string, error) {
 	if err := queryengine.ValidateIdentifier(tableName); err != nil {
 		return "", err
@@ -298,88 +303,6 @@ func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
 	}
 }
 
-func buildSessionBlocks(session minitrace.Session) []SessionBlock {
-	tcByID := make(map[string]minitrace.ToolCall, len(session.ToolCalls))
-	for _, toolCall := range session.ToolCalls {
-		tcByID[toolCall.ID] = toolCall
-	}
-
-	rawBlocks := make([]rawSessionBlock, 0)
-	var current *rawSessionBlock
-
-	for _, turn := range session.Turns {
-		if turn.Role == "user" {
-			if current != nil {
-				rawBlocks = append(rawBlocks, *current)
-			}
-			current = &rawSessionBlock{
-				BlockNum:    len(rawBlocks) + 1,
-				UserTurnIdx: turn.Index,
-				UserTs:      stringValue(turn.Timestamp),
-				UserContent: turn.Content,
-			}
-		}
-		if current == nil {
-			current = &rawSessionBlock{
-				BlockNum:    1,
-				UserTurnIdx: -1,
-				UserTs:      stringValue(turn.Timestamp),
-				UserContent: "",
-			}
-		}
-
-		rawTurn := rawBlockTurn{
-			Turn:        normalizeTurn(turn, tcByID),
-			ToolCallIDs: append([]string(nil), turn.ToolCallsInTurn...),
-		}
-		current.Turns = append(current.Turns, rawTurn)
-		if turn.Role != "user" {
-			current.AgentTurns++
-		}
-		current.ToolCalls += len(turn.ToolCallsInTurn)
-	}
-
-	if current != nil {
-		rawBlocks = append(rawBlocks, *current)
-	}
-
-	for i := 1; i < len(rawBlocks); i++ {
-		prev, okPrev := minitrace.ParseTimestamp(rawBlocks[i-1].UserTs)
-		curr, okCurr := minitrace.ParseTimestamp(rawBlocks[i].UserTs)
-		if okPrev && okCurr {
-			gap := curr.Sub(prev).Minutes()
-			rawBlocks[i].GapMinutes = &gap
-		}
-	}
-
-	blocks := make([]SessionBlock, 0, len(rawBlocks))
-	for _, rawBlock := range rawBlocks {
-		turns := make([]TurnResponse, 0, len(rawBlock.Turns))
-		for _, rawTurn := range rawBlock.Turns {
-			turns = append(turns, rawTurn.Turn)
-		}
-
-		blocks = append(blocks, SessionBlock{
-			BlockNum:    rawBlock.BlockNum,
-			UserTurnIdx: rawBlock.UserTurnIdx,
-			UserTs:      rawBlock.UserTs,
-			UserContent: rawBlock.UserContent,
-			AgentTurns:  rawBlock.AgentTurns,
-			ToolCalls:   rawBlock.ToolCalls,
-			GapMinutes:  rawBlock.GapMinutes,
-			Turns:       turns,
-			Artifacts: BlockArtifacts{
-				Commits:        []string{},
-				TicketsCreated: []string{},
-				DocsAdded:      []string{},
-				DiaryWrites:    0,
-			},
-		})
-	}
-
-	return blocks
-}
-
 func normalizeTurn(turn minitrace.Turn, tcByID map[string]minitrace.ToolCall) TurnResponse {
 	toolCalls := make([]ToolCallResponse, 0, len(turn.ToolCallsInTurn))
 	for _, toolCallID := range turn.ToolCallsInTurn {
@@ -418,7 +341,7 @@ func normalizeToolCall(toolCall minitrace.ToolCall) ToolCallResponse {
 			DurationMs: intValue(toolCall.Output.DurationMS),
 			Truncated:  toolCall.Output.Truncated,
 		},
-		Badges: []BadgeType{},
+		Badges: DetectBadges(toolCall),
 	}
 }
 

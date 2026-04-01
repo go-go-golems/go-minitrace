@@ -212,6 +212,9 @@ func TestHandleGetSessionReturnsDetailWithBlocks(t *testing.T) {
 	if payload.Blocks[0].ToolCalls != 1 {
 		t.Fatalf("expected 1 tool call in block, got %d", payload.Blocks[0].ToolCalls)
 	}
+	if payload.Blocks[0].Artifacts.Commits[0] != "feat: fixture" {
+		t.Fatalf("expected commit artifact, got %#v", payload.Blocks[0].Artifacts.Commits)
+	}
 	if len(payload.Blocks[0].Turns) != 2 {
 		t.Fatalf("expected 2 turns in block, got %d", len(payload.Blocks[0].Turns))
 	}
@@ -220,6 +223,55 @@ func TestHandleGetSessionReturnsDetailWithBlocks(t *testing.T) {
 	}
 	if payload.Blocks[0].Turns[1].ToolCallsInTurn[0].ToolName != "exec_command" {
 		t.Fatalf("unexpected tool name %q", payload.Blocks[0].Turns[1].ToolCallsInTurn[0].ToolName)
+	}
+	if payload.Blocks[0].Turns[1].ToolCallsInTurn[0].Badges[0] != BadgeCommit {
+		t.Fatalf("expected commit badge, got %#v", payload.Blocks[0].Turns[1].ToolCallsInTurn[0].Badges)
+	}
+}
+
+func TestHandleGetSessionBlocksReturnsGapsAndArtifacts(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildTwoBlockSession(t, "phase3-blocks")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	index, err := buildSessionIndex(filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	if err != nil {
+		t.Fatalf("buildSessionIndex returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index)
+	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase3-blocks/blocks", nil)
+	request.SetPathValue("id", "phase3-blocks")
+	response := httptest.NewRecorder()
+
+	server.handleGetSessionBlocks(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload []SessionBlock
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshaling blocks: %v", err)
+	}
+	if len(payload) != 2 {
+		t.Fatalf("expected 2 blocks, got %d", len(payload))
+	}
+	if payload[0].Artifacts.DiaryWrites != 1 {
+		t.Fatalf("expected 1 diary write, got %d", payload[0].Artifacts.DiaryWrites)
+	}
+	if payload[1].GapMinutes == nil || *payload[1].GapMinutes < 9.9 || *payload[1].GapMinutes > 10.1 {
+		t.Fatalf("expected ~10 minute gap, got %+v", payload[1].GapMinutes)
 	}
 }
 
@@ -240,7 +292,7 @@ func buildFixtureSession(t *testing.T, sessionID string) *minitrace.Session {
 		"execute",
 		nil,
 		nil,
-		map[string]any{"cmd": "pwd"},
+		map[string]any{"cmd": `git commit -m "feat: fixture"`},
 		true,
 		"/tmp/project\n",
 		nil,
@@ -294,4 +346,60 @@ func intPtr(value int) *int {
 
 func toolCallID(sessionID string) string {
 	return sessionID + "-tool-1"
+}
+
+func buildTwoBlockSession(t *testing.T, sessionID string) *minitrace.Session {
+	t.Helper()
+
+	ts1 := time.Date(2026, 4, 1, 9, 30, 0, 0, time.UTC)
+	ts2 := ts1.Add(10 * time.Minute)
+	userSource := "human"
+	assistantSource := "agent"
+
+	ts1Formatted := minitrace.FormatTimestamp(ts1)
+	ts2Formatted := minitrace.FormatTimestamp(ts2)
+	durationMS := 5
+	diaryPath := "/tmp/project/ttmp/2026/04/01/reference/01-diary.md"
+
+	diaryToolCall := minitrace.BuildToolCall(
+		sessionID+"-diary-tool",
+		intPtr(1),
+		&ts1Formatted,
+		"apply_patch",
+		"modify",
+		&diaryPath,
+		nil,
+		map[string]any{"cmd": "apply_patch diary"},
+		true,
+		"updated diary",
+		nil,
+		&durationMS,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+
+	session := minitrace.BuildSessionSkeleton(sessionID, "codex", "fixture", "test")
+	session.Title = stringPtr("Two Block Fixture")
+	session.Turns = []minitrace.Turn{
+		minitrace.BuildTurn(0, &ts1Formatted, "user", &userSource, "first request"),
+		{
+			Index:             1,
+			Timestamp:         &ts1Formatted,
+			Role:              "assistant",
+			Source:            &assistantSource,
+			Content:           "wrote the diary",
+			ToolCallsInTurn:   []string{diaryToolCall.ID},
+			Streaming:         minitrace.Streaming{},
+			FrameworkMetadata: nil,
+		},
+		minitrace.BuildTurn(2, &ts2Formatted, "user", &userSource, "second request"),
+	}
+	session.ToolCalls = []minitrace.ToolCall{diaryToolCall}
+	session.Timing = minitrace.ComputeTiming([]time.Time{ts1, ts2})
+	quality := minitrace.AssignQualityTier(session.Turns, session.ToolCalls)
+	session.Quality = &quality
+	session.Metrics = minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, 0, nil)
+	return &session
 }
