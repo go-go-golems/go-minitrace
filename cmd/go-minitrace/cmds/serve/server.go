@@ -22,8 +22,8 @@ import (
 type Server struct {
 	conn         *sql.Conn
 	tableName    string
-	presetDir    string
-	queryDir     string
+	presetDirs   []string
+	queryDirs    []string
 	sessionIndex map[string]string
 	devMode      bool
 	mux          *http.ServeMux
@@ -49,8 +49,8 @@ func NewServer(conn *sql.Conn, settings *ServeSettings, sessionIndex map[string]
 	s := &Server{
 		conn:         conn,
 		tableName:    settings.TableName,
-		presetDir:    settings.PresetDir,
-		queryDir:     settings.QueryDir,
+		presetDirs:   normalizeDirList(settings.PresetDir),
+		queryDirs:    normalizeDirList(settings.QueryDir),
 		sessionIndex: sessionIndex,
 		devMode:      settings.DevMode,
 	}
@@ -256,6 +256,27 @@ func decodeRequest(r *http.Request, dest any) error {
 		return errors.Wrap(err, "decoding request body")
 	}
 	return nil
+}
+
+func normalizeDirList(dirs []string) []string {
+	if len(dirs) == 0 {
+		return []string{}
+	}
+
+	ret := make([]string, 0, len(dirs))
+	seen := make(map[string]struct{}, len(dirs))
+	for _, dir := range dirs {
+		dir = strings.TrimSpace(dir)
+		if dir == "" {
+			continue
+		}
+		if _, ok := seen[dir]; ok {
+			continue
+		}
+		seen[dir] = struct{}{}
+		ret = append(ret, dir)
+	}
+	return ret
 }
 
 func spaHandler(fsys fs.FS) http.Handler {

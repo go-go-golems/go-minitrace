@@ -26,13 +26,13 @@ type ServeCommand struct {
 }
 
 type ServeSettings struct {
-	ArchiveGlob string `glazed:"archive-glob"`
-	PresetDir   string `glazed:"preset-dir"`
-	QueryDir    string `glazed:"query-dir"`
-	Port        int    `glazed:"port"`
-	DBPath      string `glazed:"db-path"`
-	TableName   string `glazed:"table-name"`
-	DevMode     bool   `glazed:"dev"`
+	ArchiveGlob string   `glazed:"archive-glob"`
+	PresetDir   []string `glazed:"preset-dir"`
+	QueryDir    []string `glazed:"query-dir"`
+	Port        int      `glazed:"port"`
+	DBPath      string   `glazed:"db-path"`
+	TableName   string   `glazed:"table-name"`
+	DevMode     bool     `glazed:"dev"`
 }
 
 func NewGlazeCommand() (*ServeCommand, error) {
@@ -60,11 +60,14 @@ Examples:
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' --port 8090
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' --dev
+  go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' \
+    --preset-dir ./presets/team --preset-dir ./presets/project \
+    --query-dir ./queries/shared --query-dir ./queries/private
 `),
 		cmds.WithFlags(
 			fields.New("archive-glob", fields.TypeString, fields.WithDefault("./output/active/*/*.minitrace.json"), fields.WithHelp("Glob pattern for converted minitrace session files to load")),
-			fields.New("preset-dir", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Optional directory containing additional read-only SQL presets")),
-			fields.New("query-dir", fields.TypeString, fields.WithDefault("./queries"), fields.WithHelp("Directory used for user-saved SQL queries")),
+			fields.New("preset-dir", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Repeatable directory flag for additional read-only SQL preset roots")),
+			fields.New("query-dir", fields.TypeStringList, fields.WithDefault([]string{"./queries"}), fields.WithHelp("Repeatable directory flag for user-saved SQL query roots; new queries are created in the first root")),
 			fields.New("port", fields.TypeInteger, fields.WithDefault(8080), fields.WithHelp("HTTP listen port")),
 			fields.New("db-path", fields.TypeString, fields.WithDefault(":memory:"), fields.WithHelp("DuckDB database path; :memory: keeps the server ephemeral")),
 			fields.New("table-name", fields.TypeString, fields.WithDefault("sessions_base"), fields.WithHelp("DuckDB table name to create from the loaded archive")),

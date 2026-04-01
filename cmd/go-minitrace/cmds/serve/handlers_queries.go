@@ -58,8 +58,8 @@ func (s *Server) handleGetPresets(w http.ResponseWriter, _ *http.Request) {
 		})
 	}
 
-	if strings.TrimSpace(s.presetDir) != "" {
-		externalPresets, err := loadSQLDir(s.presetDir, true)
+	if len(s.presetDirs) > 0 {
+		externalPresets, err := loadSQLDirs(s.presetDirs, true)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, QueryResponse{
 				Columns:    []string{},
@@ -77,7 +77,7 @@ func (s *Server) handleGetPresets(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleGetQueries(w http.ResponseWriter, _ *http.Request) {
-	queries, err := loadSQLDir(s.queryDir, false)
+	queries, err := loadSQLDirs(s.queryDirs, false)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
@@ -114,7 +114,19 @@ func (s *Server) handleSaveQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	relativePath, absolutePath, err := buildQueryCreatePath(s.queryDir, req.Folder, req.Name)
+	baseDir, err := firstQueryDir(s.queryDirs)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, QueryResponse{
+			Columns:    []string{},
+			Rows:       []map[string]any{},
+			DurationMS: 0,
+			RowCount:   0,
+			Error:      &QueryError{Message: err.Error()},
+		})
+		return
+	}
+
+	relativePath, absolutePath, err := buildQueryCreatePath(baseDir, req.Folder, req.Name)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, QueryResponse{
 			Columns:    []string{},
@@ -148,7 +160,7 @@ func (s *Server) handleSaveQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, err := loadSingleSQLFile(s.queryDir, relativePath, false)
+	query, err := loadSingleSQLFile(baseDir, relativePath, false)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
@@ -186,20 +198,10 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	absolutePath, cleanRelativePath, err := safeQueryPath(s.queryDir, relativePath)
+	baseDir, absolutePath, cleanRelativePath, err := findExistingQueryPath(s.queryDirs, relativePath)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, QueryResponse{
-			Columns:    []string{},
-			Rows:       []map[string]any{},
-			DurationMS: 0,
-			RowCount:   0,
-			Error:      &QueryError{Message: err.Error()},
-		})
-		return
-	}
-	if _, err := os.Stat(absolutePath); err != nil {
-		status := http.StatusInternalServerError
-		message := errors.Wrap(err, "stating query file").Error()
+		status := http.StatusBadRequest
+		message := err.Error()
 		if errors.Is(err, os.ErrNotExist) {
 			status = http.StatusNotFound
 			message = "query not found"
@@ -226,7 +228,7 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, err := loadSingleSQLFile(s.queryDir, cleanRelativePath, false)
+	query, err := loadSingleSQLFile(baseDir, cleanRelativePath, false)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
@@ -241,14 +243,20 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteQuery(w http.ResponseWriter, r *http.Request) {
-	absolutePath, _, err := safeQueryPath(s.queryDir, r.PathValue("path"))
+	_, absolutePath, _, err := findExistingQueryPath(s.queryDirs, r.PathValue("path"))
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, QueryResponse{
+		status := http.StatusBadRequest
+		message := err.Error()
+		if errors.Is(err, os.ErrNotExist) {
+			status = http.StatusNotFound
+			message = "query not found"
+		}
+		writeJSON(w, status, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
 			DurationMS: 0,
 			RowCount:   0,
-			Error:      &QueryError{Message: err.Error()},
+			Error:      &QueryError{Message: message},
 		})
 		return
 	}
@@ -269,6 +277,62 @@ func (s *Server) handleDeleteQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func firstQueryDir(queryDirs []string) (string, error) {
+	if len(queryDirs) == 0 {
+		return "", errors.New("query-dir is not configured")
+	}
+	return queryDirs[0], nil
+}
+
+func findExistingQueryPath(queryDirs []string, relativePath string) (string, string, string, error) {
+	if len(queryDirs) == 0 {
+		return "", "", "", errors.New("query-dir is not configured")
+	}
+
+	cleanPath, err := cleanRelativePath(relativePath)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	for _, queryDir := range queryDirs {
+		absolutePath, cleanRelativePath, err := safeQueryPath(queryDir, cleanPath)
+		if err != nil {
+			return "", "", "", err
+		}
+		if _, err := os.Stat(absolutePath); err == nil {
+			return queryDir, absolutePath, cleanRelativePath, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", "", "", errors.Wrap(err, "stating query file")
+		}
+	}
+
+	return "", "", cleanPath, os.ErrNotExist
+}
+
+func loadSQLDirs(dirs []string, readonly bool) ([]SavedQuery, error) {
+	queries := make([]SavedQuery, 0)
+	seen := make(map[string]struct{})
+
+	for _, dir := range dirs {
+		dirQueries, err := loadSQLDir(dir, readonly)
+		if err != nil {
+			return nil, err
+		}
+		for _, query := range dirQueries {
+			if _, ok := seen[query.Path]; ok {
+				continue
+			}
+			seen[query.Path] = struct{}{}
+			queries = append(queries, query)
+		}
+	}
+
+	sort.Slice(queries, func(i, j int) bool {
+		return queries[i].Path < queries[j].Path
+	})
+	return queries, nil
 }
 
 func loadSQLDir(dir string, readonly bool) ([]SavedQuery, error) {

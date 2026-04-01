@@ -278,14 +278,21 @@ func TestHandleGetSessionBlocksReturnsGapsAndArtifacts(t *testing.T) {
 }
 
 func TestHandleGetPresetsReturnsBuiltInAndExternalQueries(t *testing.T) {
-	presetDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(presetDir, "custom.sql"), []byte("-- custom preset\nSELECT 1;"), 0o644); err != nil {
+	presetDir1 := t.TempDir()
+	presetDir2 := t.TempDir()
+	if err := os.WriteFile(filepath.Join(presetDir1, "custom.sql"), []byte("-- custom preset\nSELECT 1;"), 0o644); err != nil {
 		t.Fatalf("writing custom preset: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(presetDir2, "analysis"), 0o755); err != nil {
+		t.Fatalf("creating nested preset dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(presetDir2, "analysis", "extra.sql"), []byte("-- extra preset\nSELECT 2;"), 0o644); err != nil {
+		t.Fatalf("writing extra preset: %v", err)
 	}
 
 	server := NewServer(nil, &ServeSettings{
 		TableName: "sessions_base",
-		PresetDir: presetDir,
+		PresetDir: []string{presetDir1, presetDir2},
 	}, map[string]string{})
 	request := httptest.NewRequest(http.MethodGet, "/api/presets", nil)
 	response := httptest.NewRecorder()
@@ -305,12 +312,16 @@ func TestHandleGetPresetsReturnsBuiltInAndExternalQueries(t *testing.T) {
 	}
 	foundBuiltIn := false
 	foundCustom := false
+	foundExtra := false
 	for _, query := range payload {
 		if query.Name == "session-list" && query.Folder == "core" && query.Readonly {
 			foundBuiltIn = true
 		}
 		if query.Name == "custom" && query.Description == "custom preset" && query.Readonly {
 			foundCustom = true
+		}
+		if query.Path == "analysis/extra.sql" && query.Description == "extra preset" && query.Readonly {
+			foundExtra = true
 		}
 	}
 	if !foundBuiltIn {
@@ -319,13 +330,23 @@ func TestHandleGetPresetsReturnsBuiltInAndExternalQueries(t *testing.T) {
 	if !foundCustom {
 		t.Fatalf("expected custom external preset in %#v", payload)
 	}
+	if !foundExtra {
+		t.Fatalf("expected extra external preset in %#v", payload)
+	}
 }
 
 func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
-	queryDir := t.TempDir()
+	queryDir1 := t.TempDir()
+	queryDir2 := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(queryDir2, "shared"), 0o755); err != nil {
+		t.Fatalf("creating second query dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(queryDir2, "shared", "team.sql"), []byte("-- team query\nSELECT 9;"), 0o644); err != nil {
+		t.Fatalf("writing second-root query: %v", err)
+	}
 	server := NewServer(nil, &ServeSettings{
 		TableName: "sessions_base",
-		QueryDir:  queryDir,
+		QueryDir:  []string{queryDir1, queryDir2},
 	}, map[string]string{})
 
 	saveRequest := httptest.NewRequest(http.MethodPost, "/api/queries", strings.NewReader(`{"name":"wesen-os-filter","folder":"saved/analysis","description":"saved query","sql":"SELECT 1;"}`))
@@ -350,6 +371,23 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	if getResponse.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d with body %s", getResponse.Code, getResponse.Body.String())
 	}
+	var queries []SavedQuery
+	if err := json.Unmarshal(getResponse.Body.Bytes(), &queries); err != nil {
+		t.Fatalf("unmarshaling queries: %v", err)
+	}
+	foundSaved := false
+	foundSecondRoot := false
+	for _, query := range queries {
+		if query.Path == "saved/analysis/wesen-os-filter.sql" {
+			foundSaved = true
+		}
+		if query.Path == "shared/team.sql" && query.Description == "team query" {
+			foundSecondRoot = true
+		}
+	}
+	if !foundSaved || !foundSecondRoot {
+		t.Fatalf("expected queries from both roots, got %#v", queries)
+	}
 
 	updateRequest := httptest.NewRequest(http.MethodPut, "/api/queries/saved/analysis/wesen-os-filter.sql", strings.NewReader(`{"description":"updated query","sql":"SELECT 2;"}`))
 	updateRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
@@ -357,6 +395,14 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	server.handleUpdateQuery(updateResponse, updateRequest)
 	if updateResponse.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d with body %s", updateResponse.Code, updateResponse.Body.String())
+	}
+
+	updateSecondRootRequest := httptest.NewRequest(http.MethodPut, "/api/queries/shared/team.sql", strings.NewReader(`{"description":"updated team query","sql":"SELECT 10;"}`))
+	updateSecondRootRequest.SetPathValue("path", "shared/team.sql")
+	updateSecondRootResponse := httptest.NewRecorder()
+	server.handleUpdateQuery(updateSecondRootResponse, updateSecondRootRequest)
+	if updateSecondRootResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200 for second-root update, got %d with body %s", updateSecondRootResponse.Code, updateSecondRootResponse.Body.String())
 	}
 
 	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/queries/saved/analysis/wesen-os-filter.sql", nil)
@@ -372,6 +418,17 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	server.handleSaveQuery(traversalResponse, traversalRequest)
 	if traversalResponse.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for traversal, got %d with body %s", traversalResponse.Code, traversalResponse.Body.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(queryDir1, "saved", "analysis", "wesen-os-filter.sql")); !os.IsNotExist(err) {
+		t.Fatalf("expected saved query to be deleted from first root, stat err=%v", err)
+	}
+	secondRootContent, err := os.ReadFile(filepath.Join(queryDir2, "shared", "team.sql"))
+	if err != nil {
+		t.Fatalf("reading updated second-root query: %v", err)
+	}
+	if !strings.Contains(string(secondRootContent), "updated team query") {
+		t.Fatalf("expected second-root file to be updated, got %q", string(secondRootContent))
 	}
 }
 
