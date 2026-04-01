@@ -15,9 +15,9 @@
 - [x] Phase 1: add serve command package and register go-minitrace serve in the root CLI
 - [x] Phase 1: build a startup session index from --archive-glob and thread it into the server
 - [x] Phase 1: implement server skeleton plus POST /api/query with structured 200/400 JSON responses
-- [ ] Phase 2: implement GET /api/sessions using DuckDB plus explicit DTO normalization for frontend types
-- [ ] Phase 2: implement GET /api/sessions/{id} by loading converted .minitrace.json files from the startup index
-- [ ] Phase 2: return computed blocks inline from GET /api/sessions/{id} to match the current React app contract
+- [x] Phase 2: implement GET /api/sessions using DuckDB plus explicit DTO normalization for frontend types
+- [x] Phase 2: implement GET /api/sessions/{id} by loading converted .minitrace.json files from the startup index
+- [x] Phase 2: return computed blocks inline from GET /api/sessions/{id} to match the current React app contract
 - [ ] Phase 3: implement block decomposition with internal raw block types and stable gap calculations
 - [ ] Phase 3: implement badge and artifact detection before DTO conversion and add optional GET /api/sessions/{id}/blocks
 - [ ] Phase 4: implement GET /api/presets by merging built-in presets with --preset-dir using sidebar-friendly folders

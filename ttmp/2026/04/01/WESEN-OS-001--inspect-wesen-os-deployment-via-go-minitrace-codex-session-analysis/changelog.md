@@ -81,3 +81,14 @@ Step 10: implemented Phase 1 of go-minitrace serve with a Glazed bare command, s
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 1 tests
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/main.go — Serve command registration
 
+
+## 2026-04-01
+
+Step 11: implemented Phase 2 of go-minitrace serve with normalized session DTOs, GET /api/sessions, and GET /api/sessions/{id} returning inline blocks (commit c969a59).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go — Phase 2 session endpoints and DTOs
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Phase 2 route updates
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 2 tests
+

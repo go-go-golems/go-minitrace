@@ -12,12 +12,18 @@ DocType: reference
 Intent: Maintain a step-by-step implementation diary for the go-minitrace serve backend, including commands run, failures hit, commits made, and review guidance.
 Owners: []
 RelatedFiles:
+    - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
+      Note: Phase 2 DTO normalization and session list/detail handlers (commit c969a59)
     - Path: cmd/go-minitrace/cmds/serve/serve.go
       Note: Phase 1 Glazed bare command and settings wiring (commit f509c77)
     - Path: cmd/go-minitrace/cmds/serve/server.go
-      Note: Phase 1 server skeleton
+      Note: |-
+        Phase 1 server skeleton
+        Phase 2 route registration updates (commit c969a59)
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
-      Note: Phase 1 focused server tests (commit f509c77)
+      Note: |-
+        Phase 1 focused server tests (commit f509c77)
+        Phase 2 endpoint and fixture coverage (commit c969a59)
     - Path: cmd/go-minitrace/main.go
       Note: Registered the serve command in the CLI root (commit f509c77)
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
@@ -30,6 +36,7 @@ LastUpdated: 2026-04-01T00:00:00Z
 WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
 WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
+
 
 
 
@@ -585,5 +592,96 @@ This phase intentionally stopped at the smallest meaningful vertical slice: load
   - `cmd/go-minitrace/cmds/serve/server_test.go`
 - Updated file:
   - `cmd/go-minitrace/main.go`
+
+---
+
+## Step 11: Phase 2 implementation of session DTOs plus list/detail endpoints
+
+The second code slice turned the backend from “DuckDB query server” into “actual transcript explorer backend.” I added the API DTO layer, `GET /api/sessions`, and `GET /api/sessions/{id}` with blocks embedded inline so the current React app can render the session browser and transcript view against live backend data instead of mocks.
+
+The important architectural choice here was to keep the frontend contract separate from the raw `pkg/minitrace` structs. The backend schema is pointer-heavy and shaped for archival fidelity; the frontend needs normalized required strings, numbers, and prejoined tool-call objects. This phase added that translation layer.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue the backend implementation with the concrete endpoints the frontend currently needs, while keeping the diary precise about what changed and what went wrong during validation.
+
+**Inferred user intent:** Make the transcript explorer actually consumable by the shipped React app, not just by curl.
+
+**Commit (code):** `c969a59` — "feat(serve): add session list and detail endpoints"
+
+### What I did
+- Added `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+  - session summary/detail DTOs
+  - timing/metrics/environment/provenance normalization helpers
+  - turn/tool-call normalization
+  - `GET /api/sessions`
+  - `GET /api/sessions/{id}`
+  - block building with user-boundary grouping and inline `blocks`
+- Updated `cmd/go-minitrace/cmds/serve/server.go` routes to register the two session endpoints
+- Extended `cmd/go-minitrace/cmds/serve/server_test.go`
+  - list endpoint coverage
+  - detail endpoint coverage
+  - fixture session now includes operational context and one assistant tool call
+- Ran:
+  - `gofmt -w cmd/go-minitrace/cmds/serve/handlers_sessions.go cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/server_test.go`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Why
+- The app already calls `useGetSessionsQuery()` and `useGetSessionQuery()`, and the transcript view reads `session.blocks` directly.
+- Without DTO normalization, the backend would leak nullable archive types into a frontend that assumes required strings/numbers.
+
+### What worked
+- The list endpoint now returns nested summary objects instead of the flat SQL preset shape.
+- The detail endpoint returns a transcript-ready block structure with tool calls joined into their turns.
+- Focused tests and a full build passed after the fixes below.
+
+### What didn't work
+- First validation failure:
+  - command: `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - error: `cmd/go-minitrace/cmds/serve/handlers_sessions.go:558:18: undefined: os`
+  - cause: I had removed `os` from imports while still using it in `loadSessionByID`.
+- Second validation failure:
+  - command: `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - error: `expected 200, got 500 ... "decoding timing column: invalid character 'm' looking for beginning of value"`
+  - cause: DuckDB was not always returning JSON columns as raw JSON strings; in at least one path it was giving back already-materialized Go map-like values, and my decoder only handled string/byte JSON.
+- Fixes:
+  - restored the `os` import
+  - updated `decodeJSONColumn(...)` to accept `string`, `[]byte`, and already-decoded structured values via `json.Marshal(...)`
+
+### What I learned
+- DuckDB’s Go driver can hand JSON-ish data back in more than one shape, so the backend needs to be defensive at the column-decoding boundary.
+- The frontend contract is already opinionated enough that returning `blocks` inline from the detail endpoint is the simplest path even before the dedicated blocks endpoint exists.
+
+### What was tricky to build
+- The sharp edge here was the data-shape mismatch between archival fidelity and UI ergonomics.
+- The symptoms showed up in two places:
+  - pointer-heavy raw structs that don’t match required frontend fields
+  - semi-structured DuckDB scan values that are not always plain JSON text
+- The solution was to make normalization explicit rather than trying to “pass through” archive shapes.
+
+### What warrants a second pair of eyes
+- The current block builder is intentionally basic: it groups by user-turn boundaries and fills empty artifact summaries. That is enough for the app, but artifact detection and the standalone blocks endpoint still need dedicated attention.
+- The error responses for the session handlers currently reuse the query-style JSON envelope. That is serviceable, but the final API may want a cleaner shared error shape.
+
+### What should be done in the future
+- Add artifact badges and richer block analysis.
+- Consider a small shared error writer for non-query endpoints so the handlers are less repetitive.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/handlers_sessions.go`.
+- Follow the normalization helpers first, then read `handleGetSessions`, `handleGetSession`, and `buildSessionBlocks`.
+- Validate with:
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Technical details
+- New file:
+  - `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+- Updated files:
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
 
 See `analysis/01-minitrace-improvement-suggestions.md`.
