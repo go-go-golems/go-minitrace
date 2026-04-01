@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import Box from "@mui/material/Box";
 import { TranscriptViewer } from "../TranscriptViewer";
 import { withTheme } from "../../../test-utils/storybook-decorators";
