@@ -20,8 +20,8 @@
 - [x] Phase 2: return computed blocks inline from GET /api/sessions/{id} to match the current React app contract
 - [x] Phase 3: implement block decomposition with internal raw block types and stable gap calculations
 - [x] Phase 3: implement badge and artifact detection before DTO conversion and add optional GET /api/sessions/{id}/blocks
-- [ ] Phase 4: implement GET /api/presets by merging built-in presets with --preset-dir using sidebar-friendly folders
-- [ ] Phase 4: implement query-dir CRUD with path validation for folder and filename inputs
+- [x] Phase 4: implement GET /api/presets by merging built-in presets with --preset-dir using sidebar-friendly folders
+- [x] Phase 4: implement query-dir CRUD with path validation for folder and filename inputs
 - [ ] Phase 5: wire embedded frontend assets, SPA fallback, and a build path that does not break plain go build ./...
 - [ ] Phase 5: wire Vite-first dev mode with /api proxying to the Go backend
 - [ ] Testing: add unit tests for blocks and badges plus integration coverage for /api/query, /api/sessions, and /api/sessions/{id}

@@ -104,3 +104,14 @@ Step 12: implemented Phase 3 of go-minitrace serve with raw block decomposition,
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go — Phase 3 blocks endpoint
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 3 tests
 
+
+## 2026-04-01
+
+Step 13: implemented Phase 4 of go-minitrace serve with preset discovery and query-library CRUD plus path validation for query-dir writes (commit 14b45e2).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_queries.go — Phase 4 query-library handlers
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Phase 4 route updates
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 4 tests
+

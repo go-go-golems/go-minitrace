@@ -16,6 +16,8 @@ RelatedFiles:
       Note: Phase 3 badge and artifact heuristics (commit fdddc68)
     - Path: cmd/go-minitrace/cmds/serve/blocks.go
       Note: Phase 3 raw block builder and response projection (commit fdddc68)
+    - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
+      Note: Phase 4 presets and query-library CRUD with path validation (commit 14b45e2)
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
       Note: |-
         Phase 2 DTO normalization and session list/detail handlers (commit c969a59)
@@ -27,11 +29,13 @@ RelatedFiles:
         Phase 1 server skeleton
         Phase 2 route registration updates (commit c969a59)
         Phase 3 blocks route registration (commit fdddc68)
+        Phase 4 route registration and request decoding helper (commit 14b45e2)
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: |-
         Phase 1 focused server tests (commit f509c77)
         Phase 2 endpoint and fixture coverage (commit c969a59)
         Phase 3 block
+        Phase 4 preset and query CRUD coverage (commit 14b45e2)
     - Path: cmd/go-minitrace/main.go
       Note: Registered the serve command in the CLI root (commit f509c77)
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
@@ -44,6 +48,7 @@ LastUpdated: 2026-04-01T00:00:00Z
 WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
 WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
+
 
 
 
@@ -779,6 +784,97 @@ This phase was mostly about making the transcript view legible at a glance. The 
   - `cmd/go-minitrace/cmds/serve/badges.go`
 - Updated files:
   - `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+
+---
+
+## Step 13: Phase 4 implementation of presets and query-library CRUD
+
+The fourth code slice filled in the backend half of the query editor sidebar. The server now exposes built-in presets, optional external preset files, and disk-backed saved-query CRUD under the configured `query-dir`, with explicit path validation so the backend never writes outside that directory just because the client supplied a malicious folder or path.
+
+This phase is where the backend stopped being “session browser plus transcript viewer” and started supporting the broader explorer workflow described in the UI design. Even though the current React app is not yet wiring save/update/delete mutations all the way through, the backend contract is now there.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue implementing the backend task list in order, with the next milestone focused on the query-library endpoints and safe filesystem behavior.
+
+**Inferred user intent:** Make the query editor persistent and safe enough to be a real daily-use tool rather than an ephemeral SQL scratchpad.
+
+**Commit (code):** `14b45e2` — "feat(serve): add query library endpoints"
+
+### What I did
+- Added `cmd/go-minitrace/cmds/serve/handlers_queries.go`
+  - `GET /api/presets`
+  - `GET /api/queries`
+  - `POST /api/queries`
+  - `PUT /api/queries/{path...}`
+  - `DELETE /api/queries/{path...}`
+  - SQL comment extraction
+  - saved-query file loading
+  - path validation helpers for folder/path input
+- Updated `cmd/go-minitrace/cmds/serve/server.go` to register the new routes and add a shared JSON request decoder
+- Extended `cmd/go-minitrace/cmds/serve/server_test.go`
+  - built-in + external preset coverage
+  - saved-query CRUD coverage
+  - traversal rejection coverage
+- Ran:
+  - `gofmt -w cmd/go-minitrace/cmds/serve/handlers_queries.go cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/server_test.go`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Why
+- The design doc treats presets and saved queries as first-class navigation objects, not just files on disk.
+- The backend needed explicit path hygiene before accepting folder/path input from the frontend.
+
+### What worked
+- Built-in presets are exposed under the `core` folder shape expected by the sidebar.
+- External preset directories are merged cleanly.
+- Saved queries can now be created, listed, updated, and deleted.
+- The traversal test confirms the backend rejects `../` folder input instead of silently escaping `query-dir`.
+
+### What didn't work
+- N/A in this phase; the handler/test/build loop passed cleanly after the first implementation pass.
+
+### What I learned
+- The query editor API naturally divides into two groups:
+  - read-only preset discovery
+  - read-write user query management
+- The cleanest way to keep path handling understandable is to normalize everything to a validated relative path before joining against the query root.
+
+### What was tricky to build
+- The sharp edge here was filesystem safety, not HTTP routing.
+- The key constraints were:
+  - reject absolute paths
+  - reject parent traversal
+  - normalize path separators
+  - ensure the resolved absolute path still stays under `query-dir`
+- Once that was explicit, the CRUD handlers became straightforward.
+
+### What warrants a second pair of eyes
+- `sanitizeFilename(...)` currently allows alphanumeric, `_`, and `-`, and rewrites everything else to `-`. That is intentionally conservative, but reviewers may want a different policy for user-visible query names.
+- The non-query handlers still reuse the query-style JSON error envelope instead of a dedicated shared API error struct.
+
+### What should be done in the future
+- Wire the frontend save/update/delete mutations so the query editor can actually persist user queries from the UI.
+- Consider whether query descriptions should be edited through the first SQL comment line only, or whether a richer metadata format is warranted later.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/handlers_queries.go`.
+- Pay particular attention to:
+  - `safeQueryPath(...)`
+  - `cleanRelativePath(...)`
+  - `buildQueryCreatePath(...)`
+- Validate with:
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Technical details
+- New file:
+  - `cmd/go-minitrace/cmds/serve/handlers_queries.go`
+- Updated files:
   - `cmd/go-minitrace/cmds/serve/server.go`
   - `cmd/go-minitrace/cmds/serve/server_test.go`
 
