@@ -26,6 +26,7 @@ The current implementation focuses on:
 - ChatGPT ZIP export conversion,
 - alternate ChatGPT JSON transcript conversion with extracted tool calls,
 - Geppetto/Pinocchio `turns.db` snapshot conversion,
+- built-in DuckDB querying through `query duckdb`,
 - DuckDB query recipes for converted archives,
 - basic JSON validation while the full schema validator is ported.
 

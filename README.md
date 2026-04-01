@@ -13,6 +13,7 @@ Glazed-based Go port of minitrace, focused first on Claude Code, Codex, Pi, clau
 - Converts ChatGPT data export ZIPs into minitrace JSON archives
 - Converts alternate per-conversation ChatGPT JSON transcript exports into minitrace JSON archives with tool-call extraction
 - Converts Geppetto/Pinocchio `turns.db` snapshot stores into minitrace JSON archives via canonical snapshot diffing
+- Queries converted minitrace archives through a built-in DuckDB-backed `query duckdb` command
 - Ships DuckDB query recipes for converted archives under `queries/`
 - Includes a basic JSON validation command while full schema validation is ported
 - Keeps the repo focused on the Go implementation, separate from the Python/spec reference repo
@@ -48,6 +49,7 @@ go-minitrace convert claude-ai --source ~/Downloads/data-2026-03-29-11-53-11-bat
 go-minitrace convert chatgpt --source ~/Downloads/chatgpt-export.zip --output-dir ./output
 go-minitrace convert chatgpt-json --source-dir /tmp/chatgpt-exports --output-dir ./output
 go-minitrace convert turnsdb --source /tmp/turns.db --output-dir ./output
+go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset session-list
 go-minitrace validate --path /path/to/file-or-dir --recursive
 ```
 
@@ -56,6 +58,13 @@ Query the converted archive with DuckDB:
 ```bash
 duckdb analysis.duckdb -init queries/load.sql -f queries/session-list.sql
 duckdb analysis.duckdb -init queries/load.sql -f queries/framework-summary.sql
+```
+
+Or query directly through the CLI:
+
+```bash
+go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset framework-summary
+go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --sql 'SELECT COUNT(*) AS sessions FROM sessions_base'
 ```
 
 ## Development
