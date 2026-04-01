@@ -1,7 +1,6 @@
 import type {
   SessionSummary,
   SessionDetail,
-  SessionBlock,
   Turn,
   ToolCall,
   SavedQuery,

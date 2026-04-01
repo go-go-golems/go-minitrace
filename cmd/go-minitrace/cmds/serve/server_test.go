@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
@@ -371,6 +372,44 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	server.handleSaveQuery(traversalResponse, traversalRequest)
 	if traversalResponse.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for traversal, got %d with body %s", traversalResponse.Code, traversalResponse.Body.String())
+	}
+}
+
+func TestSpaHandlerFallsBackToIndexHTML(t *testing.T) {
+	handler := spaHandler(fstest.MapFS{
+		"index.html":        {Data: []byte("<html>index</html>")},
+		"static/app.js":     {Data: []byte("console.log('ok')")},
+		"static/styles.css": {Data: []byte("body{}")},
+	})
+
+	indexRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+	indexResponse := httptest.NewRecorder()
+	handler.ServeHTTP(indexResponse, indexRequest)
+	if indexResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200 for index, got %d", indexResponse.Code)
+	}
+	if !strings.Contains(indexResponse.Body.String(), "index") {
+		t.Fatalf("expected index content, got %q", indexResponse.Body.String())
+	}
+
+	assetRequest := httptest.NewRequest(http.MethodGet, "/static/app.js", nil)
+	assetResponse := httptest.NewRecorder()
+	handler.ServeHTTP(assetResponse, assetRequest)
+	if assetResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200 for asset, got %d", assetResponse.Code)
+	}
+	if !strings.Contains(assetResponse.Body.String(), "console.log") {
+		t.Fatalf("expected asset content, got %q", assetResponse.Body.String())
+	}
+
+	routeRequest := httptest.NewRequest(http.MethodGet, "/sessions/abc", nil)
+	routeResponse := httptest.NewRecorder()
+	handler.ServeHTTP(routeResponse, routeRequest)
+	if routeResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200 for SPA fallback, got %d", routeResponse.Code)
+	}
+	if !strings.Contains(routeResponse.Body.String(), "index") {
+		t.Fatalf("expected SPA fallback to index, got %q", routeResponse.Body.String())
 	}
 }
 

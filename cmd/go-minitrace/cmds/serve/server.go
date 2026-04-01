@@ -1,11 +1,13 @@
 package serve
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -67,6 +69,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
 	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
 	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
+	if !s.devMode {
+		s.mux.Handle("/", spaHandler(frontendFS))
+	}
 }
 
 func (s *Server) ListenAndServe(ctx context.Context, port int) error {
@@ -251,4 +256,29 @@ func decodeRequest(r *http.Request, dest any) error {
 		return errors.Wrap(err, "decoding request body")
 	}
 	return nil
+}
+
+func spaHandler(fsys fs.FS) http.Handler {
+	fileServer := http.FileServer(http.FS(fsys))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			path = "index.html"
+		}
+
+		file, err := fsys.Open(path)
+		if err == nil {
+			_ = file.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		indexHTML, err := fs.ReadFile(fsys, "index.html")
+		if err != nil {
+			http.Error(w, "frontend index.html not found", http.StatusNotFound)
+			return
+		}
+
+		http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(indexHTML))
+	})
 }

@@ -8,8 +8,8 @@ import { theme } from "./theme";
 import { App } from "./App";
 
 async function main() {
-  // Enable MSW in development
-  if (import.meta.env.DEV) {
+  // Only enable MSW when explicitly requested so local dev can talk to the real backend.
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_MSW === "true") {
     const { worker } = await import("./mocks/browser");
     await worker.start({ onUnhandledRequest: "bypass" });
   }
