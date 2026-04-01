@@ -21,6 +21,11 @@ The current implementation focuses on:
 - a Glazed-based root CLI,
 - Claude Code discovery and conversion, including subagents,
 - Codex discovery and conversion,
+- Pi local session conversion,
+- claude.ai export conversion,
+- ChatGPT ZIP export conversion,
+- alternate ChatGPT JSON transcript conversion with extracted tool calls,
+- Geppetto/Pinocchio `turns.db` snapshot conversion,
 - DuckDB query recipes for converted archives,
 - basic JSON validation while the full schema validator is ported.
 

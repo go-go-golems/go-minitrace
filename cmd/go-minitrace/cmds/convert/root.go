@@ -33,7 +33,15 @@ the actual conversion engine is ported.`,
 	if err != nil {
 		return nil, err
 	}
+	chatGPTJSONCmd, err := NewChatGPTJSONCommand()
+	if err != nil {
+		return nil, err
+	}
+	turnsDBCmd, err := NewTurnsDBCommand()
+	if err != nil {
+		return nil, err
+	}
 
-	root.AddCommand(claudeCmd, codexCmd, piCmd, claudeAICmd, chatGPTCmd)
+	root.AddCommand(claudeCmd, codexCmd, piCmd, claudeAICmd, chatGPTCmd, chatGPTJSONCmd, turnsDBCmd)
 	return root, nil
 }
