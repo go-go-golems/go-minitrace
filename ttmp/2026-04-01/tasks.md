@@ -1,13 +1,16 @@
 # Tasks
 
-- [x] Review the Python `turns.db` adapter and the alternate ChatGPT transcript design docs
-- [x] Add Go support for the alternate per-conversation ChatGPT JSON transcript format
-- [x] Extract tool calls from alternate ChatGPT transcript exchanges
-- [x] Add a `go-minitrace convert chatgpt-json` command
-- [x] Port the `turns.db` canonical snapshot + LCS delta strategy to Go
-- [x] Add a `go-minitrace convert turnsdb` command
-- [x] Add focused adapter tests for both new paths
-- [x] Run real-data smoke conversions against `/tmp/chatgpt-exports` and `/tmp/turns.db`
-- [x] Inspect the generated session output with `jq`
-- [x] Commit the alternate ChatGPT transcript checkpoint
-- [x] Commit the turns.db checkpoint
+- [x] Inspect the current CLI/query surface and confirm the DuckDB Go driver path
+- [x] Expand the GOQUERY implementation task list in the ticket
+- [x] Add `cmd/go-minitrace/cmds/query/root.go`
+- [x] Add `cmd/go-minitrace/cmds/query/duckdb.go`
+- [x] Register the new `query` group in `cmd/go-minitrace/main.go`
+- [x] Add initial help docs under `pkg/doc/`
+- [ ] Add embedded preset SQL assets for built-in queries
+- [ ] Add a query engine package for DuckDB open/load/query flow
+- [ ] Add unit tests for preset lookup and row scanning
+- [ ] Add integration tests for query execution against a fixture archive
+- [ ] Run real smoke validation against a converted archive
+- [ ] Commit command scaffolding checkpoint
+- [ ] Commit DuckDB engine and tests checkpoint
+- [ ] Commit docs/diary checkpoint

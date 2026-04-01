@@ -6,6 +6,7 @@ import (
 	helpcmd "github.com/go-go-golems/glazed/pkg/help/cmd"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover"
+	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query"
 	validatecmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate"
 	"github.com/go-go-golems/go-minitrace/pkg/doc"
 	"github.com/spf13/cobra"
@@ -33,10 +34,12 @@ func main() {
 	cobra.CheckErr(err)
 	convertCmd, err := convert.NewCommand()
 	cobra.CheckErr(err)
+	queryCmd, err := query.NewCommand()
+	cobra.CheckErr(err)
 	validateCommand, err := validatecmd.NewCommand()
 	cobra.CheckErr(err)
 
-	rootCmd.AddCommand(discoverCmd, convertCmd, validateCommand)
+	rootCmd.AddCommand(discoverCmd, convertCmd, queryCmd, validateCommand)
 
 	cobra.CheckErr(rootCmd.Execute())
 }
