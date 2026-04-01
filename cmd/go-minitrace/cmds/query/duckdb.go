@@ -13,6 +13,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/settings"
 	"github.com/go-go-golems/glazed/pkg/types"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
+	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -108,19 +109,38 @@ func (c *DuckDBQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *va
 		return errors.New("preset, sql, and sql-file are mutually exclusive")
 	}
 
-	row := types.NewRow(
-		types.MRP("status", "scaffolded"),
-		types.MRP("backend", "duckdb"),
-		types.MRP("archive_glob", settings_.ArchiveGlob),
-		types.MRP("db_path", settings_.DBPath),
-		types.MRP("table_name", settings_.TableName),
-		types.MRP("preset", settings_.Preset),
-		types.MRP("sql", settings_.SQL),
-		types.MRP("sql_file", settings_.SQLFile),
-		types.MRP("load_only", settings_.LoadOnly),
-		types.MRP("persist_loaded", settings_.PersistLoaded),
-	)
-	return gp.AddRow(ctx, row)
+	db, conn, err := queryengine.OpenConnection(ctx, settings_.DBPath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
+		ArchiveGlob:   settings_.ArchiveGlob,
+		TableName:     settings_.TableName,
+		PersistLoaded: settings_.PersistLoaded,
+	}); err != nil {
+		return err
+	}
+
+	if settings_.LoadOnly {
+		row := types.NewRow(
+			types.MRP("status", "loaded"),
+			types.MRP("backend", "duckdb"),
+			types.MRP("archive_glob", settings_.ArchiveGlob),
+			types.MRP("db_path", settings_.DBPath),
+			types.MRP("table_name", settings_.TableName),
+			types.MRP("persist_loaded", settings_.PersistLoaded),
+		)
+		return gp.AddRow(ctx, row)
+	}
+
+	sqlText, err := queryengine.ResolveSQL(settings_.Preset, settings_.SQL, settings_.SQLFile, settings_.TableName)
+	if err != nil {
+		return err
+	}
+	return queryengine.RunIntoProcessor(ctx, conn, sqlText, gp)
 }
 
 func NewDuckDBCommand() (*cobra.Command, error) {
