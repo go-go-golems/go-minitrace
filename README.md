@@ -1,6 +1,6 @@
 # go-minitrace
 
-Glazed-based Go port of minitrace, focused first on Claude Code, Codex, Pi, claude.ai, ChatGPT, and `turns.db` session conversion.
+Glazed-based Go port of [minitrace](https://github.com/fukami/minitrace), focused first on Claude Code, Codex, Pi, claude.ai, ChatGPT, and `turns.db` session conversion.
 
 ## What it does
 
