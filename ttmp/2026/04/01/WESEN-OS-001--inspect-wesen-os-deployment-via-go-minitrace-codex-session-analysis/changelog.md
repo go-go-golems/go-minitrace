@@ -142,3 +142,16 @@ Step 15: extended go-minitrace serve to accept repeated --preset-dir and --query
 - cmd/go-minitrace/cmds/serve/server.go — Normalized multi-root settings
 - cmd/go-minitrace/cmds/serve/server_test.go — Multi-root regression tests
 
+
+## 2026-04-01
+
+Step 16: extended archive loading to accept repeated --archive-glob flags in serve and query duckdb, with shared multi-glob expansion, deduplication, and regression coverage.
+
+### Related Files
+
+- cmd/go-minitrace/cmds/query/duckdb.go — Repeatable archive-glob flag for query duckdb
+- cmd/go-minitrace/cmds/serve/serve.go — Repeatable archive-glob flag for serve
+- cmd/go-minitrace/cmds/serve/server.go — Session index built from deduplicated archive matches
+- pkg/query/engine.go — Shared multi-glob archive expansion
+- pkg/query/engine_test.go — Multi-glob archive loader tests
+

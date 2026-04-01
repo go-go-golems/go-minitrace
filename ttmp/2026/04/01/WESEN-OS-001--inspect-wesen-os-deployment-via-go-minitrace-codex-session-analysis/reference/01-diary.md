@@ -14,6 +14,8 @@ Owners: []
 RelatedFiles:
     - Path: Makefile
       Note: Frontend build-and-copy target for embedded assets
+    - Path: cmd/go-minitrace/cmds/query/duckdb.go
+      Note: Repeatable archive-glob flag for query duckdb
     - Path: cmd/go-minitrace/cmds/serve/badges.go
       Note: Phase 3 badge and artifact heuristics (commit fdddc68)
     - Path: cmd/go-minitrace/cmds/serve/badges_test.go
@@ -36,6 +38,7 @@ RelatedFiles:
       Note: |-
         Phase 1 Glazed bare command and settings wiring (commit f509c77)
         Glazed string-list flags for repeated preset-dir and query-dir
+        Repeatable archive-glob flag for serve
     - Path: cmd/go-minitrace/cmds/serve/server.go
       Note: |-
         Phase 1 server skeleton
@@ -44,6 +47,7 @@ RelatedFiles:
         Phase 4 route registration and request decoding helper (commit 14b45e2)
         SPA fallback routing and HTTP server integration
         Normalized multi-root serve settings
+        Session indexing via shared multi-glob expansion
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: |-
         Phase 1 focused server tests (commit f509c77)
@@ -52,8 +56,13 @@ RelatedFiles:
         Phase 4 preset and query CRUD coverage (commit 14b45e2)
         SPA fallback and endpoint integration coverage
         Regression coverage for multi-root preset/query loading
+        Regression tests for multi-glob session indexing
     - Path: cmd/go-minitrace/main.go
       Note: Registered the serve command in the CLI root (commit f509c77)
+    - Path: pkg/query/engine.go
+      Note: Shared multi-glob archive expansion and DuckDB load path
+    - Path: pkg/query/engine_test.go
+      Note: Regression tests for multi-glob expansion and loading
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
       Note: Source-of-truth backend implementation guide
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/tasks.md
@@ -70,6 +79,7 @@ LastUpdated: 2026-04-01T00:00:00Z
 WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
 WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
+
 
 
 
@@ -1108,3 +1118,107 @@ The important constraint here was `query-dir`, because it is not just a loader. 
   - `cmd/go-minitrace/cmds/serve/server.go`
   - `cmd/go-minitrace/cmds/serve/handlers_queries.go`
   - `cmd/go-minitrace/cmds/serve/server_test.go`
+
+---
+
+## Step 16: Multi-glob archive loading for serve and query duckdb
+
+This follow-up extended the same repeatable-flag pattern to `--archive-glob`. Both `go-minitrace serve` and `go-minitrace query duckdb` now accept multiple archive globs, and the shared query engine expands them into a deduplicated concrete file list before loading DuckDB or building the startup session index.
+
+The real point of doing this in the query engine instead of only in `serve` was to avoid splitting archive semantics across commands. If archive expansion lives in one place, both the web server and the ad hoc DuckDB query path agree on what “multiple globs” means.
+
+### Prompt Context
+
+**User prompt (verbatim):** "allow multi strings for archive-glob as well."
+
+**Assistant interpretation:** Add the requested follow-up tasks to the ticket, then update the Glazed flag contract, shared archive loader, session indexing, and regression tests so multiple archive globs behave consistently.
+
+**Inferred user intent:** Make archive selection as composable as preset/query roots, without forcing manual file copying or one giant merged archive directory.
+
+### What I did
+- Added three follow-up tasks covering:
+  - repeated `--archive-glob`
+  - deterministic multi-glob loading/indexing
+  - regression tests
+- Changed `pkg/query/engine.go`
+  - `LoadOptions` now uses `ArchiveGlobs []string`
+  - added `ExpandArchiveGlobs(...)`
+  - expands all configured globs to absolute file paths
+  - deduplicates overlapping matches in first-seen order
+  - loads DuckDB from the resolved file list, not a raw single glob string
+- Changed `cmd/go-minitrace/cmds/serve/serve.go`
+  - `archive-glob` is now a `fields.TypeStringList` Glazed flag
+  - examples/help updated for repeated glob usage
+  - `LoadArchive(...)` and `buildSessionIndex(...)` now receive the full glob list
+- Changed `cmd/go-minitrace/cmds/serve/server.go`
+  - `buildSessionIndex(...)` now uses `queryengine.ExpandArchiveGlobs(...)`
+  - session indexing and DuckDB loading now share the same deduped file-expansion logic
+- Changed `cmd/go-minitrace/cmds/query/duckdb.go`
+  - `archive-glob` is now also a repeatable string-list flag there
+  - load-only output now reports `archive_globs`
+- Extended tests:
+  - `pkg/query/engine_test.go`
+    - overlapping glob deduplication
+    - multi-glob archive load
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+    - multi-glob session indexing
+- Ran:
+  - `gofmt -w pkg/query/engine.go pkg/query/engine_test.go cmd/go-minitrace/cmds/serve/serve.go cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/server_test.go cmd/go-minitrace/cmds/query/duckdb.go`
+  - `go test ./cmd/go-minitrace/cmds/serve ./cmd/go-minitrace/cmds/query ./pkg/query -count=1`
+  - `go build ./...`
+  - `go run ./cmd/go-minitrace serve --help`
+  - `go run ./cmd/go-minitrace query duckdb --help`
+
+### Why
+- The single-glob contract was an arbitrary restriction once the backend already supported multiple preset and query roots.
+- Overlapping glob patterns are common in ad hoc workflows, so the loader needed explicit deduplication instead of silently double-loading the same file.
+
+### What worked
+- Both commands now decode repeated `--archive-glob` flags cleanly.
+- DuckDB loading and session indexing now see the same resolved file set.
+- Overlapping globs no longer create duplicate session loads just because the same file matched twice.
+- Tests, build, and help output all passed.
+
+### What didn't work
+- The only failure during implementation was mechanical: `serve.go` still imported `strings` after the flag changed to `[]string`. Removing that fixed the build immediately.
+
+### What I learned
+- Archive-glob semantics belong in the shared loader, not in each command.
+- Once multiple globs are allowed, deduplication is not optional; otherwise the behavior depends on how a user happened to write their patterns.
+
+### What was tricky to build
+- The tricky edge was overlap, not repetition.
+- Supporting “multiple globs” by just passing multiple patterns around would have been incomplete; the actual useful behavior is:
+  - expand
+  - normalize to absolute paths
+  - dedupe
+  - preserve stable order
+
+### What warrants a second pair of eyes
+- The loader currently deduplicates exact file-path matches, not semantically identical session payloads. If two different files contain the same session ID, the session index still treats that as an error, which is correct but worth remembering.
+- The help text examples wrap somewhat awkwardly in the Glazed/Cobra output renderer because the examples are long.
+
+### What should be done in the future
+- Consider reusing the same repeatable `archive-glob` contract in any future archive-oriented commands so the CLI stays uniform.
+- If help rendering becomes a usability issue, shorten or restructure the multi-line examples rather than backing off the flag behavior.
+
+### Code review instructions
+- Start with `pkg/query/engine.go`, especially:
+  - `ExpandArchiveGlobs(...)`
+  - `buildLoadSQLFromFiles(...)`
+- Then review:
+  - `cmd/go-minitrace/cmds/serve/serve.go`
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/query/duckdb.go`
+- Validate with:
+  - `go test ./cmd/go-minitrace/cmds/serve ./cmd/go-minitrace/cmds/query ./pkg/query -count=1`
+  - `go build ./...`
+
+### Technical details
+- Updated files:
+  - `pkg/query/engine.go`
+  - `pkg/query/engine_test.go`
+  - `cmd/go-minitrace/cmds/serve/serve.go`
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+  - `cmd/go-minitrace/cmds/query/duckdb.go`

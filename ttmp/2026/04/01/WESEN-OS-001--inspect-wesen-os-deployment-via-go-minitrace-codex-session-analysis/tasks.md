@@ -29,3 +29,6 @@
 - [x] Serve follow-up: make --query-dir a string-list flag, load all configured query roots, and keep CRUD behavior deterministic
 - [x] Serve follow-up: make --preset-dir a string-list flag and load all configured preset roots
 - [x] Serve follow-up: add regression tests for multi-root preset/query loading
+- [x] Serve follow-up: make --archive-glob a string-list flag and load all configured archive globs into DuckDB
+- [x] Serve follow-up: update session indexing and query-engine loading to support multiple archive globs deterministically
+- [x] Serve follow-up: add regression tests for multi-glob archive loading and indexing
