@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -272,6 +273,104 @@ func TestHandleGetSessionBlocksReturnsGapsAndArtifacts(t *testing.T) {
 	}
 	if payload[1].GapMinutes == nil || *payload[1].GapMinutes < 9.9 || *payload[1].GapMinutes > 10.1 {
 		t.Fatalf("expected ~10 minute gap, got %+v", payload[1].GapMinutes)
+	}
+}
+
+func TestHandleGetPresetsReturnsBuiltInAndExternalQueries(t *testing.T) {
+	presetDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(presetDir, "custom.sql"), []byte("-- custom preset\nSELECT 1;"), 0o644); err != nil {
+		t.Fatalf("writing custom preset: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{
+		TableName: "sessions_base",
+		PresetDir: presetDir,
+	}, map[string]string{})
+	request := httptest.NewRequest(http.MethodGet, "/api/presets", nil)
+	response := httptest.NewRecorder()
+
+	server.handleGetPresets(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload []SavedQuery
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshaling presets: %v", err)
+	}
+	if len(payload) == 0 {
+		t.Fatal("expected presets to be returned")
+	}
+	foundBuiltIn := false
+	foundCustom := false
+	for _, query := range payload {
+		if query.Name == "session-list" && query.Folder == "core" && query.Readonly {
+			foundBuiltIn = true
+		}
+		if query.Name == "custom" && query.Description == "custom preset" && query.Readonly {
+			foundCustom = true
+		}
+	}
+	if !foundBuiltIn {
+		t.Fatalf("expected built-in session-list preset in %#v", payload)
+	}
+	if !foundCustom {
+		t.Fatalf("expected custom external preset in %#v", payload)
+	}
+}
+
+func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
+	queryDir := t.TempDir()
+	server := NewServer(nil, &ServeSettings{
+		TableName: "sessions_base",
+		QueryDir:  queryDir,
+	}, map[string]string{})
+
+	saveRequest := httptest.NewRequest(http.MethodPost, "/api/queries", strings.NewReader(`{"name":"wesen-os-filter","folder":"saved/analysis","description":"saved query","sql":"SELECT 1;"}`))
+	saveResponse := httptest.NewRecorder()
+	server.handleSaveQuery(saveResponse, saveRequest)
+
+	if saveResponse.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d with body %s", saveResponse.Code, saveResponse.Body.String())
+	}
+
+	var saved SavedQuery
+	if err := json.Unmarshal(saveResponse.Body.Bytes(), &saved); err != nil {
+		t.Fatalf("unmarshaling saved query: %v", err)
+	}
+	if saved.Path != "saved/analysis/wesen-os-filter.sql" {
+		t.Fatalf("unexpected saved path %q", saved.Path)
+	}
+
+	getRequest := httptest.NewRequest(http.MethodGet, "/api/queries", nil)
+	getResponse := httptest.NewRecorder()
+	server.handleGetQueries(getResponse, getRequest)
+	if getResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", getResponse.Code, getResponse.Body.String())
+	}
+
+	updateRequest := httptest.NewRequest(http.MethodPut, "/api/queries/saved/analysis/wesen-os-filter.sql", strings.NewReader(`{"description":"updated query","sql":"SELECT 2;"}`))
+	updateRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
+	updateResponse := httptest.NewRecorder()
+	server.handleUpdateQuery(updateResponse, updateRequest)
+	if updateResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", updateResponse.Code, updateResponse.Body.String())
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/queries/saved/analysis/wesen-os-filter.sql", nil)
+	deleteRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
+	deleteResponse := httptest.NewRecorder()
+	server.handleDeleteQuery(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d with body %s", deleteResponse.Code, deleteResponse.Body.String())
+	}
+
+	traversalRequest := httptest.NewRequest(http.MethodPost, "/api/queries", strings.NewReader(`{"name":"bad","folder":"../escape","description":"x","sql":"SELECT 1;"}`))
+	traversalResponse := httptest.NewRecorder()
+	server.handleSaveQuery(traversalResponse, traversalRequest)
+	if traversalResponse.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for traversal, got %d with body %s", traversalResponse.Code, traversalResponse.Body.String())
 	}
 }
 

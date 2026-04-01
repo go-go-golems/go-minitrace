@@ -62,6 +62,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/sessions/{id}", s.handleGetSession)
 	s.mux.HandleFunc("GET /api/sessions/{id}/blocks", s.handleGetSessionBlocks)
 	s.mux.HandleFunc("POST /api/query", s.handleExecuteQuery)
+	s.mux.HandleFunc("GET /api/presets", s.handleGetPresets)
+	s.mux.HandleFunc("GET /api/queries", s.handleGetQueries)
+	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
+	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
+	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
 }
 
 func (s *Server) ListenAndServe(ctx context.Context, port int) error {
@@ -237,4 +242,13 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		log.Error().Err(err).Msg("writing JSON response")
 	}
+}
+
+func decodeRequest(r *http.Request, dest any) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dest); err != nil {
+		return errors.Wrap(err, "decoding request body")
+	}
+	return nil
 }
