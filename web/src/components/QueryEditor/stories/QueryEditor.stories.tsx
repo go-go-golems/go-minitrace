@@ -21,13 +21,20 @@ const meta = {
     onSqlChange: fn(),
     onExecute: fn(),
     onSave: fn(),
-    onSelectPreset: fn(),
+    onSelectQuery: fn(),
+    onReloadSource: fn(),
     onClickSessionId: fn(),
     presets: mockPresets,
     savedQueries: mockSavedQueries,
     result: null,
     error: null,
     isLoading: false,
+    sourceStatus: {
+      label: "Preset file",
+      path: "core/sessions-for-wesen.sql",
+      missing: false,
+      externalUpdateAvailable: false,
+    },
   },
 } satisfies Meta<typeof QueryEditor>;
 
@@ -98,5 +105,27 @@ export const NoSaveButton: Story = {
   args: {
     onSave: undefined,
     result: mockQueryResult,
+  },
+};
+
+export const ReloadAvailable: Story = {
+  args: {
+    sourceStatus: {
+      label: "Saved query file",
+      path: "my-queries/scratchpad.sql",
+      missing: false,
+      externalUpdateAvailable: true,
+    },
+  },
+};
+
+export const MissingSource: Story = {
+  args: {
+    sourceStatus: {
+      label: "Saved query file",
+      path: "my-queries/deleted.sql",
+      missing: true,
+      externalUpdateAvailable: false,
+    },
   },
 };

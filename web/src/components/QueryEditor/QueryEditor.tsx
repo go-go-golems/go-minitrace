@@ -13,18 +13,27 @@ import { SqlEditor } from "./SqlEditor";
 import { QuerySidebar } from "./QuerySidebar";
 import { ResultsTable } from "./ResultsTable";
 
+interface QuerySourceStatus {
+  label: string;
+  path: string;
+  missing: boolean;
+  externalUpdateAvailable: boolean;
+}
+
 interface QueryEditorProps {
   sql: string;
   onSqlChange: (sql: string) => void;
   onExecute: (sql: string) => void;
   onSave?: (sql: string) => void;
-  onSelectPreset: (sql: string) => void;
+  onSelectQuery: (query: SavedQuery, kind: "preset" | "saved") => void;
+  onReloadSource?: () => void;
   onClickSessionId?: (id: string) => void;
   presets: SavedQuery[];
   savedQueries: SavedQuery[];
   result: QueryResult | null;
   error: QueryError | null;
   isLoading: boolean;
+  sourceStatus?: QuerySourceStatus | null;
 }
 
 export function QueryEditor({
@@ -32,13 +41,15 @@ export function QueryEditor({
   onSqlChange,
   onExecute,
   onSave,
-  onSelectPreset,
+  onSelectQuery,
+  onReloadSource,
   onClickSessionId,
   presets,
   savedQueries,
   result,
   error,
   isLoading,
+  sourceStatus,
 }: QueryEditorProps) {
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -57,7 +68,7 @@ export function QueryEditor({
       <QuerySidebar
         presets={presets}
         savedQueries={savedQueries}
-        onSelect={onSelectPreset}
+        onSelect={onSelectQuery}
       />
 
       {/* Main pane — vertical split: editor top, results bottom */}
@@ -74,6 +85,42 @@ export function QueryEditor({
             pb: 1,
           }}
         >
+          {sourceStatus && (
+            <Alert
+              severity={
+                sourceStatus.missing || sourceStatus.externalUpdateAvailable
+                  ? "warning"
+                  : "info"
+              }
+              sx={{ mb: 1 }}
+              action={
+                sourceStatus.externalUpdateAvailable && onReloadSource ? (
+                  <Button color="inherit" size="small" onClick={onReloadSource}>
+                    Reload file
+                  </Button>
+                ) : undefined
+              }
+            >
+              <Stack spacing={0.25}>
+                <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+                  {sourceStatus.label}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {sourceStatus.path}
+                </Typography>
+                {sourceStatus.missing && (
+                  <Typography variant="caption">
+                    The source file is no longer available on disk.
+                  </Typography>
+                )}
+                {sourceStatus.externalUpdateAvailable && !sourceStatus.missing && (
+                  <Typography variant="caption">
+                    The file changed on disk. Reload it to replace your local edits.
+                  </Typography>
+                )}
+              </Stack>
+            </Alert>
+          )}
           <Box sx={{ flex: 1, minHeight: 0 }}>
             <SqlEditor
               value={sql}

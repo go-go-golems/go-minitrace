@@ -19,7 +19,7 @@ const meta = {
   args: {
     presets: mockPresets,
     savedQueries: mockSavedQueries,
-    onSelect: fn(),
+    onSelect: fn<(query: unknown, kind: "preset" | "saved") => void>(),
   },
 } satisfies Meta<typeof QuerySidebar>;
 

@@ -14,7 +14,7 @@ import type { SavedQuery } from "../../types";
 interface QuerySidebarProps {
   presets: SavedQuery[];
   savedQueries: SavedQuery[];
-  onSelect: (sql: string) => void;
+  onSelect: (query: SavedQuery, kind: "preset" | "saved") => void;
 }
 
 function groupByFolder(queries: SavedQuery[]) {
@@ -71,7 +71,7 @@ export function QuerySidebar({
           {queries.map((q) => (
             <Tooltip key={q.path} title={q.description} placement="right" arrow>
               <ListItemButton
-                onClick={() => onSelect(q.sql)}
+                onClick={() => onSelect(q, "preset")}
                 sx={{ py: 0.25, pl: 4 }}
               >
                 <ListItemIcon sx={{ minWidth: 28 }}>
@@ -115,7 +115,7 @@ export function QuerySidebar({
           {queries.map((q) => (
             <Tooltip key={q.path} title={q.description} placement="right" arrow>
               <ListItemButton
-                onClick={() => onSelect(q.sql)}
+                onClick={() => onSelect(q, "saved")}
                 sx={{ py: 0.25, pl: 4 }}
               >
                 <ListItemIcon sx={{ minWidth: 28 }}>
