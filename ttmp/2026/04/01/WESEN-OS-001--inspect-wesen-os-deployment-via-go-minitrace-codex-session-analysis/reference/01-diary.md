@@ -25,13 +25,17 @@ RelatedFiles:
     - Path: cmd/go-minitrace/cmds/serve/embed.go
       Note: Embedded frontend filesystem for serve
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
-      Note: Phase 4 presets and query-library CRUD with path validation (commit 14b45e2)
+      Note: |-
+        Phase 4 presets and query-library CRUD with path validation (commit 14b45e2)
+        Multi-root preset/query loading and deterministic query CRUD resolution
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
       Note: |-
         Phase 2 DTO normalization and session list/detail handlers (commit c969a59)
         Phase 3 shared blocks endpoint and badge wiring (commit fdddc68)
     - Path: cmd/go-minitrace/cmds/serve/serve.go
-      Note: Phase 1 Glazed bare command and settings wiring (commit f509c77)
+      Note: |-
+        Phase 1 Glazed bare command and settings wiring (commit f509c77)
+        Glazed string-list flags for repeated preset-dir and query-dir
     - Path: cmd/go-minitrace/cmds/serve/server.go
       Note: |-
         Phase 1 server skeleton
@@ -39,6 +43,7 @@ RelatedFiles:
         Phase 3 blocks route registration (commit fdddc68)
         Phase 4 route registration and request decoding helper (commit 14b45e2)
         SPA fallback routing and HTTP server integration
+        Normalized multi-root serve settings
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: |-
         Phase 1 focused server tests (commit f509c77)
@@ -46,6 +51,7 @@ RelatedFiles:
         Phase 3 block
         Phase 4 preset and query CRUD coverage (commit 14b45e2)
         SPA fallback and endpoint integration coverage
+        Regression coverage for multi-root preset/query loading
     - Path: cmd/go-minitrace/main.go
       Note: Registered the serve command in the CLI root (commit f509c77)
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
@@ -64,6 +70,7 @@ LastUpdated: 2026-04-01T00:00:00Z
 WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
 WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
+
 
 
 
@@ -1006,3 +1013,98 @@ This was the first phase where I had to validate the whole system instead of jus
   - `web/vite.config.ts`
   - `web/src/main.tsx`
   - `web/src/mocks/data.ts`
+
+---
+
+## Step 15: Multi-root preset/query directories for serve
+
+This follow-up slice made the `serve` command less brittle for real usage by allowing repeated `--preset-dir` and `--query-dir` flags instead of forcing everything into one directory tree. The backend now loads all configured roots in order, while keeping the external API shape the same for the frontend.
+
+The important constraint here was `query-dir`, because it is not just a loader. It is also the write target behind query CRUD. That meant I needed a deterministic rule for create/update/delete once multiple roots are in play, not just “scan more directories.”
+
+### Prompt Context
+
+**User prompt (verbatim):** "make preset dir and query dir stringlist flags and load them all."
+
+**Assistant interpretation:** Add the requested task breakdown to the ticket first, then implement repeated Glazed string-list flags for both directory settings and extend the backend loaders/tests accordingly.
+
+**Inferred user intent:** Keep the current serve/query UX, but make it practical to layer multiple shared query/preset roots without manual directory merging.
+
+### What I did
+- Added three follow-up tasks to the ticket for:
+  - multi-root preset-dir
+  - multi-root query-dir
+  - regression tests
+- Changed `cmd/go-minitrace/cmds/serve/serve.go`
+  - `PresetDir` and `QueryDir` settings are now `[]string`
+  - both flags are declared with `fields.TypeStringList`
+  - `query-dir` defaults to `["./queries"]`
+  - updated help text/examples to show repeated flag usage
+- Changed `cmd/go-minitrace/cmds/serve/server.go`
+  - server state now stores normalized `presetDirs` and `queryDirs`
+  - trims empty entries and deduplicates exact repeated roots
+- Changed `cmd/go-minitrace/cmds/serve/handlers_queries.go`
+  - `GET /api/presets` loads all configured preset roots
+  - `GET /api/queries` loads all configured query roots
+  - later roots are shadowed by earlier ones if they expose the same relative `.sql` path
+  - `POST /api/queries` writes into the first configured query root
+  - `PUT` and `DELETE` search configured query roots in order and operate on the first matching file
+- Extended `cmd/go-minitrace/cmds/serve/server_test.go`
+  - multi-root preset loading
+  - multi-root query listing
+  - second-root query update coverage
+  - existing CRUD/traversal assertions still pass
+- Ran:
+  - `gofmt -w cmd/go-minitrace/cmds/serve/serve.go cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/handlers_queries.go cmd/go-minitrace/cmds/serve/server_test.go`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Why
+- The single-root implementation was workable for prototypes but awkward for real usage where:
+  - a team may want shared read-only presets from multiple projects
+  - a user may want personal queries plus one or more shared query trees
+- Glazed already supports string-list fields cleanly, so forcing manual directory merging was unnecessary.
+
+### What worked
+- The repeated flags decode cleanly into `[]string` settings.
+- The backend now loads all configured roots without changing the frontend payload shape.
+- Query CRUD remains deterministic:
+  - create goes to the first root
+  - update/delete resolve the first matching relative path across the ordered roots
+- Focused tests and full build both passed after the change.
+
+### What didn't work
+- There was no code failure in this slice, but the main design tension was duplicate relative paths across roots. I had to pick a stable shadowing rule.
+
+### What I learned
+- Multi-root loading is easy; multi-root writing is where the real semantics live.
+- The least disruptive rule is “ordered roots, first match wins,” because it preserves the existing path contract and avoids inventing new root-prefix syntax for the UI.
+
+### What was tricky to build
+- The tricky part was extending `query-dir` without silently making update/delete ambiguous.
+- I avoided changing the public `SavedQuery.Path` format by keeping the existing relative-path contract and using root order to resolve duplicates.
+
+### What warrants a second pair of eyes
+- If two query roots contain the same relative file path, only the first one is surfaced and writable through the API. That is intentional, but worth confirming as the desired product behavior.
+- If the UI later exposes explicit rename/move workflows, we may eventually want root identity surfaced more explicitly.
+
+### What should be done in the future
+- Consider whether the UI should expose root provenance for queries/presets when multiple roots are configured.
+- If duplicate shadowing becomes confusing, add explicit root labels rather than overloading the current `path` field.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/serve.go` for the Glazed flag contract.
+- Then review `cmd/go-minitrace/cmds/serve/handlers_queries.go` for:
+  - `loadSQLDirs(...)`
+  - `firstQueryDir(...)`
+  - `findExistingQueryPath(...)`
+- Validate with:
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Technical details
+- Updated files:
+  - `cmd/go-minitrace/cmds/serve/serve.go`
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/handlers_queries.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`

@@ -130,3 +130,15 @@ Step 14: implemented Phase 5 of go-minitrace serve with embedded frontend assets
 - web/src/main.tsx — MSW only enabled when explicitly requested
 - web/vite.config.ts — Vite /api proxy and /static asset output
 
+
+## 2026-04-01
+
+Step 15: extended go-minitrace serve to accept repeated --preset-dir and --query-dir flags, load all configured roots in order, and keep query CRUD deterministic across multiple roots.
+
+### Related Files
+
+- cmd/go-minitrace/cmds/serve/handlers_queries.go — Ordered multi-root loading and path resolution
+- cmd/go-minitrace/cmds/serve/serve.go — Repeatable Glazed directory flags
+- cmd/go-minitrace/cmds/serve/server.go — Normalized multi-root settings
+- cmd/go-minitrace/cmds/serve/server_test.go — Multi-root regression tests
+

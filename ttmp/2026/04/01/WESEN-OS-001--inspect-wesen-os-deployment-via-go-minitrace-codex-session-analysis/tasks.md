@@ -26,3 +26,6 @@
 - [x] Phase 5: wire Vite-first dev mode with /api proxying to the Go backend
 - [x] Testing: add unit tests for blocks and badges plus integration coverage for /api/query, /api/sessions, and /api/sessions/{id}
 - [x] Validation: run end-to-end manual testing against the real WESEN-OS-001 archive and verify the existing web UI works without mock handlers
+- [x] Serve follow-up: make --query-dir a string-list flag, load all configured query roots, and keep CRUD behavior deterministic
+- [x] Serve follow-up: make --preset-dir a string-list flag and load all configured preset roots
+- [x] Serve follow-up: add regression tests for multi-root preset/query loading
