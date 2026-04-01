@@ -1,0 +1,275 @@
+---
+Title: Minitrace Schema Reference
+Slug: minitrace-schema
+Short: Field-by-field reference for the minitrace session JSON format
+Topics:
+- minitrace
+- schema
+IsTemplate: false
+IsTopLevel: true
+ShowPerDefault: true
+SectionType: GeneralTopic
+---
+
+Every converted session is a single JSON file conforming to the minitrace schema (currently `minitrace-v0.2.0`). This page documents every field, its type, and what it means.
+
+The authoritative Go types live in `pkg/minitrace/schema.go`. The JSON field names match the struct tags exactly.
+
+## Session (top level)
+
+The session is the root object in each `.minitrace.json` file.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique session identifier, usually the original session UUID |
+| `schema_version` | string | Always `minitrace-v0.2.0` for current output |
+| `profile` | string | Session profile, typically `organic` for real sessions |
+| `scenario_id` | string? | Reserved for synthetic/benchmark scenarios |
+| `quality` | string? | Quality tier: `A` (rich conversation + tool I/O + >10 tools + >5 turns), `B` (has conversation), `C` (no conversation) |
+| `title` | string? | Auto-extracted from the first human turn (truncated to 80 chars) |
+| `summary` | string? | Optional session summary |
+| `classification` | string | Always `internal` for locally converted sessions |
+| `provenance` | object | Where this session came from (see below) |
+| `flags` | object | Data quality flags |
+| `environment` | object | Model, framework, and tools configuration |
+| `operational_context` | object | Working directory, git state, autonomy level |
+| `timing` | object | Timestamps, duration, and time-of-day information |
+| `condition` | object? | Experimental condition metadata |
+| `coordination` | object | Multi-session coordination info |
+| `handover` | object | Session handover documents |
+| `turns` | array | Conversation turns in order |
+| `tool_calls` | array | Every tool invocation with input and output |
+| `outcome` | object? | Success/failure of the session |
+| `annotations` | array | Human or automated annotations |
+| `metrics` | object | Computed summary metrics |
+
+## Provenance
+
+Tracks where the session came from so you can trace any converted file back to its original source.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `source_format` | string | Adapter-specific format identifier, e.g. `claude-code-jsonl-v2`, `pi-agent-jsonl-v3`, `pinocchio-turns-sqlite-v1` |
+| `source_path` | string? | Path to the original file (home directory normalized to `~`) |
+| `converted_at` | string | RFC 3339 timestamp of when conversion ran |
+| `converter_version` | string | Converter identifier, e.g. `go-minitrace-claude-adapter-dev` |
+| `original_session_id` | string? | The session ID in the original format |
+
+## Flags
+
+Data quality signals set during conversion. Most converters set `needs_cleaning: true` since raw sessions are not curated.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `for_research` | bool | Whether this session is flagged for research use |
+| `needs_cleaning` | bool | Whether the session needs manual review |
+| `contains_error` | bool | Whether conversion detected errors in the session |
+| `contains_pii` | bool | Whether file paths contain `/home/` or `/Users/` patterns |
+| `category` | string[] | Free-form category tags |
+
+## Environment
+
+Captures the model and framework configuration for the session.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `model` | string? | Model identifier, e.g. `claude-opus-4-6`, `gpt-5-nano` |
+| `model_version` | string? | Specific model version if available |
+| `temperature` | float? | Sampling temperature if known |
+| `tools_enabled` | string[] | List of tool names available in this session |
+| `system_prompt` | string? | System prompt if captured (often null for privacy) |
+| `agent_framework` | string? | Framework name: `claude-code`, `codex`, `pi`, `pinocchio`, `claude-ai`, `chatgpt` |
+| `agent_version` | string? | Framework version if available |
+| `platform_type` | string? | Platform category: `agent`, `chat`, etc. |
+| `provider_hint` | string? | API provider: `anthropic`, `openai`, `unknown` |
+
+## Operational Context
+
+Runtime context captured at session start. Availability depends on the source format.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `working_directory` | string? | Filesystem path where the agent was running |
+| `git_branch` | string? | Active git branch |
+| `git_ref` | string? | Git commit reference |
+| `autonomy_level` | string? | How autonomous the agent was |
+| `sandbox` | bool? | Whether the session ran in a sandbox |
+| `framework_config` | any? | Adapter-specific configuration blob |
+
+## Timing
+
+Temporal information about the session. The `privacy_level` field controls how much timing detail is exposed.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `privacy_level` | string | Always `full` for locally converted sessions |
+| `duration_seconds` | float? | Wall-clock duration from first to last event |
+| `active_duration_seconds` | float? | Time excluding gaps longer than 5 minutes (the idle threshold) |
+| `started_at` | string? | RFC 3339 start timestamp |
+| `ended_at` | string? | RFC 3339 end timestamp |
+| `hour_of_day` | int? | Hour (0–23) when the session started |
+| `day_of_week` | int? | Day of week (0=Monday, 6=Sunday) |
+
+## Turns
+
+The conversation transcript as an ordered array. Each turn is one message from a participant.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `index` | int | Zero-based position in the turn sequence |
+| `timestamp` | string? | RFC 3339 timestamp of this turn |
+| `role` | string | `user`, `assistant`, or `system` |
+| `source` | string? | Origin detail: `human`, `tool_result`, etc. |
+| `model` | string? | Model that generated this turn (assistant turns) |
+| `content_type` | string? | MIME type hint for the content |
+| `input_channel` | string? | How the input arrived |
+| `content` | string | The actual message text |
+| `framework_metadata` | any? | Adapter-specific turn metadata |
+| `tool_calls_in_turn` | string[] | IDs of tool calls emitted by this turn |
+| `thinking` | string? | Chain-of-thought / reasoning text if captured |
+| `intent_markers` | object? | Whether this turn was requested, inferred, or proactive |
+| `streaming` | object | Whether the turn was streamed (`was_streamed`, `stream_log`) |
+| `usage` | object? | Per-turn token usage (see below) |
+
+### Per-turn Usage
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `input_tokens` | int? | Tokens in the prompt |
+| `output_tokens` | int? | Tokens in the response |
+| `cache_read_tokens` | int? | Tokens served from cache |
+| `cache_creation_tokens` | int? | Tokens that populated the cache |
+| `reasoning_tokens` | int? | Reasoning/thinking tokens |
+| `tool_tokens` | int? | Tokens consumed by tool use |
+
+## Tool Calls
+
+Every tool invocation is recorded with its input, output, and contextual position within the session.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique tool call identifier |
+| `emitting_turn_index` | int? | Index of the turn that triggered this call |
+| `timestamp` | string? | When the tool was invoked |
+| `tool_name` | string | Name of the tool: `Read`, `Edit`, `Bash`, `Write`, `Grep`, `Agent`, etc. |
+| `operation_type` | string | Normalized operation: `READ`, `MODIFY`, `NEW`, `EXECUTE`, `DELEGATE`, `OTHER` |
+| `input` | object | Tool input (see below) |
+| `output` | object | Tool output (see below) |
+| `context` | object | Position and surrounding tool context |
+| `framework_metadata` | any? | Adapter-specific tool call metadata |
+| `spawned_agent` | object? | If this tool call delegated to a subagent |
+
+### Tool Call Input
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `file_path` | string? | File path argument (normalized, `~` for home) |
+| `command` | string? | Shell command if applicable |
+| `arguments` | any? | Full arguments blob |
+
+### Tool Call Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | bool | Whether the tool call succeeded |
+| `result` | string? | Output text (truncated to 10 KB if larger) |
+| `error` | string? | Error message if the call failed |
+| `duration_ms` | int? | Execution time in milliseconds |
+| `truncated` | bool | Whether the result was truncated |
+| `full_bytes` | int? | Original size before truncation |
+| `full_hash` | string? | SHA-256 hash of the full output (for deduplication) |
+| `full_reference` | string? | External reference to the full output |
+| `redacted` | bool? | Whether the output was redacted |
+| `content_origin` | string? | Where the content came from |
+
+### Tool Call Context
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `position_in_session` | float? | Normalized position (0.0 = first tool call, 1.0 = last) |
+| `tools_before` | string[] | Names of the 5 preceding tool calls |
+| `time_since_last_user` | float? | Seconds since the last human turn |
+
+### Spawned Agent
+
+Present when a tool call delegates to a subagent (e.g., Claude Code's `Agent` tool).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `agent_type` | string | Type of subagent |
+| `task_scope` | string | What the subagent was asked to do |
+| `sub_session_id` | string? | ID of the subagent's minitrace session |
+| `outcome_summary` | string | What the subagent accomplished |
+
+## Metrics
+
+Computed summary statistics. These are calculated during conversion from the turns and tool calls.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `turn_count` | int | Total number of turns |
+| `tool_call_count` | int | Total number of tool invocations |
+| `read_count` | int | Tool calls with operation_type `READ` |
+| `modify_count` | int | Tool calls with operation_type `MODIFY` |
+| `create_count` | int | Tool calls with operation_type `NEW` |
+| `execute_count` | int | Tool calls with operation_type `EXECUTE` |
+| `delegate_count` | int | Tool calls with operation_type `DELEGATE` |
+| `read_ratio` | float? | `read_count / tool_call_count` — how much the agent reads before acting |
+| `time_to_first_action` | float? | Seconds from session start to first tool call |
+| `idle_ratio` | float? | `1 - (active_duration / total_duration)` — fraction of time spent idle |
+| `total_input_tokens` | int? | Sum of input tokens across all turns |
+| `total_output_tokens` | int? | Sum of output tokens across all turns |
+| `total_cache_read_tokens` | int? | Sum of cache read tokens |
+| `total_cache_creation_tokens` | int? | Sum of cache creation tokens |
+| `total_reasoning_tokens` | int? | Sum of reasoning tokens |
+| `total_tool_tokens` | int? | Sum of tool tokens |
+| `session_cost` | float? | Estimated cost if computable |
+| `subagent_count` | int | Number of subagent sessions spawned |
+| `subagent_tool_calls` | int | Tool calls made by subagents |
+| `model_switches` | int? | Times the model changed during the session |
+| `unique_models` | int? | Distinct models used |
+| `median_response_tokens` | int? | Median output tokens per assistant turn |
+| `max_response_tokens` | int? | Maximum output tokens in any assistant turn |
+
+## Annotations
+
+Optional human or automated labels attached to a session, turn, or tool call.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Annotation identifier |
+| `timestamp` | string | When the annotation was created |
+| `annotator` | string | Who created it (human name or tool ID) |
+| `scope.type` | string | What the annotation targets: `session`, `turn`, `tool_call` |
+| `scope.target_id` | string | ID of the target |
+| `content.category` | string | Annotation category |
+| `content.tags` | string[] | Free-form tags |
+| `content.title` | string | Short annotation title |
+| `content.detail` | string | Full annotation text |
+| `taxonomy_mappings` | object | Mappings to minitrace, MAST, and ToolEmu taxonomies |
+| `classification` | string? | Annotation classification |
+
+## Coordination
+
+Multi-session coordination metadata.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `project_id` | string? | Project this session belongs to |
+| `predecessor_session` | string? | Previous session in a chain |
+| `concurrent_sessions` | int? | How many sessions were running simultaneously |
+| `human_attention` | string | Level of human oversight: `active`, `background`, `unknown` |
+
+## Quality tiers
+
+Quality is assigned automatically during conversion based on content richness:
+
+- **A** — Has conversation turns, tool calls with output, more than 10 tool calls, and more than 5 turns
+- **B** — Has conversation turns but does not meet the A threshold
+- **C** — No conversation turns at all
+
+## See also
+
+- `go-minitrace help what-is-minitrace` — conceptual overview
+- `go-minitrace help writing-duckdb-queries` — how to query these fields with SQL
+- `go-minitrace help adapter-reference` — how each source format maps to this schema

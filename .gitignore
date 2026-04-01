@@ -18,3 +18,4 @@ dist/
 *.egg-info/
 /go-minitrace
 /go-minitrace.exe
+.ttmp.yaml
