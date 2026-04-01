@@ -124,6 +124,69 @@ go-minitrace validate --path /path/to/file-or-dir --recursive
 go-minitrace convert claude-code --source-dir ~/.claude/projects --output yaml
 ```
 
+## Step 10: Alternate ChatGPT JSON And turns.db Ports
+
+This step brought two Python-side gaps into the Go repo: the richer alternate ChatGPT per-conversation JSON export format, and the Geppetto/Pinocchio `turns.db` snapshot store. Both required behavior beyond straightforward record-to-record conversion.
+
+For the alternate ChatGPT format, each file is a single conversation object with explicit reasoning and tool nodes along the active branch. The Go converter groups adjacent assistant/tool nodes by `turn_exchange_id`, preserves the visible assistant reply as turn content, preserves reasoning recap as `thinking`, and emits real `tool_calls` from code/tool node pairs.
+
+For `turns.db`, every stored turn is a snapshot of the whole context window, not an incremental transcript event. The Go port follows the same strategy as the Python prototype:
+
+- open SQLite read-only,
+- choose one canonical snapshot per logical turn with phase preference `final > post_tools > post_inference > pre_inference`,
+- reconstruct ordered blocks,
+- compute the delta with an LCS against the prior canonical snapshot,
+- map only the newly introduced suffix into minitrace turns and tool calls.
+
+### What I added
+
+- `pkg/adapters/chatgpt/transcript.go`
+- `pkg/adapters/chatgpt/transcript_test.go`
+- `cmd/go-minitrace/cmds/convert/chatgpt_json.go`
+- `pkg/adapters/turnsdb/convert.go`
+- `pkg/adapters/turnsdb/convert_test.go`
+- `cmd/go-minitrace/cmds/convert/turnsdb.go`
+- README and overview updates
+- reproducible smoke scripts under `ttmp/2026-04-01/scripts/`
+
+### Real-data validation
+
+Alternate ChatGPT transcript export:
+
+- source: `/tmp/chatgpt-exports`
+- command:
+  - `go run ./cmd/go-minitrace convert chatgpt-json --source-dir /tmp/chatgpt-exports --output-dir /tmp/go-minitrace-chatgpt-json --output json`
+- result:
+  - converted 6 sessions
+  - extracted real `web.run` / `file_search` tool calls
+  - confirmed unique per-session tool-call IDs after a follow-up fix
+
+`turns.db`:
+
+- source: `/tmp/turns.db`
+- command:
+  - `go run ./cmd/go-minitrace convert turnsdb --source /tmp/turns.db --output-dir /tmp/go-minitrace-turnsdb --output json`
+- result:
+  - converted 7 conversations
+  - reconstructed incremental turns from snapshot deltas
+  - emitted real tool-call output from the sample corpus
+
+### What was tricky
+
+- The alternate ChatGPT format needed a different grouping model than the ZIP export path. Flattening node-by-node would have produced reasoning/tool noise as standalone turns.
+- The first draft of the transcript tool-call extraction generated IDs unique only within a step. Real-data smoke testing exposed that quickly because multiple exchanges each created `chatgpt-tool-0`. I fixed that by incorporating the exchange ID into each tool-call ID.
+- `turns.db` is structurally simple as SQL tables but semantically tricky because the persisted object is a whole-snapshot context window. Prefix-only diffing would have been wrong when intermediate framework-control blocks disappear; LCS is necessary.
+
+### Validation
+
+Ran successfully:
+
+- `go test ./...`
+- `go run ./cmd/go-minitrace convert chatgpt-json --source-dir /tmp/chatgpt-exports --output-dir /tmp/go-minitrace-chatgpt-json --output json`
+- `jq` inspection of `/tmp/go-minitrace-chatgpt-json/active/2026-03/69c88d2e-5690-832a-bbb0-5c6b9953d332.minitrace.json`
+- `go run ./cmd/go-minitrace convert turnsdb --source /tmp/turns.db --output-dir /tmp/go-minitrace-turnsdb --output json`
+- `jq` inspection of `/tmp/go-minitrace-turnsdb/active/2026-03/5cf06c5f-0460-485e-a7c5-92d56af826f9.minitrace.json`
+
 ## Step 2: Local Workspace Wiring And Validation
 
 After the initial bootstrap, I re-checked the repo in its actual local environment and hit a Go workspace issue that only appears because this repo sits under `/home/manuel/code/wesen/corporate-headquarters`, which already has a parent `go.work`. The repo's own `go.mod` was fine, but `go test ./...` from inside `go-minitrace` still failed until the parent workspace included `./go-minitrace`.
