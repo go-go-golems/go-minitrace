@@ -59,3 +59,13 @@ Wrote backend implementation guide for go-minitrace serve: 9 sections covering f
 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md — Backend guide
 
+
+## 2026-04-01
+
+Normalized the go-minitrace serve backend guide to match the current repo/frontend contract and added a phase-by-phase implementation backlog for the backend work.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md — Backend implementation guide updated and made docmgr-valid
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/tasks.md — Detailed implementation tasks added for serve backend work
+

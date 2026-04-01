@@ -1,27 +1,26 @@
 ---
-Title: ""
-Ticket: ""
-Status: ""
-Topics: []
-DocType: ""
-Intent: ""
+Title: Diary
+Ticket: WESEN-OS-001
+Status: active
+Topics:
+    - analysis
+    - codex
+    - diary
+    - go-minitrace
+    - serve
+DocType: reference
+Intent: Maintain a step-by-step implementation diary for the go-minitrace serve backend, including commands run, failures hit, commits made, and review guidance.
 Owners: []
 RelatedFiles:
-    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/scripts/01-schema-probe.sql
-      Note: Schema discovery query
-    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/scripts/02-session-list.sql
-      Note: Full session list with metrics
-    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/scripts/03-wesen-os-deploy-filter.sql
-      Note: Broad wesen-os/deploy filter
-    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/scripts/04-wesen-os-strict.sql
-      Note: Strict wesen-os workdir filter
-    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/scripts/05-deep-read-session.sql
-      Note: Per-session turn reader template
+    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
+      Note: Source-of-truth backend implementation guide
+    - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/tasks.md
+      Note: Ticket task list for phased backend implementation
 ExternalSources: []
-Summary: ""
-LastUpdated: 0001-01-01T00:00:00Z
-WhatFor: ""
-WhenToUse: ""
+Summary: Chronological diary of the WESEN-OS-001 investigation and the subsequent implementation of go-minitrace serve.
+LastUpdated: 2026-04-01T00:00:00Z
+WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
+WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
 
 
@@ -379,5 +378,112 @@ See `design/01-wesen-os-deployment-summary.md` (to be written).
 ---
 
 ## Step 8: Document minitrace improvement suggestions
+
+The investigation phase produced enough concrete UX and data-shape feedback to justify a dedicated improvement memo. I captured the issues while they were still fresh, rather than trying to reconstruct them after the fact from shell history.
+
+That document became the bridge into the product/design side of the ticket: after understanding the deployment sessions, the next step was defining how go-minitrace itself should improve, eventually leading to the Transcript Explorer UI and backend implementation plan.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 4)
+
+**Assistant interpretation:** Record the frictions, rough edges, and concrete product improvements surfaced during the investigation.
+
+**Inferred user intent:** Turn the session-analysis exercise into actionable product feedback for go-minitrace itself.
+
+### What I did
+- Wrote `analysis/01-minitrace-improvement-suggestions.md`
+- Grouped suggestions by priority and grounded them in actual commands/errors from the investigation
+
+### Why
+- The ticket explicitly asked that the experience feed back into go-minitrace improvements.
+- Capturing the issues immediately avoids losing the causal chain between observed pain and proposed fix.
+
+### What worked
+- The improvement memo made the subsequent UI/backend design work much easier because the gaps were already articulated.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The strongest product gaps were not in raw conversion fidelity, but in inspectability, transcript reading, and iteration speed.
+
+### What was tricky to build
+- Distilling many small frictions into a prioritized list without duplicating the diary itself.
+
+### What warrants a second pair of eyes
+- Priority ranking for the suggestions could be debated depending on whether the next target user is a researcher or a developer.
+
+### What should be done in the future
+- Revisit the suggestions after the serve backend is implemented and compare predicted pain points with the real implementation cost.
+
+### Code review instructions
+- Read `analysis/01-minitrace-improvement-suggestions.md` and compare it with the later UI/backend docs in this ticket.
+
+### Technical details
+- N/A
+
+---
+
+## Step 9: Kick off the serve backend implementation loop
+
+I shifted the ticket from analysis into execution: validated the backend implementation guide, created a phase-by-phase task backlog, and set up the diary-driven working loop so the actual code work can be tracked commit by commit. This step is mostly scaffolding, but it matters because the ticket already contained invalid frontmatter and untracked design docs.
+
+The immediate goal was to make the documentation layer trustworthy before touching the Go code. That means the backend guide needed to be docmgr-valid, the task list needed implementation-ready phases, and the diary itself needed to become a valid reference doc rather than a dead markdown file.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, now implement this using the glazed framework as well (sections, fields, etc...) . Task by task, committing at appropriate intervals, and keeping a detailed diary as you work."
+
+**Assistant interpretation:** Implement the `go-minitrace serve` backend in phased Glazed-native slices, with disciplined commits and a continuously maintained diary.
+
+**Inferred user intent:** Turn the design work into production code while preserving enough execution history that the work can be reviewed, resumed, and learned from later.
+
+### What I did
+- Validated and normalized `design-doc/04-backend-implementation-guide-go-minitrace-serve.md`
+- Added implementation tasks for phases 1 through 5 plus testing and validation
+- Updated the ticket changelog
+- Normalized this diary doc so `docmgr` can index it
+- Read the `diary`, `docmgr`, and `glazed-command-authoring` skill instructions before starting code work
+- Inspected current Glazed command patterns in:
+  - `cmd/go-minitrace/cmds/query/duckdb.go`
+  - `cmd/go-minitrace/cmds/common/build.go`
+  - `cmd/go-minitrace/cmds/validate/validate.go`
+
+### Why
+- The user asked for task-by-task implementation and detailed diary updates, which requires clean ticket bookkeeping before the code loop starts.
+- The backend should follow the repo’s current Glazed conventions rather than inventing a one-off Cobra command.
+
+### What worked
+- `docmgr validate frontmatter` now passes for the backend guide.
+- `docmgr doc list --ticket WESEN-OS-001` now shows the backend guide, which means the ticket is no longer missing its core implementation doc.
+
+### What didn't work
+- The ticket already had multiple important documents with empty frontmatter, so docmgr was blind to them until normalized.
+
+### What I learned
+- The repo’s Glazed pattern is consistent: `settings.NewGlazedSchema()`, `cli.NewCommandSettingsSection()`, decode from `schema.DefaultSlug`, then wrap with `common.BuildCobraCommand`.
+- The current frontend contract already hard-codes several backend decisions, especially `GET /api/sessions/{id}` returning `blocks` inline.
+
+### What was tricky to build
+- The trickiest part here was not code, but deciding what the first “real” implementation step should be while the ticket was still partially untracked in docmgr.
+- I explicitly chose to stabilize the documentation and task system first so that later commits can cleanly map to ticket steps and diary entries.
+
+### What warrants a second pair of eyes
+- The existing `reference/01-diary.md` and several design docs were created outside a clean docmgr flow. It would be worth normalizing the rest of the ticket docs too, not just the backend guide and diary.
+
+### What should be done in the future
+- Normalize the remaining design documents if they will continue to be used as living references during implementation.
+
+### Code review instructions
+- Review `design-doc/04-backend-implementation-guide-go-minitrace-serve.md` first, then `tasks.md`, then this diary entry.
+- Confirm that the task ordering still reflects the intended implementation sequence before reviewing code commits.
+
+### Technical details
+- Commands run:
+  - `docmgr validate frontmatter --doc 2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md --suggest-fixes`
+  - `docmgr doc list --ticket WESEN-OS-001`
+  - `docmgr task add --ticket WESEN-OS-001 --text "..."`
+  - `docmgr changelog update --ticket WESEN-OS-001 --entry "..."`
 
 See `analysis/01-minitrace-improvement-suggestions.md`.
