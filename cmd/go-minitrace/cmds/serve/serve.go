@@ -5,7 +5,6 @@ import (
 	stderrors "errors"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
@@ -26,7 +25,7 @@ type ServeCommand struct {
 }
 
 type ServeSettings struct {
-	ArchiveGlob string   `glazed:"archive-glob"`
+	ArchiveGlob []string `glazed:"archive-glob"`
 	PresetDir   []string `glazed:"preset-dir"`
 	QueryDir    []string `glazed:"query-dir"`
 	Port        int      `glazed:"port"`
@@ -58,6 +57,7 @@ rows to a Glazed processor.
 
 Examples:
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
+  go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' --archive-glob './archive/*.minitrace.json'
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' --port 8090
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' --dev
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' \
@@ -65,7 +65,7 @@ Examples:
     --query-dir ./queries/shared --query-dir ./queries/private
 `),
 		cmds.WithFlags(
-			fields.New("archive-glob", fields.TypeString, fields.WithDefault("./output/active/*/*.minitrace.json"), fields.WithHelp("Glob pattern for converted minitrace session files to load")),
+			fields.New("archive-glob", fields.TypeStringList, fields.WithDefault([]string{"./output/active/*/*.minitrace.json"}), fields.WithHelp("Repeatable glob flag for converted minitrace session files to load")),
 			fields.New("preset-dir", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Repeatable directory flag for additional read-only SQL preset roots")),
 			fields.New("query-dir", fields.TypeStringList, fields.WithDefault([]string{"./queries"}), fields.WithHelp("Repeatable directory flag for user-saved SQL query roots; new queries are created in the first root")),
 			fields.New("port", fields.TypeInteger, fields.WithDefault(8080), fields.WithHelp("HTTP listen port")),
@@ -86,7 +86,7 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 	if err := vals.DecodeSectionInto(schema.DefaultSlug, settings_); err != nil {
 		return err
 	}
-	if strings.TrimSpace(settings_.ArchiveGlob) == "" {
+	if len(settings_.ArchiveGlob) == 0 {
 		return errors.New("archive-glob is required")
 	}
 
@@ -101,8 +101,8 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 	defer func() { _ = db.Close() }()
 
 	if err := queryengine.LoadArchive(signalCtx, conn, queryengine.LoadOptions{
-		ArchiveGlob: settings_.ArchiveGlob,
-		TableName:   settings_.TableName,
+		ArchiveGlobs: settings_.ArchiveGlob,
+		TableName:    settings_.TableName,
 	}); err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 	}
 
 	log.Info().
-		Str("archive_glob", settings_.ArchiveGlob).
+		Strs("archive_globs", settings_.ArchiveGlob).
 		Str("db_path", settings_.DBPath).
 		Str("table_name", settings_.TableName).
 		Int("indexed_sessions", len(sessionIndex)).

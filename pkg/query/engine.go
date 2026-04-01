@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 )
 
 type LoadOptions struct {
-	ArchiveGlob   string
+	ArchiveGlobs  []string
 	TableName     string
 	PersistLoaded bool
 }
@@ -44,11 +45,12 @@ func LoadArchive(ctx context.Context, conn *sql.Conn, opts LoadOptions) error {
 	if err := ValidateIdentifier(opts.TableName); err != nil {
 		return err
 	}
-	if strings.TrimSpace(opts.ArchiveGlob) == "" {
-		return fmt.Errorf("archive glob is required")
+	resolvedFiles, err := ExpandArchiveGlobs(opts.ArchiveGlobs)
+	if err != nil {
+		return err
 	}
 
-	loadSQL := BuildLoadSQL(opts)
+	loadSQL := buildLoadSQLFromFiles(opts.TableName, opts.PersistLoaded, resolvedFiles)
 	if _, err := conn.ExecContext(ctx, loadSQL); err != nil {
 		return fmt.Errorf("loading archive into duckdb: %w", err)
 	}
@@ -56,8 +58,16 @@ func LoadArchive(ctx context.Context, conn *sql.Conn, opts LoadOptions) error {
 }
 
 func BuildLoadSQL(opts LoadOptions) string {
+	resolvedFiles, err := ExpandArchiveGlobs(opts.ArchiveGlobs)
+	if err != nil {
+		panic(err)
+	}
+	return buildLoadSQLFromFiles(opts.TableName, opts.PersistLoaded, resolvedFiles)
+}
+
+func buildLoadSQLFromFiles(tableName string, persistLoaded bool, resolvedFiles []string) string {
 	tableKeyword := "TEMP TABLE"
-	if opts.PersistLoaded {
+	if persistLoaded {
 		tableKeyword = "TABLE"
 	}
 
@@ -84,7 +94,58 @@ FROM read_json(
   },
   ignore_errors = true
 );
-`, tableKeyword, opts.TableName, quoteSQLString(opts.ArchiveGlob))
+`, tableKeyword, tableName, quoteSQLStringList(resolvedFiles))
+}
+
+func ExpandArchiveGlobs(archiveGlobs []string) ([]string, error) {
+	normalizedGlobs := normalizeStringList(archiveGlobs)
+	if len(normalizedGlobs) == 0 {
+		return nil, fmt.Errorf("archive glob is required")
+	}
+
+	resolvedFiles := make([]string, 0)
+	seenFiles := make(map[string]struct{})
+
+	for _, archiveGlob := range normalizedGlobs {
+		files, err := filepath.Glob(archiveGlob)
+		if err != nil {
+			return nil, fmt.Errorf("expanding archive glob %q: %w", archiveGlob, err)
+		}
+		for _, filePath := range files {
+			absPath, err := filepath.Abs(filePath)
+			if err != nil {
+				return nil, fmt.Errorf("resolving absolute path for %s: %w", filePath, err)
+			}
+			if _, ok := seenFiles[absPath]; ok {
+				continue
+			}
+			seenFiles[absPath] = struct{}{}
+			resolvedFiles = append(resolvedFiles, absPath)
+		}
+	}
+
+	if len(resolvedFiles) == 0 {
+		return nil, fmt.Errorf("archive globs matched no files: %s", strings.Join(normalizedGlobs, ", "))
+	}
+
+	return resolvedFiles, nil
+}
+
+func normalizeStringList(values []string) []string {
+	ret := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		ret = append(ret, value)
+	}
+	return ret
 }
 
 func ResolveSQL(presetName string, inlineSQL string, sqlFile string, tableName string) (string, error) {
@@ -166,4 +227,16 @@ func ValidateIdentifier(identifier string) error {
 
 func quoteSQLString(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "''") + "'"
+}
+
+func quoteSQLStringList(values []string) string {
+	if len(values) == 1 {
+		return quoteSQLString(values[0])
+	}
+
+	quoted := make([]string, 0, len(values))
+	for _, value := range values {
+		quoted = append(quoted, quoteSQLString(value))
+	}
+	return "[" + strings.Join(quoted, ", ") + "]"
 }

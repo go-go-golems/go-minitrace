@@ -23,7 +23,7 @@ func TestBuildSessionIndexIndexesWrittenSessions(t *testing.T) {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	index, err := buildSessionIndex(filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
 	if err != nil {
 		t.Fatalf("buildSessionIndex returned error: %v", err)
 	}
@@ -34,6 +34,30 @@ func TestBuildSessionIndexIndexesWrittenSessions(t *testing.T) {
 	}
 	if !strings.HasSuffix(path, "phase1-index.minitrace.json") {
 		t.Fatalf("unexpected indexed path %q", path)
+	}
+}
+
+func TestBuildSessionIndexSupportsMultipleArchiveGlobs(t *testing.T) {
+	archiveRoot1 := t.TempDir()
+	archiveRoot2 := t.TempDir()
+	session1 := buildFixtureSession(t, "phase1-index-a")
+	session2 := buildFixtureSession(t, "phase1-index-b")
+	if _, err := minitrace.WriteSession(session1, archiveRoot1); err != nil {
+		t.Fatalf("WriteSession session1 returned error: %v", err)
+	}
+	if _, err := minitrace.WriteSession(session2, archiveRoot2); err != nil {
+		t.Fatalf("WriteSession session2 returned error: %v", err)
+	}
+
+	index, err := buildSessionIndex([]string{
+		filepath.Join(archiveRoot1, "active", "*", "*.minitrace.json"),
+		filepath.Join(archiveRoot2, "active", "*", "*.minitrace.json"),
+	})
+	if err != nil {
+		t.Fatalf("buildSessionIndex returned error: %v", err)
+	}
+	if len(index) != 2 {
+		t.Fatalf("expected 2 indexed sessions, got %d", len(index))
 	}
 }
 
@@ -53,8 +77,8 @@ func TestHandleExecuteQueryReturnsStructuredRows(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlob: filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"),
-		TableName:   "sessions_base",
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
 	}); err != nil {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
@@ -136,8 +160,8 @@ func TestHandleGetSessionsReturnsNormalizedSummaries(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlob: filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"),
-		TableName:   "sessions_base",
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
 	}); err != nil {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
@@ -177,7 +201,7 @@ func TestHandleGetSessionReturnsDetailWithBlocks(t *testing.T) {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	index, err := buildSessionIndex(filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
 	if err != nil {
 		t.Fatalf("buildSessionIndex returned error: %v", err)
 	}
@@ -238,7 +262,7 @@ func TestHandleGetSessionBlocksReturnsGapsAndArtifacts(t *testing.T) {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	index, err := buildSessionIndex(filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
 	if err != nil {
 		t.Fatalf("buildSessionIndex returned error: %v", err)
 	}

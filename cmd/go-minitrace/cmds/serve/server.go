@@ -206,17 +206,10 @@ func (s *Server) handleExecuteQuery(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func buildSessionIndex(archiveGlob string) (map[string]string, error) {
-	if strings.TrimSpace(archiveGlob) == "" {
-		return nil, errors.New("archive glob is required")
-	}
-
-	files, err := filepath.Glob(archiveGlob)
+func buildSessionIndex(archiveGlobs []string) (map[string]string, error) {
+	files, err := queryengine.ExpandArchiveGlobs(archiveGlobs)
 	if err != nil {
-		return nil, errors.Wrap(err, "expanding archive glob")
-	}
-	if len(files) == 0 {
-		return nil, errors.Errorf("archive glob matched no files: %s", archiveGlob)
+		return nil, err
 	}
 
 	index := make(map[string]string, len(files))
@@ -226,17 +219,13 @@ func buildSessionIndex(archiveGlob string) (map[string]string, error) {
 		if sessionID == base {
 			continue
 		}
-		absPath, err := filepath.Abs(filePath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "resolving absolute path for %s", filePath)
-		}
 		if previous, ok := index[sessionID]; ok {
-			return nil, errors.Errorf("duplicate session ID %q found in %s and %s", sessionID, previous, absPath)
+			return nil, errors.Errorf("duplicate session ID %q found in %s and %s", sessionID, previous, filePath)
 		}
-		index[sessionID] = absPath
+		index[sessionID] = filePath
 	}
 	if len(index) == 0 {
-		return nil, errors.Errorf("archive glob matched no .minitrace.json files: %s", archiveGlob)
+		return nil, errors.Errorf("archive globs matched no .minitrace.json files")
 	}
 	return index, nil
 }

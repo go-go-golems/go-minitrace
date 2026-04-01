@@ -72,8 +72,8 @@ func TestLoadArchiveAndRunPreset(t *testing.T) {
 	defer func() { _ = db.Close() }()
 
 	if err := LoadArchive(ctx, conn, LoadOptions{
-		ArchiveGlob: filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"),
-		TableName:   "sessions_base",
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
 	}); err != nil {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
@@ -112,6 +112,65 @@ func TestLoadArchiveAndRunPreset(t *testing.T) {
 	}
 	if got, _ := row.Get("source_format"); got != "fixture" {
 		t.Fatalf("expected fixture source_format, got %#v", got)
+	}
+}
+
+func TestExpandArchiveGlobsDeduplicatesOverlappingMatches(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t)
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	files, err := ExpandArchiveGlobs([]string{
+		filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"),
+		filepath.Join(archiveRoot, "active", "2026-04", "*.minitrace.json"),
+	})
+	if err != nil {
+		t.Fatalf("ExpandArchiveGlobs returned error: %v", err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected deduplicated file list of length 1, got %d: %#v", len(files), files)
+	}
+}
+
+func TestLoadArchiveSupportsMultipleArchiveGlobs(t *testing.T) {
+	archiveRoot1 := t.TempDir()
+	archiveRoot2 := t.TempDir()
+	session1 := buildFixtureSession(t)
+	session2 := buildFixtureSession(t)
+	session2.ID = "fixture-session-2"
+	if _, err := minitrace.WriteSession(session1, archiveRoot1); err != nil {
+		t.Fatalf("WriteSession session1 returned error: %v", err)
+	}
+	if _, err := minitrace.WriteSession(session2, archiveRoot2); err != nil {
+		t.Fatalf("WriteSession session2 returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	if err := LoadArchive(ctx, conn, LoadOptions{
+		ArchiveGlobs: []string{
+			filepath.Join(archiveRoot1, "active", "*", "*.minitrace.json"),
+			filepath.Join(archiveRoot2, "active", "*", "*.minitrace.json"),
+		},
+		TableName: "sessions_base",
+	}); err != nil {
+		t.Fatalf("LoadArchive returned error: %v", err)
+	}
+
+	var loadedCount int
+	if err := conn.QueryRowContext(ctx, "SELECT COUNT(*) FROM sessions_base").Scan(&loadedCount); err != nil {
+		t.Fatalf("counting loaded rows: %v", err)
+	}
+	if loadedCount != 2 {
+		t.Fatalf("expected loaded row count 2, got %d", loadedCount)
 	}
 }
 

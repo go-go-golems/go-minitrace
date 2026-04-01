@@ -23,14 +23,14 @@ type DuckDBQueryCommand struct {
 }
 
 type DuckDBQuerySettings struct {
-	ArchiveGlob   string `glazed:"archive-glob"`
-	DBPath        string `glazed:"db-path"`
-	TableName     string `glazed:"table-name"`
-	Preset        string `glazed:"preset"`
-	SQL           string `glazed:"sql"`
-	SQLFile       string `glazed:"sql-file"`
-	LoadOnly      bool   `glazed:"load-only"`
-	PersistLoaded bool   `glazed:"persist-loaded"`
+	ArchiveGlob   []string `glazed:"archive-glob"`
+	DBPath        string   `glazed:"db-path"`
+	TableName     string   `glazed:"table-name"`
+	Preset        string   `glazed:"preset"`
+	SQL           string   `glazed:"sql"`
+	SQLFile       string   `glazed:"sql-file"`
+	LoadOnly      bool     `glazed:"load-only"`
+	PersistLoaded bool     `glazed:"persist-loaded"`
 }
 
 func NewDuckDBQueryGlazeCommand() (*DuckDBQueryCommand, error) {
@@ -55,12 +55,13 @@ through Glazed fields and decoded from the default Glazed section.
 
 Examples:
   go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset session-list
+  go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --archive-glob './archive/*.minitrace.json' --preset session-list
   go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset framework-summary --output json
   go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --sql 'SELECT COUNT(*) AS sessions FROM sessions_base'
   go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --sql-file ./custom.sql
 `),
 		cmds.WithFlags(
-			fields.New("archive-glob", fields.TypeString, fields.WithDefault("./output/active/*/*.minitrace.json"), fields.WithHelp("Glob pattern for minitrace session JSON files to load")),
+			fields.New("archive-glob", fields.TypeStringList, fields.WithDefault([]string{"./output/active/*/*.minitrace.json"}), fields.WithHelp("Repeatable glob flag for minitrace session JSON files to load")),
 			fields.New("db-path", fields.TypeString, fields.WithDefault(":memory:"), fields.WithHelp("DuckDB database path to use; :memory: keeps the query session ephemeral")),
 			fields.New("table-name", fields.TypeString, fields.WithDefault("sessions_base"), fields.WithHelp("Table name to create from the loaded archive")),
 			fields.New("preset", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Named built-in query preset to execute")),
@@ -82,7 +83,7 @@ func (c *DuckDBQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *va
 	if err := vals.DecodeSectionInto(schema.DefaultSlug, settings_); err != nil {
 		return err
 	}
-	if strings.TrimSpace(settings_.ArchiveGlob) == "" {
+	if len(settings_.ArchiveGlob) == 0 {
 		return errors.New("archive-glob is required")
 	}
 
@@ -117,7 +118,7 @@ func (c *DuckDBQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *va
 	defer func() { _ = db.Close() }()
 
 	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlob:   settings_.ArchiveGlob,
+		ArchiveGlobs:  settings_.ArchiveGlob,
 		TableName:     settings_.TableName,
 		PersistLoaded: settings_.PersistLoaded,
 	}); err != nil {
@@ -128,7 +129,7 @@ func (c *DuckDBQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *va
 		row := types.NewRow(
 			types.MRP("status", "loaded"),
 			types.MRP("backend", "duckdb"),
-			types.MRP("archive_glob", settings_.ArchiveGlob),
+			types.MRP("archive_globs", settings_.ArchiveGlob),
 			types.MRP("db_path", settings_.DBPath),
 			types.MRP("table_name", settings_.TableName),
 			types.MRP("persist_loaded", settings_.PersistLoaded),
