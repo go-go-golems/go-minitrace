@@ -18,8 +18,8 @@
 - [x] Phase 2: implement GET /api/sessions using DuckDB plus explicit DTO normalization for frontend types
 - [x] Phase 2: implement GET /api/sessions/{id} by loading converted .minitrace.json files from the startup index
 - [x] Phase 2: return computed blocks inline from GET /api/sessions/{id} to match the current React app contract
-- [ ] Phase 3: implement block decomposition with internal raw block types and stable gap calculations
-- [ ] Phase 3: implement badge and artifact detection before DTO conversion and add optional GET /api/sessions/{id}/blocks
+- [x] Phase 3: implement block decomposition with internal raw block types and stable gap calculations
+- [x] Phase 3: implement badge and artifact detection before DTO conversion and add optional GET /api/sessions/{id}/blocks
 - [ ] Phase 4: implement GET /api/presets by merging built-in presets with --preset-dir using sidebar-friendly folders
 - [ ] Phase 4: implement query-dir CRUD with path validation for folder and filename inputs
 - [ ] Phase 5: wire embedded frontend assets, SPA fallback, and a build path that does not break plain go build ./...

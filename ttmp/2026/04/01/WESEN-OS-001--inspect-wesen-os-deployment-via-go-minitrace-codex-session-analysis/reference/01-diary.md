@@ -12,18 +12,26 @@ DocType: reference
 Intent: Maintain a step-by-step implementation diary for the go-minitrace serve backend, including commands run, failures hit, commits made, and review guidance.
 Owners: []
 RelatedFiles:
+    - Path: cmd/go-minitrace/cmds/serve/badges.go
+      Note: Phase 3 badge and artifact heuristics (commit fdddc68)
+    - Path: cmd/go-minitrace/cmds/serve/blocks.go
+      Note: Phase 3 raw block builder and response projection (commit fdddc68)
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
-      Note: Phase 2 DTO normalization and session list/detail handlers (commit c969a59)
+      Note: |-
+        Phase 2 DTO normalization and session list/detail handlers (commit c969a59)
+        Phase 3 shared blocks endpoint and badge wiring (commit fdddc68)
     - Path: cmd/go-minitrace/cmds/serve/serve.go
       Note: Phase 1 Glazed bare command and settings wiring (commit f509c77)
     - Path: cmd/go-minitrace/cmds/serve/server.go
       Note: |-
         Phase 1 server skeleton
         Phase 2 route registration updates (commit c969a59)
+        Phase 3 blocks route registration (commit fdddc68)
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: |-
         Phase 1 focused server tests (commit f509c77)
         Phase 2 endpoint and fixture coverage (commit c969a59)
+        Phase 3 block
     - Path: cmd/go-minitrace/main.go
       Note: Registered the serve command in the CLI root (commit f509c77)
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
@@ -36,6 +44,7 @@ LastUpdated: 2026-04-01T00:00:00Z
 WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
 WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
+
 
 
 
@@ -681,6 +690,95 @@ The important architectural choice here was to keep the frontend contract separa
 - New file:
   - `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
 - Updated files:
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+
+---
+
+## Step 12: Phase 3 implementation of block decomposition, badges, and the blocks endpoint
+
+The third code slice separated the transcript-block logic from the HTTP handler layer and made the transcript payload more meaningful. Instead of returning blocks with empty artifact summaries, the backend now computes block artifacts and tool-call badges, and it exposes `GET /api/sessions/{id}/blocks` as a dedicated endpoint that reuses the same block builder as the detail endpoint.
+
+This phase was mostly about making the transcript view legible at a glance. The React viewer is already designed around block headers, badge chips, and artifact summaries, so leaving those empty would have made the UI technically functional but semantically flat.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Continue the backend implementation by tightening the block model itself and making the transcript-specific affordances from the UI contract real.
+
+**Inferred user intent:** Turn the transcript explorer from a generic detail dump into a human-readable workflow viewer.
+
+**Commit (code):** `fdddc68` — "feat(serve): add blocks endpoint and artifact badges"
+
+### What I did
+- Added `cmd/go-minitrace/cmds/serve/blocks.go`
+  - internal raw block types
+  - raw block builder
+  - block-to-response conversion
+- Added `cmd/go-minitrace/cmds/serve/badges.go`
+  - badge detection for commit, ticket-create, doc-add, diary-write, and error
+  - block artifact aggregation
+  - simple extraction helpers for commit messages, ticket IDs, and doc titles
+- Updated `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+  - removed embedded block-building logic
+  - added `GET /api/sessions/{id}/blocks`
+  - populated tool-call badges during normalization
+- Updated `cmd/go-minitrace/cmds/serve/server.go` to register the new blocks route
+- Extended `cmd/go-minitrace/cmds/serve/server_test.go`
+  - session detail now asserts commit artifacts/badges
+  - added dedicated blocks-endpoint coverage for gap calculation and diary-write artifact detection
+- Ran:
+  - `gofmt -w cmd/go-minitrace/cmds/serve/blocks.go cmd/go-minitrace/cmds/serve/badges.go cmd/go-minitrace/cmds/serve/handlers_sessions.go cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/server_test.go`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Why
+- The UI design is built around landmarks, not just flat turn lists.
+- Splitting the block logic out of the handler file makes later iteration on badge heuristics and transcript grouping much easier.
+
+### What worked
+- The detail endpoint still returns inline blocks, but those blocks now carry artifact summaries and badge chips.
+- The standalone blocks endpoint is available for lighter-weight consumers or future frontend optimization.
+- The new tests cover the intended transcript semantics, not just transport mechanics.
+
+### What didn't work
+- N/A in this phase; the refactor/build/test loop passed cleanly after the code split.
+
+### What I learned
+- The raw-block intermediate type is worth keeping. It gives the backend a place to preserve tool-call IDs and count information before projecting into final JSON DTOs.
+- Badge detection is simple enough to start with string heuristics, as long as the extraction helpers are isolated and easy to revise later.
+
+### What was tricky to build
+- The tricky part was balancing “good enough heuristics now” with “don’t bake nonsense into the API.”
+- I kept the detection rules deliberately narrow:
+  - `git commit` for commit badges
+  - `docmgr ticket create` / `create-ticket`
+  - `docmgr doc add`
+  - diary writes from diary-related file paths or explicit diary-write command patterns
+- That keeps the logic explainable while leaving room for refinement.
+
+### What warrants a second pair of eyes
+- The badge extraction helpers are heuristic and string-based; they are correct for the current data shape but not guaranteed across every future tool format.
+- Artifact detection currently deduplicates commit messages, ticket IDs, and doc titles within a block, which is probably right, but worth confirming against expected UX.
+
+### What should be done in the future
+- Revisit badge detection once the backend is exercised against a larger real archive.
+- Consider surfacing artifact evidence more explicitly if the frontend later wants provenance for each badge.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/blocks.go` and `cmd/go-minitrace/cmds/serve/badges.go`.
+- Then read the session handler changes to confirm both detail and blocks endpoints share the same block builder.
+- Validate with:
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+
+### Technical details
+- New files:
+  - `cmd/go-minitrace/cmds/serve/blocks.go`
+  - `cmd/go-minitrace/cmds/serve/badges.go`
+- Updated files:
+  - `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
   - `cmd/go-minitrace/cmds/serve/server.go`
   - `cmd/go-minitrace/cmds/serve/server_test.go`
 

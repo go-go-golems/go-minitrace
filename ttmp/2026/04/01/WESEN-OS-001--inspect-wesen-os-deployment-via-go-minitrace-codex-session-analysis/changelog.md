@@ -92,3 +92,15 @@ Step 11: implemented Phase 2 of go-minitrace serve with normalized session DTOs,
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Phase 2 route updates
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 2 tests
 
+
+## 2026-04-01
+
+Step 12: implemented Phase 3 of go-minitrace serve with raw block decomposition, badge/artifact detection, and GET /api/sessions/{id}/blocks (commit fdddc68).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/badges.go — Phase 3 badge detection
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/blocks.go — Phase 3 block builder
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go — Phase 3 blocks endpoint
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 3 tests
+
