@@ -22,7 +22,7 @@
 - [x] Phase 3: implement badge and artifact detection before DTO conversion and add optional GET /api/sessions/{id}/blocks
 - [x] Phase 4: implement GET /api/presets by merging built-in presets with --preset-dir using sidebar-friendly folders
 - [x] Phase 4: implement query-dir CRUD with path validation for folder and filename inputs
-- [ ] Phase 5: wire embedded frontend assets, SPA fallback, and a build path that does not break plain go build ./...
-- [ ] Phase 5: wire Vite-first dev mode with /api proxying to the Go backend
-- [ ] Testing: add unit tests for blocks and badges plus integration coverage for /api/query, /api/sessions, and /api/sessions/{id}
-- [ ] Validation: run end-to-end manual testing against the real WESEN-OS-001 archive and verify the existing web UI works without mock handlers
+- [x] Phase 5: wire embedded frontend assets, SPA fallback, and a build path that does not break plain go build ./...
+- [x] Phase 5: wire Vite-first dev mode with /api proxying to the Go backend
+- [x] Testing: add unit tests for blocks and badges plus integration coverage for /api/query, /api/sessions, and /api/sessions/{id}
+- [x] Validation: run end-to-end manual testing against the real WESEN-OS-001 archive and verify the existing web UI works without mock handlers

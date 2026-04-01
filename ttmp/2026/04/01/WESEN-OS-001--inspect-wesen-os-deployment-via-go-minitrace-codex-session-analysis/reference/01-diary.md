@@ -12,10 +12,18 @@ DocType: reference
 Intent: Maintain a step-by-step implementation diary for the go-minitrace serve backend, including commands run, failures hit, commits made, and review guidance.
 Owners: []
 RelatedFiles:
+    - Path: Makefile
+      Note: Frontend build-and-copy target for embedded assets
     - Path: cmd/go-minitrace/cmds/serve/badges.go
       Note: Phase 3 badge and artifact heuristics (commit fdddc68)
+    - Path: cmd/go-minitrace/cmds/serve/badges_test.go
+      Note: Direct unit coverage for badge and artifact heuristics
     - Path: cmd/go-minitrace/cmds/serve/blocks.go
       Note: Phase 3 raw block builder and response projection (commit fdddc68)
+    - Path: cmd/go-minitrace/cmds/serve/blocks_test.go
+      Note: Direct unit coverage for block splitting
+    - Path: cmd/go-minitrace/cmds/serve/embed.go
+      Note: Embedded frontend filesystem for serve
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Phase 4 presets and query-library CRUD with path validation (commit 14b45e2)
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
@@ -30,24 +38,33 @@ RelatedFiles:
         Phase 2 route registration updates (commit c969a59)
         Phase 3 blocks route registration (commit fdddc68)
         Phase 4 route registration and request decoding helper (commit 14b45e2)
+        SPA fallback routing and HTTP server integration
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: |-
         Phase 1 focused server tests (commit f509c77)
         Phase 2 endpoint and fixture coverage (commit c969a59)
         Phase 3 block
         Phase 4 preset and query CRUD coverage (commit 14b45e2)
+        SPA fallback and endpoint integration coverage
     - Path: cmd/go-minitrace/main.go
       Note: Registered the serve command in the CLI root (commit f509c77)
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/design-doc/04-backend-implementation-guide-go-minitrace-serve.md
       Note: Source-of-truth backend implementation guide
     - Path: ttmp/2026/04/01/WESEN-OS-001--inspect-wesen-os-deployment-via-go-minitrace-codex-session-analysis/tasks.md
       Note: Ticket task list for phased backend implementation
+    - Path: web/src/main.tsx
+      Note: Opt-in MSW startup for real-backend validation
+    - Path: web/src/mocks/data.ts
+      Note: Frontend build fix for unused mock import
+    - Path: web/vite.config.ts
+      Note: Vite dev proxy and static asset output path
 ExternalSources: []
 Summary: Chronological diary of the WESEN-OS-001 investigation and the subsequent implementation of go-minitrace serve.
 LastUpdated: 2026-04-01T00:00:00Z
 WhatFor: Preserve implementation context, commands, failures, commits, and review notes so the backend work can be resumed and audited cleanly.
 WhenToUse: Use when implementing, reviewing, or continuing the go-minitrace serve backend work for this ticket.
 ---
+
 
 
 
@@ -879,3 +896,113 @@ This phase is where the backend stopped being “session browser plus transcript
   - `cmd/go-minitrace/cmds/serve/server_test.go`
 
 See `analysis/01-minitrace-improvement-suggestions.md`.
+
+---
+
+## Step 14: Phase 5 frontend embedding, Vite dev mode, and final validation
+
+The fifth implementation slice closed the loop between the Go backend and the existing React UI. `go-minitrace serve` now serves an embedded SPA outside dev mode, the frontend dev server proxies `/api` to Go in the canonical two-process loop, and the backend work is covered by both the earlier handler tests and new direct unit tests for block splitting and badge/artifact heuristics.
+
+This was the first phase where I had to validate the whole system instead of just the backend slice in isolation. The backend routes were already in place, but the production/static contract, frontend build, and “real UI against real archive” flow still needed to be proven end-to-end.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 9)
+
+**Assistant interpretation:** Finish the remaining serve implementation tasks, keep the work split into coherent commits, and update the ticket diary with exact technical progress instead of a vague summary.
+
+**Inferred user intent:** Land a usable first version of `go-minitrace serve`, not just a partially implemented backend, and leave a traceable task/diary history behind.
+
+**Commit (code):** `75b86b7` — "feat(serve): embed frontend and tighten tests"
+
+### What I did
+- Added `cmd/go-minitrace/cmds/serve/embed.go` with `//go:embed all:frontend` and a package-local `frontendFS`.
+- Updated `cmd/go-minitrace/cmds/serve/server.go`
+  - mounted the SPA handler on `/` outside `--dev`
+  - implemented explicit SPA fallback behavior for client-side routes
+  - served `index.html` content directly for fallback instead of letting `http.FileServer` redirect
+- Extended `cmd/go-minitrace/cmds/serve/server_test.go` with SPA fallback coverage.
+- Added dedicated unit tests:
+  - `cmd/go-minitrace/cmds/serve/blocks_test.go`
+  - `cmd/go-minitrace/cmds/serve/badges_test.go`
+- Updated frontend tooling:
+  - `web/vite.config.ts` now proxies `/api` to `http://localhost:8080`
+  - Vite production assets now emit under `/static`
+  - `web/src/main.tsx` only starts MSW when `VITE_USE_MSW=true`
+  - removed a stale unused import in `web/src/mocks/data.ts` so `npm run build` passes
+- Built the frontend with `npm run build` and copied `web/dist` into `cmd/go-minitrace/cmds/serve/frontend` for embedding.
+- Ran:
+  - `npm run build` in `web/`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+- Performed manual end-to-end validation against the real converted archive:
+  - started the server in `tmux`
+  - `curl http://127.0.0.1:8080/`
+  - `curl http://127.0.0.1:8080/api/sessions`
+  - `curl http://127.0.0.1:8080/api/sessions/019d0112-69ba-7232-9b14-875797183903`
+  - opened `http://127.0.0.1:8080/` in Playwright and confirmed the SPA mounted with `86 sessions loaded`
+
+### Why
+- The backend was not actually “done” until the real frontend could run against it without the mock worker intercepting requests.
+- The ticket explicitly called for a build path that keeps `go build ./...` working while still giving the serve command a production frontend to embed.
+- The earlier Phase 3 handler coverage exercised badge/block behavior indirectly, but the task list asked for direct unit tests too.
+
+### What worked
+- `npm run build` produced the expected `index.html` plus `/static/...` asset output after the mock-data import cleanup.
+- The embedded root page served correctly from the Go binary and referenced the generated `/static/index-*.js` bundle.
+- The live API responded against the real archive, and the browser snapshot showed the mounted UI with the session count rendered from backend data.
+- The new block and badge unit tests passed alongside the earlier endpoint tests.
+
+### What didn't work
+- The first frontend build failed because `web/src/mocks/data.ts` still imported `SessionBlock` even though it no longer used it. TypeScript rejected the build.
+- The first SPA fallback test returned `301` instead of `200` because `http.FileServer` redirects `/index.html`. I had to change the fallback path to serve the index content directly.
+
+### What I learned
+- A Vite-first dev loop only works cleanly if the mock worker is opt-in instead of automatically enabled in every dev session.
+- `http.FileServer` is not a full SPA fallback solution by itself. It is fine for real assets, but client-side route fallback needs explicit handling.
+- For this prototype, committing the generated embedded frontend is the most direct way to satisfy the “plain `go build ./...` still works” requirement without introducing a more complicated build-tag split yet.
+
+### What was tricky to build
+- The tricky part was making the development and production stories differ in the right places but stay compatible:
+  - dev mode should be API-only, with Vite proxying `/api`
+  - non-dev mode should serve the built SPA directly from the Go binary
+  - the frontend should not silently talk to MSW when I am trying to validate the real backend
+- The other sharp edge was testing the SPA fallback correctly; the transport semantics matter there, not just the response body.
+
+### What warrants a second pair of eyes
+- The committed generated asset strategy is acceptable for the prototype, but it will create churn whenever the frontend bundle changes. A later cleanup may still want `go generate` or build-tagged embed wiring.
+- The emitted bundle is currently a single large JS chunk. Vite warned that the production bundle exceeds 500 kB after minification.
+
+### What should be done in the future
+- Decide whether to keep committing generated frontend assets or replace that with an explicit generation pipeline once the serve command stabilizes.
+- Wire the frontend query editor mutations all the way through so the new query CRUD endpoints are exercised by the UI, not just backend tests.
+- Revisit frontend chunking/code-splitting if the bundle size warning becomes a real load-time issue.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/embed.go` and `cmd/go-minitrace/cmds/serve/server.go`.
+- Then review the frontend dev/build contract in:
+  - `web/vite.config.ts`
+  - `web/src/main.tsx`
+- Finish with the direct heuristic tests:
+  - `cmd/go-minitrace/cmds/serve/blocks_test.go`
+  - `cmd/go-minitrace/cmds/serve/badges_test.go`
+- Validate with:
+  - `npm run build` in `web/`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/query -count=1`
+  - `go build ./...`
+  - `go run ./cmd/go-minitrace serve --archive-glob '/tmp/minitrace-output/active/*/*.minitrace.json'`
+
+### Technical details
+- New files:
+  - `cmd/go-minitrace/cmds/serve/embed.go`
+  - `cmd/go-minitrace/cmds/serve/blocks_test.go`
+  - `cmd/go-minitrace/cmds/serve/badges_test.go`
+  - `cmd/go-minitrace/cmds/serve/frontend/index.html`
+  - `cmd/go-minitrace/cmds/serve/frontend/static/index-CsyCNkDF.js`
+- Updated files:
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+  - `Makefile`
+  - `web/vite.config.ts`
+  - `web/src/main.tsx`
+  - `web/src/mocks/data.ts`

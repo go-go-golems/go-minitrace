@@ -115,3 +115,18 @@ Step 13: implemented Phase 4 of go-minitrace serve with preset discovery and que
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Phase 4 route updates
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Phase 4 tests
 
+
+## 2026-04-01
+
+Step 14: implemented Phase 5 of go-minitrace serve with embedded frontend assets, Vite-first dev proxying, direct block/badge unit tests, and manual end-to-end validation against the real archive (commit 75b86b7).
+
+### Related Files
+
+- Makefile — Frontend build and copy target
+- cmd/go-minitrace/cmds/serve/badges_test.go — Unit tests for badge and artifact detection
+- cmd/go-minitrace/cmds/serve/blocks_test.go — Unit tests for block splitting
+- cmd/go-minitrace/cmds/serve/embed.go — Embedded frontend filesystem
+- cmd/go-minitrace/cmds/serve/server.go — SPA fallback and static serving
+- web/src/main.tsx — MSW only enabled when explicitly requested
+- web/vite.config.ts — Vite /api proxy and /static asset output
+
