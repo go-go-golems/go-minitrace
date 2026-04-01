@@ -155,3 +155,14 @@ Step 16: extended archive loading to accept repeated --archive-glob flags in ser
 - pkg/query/engine.go — Shared multi-glob archive expansion
 - pkg/query/engine_test.go — Multi-glob archive loader tests
 
+
+## 2026-04-01
+
+Step 17: added polling-based hot reload for preset/query libraries in the React query editor, including source-file tracking, safe editor auto-refresh when the file changes on disk, and a warning/reload path when local edits would otherwise be overwritten.
+
+### Related Files
+
+- web/src/components/QueryEditor/QueryEditor.tsx — Source-file status banner and reload action
+- web/src/components/QueryEditor/QuerySidebar.tsx — Sidebar now passes full query metadata and source kind
+- web/src/pages/QueryEditorPage.tsx — Polling, active-source tracking, and non-destructive reload reconciliation
+- cmd/go-minitrace/cmds/serve/frontend/static/index-C_rwKpjm.js — Refreshed embedded frontend bundle

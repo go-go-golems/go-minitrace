@@ -69,6 +69,12 @@ RelatedFiles:
       Note: Ticket task list for phased backend implementation
     - Path: web/src/main.tsx
       Note: Opt-in MSW startup for real-backend validation
+    - Path: web/src/components/QueryEditor/QueryEditor.tsx
+      Note: Query editor source-file status banner and reload action
+    - Path: web/src/components/QueryEditor/QuerySidebar.tsx
+      Note: Query selection now carries full file metadata and source kind
+    - Path: web/src/pages/QueryEditorPage.tsx
+      Note: Polling-based preset/query hot reload and editor/source reconciliation
     - Path: web/src/mocks/data.ts
       Note: Frontend build fix for unused mock import
     - Path: web/vite.config.ts
@@ -258,6 +264,73 @@ go-minitrace query duckdb \
   --sql "SELECT provenance, timing, operational_context FROM sessions_base LIMIT 1" \
   --output json | python3 -m json.tool
 ```
+
+---
+
+## Step 17: Add query-library hot reload in the editor
+
+The backend already reloaded `--preset-dir` and `--query-dir` contents on each `GET /api/presets` and `GET /api/queries`, so the missing behavior was in the frontend. The query editor did not remember which file the current SQL came from, and the sidebar only passed raw SQL strings, which meant file edits made by an external coding agent could not flow back into the editor safely.
+
+### Prompt Context
+
+**User prompt (verbatim):** "do th epreset-dir / query-dir and such hot reload? Can we implement hot reload like even of the query in the editor when it was loaded from a file? That way I can use a coding agent and refine it or so."
+
+**Assistant interpretation:** Confirm whether the backend already reloads preset/query roots and add frontend behavior so the editor notices file changes and refreshes safely.
+
+**Inferred user intent:** Use `go-minitrace serve` alongside an external editor or coding agent, with live query-file iteration and without accidental loss of local editor changes.
+
+### What I did
+
+```bash
+sed -n '1,260p' cmd/go-minitrace/cmds/serve/handlers_queries.go
+sed -n '1,260p' web/src/pages/QueryEditorPage.tsx
+sed -n '1,260p' web/src/components/QueryEditor/QueryEditor.tsx
+sed -n '1,260p' web/src/components/QueryEditor/QuerySidebar.tsx
+npm run build
+go build ./...
+make frontend
+rm -rf cmd/go-minitrace/cmds/serve/frontend && cp -r web/dist cmd/go-minitrace/cmds/serve/frontend
+```
+
+### What worked
+
+- Confirmed the backend already hot-reloads library contents in the simple sense that each API fetch rescans the configured preset/query roots.
+- Added polling to the query editor page for `/api/presets` and `/api/queries`, with focus/reconnect refetching.
+- Changed the sidebar to pass the full `SavedQuery` object and its source kind instead of only the SQL text.
+- Added active-source tracking in the query editor page so the app knows which on-disk file currently owns the editor contents.
+- Implemented safe reconciliation logic:
+  - if the file changes on disk and the editor buffer is still unchanged since load, the editor auto-reloads
+  - if the file changes on disk and the editor has local edits, the UI warns and offers an explicit reload button
+- Verified the clean-buffer path against a live `go run ./cmd/go-minitrace serve ...` session with Playwright by loading `session-list.sql`, editing the file on disk, and watching the editor update from `LIMIT 42` to `LIMIT 21` after the poll interval.
+- Rebuilt the frontend and synced the embedded bundle manually.
+
+### What didn't work
+
+- `make frontend` failed because the target runs `npm ci`, and the current tree has a Storybook peer-dependency mismatch:
+  `@storybook/test@8.6.15` expects `storybook@^8.6.15`, while the repo currently has `storybook@10.3.3`.
+- I did not try to repair the dependency graph in this pass because the hot-reload feature itself already built successfully with the installed dependencies via `npm run build`, and changing the JS dependency stack would have expanded scope.
+- I was not able to fully automate the dirty-buffer warning path in Playwright because the CodeMirror overlay intercepted pointer events when trying to type into the editor programmatically. I stopped after two attempts rather than spend the turn debugging test automation instead of the feature itself.
+
+### What I learned
+
+- The backend side did not need a file watcher to satisfy the user story; polling the existing endpoints is enough because they already rescan disk.
+- The important safety boundary is editor ownership, not filesystem notification. Once the page knows the source path and the last loaded SQL, it can distinguish "safe to replace" from "warn before overwrite."
+- The current frontend embed flow is still fragile because `make frontend` depends on `npm ci` succeeding with the lockfile and peer graph exactly as checked in.
+
+### What was tricky to build
+
+The subtle part was preserving local edits. A naive implementation that simply overwrote the editor whenever the preset/query list changed would have made external-agent workflows dangerous. The reconciliation logic had to compare:
+
+- the SQL last loaded from the file
+- the latest SQL fetched from disk
+- the current editor buffer
+
+That three-way comparison is what lets the editor auto-refresh only when the buffer is still clean.
+
+### What warrants a second pair of eyes
+
+- The frontend currently uses polling rather than push-based file watching. That is sufficient for this workflow, but if the query library grows large or the poll interval becomes annoying, it may be worth revisiting with server-sent invalidation later.
+- The `make frontend` / `npm ci` dependency conflict should be cleaned up separately so the canonical embed path becomes reliable again.
 
 Schema (14 columns):
 | column | type |

@@ -32,3 +32,8 @@
 - [x] Serve follow-up: make --archive-glob a string-list flag and load all configured archive globs into DuckDB
 - [x] Serve follow-up: update session indexing and query-engine loading to support multiple archive globs deterministically
 - [x] Serve follow-up: add regression tests for multi-glob archive loading and indexing
+- [x] Serve follow-up: confirm preset-dir/query-dir already reload on fresh API fetch and document the remaining frontend gap
+- [x] Serve follow-up: poll presets and saved queries in the query editor so disk changes show up without a page reload
+- [x] Serve follow-up: track the editor source file and auto-refresh the editor when the backing file changes and the buffer is still clean
+- [x] Serve follow-up: warn instead of overwriting when the backing file changes while the editor has unsaved local edits
+- [x] Serve follow-up: refresh the embedded frontend bundle after the hot-reload UI changes
