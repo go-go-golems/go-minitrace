@@ -37,3 +37,4 @@
 - [x] Serve follow-up: track the editor source file and auto-refresh the editor when the backing file changes and the buffer is still clean
 - [x] Serve follow-up: warn instead of overwriting when the backing file changes while the editor has unsaved local edits
 - [x] Serve follow-up: refresh the embedded frontend bundle after the hot-reload UI changes
+- [x] Frontend follow-up: align Storybook test helpers with the Storybook 10.3 stack so npm ci and make frontend work again

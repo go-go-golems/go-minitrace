@@ -166,3 +166,18 @@ Step 17: added polling-based hot reload for preset/query libraries in the React 
 - web/src/components/QueryEditor/QuerySidebar.tsx — Sidebar now passes full query metadata and source kind
 - web/src/pages/QueryEditorPage.tsx — Polling, active-source tracking, and non-destructive reload reconciliation
 - cmd/go-minitrace/cmds/serve/frontend/static/index-C_rwKpjm.js — Refreshed embedded frontend bundle
+
+
+## 2026-04-01
+
+Step 18: aligned Storybook story test helpers with the Storybook 10.3 toolchain by removing the stale `@storybook/test` 8.x package and switching stories to `storybook/test`, which unblocked `npm ci` and `make frontend`.
+
+### Related Files
+
+- web/package.json — Removed `@storybook/test` from devDependencies
+- web/package-lock.json — Lockfile updated after uninstalling the stale package
+- web/src/components/QueryEditor/stories/QueryEditor.stories.tsx — Uses `storybook/test`
+- web/src/components/QueryEditor/stories/QuerySidebar.stories.tsx — Uses `storybook/test`
+- web/src/components/QueryEditor/stories/ResultsTable.stories.tsx — Uses `storybook/test`
+- web/src/components/SessionBrowser/stories/SessionBrowser.stories.tsx — Uses `storybook/test`
+- web/src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx — Uses `storybook/test`

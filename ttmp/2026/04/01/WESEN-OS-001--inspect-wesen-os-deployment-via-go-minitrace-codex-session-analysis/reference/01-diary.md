@@ -316,6 +316,7 @@ rm -rf cmd/go-minitrace/cmds/serve/frontend && cp -r web/dist cmd/go-minitrace/c
 - The backend side did not need a file watcher to satisfy the user story; polling the existing endpoints is enough because they already rescan disk.
 - The important safety boundary is editor ownership, not filesystem notification. Once the page knows the source path and the last loaded SQL, it can distinguish "safe to replace" from "warn before overwrite."
 - The current frontend embed flow is still fragile because `make frontend` depends on `npm ci` succeeding with the lockfile and peer graph exactly as checked in.
+- Follow-up: the original blocker was the stale `@storybook/test` 8.x package; switching story imports to `storybook/test` and removing `@storybook/test` brought the Storybook stack back to a consistent 10.3 shape.
 
 ### What was tricky to build
 
@@ -331,6 +332,50 @@ That three-way comparison is what lets the editor auto-refresh only when the buf
 
 - The frontend currently uses polling rather than push-based file watching. That is sufficient for this workflow, but if the query library grows large or the poll interval becomes annoying, it may be worth revisiting with server-sent invalidation later.
 - The `make frontend` / `npm ci` dependency conflict should be cleaned up separately so the canonical embed path becomes reliable again.
+- There is still a transitive warning from `@joshwooding/vite-plugin-react-docgen-typescript@0.6.4`, pulled in by `@storybook/react-vite@10.3.3`, because it declares a Vite peer range up to 7 while this repo is on Vite 8. That warning did not block `npm ci` or `make frontend`.
+
+---
+
+## Step 18: Align Storybook test helpers with Storybook 10.3
+
+The `make frontend` failure from the previous step turned out to be caused by an inconsistent Storybook dependency mix: almost the whole tree had already been upgraded to 10.3, but `@storybook/test` was still pinned to 8.6.15. That package declares a peer dependency on `storybook@^8.6.15`, so `npm ci` failed even though `npm run build` could still work against the already-installed `node_modules`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok update to 10.3"
+
+**Assistant interpretation:** Align the leftover Storybook 8 dependency with the rest of the Storybook 10.3 stack and validate the frontend build/install path.
+
+**Inferred user intent:** Remove the dependency skew rather than keep a fragile workaround.
+
+### What I did
+
+```bash
+rg -n 'storybook|@storybook/test' web/package.json web/package-lock.json
+rg -n '@storybook/test|storybook/test' web -g'*.ts' -g'*.tsx'
+npm uninstall @storybook/test
+npm ci
+npm run build
+make frontend
+```
+
+### What worked
+
+- Confirmed that `@storybook/test` had no 10.3 release on npm and that Storybook 10 templates use `storybook/test` instead.
+- Switched all local story files from `@storybook/test` to `storybook/test`.
+- Removed `@storybook/test` from `web/package.json` and the lockfile.
+- `npm ci` now succeeds again.
+- `npm run build` succeeds.
+- `make frontend` succeeds again and refreshes the embedded frontend bundle.
+
+### What didn't work
+
+- I initially ran `npm run build` in parallel with `make frontend`, which caused a temporary false TypeScript failure because `make frontend` was simultaneously replacing `node_modules` via `npm ci`. That was a test-harness mistake, not a repo issue.
+
+### What I learned
+
+- Storybook 10 wants the test helpers from `storybook/test`, not from the old standalone `@storybook/test` package.
+- There is still a non-fatal Vite peer warning from `@joshwooding/vite-plugin-react-docgen-typescript@0.6.4` under `@storybook/react-vite@10.3.3`, but it does not block install or build in the current setup.
 
 Schema (14 columns):
 | column | type |
