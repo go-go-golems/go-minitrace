@@ -2,13 +2,13 @@
 
 ## TODO
 
-- [ ] Add tasks here
+- [x] Add tasks here
 
-- [ ] Get go-minitrace help and understand tool structure
-- [ ] Discover codex sessions from last 2 weeks
-- [ ] Convert codex sessions to minitrace format
-- [ ] Understand sessions_base schema
-- [ ] Write SQL to find wesen-os/deploy sessions
-- [ ] Deep-read wesen-os sessions content
-- [ ] Write final deployment summary report
-- [ ] Document minitrace improvement suggestions
+- [x] Get go-minitrace help and understand tool structure
+- [x] Discover codex sessions from last 2 weeks
+- [x] Convert codex sessions to minitrace format
+- [x] Understand sessions_base schema
+- [x] Write SQL to find wesen-os/deploy sessions
+- [x] Deep-read wesen-os sessions content
+- [x] Write final deployment summary report
+- [x] Document minitrace improvement suggestions

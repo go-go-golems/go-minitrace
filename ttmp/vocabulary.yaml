@@ -11,6 +11,16 @@ topics:
       description: Glazed CLI framework integration
     - slug: minitrace
       description: Minitrace session format and tooling
+    - slug: analysis
+      description: 'Topic: analysis'
+    - slug: codex
+      description: 'Topic: codex'
+    - slug: deployment
+      description: 'Topic: deployment'
+    - slug: go-minitrace
+      description: 'Topic: go-minitrace'
+    - slug: wesen-os
+      description: 'Topic: wesen-os'
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes

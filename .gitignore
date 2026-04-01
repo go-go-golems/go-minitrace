@@ -19,3 +19,8 @@ dist/
 /go-minitrace
 /go-minitrace.exe
 .ttmp.yaml
+
+# Web frontend
+web/node_modules/
+web/dist/
+web/storybook-static/
