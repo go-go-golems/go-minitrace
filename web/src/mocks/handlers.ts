@@ -7,21 +7,37 @@ import {
   mockQueryResult,
 } from "./data";
 
+function buildMockSessionDetail(id: string) {
+  const summary = mockSessions.find((session) => session.id === id);
+  if (!summary) {
+    return null;
+  }
+
+  return {
+    ...mockSessionDetail,
+    ...summary,
+    provenance: mockSessionDetail.provenance,
+    blocks: mockSessionDetail.blocks,
+  };
+}
+
 export const handlers = [
   http.get("/api/sessions", () => {
     return HttpResponse.json(mockSessions);
   }),
 
   http.get("/api/sessions/:id", ({ params }) => {
-    if (params.id === mockSessionDetail.id) {
-      return HttpResponse.json(mockSessionDetail);
+    const sessionDetail = buildMockSessionDetail(String(params.id ?? ""));
+    if (sessionDetail) {
+      return HttpResponse.json(sessionDetail);
     }
     return HttpResponse.json({ error: "not found" }, { status: 404 });
   }),
 
   http.get("/api/sessions/:id/blocks", ({ params }) => {
-    if (params.id === mockSessionDetail.id) {
-      return HttpResponse.json(mockSessionDetail.blocks);
+    const sessionDetail = buildMockSessionDetail(String(params.id ?? ""));
+    if (sessionDetail) {
+      return HttpResponse.json(sessionDetail.blocks);
     }
     return HttpResponse.json({ error: "not found" }, { status: 404 });
   }),
