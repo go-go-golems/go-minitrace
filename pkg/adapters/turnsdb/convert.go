@@ -538,7 +538,7 @@ func lcsDelta(previousBlocks, currentBlocks []Block) []Block {
 	return ret
 }
 
-func classifyTurnBlock(block Block) (role string, source string, inputChannel string) {
+func classifyTurnBlock(block Block) (string, string, string) {
 	text := stringifyBlockPayload(block.Payload)
 
 	switch block.Kind {
