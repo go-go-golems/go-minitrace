@@ -95,6 +95,8 @@ func DetectBlockArtifacts(block rawSessionBlock, tcByID map[string]minitrace.Too
 					artifacts.DocsAdded = append(artifacts.DocsAdded, title)
 				case BadgeDiaryWrite:
 					artifacts.DiaryWrites++
+				case BadgeError:
+					continue
 				}
 			}
 		}

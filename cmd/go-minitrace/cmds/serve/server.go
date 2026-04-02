@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -137,6 +138,16 @@ func (s *Server) handleExecuteQuery(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if err := validateReadOnlyQuery(req.SQL); err != nil {
+		writeJSON(w, http.StatusBadRequest, QueryResponse{
+			Columns:    []string{},
+			Rows:       []map[string]any{},
+			DurationMS: time.Since(start).Milliseconds(),
+			RowCount:   0,
+			Error:      &QueryError{Message: err.Error()},
+		})
+		return
+	}
 
 	rows, err := s.conn.QueryContext(r.Context(), req.SQL)
 	if err != nil {
@@ -214,10 +225,9 @@ func buildSessionIndex(archiveGlobs []string) (map[string]string, error) {
 
 	index := make(map[string]string, len(files))
 	for _, filePath := range files {
-		base := filepath.Base(filePath)
-		sessionID := strings.TrimSuffix(base, ".minitrace.json")
-		if sessionID == base {
-			continue
+		sessionID, err := readSessionIDFromArchive(filePath)
+		if err != nil {
+			return nil, err
 		}
 		if previous, ok := index[sessionID]; ok {
 			return nil, errors.Errorf("duplicate session ID %q found in %s and %s", sessionID, previous, filePath)
@@ -228,6 +238,82 @@ func buildSessionIndex(archiveGlobs []string) (map[string]string, error) {
 		return nil, errors.Errorf("archive globs matched no .minitrace.json files")
 	}
 	return index, nil
+}
+
+func readSessionIDFromArchive(filePath string) (string, error) {
+	payload, err := fs.ReadFile(os.DirFS(filepath.Dir(filePath)), filepath.Base(filePath))
+	if err != nil {
+		return "", errors.Wrap(err, "reading session archive for indexing")
+	}
+
+	var meta struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(payload, &meta); err != nil {
+		return "", errors.Wrap(err, "unmarshaling session archive for indexing")
+	}
+	if strings.TrimSpace(meta.ID) == "" {
+		return "", errors.Errorf("session archive %q is missing id", filePath)
+	}
+	return meta.ID, nil
+}
+
+func validateReadOnlyQuery(sqlText string) error {
+	normalized, err := normalizeQueryForValidation(sqlText)
+	if err != nil {
+		return err
+	}
+
+	allowedPrefixes := []string{"select", "with", "explain", "describe", "show"}
+	lower := strings.ToLower(normalized)
+	for _, prefix := range allowedPrefixes {
+		if strings.HasPrefix(lower, prefix) {
+			return nil
+		}
+	}
+
+	return errors.New("only read-only SELECT, WITH, EXPLAIN, DESCRIBE, and SHOW queries are allowed")
+}
+
+func normalizeQueryForValidation(sqlText string) (string, error) {
+	trimmed := strings.TrimSpace(sqlText)
+	if trimmed == "" {
+		return "", errors.New("sql is required")
+	}
+
+	for {
+		switch {
+		case strings.HasPrefix(trimmed, "--"):
+			newlineIdx := strings.Index(trimmed, "\n")
+			if newlineIdx == -1 {
+				return "", errors.New("sql is required")
+			}
+			trimmed = strings.TrimSpace(trimmed[newlineIdx+1:])
+		case strings.HasPrefix(trimmed, "/*"):
+			endIdx := strings.Index(trimmed, "*/")
+			if endIdx == -1 {
+				return "", errors.New("unterminated SQL comment")
+			}
+			trimmed = strings.TrimSpace(trimmed[endIdx+2:])
+		default:
+			goto done
+		}
+	}
+
+done:
+	if trimmed == "" {
+		return "", errors.New("sql is required")
+	}
+
+	withoutTrailingSemicolon := strings.TrimSpace(strings.TrimSuffix(trimmed, ";"))
+	if withoutTrailingSemicolon == "" {
+		return "", errors.New("sql is required")
+	}
+	if strings.Contains(withoutTrailingSemicolon, ";") {
+		return "", errors.New("multiple SQL statements are not allowed")
+	}
+
+	return withoutTrailingSemicolon, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

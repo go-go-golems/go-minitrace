@@ -32,8 +32,30 @@ func TestBuildSessionIndexIndexesWrittenSessions(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected session ID to be indexed, got keys %#v", index)
 	}
-	if !strings.HasSuffix(path, "phase1-index.minitrace.json") {
+	if !strings.HasSuffix(path, minitrace.SanitizeID("phase1-index")+".minitrace.json") {
 		t.Fatalf("unexpected indexed path %q", path)
+	}
+}
+
+func TestBuildSessionIndexUsesCanonicalSessionIDFromJSON(t *testing.T) {
+	archiveRoot := t.TempDir()
+	sessionID := "phase1/index:unsafe'session"
+	session := buildFixtureSession(t, sessionID)
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
+	if err != nil {
+		t.Fatalf("buildSessionIndex returned error: %v", err)
+	}
+
+	path, ok := index[sessionID]
+	if !ok {
+		t.Fatalf("expected canonical session ID %q to be indexed, got keys %#v", sessionID, index)
+	}
+	if !strings.HasSuffix(path, minitrace.SanitizeID(sessionID)+".minitrace.json") {
+		t.Fatalf("expected sanitized filename suffix, got %q", path)
 	}
 }
 
@@ -141,6 +163,35 @@ func TestHandleExecuteQueryReturnsStructuredSQLFailure(t *testing.T) {
 	}
 	if payload.RowCount != 0 {
 		t.Fatalf("expected row_count=0, got %d", payload.RowCount)
+	}
+}
+
+func TestHandleExecuteQueryRejectsNonReadOnlyStatements(t *testing.T) {
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"CREATE TABLE injected(id INTEGER)"}`))
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQuery(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload QueryResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshaling response: %v", err)
+	}
+	if payload.Error == nil || !strings.Contains(payload.Error.Message, "read-only") {
+		t.Fatalf("expected read-only validation error, got %+v", payload.Error)
 	}
 }
 
@@ -442,6 +493,14 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	server.handleSaveQuery(traversalResponse, traversalRequest)
 	if traversalResponse.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for traversal, got %d with body %s", traversalResponse.Code, traversalResponse.Body.String())
+	}
+
+	absoluteUpdateRequest := httptest.NewRequest(http.MethodPut, "/api/queries/tmp/evil.sql", strings.NewReader(`{"description":"x","sql":"SELECT 1;"}`))
+	absoluteUpdateRequest.SetPathValue("path", "/tmp/evil.sql")
+	absoluteUpdateResponse := httptest.NewRecorder()
+	server.handleUpdateQuery(absoluteUpdateResponse, absoluteUpdateRequest)
+	if absoluteUpdateResponse.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for absolute path update, got %d with body %s", absoluteUpdateResponse.Code, absoluteUpdateResponse.Body.String())
 	}
 
 	if _, err := os.Stat(filepath.Join(queryDir1, "saved", "analysis", "wesen-os-filter.sql")); !os.IsNotExist(err) {

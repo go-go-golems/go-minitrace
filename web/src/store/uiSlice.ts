@@ -17,6 +17,10 @@ const initialState: UiState = {
   filterText: "",
 };
 
+function escapeSQLLiteral(value: string): string {
+  return value.replaceAll("'", "''");
+}
+
 const uiSlice = createSlice({
   name: "ui",
   initialState,
@@ -29,7 +33,8 @@ const uiSlice = createSlice({
       state.activeView = "transcript";
     },
     openQueryForSession(state, action: PayloadAction<string>) {
-      state.queryEditorSql = `-- Session: ${action.payload}\nSELECT t.idx, CAST(t.turn->>'role' AS VARCHAR) AS role,\n  LEFT(CAST(t.turn->>'content' AS VARCHAR), 500) AS content\nFROM sessions_base\nCROSS JOIN UNNEST(turns) WITH ORDINALITY AS t(turn, idx)\nWHERE id = '${action.payload}'\nORDER BY t.idx\nLIMIT 50;`;
+      const escapedSessionID = escapeSQLLiteral(action.payload);
+      state.queryEditorSql = `-- Session: ${action.payload}\nSELECT t.idx, CAST(t.turn->>'role' AS VARCHAR) AS role,\n  LEFT(CAST(t.turn->>'content' AS VARCHAR), 500) AS content\nFROM sessions_base\nCROSS JOIN UNNEST(turns) WITH ORDINALITY AS t(turn, idx)\nWHERE id = '${escapedSessionID}'\nORDER BY t.idx\nLIMIT 50;`;
       state.activeView = "query";
     },
     setQuerySql(state, action: PayloadAction<string>) {

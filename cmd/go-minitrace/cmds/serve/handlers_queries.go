@@ -33,6 +33,12 @@ type UpdateQueryRequest struct {
 	SQL         string `json:"sql"`
 }
 
+type validatedQueryPath struct {
+	rootDir      string
+	relativePath string
+	absolutePath string
+}
+
 func (s *Server) handleGetPresets(w http.ResponseWriter, _ *http.Request) {
 	presets := make([]SavedQuery, 0)
 
@@ -126,7 +132,7 @@ func (s *Server) handleSaveQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	relativePath, absolutePath, err := buildQueryCreatePath(baseDir, req.Folder, req.Name)
+	queryPath, err := buildQueryCreatePath(baseDir, req.Folder, req.Name)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, QueryResponse{
 			Columns:    []string{},
@@ -137,7 +143,7 @@ func (s *Server) handleSaveQuery(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if err := os.MkdirAll(filepath.Dir(absolutePath), 0o755); err != nil {
+	if err := queryPath.MkdirAllParent(); err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
@@ -149,7 +155,7 @@ func (s *Server) handleSaveQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := buildSQLFileContent(req.Description, req.SQL)
-	if err := os.WriteFile(absolutePath, []byte(content), 0o644); err != nil {
+	if err := queryPath.WriteFile([]byte(content)); err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
@@ -160,7 +166,7 @@ func (s *Server) handleSaveQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, err := loadSingleSQLFile(baseDir, relativePath, false)
+	query, err := loadSingleSQLFile(baseDir, queryPath.relativePath, false)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
@@ -198,7 +204,7 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseDir, absolutePath, cleanRelativePath, err := findExistingQueryPath(s.queryDirs, relativePath)
+	queryPath, err := findExistingQueryPath(s.queryDirs, relativePath)
 	if err != nil {
 		status := http.StatusBadRequest
 		message := err.Error()
@@ -217,7 +223,7 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := buildSQLFileContent(req.Description, req.SQL)
-	if err := os.WriteFile(absolutePath, []byte(content), 0o644); err != nil {
+	if err := queryPath.WriteFile([]byte(content)); err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
@@ -228,7 +234,7 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, err := loadSingleSQLFile(baseDir, cleanRelativePath, false)
+	query, err := loadSingleSQLFile(queryPath.rootDir, queryPath.relativePath, false)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
@@ -243,7 +249,7 @@ func (s *Server) handleUpdateQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteQuery(w http.ResponseWriter, r *http.Request) {
-	_, absolutePath, _, err := findExistingQueryPath(s.queryDirs, r.PathValue("path"))
+	queryPath, err := findExistingQueryPath(s.queryDirs, r.PathValue("path"))
 	if err != nil {
 		status := http.StatusBadRequest
 		message := err.Error()
@@ -260,7 +266,7 @@ func (s *Server) handleDeleteQuery(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if err := os.Remove(absolutePath); err != nil {
+	if err := queryPath.Remove(); err != nil {
 		status := http.StatusInternalServerError
 		message := errors.Wrap(err, "deleting query file").Error()
 		if errors.Is(err, os.ErrNotExist) {
@@ -286,29 +292,29 @@ func firstQueryDir(queryDirs []string) (string, error) {
 	return queryDirs[0], nil
 }
 
-func findExistingQueryPath(queryDirs []string, relativePath string) (string, string, string, error) {
+func findExistingQueryPath(queryDirs []string, relativePath string) (validatedQueryPath, error) {
 	if len(queryDirs) == 0 {
-		return "", "", "", errors.New("query-dir is not configured")
+		return validatedQueryPath{}, errors.New("query-dir is not configured")
 	}
 
 	cleanPath, err := cleanRelativePath(relativePath)
 	if err != nil {
-		return "", "", "", err
+		return validatedQueryPath{}, err
 	}
 
 	for _, queryDir := range queryDirs {
-		absolutePath, cleanRelativePath, err := safeQueryPath(queryDir, cleanPath)
+		queryPath, err := newValidatedQueryPath(queryDir, cleanPath)
 		if err != nil {
-			return "", "", "", err
+			return validatedQueryPath{}, err
 		}
-		if _, err := os.Stat(absolutePath); err == nil {
-			return queryDir, absolutePath, cleanRelativePath, nil
+		if _, err := queryPath.Stat(); err == nil {
+			return queryPath, nil
 		} else if !errors.Is(err, os.ErrNotExist) {
-			return "", "", "", errors.Wrap(err, "stating query file")
+			return validatedQueryPath{}, errors.Wrap(err, "stating query file")
 		}
 	}
 
-	return "", "", cleanPath, os.ErrNotExist
+	return validatedQueryPath{relativePath: cleanPath}, os.ErrNotExist
 }
 
 func loadSQLDirs(dirs []string, readonly bool) ([]SavedQuery, error) {
@@ -372,26 +378,26 @@ func loadSQLDir(dir string, readonly bool) ([]SavedQuery, error) {
 }
 
 func loadSingleSQLFile(rootDir, relativePath string, readonly bool) (SavedQuery, error) {
-	absolutePath, cleanRelativePath, err := safeQueryPath(rootDir, relativePath)
+	queryPath, err := newValidatedQueryPath(rootDir, relativePath)
 	if err != nil {
 		return SavedQuery{}, err
 	}
-	content, err := os.ReadFile(absolutePath)
+	content, err := queryPath.ReadFile()
 	if err != nil {
 		return SavedQuery{}, errors.Wrap(err, "reading SQL file")
 	}
 
-	folder := filepath.Dir(cleanRelativePath)
+	folder := filepath.Dir(queryPath.relativePath)
 	if folder == "." {
 		folder = ""
 	}
-	name := strings.TrimSuffix(filepath.Base(cleanRelativePath), filepath.Ext(cleanRelativePath))
+	name := strings.TrimSuffix(filepath.Base(queryPath.relativePath), filepath.Ext(queryPath.relativePath))
 	sqlText := string(content)
 
 	return SavedQuery{
 		Name:        name,
 		Folder:      filepath.ToSlash(folder),
-		Path:        filepath.ToSlash(cleanRelativePath),
+		Path:        filepath.ToSlash(queryPath.relativePath),
 		Description: extractSQLComment(sqlText),
 		SQL:         sqlText,
 		Readonly:    readonly,
@@ -419,48 +425,108 @@ func buildSQLFileContent(description string, sqlText string) string {
 	return "-- " + description + "\n" + sqlText
 }
 
-func buildQueryCreatePath(baseDir, folder, name string) (string, string, error) {
+func buildQueryCreatePath(baseDir, folder, name string) (validatedQueryPath, error) {
 	safeName := sanitizeFilename(name)
 	if safeName == "" {
-		return "", "", errors.New("query name is required")
+		return validatedQueryPath{}, errors.New("query name is required")
 	}
 	relativePath := safeName + ".sql"
 	if strings.TrimSpace(folder) != "" {
 		cleanFolder, err := cleanRelativePath(folder)
 		if err != nil {
-			return "", "", err
+			return validatedQueryPath{}, err
 		}
 		relativePath = filepath.ToSlash(filepath.Join(cleanFolder, relativePath))
 	}
-	absolutePath, cleanRelativePath, err := safeQueryPath(baseDir, relativePath)
-	if err != nil {
-		return "", "", err
-	}
-	return cleanRelativePath, absolutePath, nil
+	return newValidatedQueryPath(baseDir, relativePath)
 }
 
-func safeQueryPath(baseDir, relativePath string) (string, string, error) {
-	cleanRelativePath, err := cleanRelativePath(relativePath)
+func newValidatedQueryPath(baseDir, relativePath string) (validatedQueryPath, error) {
+	cleanPath, err := cleanRelativePath(relativePath)
 	if err != nil {
-		return "", "", err
+		return validatedQueryPath{}, err
 	}
 
 	baseAbs, err := filepath.Abs(baseDir)
 	if err != nil {
-		return "", "", errors.Wrap(err, "resolving base directory")
+		return validatedQueryPath{}, errors.Wrap(err, "resolving base directory")
 	}
-	absolutePath := filepath.Join(baseAbs, filepath.FromSlash(cleanRelativePath))
+	absolutePath := filepath.Join(baseAbs, filepath.FromSlash(cleanPath))
 	absolutePath, err = filepath.Abs(absolutePath)
 	if err != nil {
-		return "", "", errors.Wrap(err, "resolving query path")
+		return validatedQueryPath{}, errors.Wrap(err, "resolving query path")
 	}
 
-	prefix := baseAbs + string(filepath.Separator)
-	if absolutePath != baseAbs && !strings.HasPrefix(absolutePath, prefix) {
-		return "", "", errors.New("query path escapes query directory")
+	relativeToBase, err := filepath.Rel(baseAbs, absolutePath)
+	if err != nil {
+		return validatedQueryPath{}, errors.Wrap(err, "resolving query path relative to base directory")
+	}
+	relativeToBase = filepath.ToSlash(relativeToBase)
+	if relativeToBase == "." || relativeToBase == "" {
+		return validatedQueryPath{}, errors.New("query path must point to a file")
+	}
+	if strings.HasPrefix(relativeToBase, "../") || relativeToBase == ".." || filepath.IsAbs(relativeToBase) {
+		return validatedQueryPath{}, errors.New("query path escapes query directory")
 	}
 
-	return absolutePath, cleanRelativePath, nil
+	return validatedQueryPath{
+		rootDir:      baseAbs,
+		relativePath: relativeToBase,
+		absolutePath: absolutePath,
+	}, nil
+}
+
+func (p validatedQueryPath) ensureWithinRoot() error {
+	if strings.TrimSpace(p.rootDir) == "" || strings.TrimSpace(p.relativePath) == "" || strings.TrimSpace(p.absolutePath) == "" {
+		return errors.New("query path is not initialized")
+	}
+	relativeToRoot, err := filepath.Rel(p.rootDir, p.absolutePath)
+	if err != nil {
+		return errors.Wrap(err, "resolving query path relative to root")
+	}
+	relativeToRoot = filepath.ToSlash(relativeToRoot)
+	if relativeToRoot == "." || relativeToRoot == "" {
+		return errors.New("query path must point to a file")
+	}
+	if strings.HasPrefix(relativeToRoot, "../") || relativeToRoot == ".." || filepath.IsAbs(relativeToRoot) {
+		return errors.New("query path escapes query directory")
+	}
+	return nil
+}
+
+func (p validatedQueryPath) MkdirAllParent() error {
+	if err := p.ensureWithinRoot(); err != nil {
+		return err
+	}
+	return os.MkdirAll(filepath.Dir(p.absolutePath), 0o755)
+}
+
+func (p validatedQueryPath) WriteFile(content []byte) error {
+	if err := p.ensureWithinRoot(); err != nil {
+		return err
+	}
+	return os.WriteFile(p.absolutePath, content, 0o644)
+}
+
+func (p validatedQueryPath) ReadFile() ([]byte, error) {
+	if err := p.ensureWithinRoot(); err != nil {
+		return nil, err
+	}
+	return os.ReadFile(p.absolutePath)
+}
+
+func (p validatedQueryPath) Remove() error {
+	if err := p.ensureWithinRoot(); err != nil {
+		return err
+	}
+	return os.Remove(p.absolutePath)
+}
+
+func (p validatedQueryPath) Stat() (os.FileInfo, error) {
+	if err := p.ensureWithinRoot(); err != nil {
+		return nil, err
+	}
+	return os.Stat(p.absolutePath)
 }
 
 func cleanRelativePath(path string) (string, error) {
