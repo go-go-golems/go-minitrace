@@ -73,7 +73,8 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	if session.Environment.Model == nil || *session.Environment.Model != "claude-opus-4-1" {
 		t.Fatalf("expected model to be captured, got %+v", session.Environment.Model)
 	}
-	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != "~/project" {
+	expectedWorkingDirectory := minitrace.NormalizePath("/home/manuel/project")
+	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != expectedWorkingDirectory {
 		t.Fatalf("expected normalized working directory, got %+v", session.OperationalContext.WorkingDirectory)
 	}
 	if len(session.Turns) != 3 {
@@ -89,7 +90,8 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	if toolCall.Output.Result == nil || *toolCall.Output.Result != "package main" {
 		t.Fatalf("unexpected tool result: %+v", toolCall.Output.Result)
 	}
-	if toolCall.Input.FilePath == nil || *toolCall.Input.FilePath != "~/project/app.go" {
+	expectedFilePath := minitrace.NormalizePath("/home/manuel/project/app.go")
+	if toolCall.Input.FilePath == nil || *toolCall.Input.FilePath != expectedFilePath {
 		t.Fatalf("expected normalized file path, got %+v", toolCall.Input.FilePath)
 	}
 	if session.Metrics.TotalInputTokens == nil || *session.Metrics.TotalInputTokens != 10 {

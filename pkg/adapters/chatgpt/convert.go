@@ -92,8 +92,6 @@ func ConvertConversation(conv map[string]any, sourcePath string) (*minitrace.Ses
 
 	turns := make([]minitrace.Turn, 0, len(nodes))
 	allTimestamps := []time.Time{}
-	modelsSeen := []string{}
-	modelSet := map[string]struct{}{}
 	turnIndex := 0
 
 	for _, node := range nodes {
@@ -130,12 +128,6 @@ func ConvertConversation(conv map[string]any, sourcePath string) (*minitrace.Ses
 		}
 
 		modelSlug := getModelSlug(message)
-		if modelSlug != "" {
-			if _, ok := modelSet[modelSlug]; !ok {
-				modelSet[modelSlug] = struct{}{}
-				modelsSeen = append(modelsSeen, modelSlug)
-			}
-		}
 
 		mtRole := "system"
 		source := ptr("framework")

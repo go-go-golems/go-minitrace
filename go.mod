@@ -1,13 +1,17 @@
 module github.com/go-go-golems/go-minitrace
 
-go 1.26.1
+go 1.25.7
+
+toolchain go1.26.1
 
 require (
 	github.com/duckdb/duckdb-go/v2 v2.10501.0
 	github.com/go-go-golems/glazed v1.0.5
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pkg/errors v0.9.1
+	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/sync v0.19.0
 )
 
 require (
@@ -83,7 +87,6 @@ require (
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
@@ -109,7 +112,6 @@ require (
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	golang.org/x/term v0.40.0 // indirect

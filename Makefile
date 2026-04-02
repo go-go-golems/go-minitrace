@@ -1,4 +1,4 @@
-.PHONY: all lint test build goreleaser release
+.PHONY: all lint test build goreleaser release frontend
 
 all: lint test build
 
@@ -33,6 +33,11 @@ test:
 build:
 	go generate ./...
 	go build ./...
+
+frontend:
+	cd web && npm ci && npm run build
+	rm -rf cmd/go-minitrace/cmds/serve/frontend
+	cp -r web/dist cmd/go-minitrace/cmds/serve/frontend
 
 build-bin:
 	mkdir -p ./dist

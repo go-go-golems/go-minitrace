@@ -24,6 +24,15 @@ linters:
     #    - gochecknoinits
     - nonamedreturns
     - predeclared
+  # Exclusions configuration
+  exclusions:
+    rules:
+      - linters:
+          - staticcheck
+        text: 'SA1019: cli.CreateProcessorLegacy'
+    paths:
+      - ttmp/.*\\.go
+      - test_.*\\.go
   settings:
     errcheck:
       exclude-functions:

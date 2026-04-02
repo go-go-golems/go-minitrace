@@ -1,0 +1,52 @@
+topics:
+    - slug: chat
+      description: Chat backend and frontend surfaces
+    - slug: backend
+      description: Backend services
+    - slug: websocket
+      description: WebSocket lifecycle & events
+    - slug: documentation
+      description: Documentation and help page authoring
+    - slug: glazed
+      description: Glazed CLI framework integration
+    - slug: minitrace
+      description: Minitrace session format and tooling
+    - slug: analysis
+      description: 'Topic: analysis'
+    - slug: codex
+      description: 'Topic: codex'
+    - slug: deployment
+      description: 'Topic: deployment'
+    - slug: go-minitrace
+      description: 'Topic: go-minitrace'
+    - slug: wesen-os
+      description: 'Topic: wesen-os'
+docTypes:
+    - slug: design-doc
+      description: Structured rationale and architecture notes
+    - slug: reference
+      description: Reference docs and API contracts
+    - slug: playbook
+      description: Operational procedures and QA/Smoke steps
+    - slug: index
+      description: Ticket landing page
+    - slug: skill
+      description: Skill documentation (what it's for and when to use it)
+intent:
+    - slug: long-term
+      description: Likely to persist
+    - slug: short-term
+      description: Short-term documentation for active work
+    - slug: throwaway
+      description: Temporary/experimental documentation
+status:
+    - slug: draft
+      description: Initial draft state
+    - slug: active
+      description: Active work in progress
+    - slug: review
+      description: Ready for review
+    - slug: complete
+      description: Work completed
+    - slug: archived
+      description: Archived/completed work

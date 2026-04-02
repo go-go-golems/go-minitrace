@@ -1,6 +1,10 @@
 package codex
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+)
 
 func TestConvertRecordsSessionJSONL(t *testing.T) {
 	records := []map[string]any{
@@ -104,7 +108,8 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	if session.Environment.ProviderHint == nil || *session.Environment.ProviderHint != "openai-compatible" {
 		t.Fatalf("expected openai-compatible provider, got %+v", session.Environment.ProviderHint)
 	}
-	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != "~/project" {
+	expectedWorkingDirectory := minitrace.NormalizePath("/home/manuel/project")
+	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != expectedWorkingDirectory {
 		t.Fatalf("expected normalized cwd, got %+v", session.OperationalContext.WorkingDirectory)
 	}
 	if session.OperationalContext.AutonomyLevel == nil || *session.OperationalContext.AutonomyLevel != "full-auto" {

@@ -1,6 +1,10 @@
 package pi
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+)
 
 func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	records := []map[string]any{
@@ -89,7 +93,8 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	if session.Environment.ProviderHint == nil || *session.Environment.ProviderHint != "claude-agent-sdk" {
 		t.Fatalf("expected provider claude-agent-sdk, got %+v", session.Environment.ProviderHint)
 	}
-	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != "~/project" {
+	expectedWorkingDirectory := minitrace.NormalizePath("/home/manuel/project")
+	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != expectedWorkingDirectory {
 		t.Fatalf("expected normalized cwd, got %+v", session.OperationalContext.WorkingDirectory)
 	}
 	if len(session.Turns) != 3 {

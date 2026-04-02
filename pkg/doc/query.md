@@ -1,28 +1,181 @@
 ---
 Title: Query Commands
 Slug: query-commands
-Short: Query converted minitrace archives from the CLI
+Short: Query converted minitrace archives with DuckDB using presets or custom SQL
 Topics:
 - minitrace
 - duckdb
 - glazed
+Commands:
+- query
+- query duckdb
 IsTemplate: false
 IsTopLevel: false
 ShowPerDefault: true
-SectionType: Tutorial
+SectionType: GeneralTopic
 ---
 
-# Query Commands
+The `query` group loads converted minitrace archives into an analysis backend and runs queries against them. The current backend is DuckDB.
 
-The `query` group is for querying converted minitrace archives directly from `go-minitrace`.
+## How it works
 
-The first backend is DuckDB.
+When you run `query duckdb`, go-minitrace:
 
-Examples:
+1. Opens a DuckDB connection (in-memory by default, or at a specified database path)
+2. Loads minitrace JSON files matching the archive glob into a table called `sessions_base`
+3. Runs either a named preset, inline SQL, or a SQL file against that table
+4. Streams results through Glazed for output formatting
+
+The loading step uses DuckDB's `read_json()` with an explicit column schema and `ignore_errors = true`, so malformed files are silently skipped rather than crashing the query.
+
+## query duckdb
 
 ```bash
-go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset session-list
-go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --sql 'SELECT COUNT(*) AS sessions FROM sessions_base'
+go-minitrace query duckdb [flags]
 ```
 
-The command is authored as a Glazed command and accepts its configuration through explicit Glazed fields and sections.
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--archive-glob` | `./output/active/*/*.minitrace.json` | Glob pattern matching minitrace session files |
+| `--db-path` | `:memory:` | DuckDB database path. Use a file path for persistence across runs |
+| `--table-name` | `sessions_base` | Name of the table created from the loaded archive |
+| `--preset` | | Named built-in query to run |
+| `--sql` | | Inline SQL to run after loading |
+| `--sql-file` | | Path to a SQL file to execute after loading |
+| `--load-only` | `false` | Load the archive and emit a summary row without running a query |
+| `--persist-loaded` | `false` | Create a persistent table instead of a temporary one |
+
+Exactly one of `--preset`, `--sql`, `--sql-file`, or `--load-only` must be specified. They are mutually exclusive.
+
+### Query modes
+
+**Preset mode** runs one of the built-in queries:
+
+```bash
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --preset session-list
+```
+
+**Inline SQL mode** runs arbitrary SQL against the loaded archive:
+
+```bash
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --sql "SELECT COUNT(*) AS total FROM sessions_base"
+```
+
+**SQL file mode** reads a query from a file. This is useful for saved query libraries:
+
+```bash
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --sql-file ./my-query.sql
+```
+
+**Load-only mode** creates the table and reports what was loaded without running a query. Use this to verify loading before querying interactively:
+
+```bash
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --load-only
+```
+
+### Built-in presets
+
+| Preset | Description |
+|--------|-------------|
+| `session-list` | One row per session: id, framework, model, title, turns, tools, duration, read ratio, start time, source format |
+| `framework-summary` | Aggregate stats by agent framework: session count, average tools/turns/read ratio/duration/TTFA |
+| `tool-operation-breakdown` | Tool call counts grouped by framework and operation type (READ, MODIFY, NEW, EXECUTE, DELEGATE) |
+| `timing-analysis` | Duration, active time, TTFA, idle ratio, min/max duration by framework |
+| `read-ratio-distribution` | Per-session breakdown of reads, modifies, creates, executes with read ratio |
+| `annotations` | All annotations unnested: session ID, framework, annotator, category, title, scope |
+
+### Output formatting
+
+Query results flow through Glazed, so all standard output options work:
+
+```bash
+# Default table output
+go-minitrace query duckdb --archive-glob '...' --preset session-list
+
+# JSON for piping
+go-minitrace query duckdb --archive-glob '...' --preset session-list --output json
+
+# CSV for spreadsheets
+go-minitrace query duckdb --archive-glob '...' --preset session-list --output csv
+
+# YAML
+go-minitrace query duckdb --archive-glob '...' --preset session-list --output yaml
+
+# Select specific fields
+go-minitrace query duckdb --archive-glob '...' --preset session-list --fields id,framework,turns,tools
+```
+
+### Persistent database workflows
+
+For repeated querying, use a file-backed database with `--persist-loaded`:
+
+```bash
+# Load once
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --db-path analysis.duckdb \
+  --persist-loaded \
+  --load-only
+
+# Query repeatedly without reloading
+go-minitrace query duckdb \
+  --db-path analysis.duckdb \
+  --archive-glob '' \
+  --sql "SELECT COUNT(*) FROM sessions_base"
+```
+
+Or use the external DuckDB CLI with the `queries/` directory:
+
+```bash
+duckdb analysis.duckdb -init queries/load.sql -f queries/session-list.sql
+```
+
+### The sessions_base table
+
+The loaded table has these columns, all derived from the minitrace JSON schema:
+
+| Column | Type | Access pattern |
+|--------|------|---------------|
+| `id` | VARCHAR | Direct: `id` |
+| `title` | VARCHAR | Direct: `title` |
+| `summary` | VARCHAR | Direct: `summary` |
+| `classification` | VARCHAR | Direct: `classification` |
+| `profile` | VARCHAR | Direct: `profile` |
+| `provenance` | JSON | Nested: `provenance->>'source_format'` |
+| `flags` | JSON | Nested: `flags->>'needs_cleaning'` |
+| `environment` | JSON | Nested: `environment->>'model'` |
+| `operational_context` | JSON | Nested: `operational_context->>'working_directory'` |
+| `timing` | JSON | Nested: `timing->>'duration_seconds'` |
+| `turns` | JSON[] | Array: `UNNEST(turns)` |
+| `tool_calls` | JSON[] | Array: `UNNEST(tool_calls)` |
+| `annotations` | JSON[] | Array: `UNNEST(annotations)` |
+| `metrics` | JSON | Nested: `metrics->>'turn_count'` |
+
+Use `->>'field'` to extract string values from JSON columns, then CAST to the appropriate type for numeric operations.
+
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| Query returns 0 rows | Archive glob doesn't match any files | Check the glob path with `ls` first |
+| `no query source specified` | None of preset/sql/sql-file/load-only was given | Add `--preset`, `--sql`, `--sql-file`, or `--load-only` |
+| `preset, sql, and sql-file are mutually exclusive` | More than one query mode specified | Use exactly one |
+| Type error in SQL | JSON field not cast before arithmetic | Wrap in `CAST(... AS INT)` or `CAST(... AS DOUBLE)` |
+| DuckDB error on ignore_errors | Very old DuckDB version | Update DuckDB; go-minitrace embeds a compatible version |
+
+## See also
+
+- `go-minitrace help writing-duckdb-queries` — how to write custom SQL against the minitrace schema
+- `go-minitrace help duckdb-query-recipes` — ready-to-use query examples
+- `go-minitrace help output-formats-and-pipelines` — detailed Glazed output formatting guide
+- `go-minitrace help minitrace-schema` — field reference for the loaded JSON
