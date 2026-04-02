@@ -10,7 +10,11 @@ before:
 builds:
   - id: go-minitrace-linux
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
+      - >-
+        {{- if and (eq .Os "linux") (eq .Arch "arm64") }}CC=aarch64-linux-gnu-gcc{{- end }}
+      - >-
+        {{- if and (eq .Os "linux") (eq .Arch "arm64") }}CXX=aarch64-linux-gnu-g++{{- end }}
     main: ./cmd/go-minitrace
     binary: go-minitrace
     goos:
@@ -22,7 +26,7 @@ builds:
       - arm64
   - id: go-minitrace-darwin
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     main: ./cmd/go-minitrace
     binary: go-minitrace
     goos:
