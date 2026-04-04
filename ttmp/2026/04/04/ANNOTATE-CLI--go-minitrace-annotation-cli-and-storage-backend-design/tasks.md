@@ -17,7 +17,7 @@ Reference: implementation guide Part 2 (lines ~1050–1200)
 
 - [x] Create `pkg/annotate/store.go`
 - [x] Define `Store` struct with `db *sql.DB` and `dbPath string`
-- [ ] Implement `Open(ctx, outputDir string) (*Store, error)`
+- [x] Implement `Open(ctx, outputDir string) (*Store, error)`
   - Resolve to absolute path
   - `os.MkdirAll` to ensure directory exists
   - `sql.Open("sqlite3", path+"?_journal_mode=WAL&_busy_timeout=5000")`

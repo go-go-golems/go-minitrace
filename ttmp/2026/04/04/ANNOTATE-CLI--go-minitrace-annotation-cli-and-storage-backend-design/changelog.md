@@ -84,3 +84,14 @@ Step 3: cmd/annotate CLI (commit eec4611). 6 subcommands: add, list, edit, delet
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/list.go — list command (commit eec4611)
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/synccmd.go — sync command with session index builder (commit eec4611)
 
+
+## 2026-04-04
+
+Step 4: DuckDB sqlite_scanner integration (commit 4116a58). pkg/annotate/duckdb.go: AttachAnnotationsToDuckDB — INSTALL/LOAD sqlite_scanner + sqlite_attach(path, overwrite => true). Annotations are live — no refresh needed. serve.go wired after OpenConnection, before LoadArchive. outputDir inferred from first archive glob. queries/annotations.sql updated to join SQLite annotations table with DuckDB sessions_base.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/serve.go — wired DuckDB attachment after OpenConnection (commit 4116a58)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/duckdb.go — AttachAnnotationsToDuckDB — sqlite_scanner install/load/attach (commit 4116a58)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/annotations.sql — updated to join SQLite annotations with sessions_base (commit 4116a58)
+

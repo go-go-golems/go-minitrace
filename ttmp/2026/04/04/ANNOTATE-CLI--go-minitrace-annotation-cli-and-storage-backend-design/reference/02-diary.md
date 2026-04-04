@@ -364,3 +364,61 @@ go build ./cmd/go-minitrace/
 **Default output-dir inference:** If `--output-dir` is not set, commands use `./output`. The `sync` command then infers the glob as `./output/active/*/*.minitrace.json`.
 
 **Commit:** `eec4611` — "cmd/annotate: add CLI commands for annotation management"
+---
+
+## Step 4: pkg/annotate/duckdb.go — DuckDB sqlite_scanner Attachment
+
+Committed: `4116a58` — "pkg/annotate: DuckDB sqlite_scanner attachment + updated annotations.sql"
+
+Added `pkg/annotate/duckdb.go` and wired it into the serve command. DuckDB's `sqlite_scanner` extension makes SQLite tables directly queryable from DuckDB SQL — no JSON export/import, no refresh needed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Phase 3: DuckDB Integration..."
+
+**Assistant interpretation:** Wire DuckDB sqlite_scanner attachment into the serve startup.
+
+**Inferred user intent:** Make annotations queryable from DuckDB alongside session data without a separate refresh step.
+
+### What I did
+
+**pkg/annotate/duckdb.go:** `AttachAnnotationsToDuckDB(conn, outputDir)`:
+1. `INSTALL sqlite_scanner` + `LOAD sqlite_scanner`
+2. Resolve `annotations.db` path (`outputDir/annotations.db`)
+3. Check if file exists (skip if not yet created)
+4. `CALL sqlite_attach($1, overwrite => true)` — named parameter required
+
+**serve.go wiring:**
+- Added `annotate` import
+- Added `outputDirFromGlobs()` helper: expands globs, takes first file, returns `filepath.Dir(filepath.Dir(firstFile))`
+- Called between `OpenConnection` and `LoadArchive`
+- Errors logged as warnings (non-fatal — serve continues without annotations)
+
+**queries/annotations.sql:** updated to `JOIN annotations a ON sb.id = a.session_id` instead of `UNNEST(annotations)`.
+
+### What was tricky to build
+
+**Named parameters in sqlite_attach:** `CALL sqlite_attach('/path', true)` fails with Binder Error. The correct syntax is `CALL sqlite_attach($1, overwrite => true)` — DuckDB requires named parameters for boolean flags.
+
+**Inferring outputDir from globs:** The glob pattern contains wildcards, so `filepath.Dir` on the glob string doesn't work. Instead, `ExpandArchiveGlobs` resolves to actual file paths, then `filepath.Dir(filepath.Dir(file[0]))` gives the output root.
+
+### What I learned
+
+- `sqlite_scanner` is built into DuckDB — no external dependency, no CGO
+- Attached SQLite tables land in the `main` schema — query as `SELECT * FROM annotations`, no schema prefix
+- Annotations are live — DuckDB re-reads the SQLite file on every query, no refresh needed after writes
+
+### Technical details
+
+**sqlite_scanner call sequence:**
+```sql
+INSTALL sqlite_scanner;
+LOAD sqlite_scanner;
+CALL sqlite_attach('/abs/path/to/annotations.db', overwrite => true);
+```
+
+Named parameter `overwrite => true` is required — positional arguments cause a Binder Error.
+
+**outputDirFromGlobs:** `ExpandArchiveGlobs` always returns absolute paths. `filepath.Dir(filepath.Dir(absFile))` gives the output root (e.g. `/home/.../output` from `/home/.../output/active/2026-04/sess-001.minitrace.json`).
+
+**Commit:** `4116a58` — "pkg/annotate: DuckDB sqlite_scanner attachment + updated annotations.sql"
