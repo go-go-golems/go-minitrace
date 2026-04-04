@@ -95,3 +95,13 @@ Step 4: DuckDB sqlite_scanner integration (commit 4116a58). pkg/annotate/duckdb.
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/duckdb.go — AttachAnnotationsToDuckDB — sqlite_scanner install/load/attach (commit 4116a58)
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/annotations.sql — updated to join SQLite annotations with sessions_base (commit 4116a58)
 
+
+## 2026-04-04
+
+Step 5: HTTP API handlers (commit f155b6e). handlers_annotations.go: 6 handlers (GET/POST/Put/Delete for sessions and annotations + sync). NewServer accepts annoStore + annoIndex. serve.go opens Store at startup. handlers handle nil store gracefully (503). All serve tests pass.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_annotations.go — 6 annotation handlers (commit f155b6e)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — annoStore field
+

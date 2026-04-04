@@ -23,7 +23,7 @@ Reference: implementation guide Part 2 (lines ~1050–1200)
   - `sql.Open("sqlite3", path+"?_journal_mode=WAL&_busy_timeout=5000")`
   - Call `migrate()`
   - Return `*Store`
-- [ ] Implement `migrate(ctx)` — create tables with `CREATE TABLE IF NOT EXISTS`
+- [x] Implement `migrate(ctx)` — create tables with `CREATE TABLE IF NOT EXISTS`
   - `annotations` table with all columns (id, session_id, annotator, scope_type, target_id, category, title, detail, tags, taxonomy_m, taxonomy_mast, taxonomy_tm, classification, created_at, updated_at)
   - Indexes: session_id, (scope_type, target_id), category, annotator
   - `sync_state` table

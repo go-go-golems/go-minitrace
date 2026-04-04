@@ -422,3 +422,58 @@ Named parameter `overwrite => true` is required — positional arguments cause a
 **outputDirFromGlobs:** `ExpandArchiveGlobs` always returns absolute paths. `filepath.Dir(filepath.Dir(absFile))` gives the output root (e.g. `/home/.../output` from `/home/.../output/active/2026-04/sess-001.minitrace.json`).
 
 **Commit:** `4116a58` — "pkg/annotate: DuckDB sqlite_scanner attachment + updated annotations.sql"
+---
+
+## Step 5: HTTP API Handlers
+
+Committed: `f155b6e` — "serve: add annotation HTTP API handlers"
+
+Added `cmd/go-minitrace/cmds/serve/handlers_annotations.go` (340 lines) with 6 HTTP handlers, wired into the serve command. The `Store` is opened at serve startup and passed to `NewServer`. Handlers check `s.annoStore == nil` and return 503 if the store is unavailable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Phase 4: HTTP API..."
+
+**Assistant interpretation:** Implement the HTTP API handlers for annotation CRUD.
+
+**Inferred user intent:** Provide a REST API for annotation management alongside the CLI.
+
+### What I did
+
+**6 HTTP handlers:**
+- `GET /api/sessions/{id}/annotations` — calls `store.GetAnnotationsForSession`, returns `{session_id, count, annotations}`
+- `POST /api/sessions/{id}/annotations` — validates category/title, builds Annotation, calls `store.AddAnnotation`, returns 201
+- `GET /api/annotations` — calls `store.List` with query params (session, scope, category, annotator, taxonomy, limit)
+- `PUT /api/annotations/{annId}` — decodes JSON into AnnotationPatch, calls `store.Update`
+- `DELETE /api/annotations/{annId}` — calls `store.Delete`, returns 204
+- `POST /api/annotations/sync` — calls `store.SyncAll`, returns 200 (or 206 if errors)
+
+**server.go changes:**
+- Added `annoStore *annotate.Store` and `annoIndex map[string]string` to `Server` struct
+- `NewServer` signature changed: now accepts `(conn, settings, sessionIndex, annoStore, annoIndex)`
+- `writeError(w, status, msg)` helper added
+- Annotation routes registered in `routes()`
+- serve.go opens `annotate.Open(outputDir)` at startup and passes it to `NewServer`
+
+**server_test.go:** Updated all `NewServer` calls to pass `nil, nil` for the new parameters.
+
+### What didn't work
+
+**`NewServer` signature change:** broke 8 test calls in `server_test.go`. Fixed by adding `nil, nil` to all `NewServer` invocations.
+
+**Lint failures:** gofmt formatting issues (field alignment with trailing spaces), staticcheck "empty branch" for the best-effort sync body decode. Fixed: removed `if err != nil {}` block, replaced with `_ = json.NewDecoder(r.Body).Decode(&syncReq)`.
+
+### Technical details
+
+**Handlers check for nil store:** Every handler starts with:
+```go
+if s.annoStore == nil {
+    writeError(w, http.StatusServiceUnavailable, "annotation store not available")
+    return
+}
+```
+This ensures serve continues to work even if the annotation store can't be opened.
+
+**Annotation patch from JSON:** Uses type assertions (`if s, ok := v.(string); ok`) to extract typed values from `map[string]any`. Arrays handled similarly with `[]any` → `[]string` conversion.
+
+**Commit:** `f155b6e` — "serve: add annotation HTTP API handlers"
