@@ -123,6 +123,19 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 		return err
 	}
 
+	// Open the annotation store (SQLite).
+	var annoStore *annotate.Store
+	if outputDir != "" {
+		annoStore, err = annotate.Open(signalCtx, outputDir)
+		if err != nil {
+			log.Warn().Err(err).Str("output_dir", outputDir).Msg("could not open annotation store")
+			annoStore = nil
+		}
+	}
+	if annoStore != nil {
+		defer func() { _ = annoStore.Close() }()
+	}
+
 	log.Info().
 		Strs("archive_globs", settings_.ArchiveGlob).
 		Str("db_path", settings_.DBPath).
@@ -131,7 +144,7 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 		Bool("dev_mode", settings_.DevMode).
 		Msg("loaded minitrace archive for serve")
 
-	server := NewServer(conn, settings_, sessionIndex)
+	server := NewServer(conn, settings_, sessionIndex, annoStore, sessionIndex)
 	if err := server.ListenAndServe(signalCtx, settings_.Port); err != nil {
 		if stderrors.Is(err, context.Canceled) {
 			return nil
