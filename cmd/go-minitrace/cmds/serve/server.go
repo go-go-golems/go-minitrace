@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -26,6 +27,8 @@ type Server struct {
 	presetDirs   []string
 	queryDirs    []string
 	sessionIndex map[string]string
+	annoStore    *annotate.Store
+	annoIndex    map[string]string
 	devMode      bool
 	mux          *http.ServeMux
 }
@@ -46,13 +49,21 @@ type QueryResponse struct {
 	Error      *QueryError      `json:"error,omitempty"`
 }
 
-func NewServer(conn *sql.Conn, settings *ServeSettings, sessionIndex map[string]string) *Server {
+func NewServer(
+	conn *sql.Conn,
+	settings *ServeSettings,
+	sessionIndex map[string]string,
+	annoStore *annotate.Store,
+	annoIndex map[string]string,
+) *Server {
 	s := &Server{
 		conn:         conn,
 		tableName:    settings.TableName,
 		presetDirs:   normalizeDirList(settings.PresetDir),
 		queryDirs:    normalizeDirList(settings.QueryDir),
 		sessionIndex: sessionIndex,
+		annoStore:    annoStore,
+		annoIndex:    annoIndex,
 		devMode:      settings.DevMode,
 	}
 	s.mux = http.NewServeMux()
@@ -70,6 +81,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
 	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
 	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
+
+	// Annotation routes.
+	s.mux.HandleFunc("GET /api/sessions/{id}/annotations", s.handleGetSessionAnnotations)
+	s.mux.HandleFunc("POST /api/sessions/{id}/annotations", s.handleCreateAnnotation)
+	s.mux.HandleFunc("GET /api/annotations", s.handleListAnnotations)
+	s.mux.HandleFunc("PUT /api/annotations/{annId}", s.handleUpdateAnnotation)
+	s.mux.HandleFunc("DELETE /api/annotations/{annId}", s.handleDeleteAnnotation)
+	s.mux.HandleFunc("POST /api/annotations/sync", s.handleSyncAnnotations)
+
 	if !s.devMode {
 		s.mux.Handle("/", spaHandler(frontendFS))
 	}
@@ -322,6 +342,10 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		log.Error().Err(err).Msg("writing JSON response")
 	}
+}
+
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{"error": message})
 }
 
 func decodeRequest(r *http.Request, dest any) error {

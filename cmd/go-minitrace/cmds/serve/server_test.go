@@ -105,7 +105,7 @@ func TestHandleExecuteQueryReturnsStructuredRows(t *testing.T) {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{})
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"SELECT id FROM sessions_base"}`))
 	response := httptest.NewRecorder()
@@ -143,7 +143,7 @@ func TestHandleExecuteQueryReturnsStructuredSQLFailure(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 	defer func() { _ = db.Close() }()
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{})
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"SELECT missing FROM sessions_base"}`))
 	response := httptest.NewRecorder()
@@ -175,7 +175,7 @@ func TestHandleExecuteQueryRejectsNonReadOnlyStatements(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 	defer func() { _ = db.Close() }()
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{})
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"CREATE TABLE injected(id INTEGER)"}`))
 	response := httptest.NewRecorder()
@@ -217,7 +217,7 @@ func TestHandleGetSessionsReturnsNormalizedSummaries(t *testing.T) {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{})
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/sessions", nil)
 	response := httptest.NewRecorder()
 
@@ -265,7 +265,7 @@ func TestHandleGetSessionReturnsDetailWithBlocks(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 	defer func() { _ = db.Close() }()
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index)
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase2-detail", nil)
 	request.SetPathValue("id", "phase2-detail")
 	response := httptest.NewRecorder()
@@ -326,7 +326,7 @@ func TestHandleGetSessionBlocksReturnsGapsAndArtifacts(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 	defer func() { _ = db.Close() }()
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index)
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase3-blocks/blocks", nil)
 	request.SetPathValue("id", "phase3-blocks")
 	response := httptest.NewRecorder()
@@ -368,7 +368,7 @@ func TestHandleGetPresetsReturnsBuiltInAndExternalQueries(t *testing.T) {
 	server := NewServer(nil, &ServeSettings{
 		TableName: "sessions_base",
 		PresetDir: []string{presetDir1, presetDir2},
-	}, map[string]string{})
+	}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/presets", nil)
 	response := httptest.NewRecorder()
 
@@ -422,7 +422,7 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	server := NewServer(nil, &ServeSettings{
 		TableName: "sessions_base",
 		QueryDir:  []string{queryDir1, queryDir2},
-	}, map[string]string{})
+	}, map[string]string{}, nil, nil)
 
 	saveRequest := httptest.NewRequest(http.MethodPost, "/api/queries", strings.NewReader(`{"name":"wesen-os-filter","folder":"saved/analysis","description":"saved query","sql":"SELECT 1;"}`))
 	saveResponse := httptest.NewRecorder()
