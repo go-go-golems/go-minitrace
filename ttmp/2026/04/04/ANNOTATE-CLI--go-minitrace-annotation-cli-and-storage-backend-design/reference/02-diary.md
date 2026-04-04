@@ -526,3 +526,48 @@ Added annotation support to the React frontend using Redux Toolkit Query (RTK Qu
 **npm build:** `tsc -b && vite build` passes (685 modules, 962KB bundle).
 
 **Commit:** `7421127` — "web: add annotation panel and API to React frontend"
+
+---
+
+## Step 7: E2E tests + Phase 6 polish (validate + README)
+
+### What I did
+
+**E2E test scripts (3):**
+- `08-e2e-annotate-cli.sh` — CLI smoke test: add → sqlite3 verify → sync → validate → list → edit → delete → validate JSON
+- `09-e2e-duckdb-sqlite-live.sh` — DuckDB sqlite_scanner live query: starts serve in background, adds annotation via CLI, queries DuckDB with `sqlite_attach` via `-set` flag to avoid heredoc variable escaping
+- `10-e2e-api.sh` — HTTP API E2E: POST/GET/PUT/DELETE/sync all annotation endpoints via curl
+
+**Bug fix: extractPathParam index OOB** (`handlers_annotations.go`): `annId` case used `parts[2]` but after `strings.TrimPrefix(r.URL.Path, "/api/")`, URL `/api/annotations/{id}` splits into `["annotations", UUID]` (2 parts), so `parts[2]` is out of range. Fixed to `parts[1]` for both `id` and `annId` cases.
+
+**Bug fix: shell variable leakage in 10-e2e-api.sh**: `get()` function returned `RESP` (body only) but did NOT capture `HTTP_CODE`. DELETE step set `HTTP_CODE=204`, then GET-after-delete step called `get()` which didn't update `HTTP_CODE`, so it retained "204" and `[ "$HTTP_CODE" = "200" ]` failed. Rewrote with `_BODY` and `_CODE` global variables and `capture()` helper.
+
+**pkg/validate extension** (`json.go`): Extended `ValidatePath()` to validate annotation arrays:
+- `validateAnnotations(field)` — checks null, array type, iterates items
+- `validateAnnotation(ann)` — id, timestamp, annotator, scope.type (session|turn|tool_call), scope.target_id, content.category (known set), content.title, content.tags (array of strings), taxonomy_mappings.* (array of strings), classification (known levels)
+- Bug: tags were read from `ann["tags"]` (top-level) but should be `content["tags"]` per minitrace schema. Fixed.
+
+**README additions**: 104-line Annotations section covering storage model, CLI commands, categories, serve + HTTP API table, DuckDB queries.
+
+### What didn't work
+
+**gofmt field alignment**: `ValidAnnotationCategories` map had misaligned columns (`observation:` with extra space). Fixed with `gofmt -w`.
+
+**sed substitution bug**: Attempted `sed -i 's/contains(...)/strContains(...)/g'` but sed substituted `result.Error` → `results[0].Error` in all occurrences. Fixed by reading the file and manually rewriting.
+
+**test file `t` parameter**: `strContains` and `strContainsIndex` helper functions used `t` as parameter name, shadowing the outer `*testing.T`. Renamed to `strContains` using `strings.Contains` instead.
+
+### Technical details
+
+**DuckDB `-set` flag for SQLite path**: `duckdb -set db_path /tmp/annotations.db "INSTALL sqlite_scanner; LOAD sqlite_scanner; CALL sqlite_attach($db_path, overwrite => true); SELECT COUNT(*) FROM annotations;"` — named parameter avoids positional-boolean Binder Error.
+
+**ValidClassificationLevels**: `[]string{"public", "internal", "confidential", "customer-confidential"}` — ordered for potential de-escalation enforcement in future.
+
+**gofmt output for map literals**: When all values are `true`, gofmt aligns the RHS at column 12. `"observation"` is 11 chars, so one space before `true`.
+
+**Commit graph:** `238aba7` → `6c71f31` → `eec4611` → `4116a58` → `f155b6e` → `7421127` → `b663b03` → `5430a20` → `bb3fcc5`
+
+**New commits:**
+- `b663b03` fix(serve): extractPathParam parts[2]→parts[1] (index OOB), gofmt fix
+- `5430a20` pkg/validate: annotate annotation structure in go-minitrace validate
+- `bb3fcc5` README: add Annotations section covering CLI, HTTP API, storage model, DuckDB queries

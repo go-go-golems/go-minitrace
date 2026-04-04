@@ -53,7 +53,7 @@ Implementation status as of 2026-04-04.
 | 3.4 | `outputDirFromGlobs()` helper | ✅ |
 | 3.5 | Errors as warnings (non-fatal) | ✅ |
 | 3.6 | Update `queries/annotations.sql` | ✅ JOIN annotations with sessions_base |
-| 3.7 | DuckDB integration test | ❌ Not written |
+| 3.7 | DuckDB integration test | ✅ `09-e2e-duckdb-sqlite-live.sh` |
 
 ### Phase 4 — HTTP API
 
@@ -68,7 +68,7 @@ Implementation status as of 2026-04-04.
 | 4.7 | `POST /api/annotations/sync` | ✅ |
 | 4.8 | `NewServer` accepts `annoStore, annoIndex` | ✅ |
 | 4.9 | `Server.annoStore == nil` → 503 on all handlers | ✅ |
-| 4.10 | API integration test | ❌ Not written |
+| 4.10 | API integration test | ✅ `10-e2e-api.sh` |
 
 ### Phase 5 — Web UI
 
@@ -79,30 +79,35 @@ Implementation status as of 2026-04-04.
 | 5.3 | `AnnotationPanel.tsx` — list + add form + delete + sync | ✅ |
 | 5.4 | Transcript/Annotations tab toggle in `TranscriptViewer.tsx` | ✅ |
 | 5.5 | `npm run build` passes | ✅ |
-| 5.6 | `SessionBrowser` annotation badges | ❌ Not done |
-| 5.7 | `QueryEditor` cross-session annotation search | ❌ Not done |
+| 5.6 | `SessionBrowser` annotation badges | ❌ |
+| 5.7 | `QueryEditor` cross-session annotation search | ❌ |
+
+### Phase 6 — Polish
+
+| # | Task | Status |
+|---|------|--------|
+| 6.1 | E2E: `scripts/08-e2e-annotate-cli.sh` | ✅ Committed `b663b03` |
+| 6.2 | E2E: `scripts/09-e2e-duckdb-sqlite-live.sh` | ✅ |
+| 6.3 | E2E: `scripts/10-e2e-api.sh` | ✅ |
+| 6.4 | Bug: `extractPathParam` parts[2]→parts[1] (OOB) | ✅ Fixed `b663b03` |
+| 6.5 | `pkg/validate/json.go` — annotation structure validation | ✅ Committed `5430a20` |
+| 6.6 | Validation tests (12 cases) | ✅ |
+| 6.7 | `## Annotations` section in README | ✅ Committed `bb3fcc5` |
+| 6.8 | Classification escalation enforcement | ❌ Not enforced (levels defined, not enforced) |
 
 ---
 
 ## ❌ Remaining
 
-### E2E Test Scripts
-- [ ] `scripts/e2e-annotate.sh` — CLI smoke test: add → sqlite3 verify → sync → validate
-- [ ] `scripts/e2e-duckdb-sqlite.sh` — DuckDB live query after annotate add/delete
-- [ ] `scripts/e2e-api.sh` — HTTP API: curl POST/GET/PUT/DELETE + sync
-
-### Phase 6 — Polish
-- [ ] Extend `pkg/validate/json.go` to validate annotation structure
-- [ ] Classification escalation enforcement (public → internal → confidential → customer-confidential)
-- [ ] `go-minitrace validate` with annotation check
-- [ ] Add `## Annotations` section to README
-
 ### Nice-to-Have
+- [ ] `SessionBrowser` annotation badges (web)
+- [ ] `QueryEditor` cross-session annotation search (web)
 - [ ] `annotate get` command (fetch single annotation by ID)
 - [ ] `annotate stats` (counts by category/session)
 - [ ] `GetAnnotationByID()` in store (single-row lookup)
 - [ ] Pagination metadata in `List` response
 - [ ] `--diff` flag on sync to show JSON diff before writing
+- [ ] Classification escalation enforcement (public → internal → confidential → customer-confidential)
 
 ---
 
@@ -116,3 +121,6 @@ Implementation status as of 2026-04-04.
 | `4116a58` | pkg/annotate: DuckDB sqlite_scanner attachment |
 | `f155b6e` | serve: 6 annotation HTTP API handlers |
 | `7421127` | web: AnnotationPanel + RTK Query API |
+| `b663b03` | fix(serve): extractPathParam OOB fix + 3 E2E scripts |
+| `5430a20` | pkg/validate: annotation structure validation |
+| `bb3fcc5` | README: Annotations section |
