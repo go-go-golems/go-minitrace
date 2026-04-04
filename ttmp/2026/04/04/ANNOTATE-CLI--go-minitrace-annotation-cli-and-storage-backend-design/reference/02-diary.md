@@ -11,24 +11,16 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles:
-    - Path: pkg/annotate/store.go
-      Note: Store struct
-    - Path: pkg/annotate/store_test.go
-      Note: 11 tests covering all public API (commit 238aba7)
-ExternalSources: []
-Summary: 'Step-by-step diary of implementing the annotation CLI. Phase 1: SQLite store. Phase 2: sync + CLI. Phase 3: DuckDB integration. Phase 4: HTTP API. Phase 5: web UI.'
-LastUpdated: 2026-04-04T00:00:00Z
-WhatFor: ""
-WhenToUse: ""
+RelatedFiles: []
+Summary: "Step-by-step diary of implementing the annotation CLI."
+LastUpdated: 2026-04-04
 ---
 
-
-# Diary — ANNOTATE-CLI Implementation
+# Diary
 
 ## Goal
 
-Implementing the annotation CLI and SQLite storage backend for go-minitrace:
+Implementing the annotation CLI and SQLite storage backend for go-minitrace. Phases:
 1. `pkg/annotate/store.go` — SQLite CRUD
 2. `pkg/annotate/sync.go` — atomic JSON write-back
 3. `pkg/annotate/duckdb.go` — DuckDB sqlite_scanner attachment
@@ -36,9 +28,13 @@ Implementing the annotation CLI and SQLite storage backend for go-minitrace:
 5. Serve HTTP endpoints
 6. Web UI AnnotationPanel
 
+---
+
 ## Step 1: pkg/annotate/store.go — SQLite CRUD
 
 Committed: `238aba7` — "pkg/annotate: SQLite-backed annotation store"
+
+Created `pkg/annotate/store.go` (502 lines) and `pkg/annotate/store_test.go` (384 lines, 11 tests). This is the foundation: a SQLite store at `outputDir/annotations.db` that persists minitrace annotations, tracks which sessions have been modified, and exposes CRUD operations for the CLI and HTTP API.
 
 ### Prompt Context
 
@@ -46,35 +42,40 @@ Committed: `238aba7` — "pkg/annotate: SQLite-backed annotation store"
 
 **Assistant interpretation:** Implement the SQLite store package with CRUD operations for annotations, wired to the minitrace schema types.
 
-**Inferred user intent:** Build the foundation of the annotation system: a SQLite store that can persist and query annotations, with a sync_state table to track which sessions need their .minitrace.json files updated.
+**Inferred user intent:** Build the foundation of the annotation system: a SQLite store that persists annotations and tracks sync state.
 
 ### What I did
 
-Created `pkg/annotate/store.go` (502 lines) and `pkg/annotate/store_test.go` (384 lines, 11 tests).
+Created `pkg/annotate/store.go` and `pkg/annotate/store_test.go`.
 
-Files created:
-- `pkg/annotate/store.go` — Store struct, Open/Close, migrate, AddAnnotation, GetAnnotationsForSession, List, Update, Delete, GetUnsyncedSessions, markUnsynced, markSynced
-- `pkg/annotate/store_test.go` — 11 tests covering all public API surfaces
-
-Schema created by `migrate()`:
-- `annotations` table: id, session_id, annotator, scope_type, target_id, category, title, detail, tags (JSON), taxonomy_m (JSON), taxonomy_mast (JSON), taxonomy_tm (JSON), classification, created_at, updated_at
+**Schema (`migrate()`):**
+- `annotations` table: id, session_id, annotator, scope_type, target_id, category, title, detail, tags (JSON TEXT), taxonomy_m (JSON TEXT), taxonomy_mast (JSON TEXT), taxonomy_tm (JSON TEXT), classification, created_at, updated_at
 - `sync_state` table: session_id (PK), synced_at, change_count
 - Indexes on session_id, (scope_type, target_id), category, annotator
 
-Key implementation decisions:
-- `Open(ctx, outputDir)` resolves to absolute path, creates dir, opens SQLite with `?_journal_mode=WAL&_busy_timeout=5000`
-- Tags/taxonomy stored as JSON strings in TEXT columns
-- `parseJSONArray` returns `[]string{}` for `"[]"` to avoid nil-slice problem
-- `buildPatchSET` dynamically builds SET clause from non-nil AnnotationPatch fields
-- `markUnsynced` uses separate UPDATE then INSERT (SQLite limitation)
-- `closeRows` helper silences errcheck linter
+**API surface:**
+- `Open(ctx, outputDir) (*Store, error)` — resolves to absolute path, creates dir + WAL-mode DB, runs migrations
+- `AddAnnotation(ctx, ann, sessionID)` — inserts, JSON-encodes tags/taxonomy, calls markUnsynced
+- `GetAnnotationsForSession(ctx, sessionID)` — selects + JSON-decodes tags/taxonomy
+- `List(ctx, opts ListOptions)` — dynamic WHERE builder; taxonomy filter uses LIKE across all 3 taxonomy columns
+- `Update(ctx, id, patch AnnotationPatch)` — builds dynamic SET clause from non-nil patch fields only
+- `Delete(ctx, id)` — returns ErrNotFound if missing
+- `GetUnsyncedSessions(ctx)` — for sync planning
+- `markUnsynced(ctx, sessionID)` / `markSynced(ctx, sessionID, count)`
+
+**Helper types:** `ListOptions`, `AnnotationPatch`, `AnnotationRow`, `SyncState`, `ErrNotFound`
+
+### Why
+
+SQLite is the right tool for write-heavy annotation workloads. DuckDB is analytical and read-only. The store must track which sessions have unsynced changes so the `sync` command can efficiently write annotations back to `.minitrace.json` files. Tags and taxonomy are stored as JSON strings in TEXT columns because SQLite has no native array type — this is the simplest schema that maps cleanly to/from `minitrace.Annotation`.
 
 ### What worked
 
-- All 11 tests pass
+- All 11 tests pass cleanly
 - golangci-lint reports 0 issues on `./pkg/annotate/...`
-- Both `mattn/go-sqlite3` and `google/uuid` already in `go.mod` — no new dependencies needed
-- gofmt formatting stable after fix
+- `mattn/go-sqlite3` and `google/uuid` already in `go.mod` — no new dependencies needed
+- `buildPatchSET` correctly handles partial patches (only non-nil fields generate SET entries)
+- `closeRows`/`closeStore` helpers cleanly silence errcheck without verbose anonymous functions
 
 ### What didn't work
 
@@ -86,10 +87,9 @@ VALUES (?, '', change_count + 1)
 ON CONFLICT(session_id) DO UPDATE SET change_count = change_count + 1
 ```
 
-Runtime error: `no such column: change_count` — SQLite does not support referencing a column in the VALUES clause of an INSERT that also has an ON CONFLICT clause.
+Runtime error: `no such column: change_count`. SQLite does not support referencing a column in the VALUES clause of an INSERT that also has an ON CONFLICT clause.
 
-Fix: separate UPDATE then conditional INSERT:
-
+Fix:
 ```go
 result, err := s.db.ExecContext(ctx, `UPDATE sync_state SET change_count = change_count + 1 WHERE session_id = ?`, sessionID)
 rowsAffected, _ := result.RowsAffected()
@@ -98,12 +98,9 @@ if rowsAffected == 0 {
 }
 ```
 
-**Bug 2: json.Unmarshal + nil slice** — `var out []string` creates nil slice. `json.Unmarshal([]byte("[]"), &out)` appends nothing for empty array. Result: nil, not `[]string{}`.
+**Bug 2: json.Unmarshal leaves nil slice for `[]`** — `var out []string` creates nil slice. `json.Unmarshal([]byte("[]"), &out)` appends nothing for an empty array. Result: nil, not `[]string{}`.
 
-Test `TestNilTagsAndTaxonomy` caught this by asserting `got[0].Content.Tags == nil` is false (expecting non-nil).
-
-Fix: `parseJSONArray` returns `[]string{}` for both `""`, `"null"`, and `"[]"`:
-
+Test `TestNilTagsAndTaxonomy` caught this. Fix:
 ```go
 func parseJSONArray(s string) []string {
     if s == "" || s == "null" || s == "[]" {
@@ -115,41 +112,65 @@ func parseJSONArray(s string) []string {
 }
 ```
 
-**Lint: errcheck failures** — `defer rows.Close()` and `defer store.Close()` flagged by errcheck linter.
-
-Fix: helper functions that discard the error:
-
+**Lint: errcheck failures** — `defer rows.Close()` and `defer store.Close()` flagged. Fix: helper functions:
 ```go
-func closeRows(rows *sql.Rows) { _ = rows.Close() }
-func closeStore(s *Store)     { _ = s.Close() }
+func closeRows(rows *sql.Rows)  { _ = rows.Close() }
+func closeStore(s *Store)       { _ = s.Close() }
 ```
+
+### What I learned
+
+- SQLite's ON CONFLICT clause has a subtle restriction: you cannot read a column value in the VALUES clause if the INSERT also has ON CONFLICT. The error message ("no such column") is misleading — it suggests a typo rather than revealing the restriction.
+- `json.Unmarshal` with a nil destination slice is safe (appends to nil), but for `[]` input it appends nothing, leaving the slice nil. For `null` it also leaves nil. Need explicit `"[]"` check.
+- The `errcheck` linter flags `defer x.Close()` but not named-result-ignored calls or inline `(_ = x.Close())`. Helper functions are the cleanest solution.
 
 ### What was tricky to build
 
-- The SQLite ON CONFLICT VALUES limitation is not well-documented. The error message ("no such column") is misleading — it suggests the column doesn't exist rather than revealing the SQLite restriction.
-- `errcheck` flags deferred Close calls but not explicit ones. I initially tried adding `defer func() { _ = rows.Close() }()` pattern but `closeRows` helper is cleaner.
-- `buildPatchSET` needs to handle all optional fields without generating trailing commas or empty SET clauses.
+- **markUnsynced** needed to be idempotent (upsert semantics) but SQLite's ON CONFLICT VALUES restriction forced a two-step approach. The UPDATE-then-INSERT sequence is correct but the original single-statement approach felt cleaner.
+- **buildPatchSET** must not produce trailing commas or empty SET clauses. The `appendSet` helper pattern handles this cleanly by checking `set != ""` before prepending ", ".
+- **gofmt formatting** in the test file — the `TestNilTagsAndTaxonomy` assertion originally used `string(rune('a'+i))` to generate IDs which produced a gofmt diff. Simplified to fixed string prefixes.
+
+### What warrants a second pair of eyes
+
+- **markUnsynced race condition**: If two goroutines call `markUnsynced` for the same session_id concurrently, the UPDATE could both return rowsAffected=0, causing two INSERT attempts. SQLite's UNIQUE constraint on session_id would cause one to fail. This is a rare edge case (unlikely in single-user CLI) but worth noting. A transaction would serialize it.
+- **List taxonomy filter** uses three LIKE patterns — performance degrades with many annotations. Fine for v1.
+- **nil vs empty in AnnotationPatch**: `Tags *[]string` — callers must understand the pointer semantics. No compile-time enforcement of which fields are set.
 
 ### What should be done in the future
 
-- Consider adding a `GetAnnotationByID` method (single-row lookup by ID, not just by session)
-- Consider adding pagination metadata to `List` response (total count for pagination)
-- The sync_state design (separate UPDATE then INSERT) could be a single statement with a CTE or a transaction
+- Add `GetAnnotationByID(ctx, id)` — single-row lookup (currently only session-scoped lookup exists)
+- Add pagination metadata to `List` — total count requires a separate `SELECT COUNT(*) WHERE ...` query
+- Consider a transaction wrapper around `markUnsynced` to serialize concurrent upserts
 
 ### Code review instructions
 
 **Start at:** `pkg/annotate/store.go`
 
 Key symbols to review:
-- `Open()` — confirms dir creation, WAL mode, migration order
-- `migrate()` — confirms schema correctness (column names, indexes)
-- `AddAnnotation()` — confirms JSON encoding of tags/taxonomy
-- `GetAnnotationsForSession()` — confirms `scanAnnotations` maps all fields correctly
-- `Update()` — confirms dynamic SET clause generation and ErrNotFound handling
-- `markUnsynced()` — confirms UPDATE-then-INSERT pattern for SQLite compatibility
+- `Open()` — dir creation, WAL mode, migration order
+- `migrate()` — schema correctness (column names, index coverage)
+- `AddAnnotation()` — JSON encoding of tags/taxonomy
+- `scanAnnotations()` — all fields mapped correctly
+- `Update()` — dynamic SET clause, ErrNotFound handling
+- `markUnsynced()` — UPDATE-then-INSERT pattern
+- `List()` — WHERE clause builder, taxonomy LIKE across 3 columns
 
-**Validate with:**
+**Validate:**
 ```bash
 go test -v ./pkg/annotate/
 golangci-lint run ./pkg/annotate/...
 ```
+
+### Technical details
+
+**SQLite pragma string:** `?_journal_mode=WAL&_busy_timeout=5000`
+- WAL mode allows concurrent readers + serialized writer
+- busy_timeout=5000ms waits up to 5s before returning "database is locked"
+
+**JSON column encoding:** Tags (`[]string`), taxonomy (`[]string` for Minitrace/Mast/Toolemu) stored as JSON strings. Encoding: `json.Marshal`. Decoding: `json.Unmarshal` + `"[]"` guard in `parseJSONArray`.
+
+**Dynamic WHERE in List:** Each optional field appends `AND col = ?` to base `WHERE 1=1`. Taxonomy filter: `LIKE '%pattern%'` applied to all 3 taxonomy columns.
+
+**buildPatchSET:** Walks AnnotationPatch fields in order. Only non-nil pointers generate a SET entry. Returns `("", nil)` if patch is empty (Update returns early).
+
+**Commit:** `238aba7` — "pkg/annotate: SQLite-backed annotation store"
