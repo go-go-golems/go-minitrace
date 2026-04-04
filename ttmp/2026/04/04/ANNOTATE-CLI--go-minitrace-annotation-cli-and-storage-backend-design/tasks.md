@@ -15,7 +15,7 @@ Implementation guide: `design-doc/02-annotation-cli-implementation-guide.md`
 
 Reference: implementation guide Part 2 (lines ~1050–1200)
 
-- [ ] Create `pkg/annotate/store.go`
+- [x] Create `pkg/annotate/store.go`
 - [x] Define `Store` struct with `db *sql.DB` and `dbPath string`
 - [ ] Implement `Open(ctx, outputDir string) (*Store, error)`
   - Resolve to absolute path

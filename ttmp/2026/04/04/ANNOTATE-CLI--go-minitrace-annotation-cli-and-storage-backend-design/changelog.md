@@ -70,3 +70,17 @@ Step 2: pkg/annotate/sync.go (commit 6c71f31). Atomic JSON write-back: SyncSessi
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/sync.go — SyncSession
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/sync_test.go — 5 tests (commit 6c71f31)
 
+
+## 2026-04-04
+
+Step 3: cmd/annotate CLI (commit eec4611). 6 subcommands: add, list, edit, delete, sync, import. Wired into main.go. annotate sync builds session index by expanding archive-glob, reads each file to extract session IDs, calls store.SyncAll. annotate list supports table/json output with all filter options. Smoke test passed: add + list + delete work end-to-end.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/add.go — add command (commit eec4611)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/delete.go — delete command (commit eec4611)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/edit.go — edit command (commit eec4611)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/import.go — import command (commit eec4611)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/list.go — list command (commit eec4611)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/annotate/synccmd.go — sync command with session index builder (commit eec4611)
+

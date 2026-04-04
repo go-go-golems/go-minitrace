@@ -276,3 +276,91 @@ os.Rename(tmpPath, filePath)  // atomic on POSIX same filesystem
 **JSON patching:** Unmarshal to `map[string]any`, set `annotations` key, re-marshal. This preserves all other fields and formatting.
 
 **Commit:** `6c71f31` — "pkg/annotate: atomic JSON sync for .minitrace.json write-back"
+---
+
+## Step 3: cmd/annotate — CLI Commands
+
+Committed: `eec4611` — "cmd/annotate: add CLI commands for annotation management"
+
+Created `cmd/go-minitrace/cmds/annotate/` with 6 subcommands wired into `main.go`. All commands share `--output-dir` flag (default `./output`). Each subcommand opens the SQLite store via a shared `openStore(cmd)` helper.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Phase 2..."
+
+**Assistant interpretation:** Implement the CLI commands for annotation management.
+
+**Inferred user intent:** Provide a command-line interface for creating, listing, editing, deleting, syncing, and importing annotations.
+
+### What I did
+
+**Commands:**
+- `annotate add` — validates category against known set, uses `uuid.New().String()` for ID, calls `store.AddAnnotation`, prints summary
+- `annotate list` — calls `store.List` with all filter options, prints table (tabwriter) or JSON
+- `annotate edit` — uses `flagIsSet` helper to detect which flags were passed, builds `AnnotationPatch`, calls `store.Update`
+- `annotate delete` — calls `store.Delete`, prints confirmation
+- `annotate sync` — infers archive-glob from output-dir (`<output-dir>/active/*/*.minitrace.json`), calls `ExpandArchiveGlobs`, reads each file to extract session IDs, calls `store.SyncAll`, reports synced/skipped/errors
+- `annotate import` — reads JSON file/stdin, converts to `[]Annotation`, calls `store.AddAnnotation` for each
+
+**Helpers shared across commands:**
+- `openStore(cmd) (*annotate.Store, string, error)` — reads `--output-dir` flag, calls `annotate.Open`
+- `closeStore(store)` — `_ = store.Close()`
+- `parseCommaList(s string) []string` — splits on comma, trims whitespace
+- `flagIsSet(cmd, name) bool` — detects whether a flag was explicitly set vs. using its default
+
+### Why
+
+Using a shared `openStore` helper avoids repeating the flag-reading and error-handling logic in each command. The `flagIsSet` helper is needed because Cobra's `cmd.Flags().GetString()` returns the default value even when the flag was not set — for `edit`, we only want to patch fields the user actually specified.
+
+### What worked
+
+- Smoke test: `go-minitrace annotate add --session sess-test --category observation --title "Test"` → printed summary → `go-minitrace annotate list` showed the annotation
+- All lint checks pass (gofmt, errcheck, staticcheck)
+
+### What didn't work
+
+**Unused imports:** `os` in `add.go` (imported but not used), `pkg/annotate` in `import.go` (used via root.go's shared helper, not directly). Fixed with `sed -i` to remove the unused imports.
+
+**MarkFlagRequired errcheck failures:** `cmd.MarkFlagRequired(...)` return values were ignored. Fixed: `_ = cmd.MarkFlagRequired(...)` in `add.go`, `edit.go`, `delete.go`.
+
+### What was tricky to build
+
+**inferring the archive-glob in `sync`:** Since output-dir can be any path, the glob needs to be constructed as `<output-dir>/active/*/*.minitrace.json`. This assumes the standard output directory layout with `active/` subdirectory. If the user uses a non-standard layout, they must specify `--archive-glob` explicitly.
+
+**flagIsSet:** Cobra's `flag.Changed` tracks whether the flag was set explicitly. The helper walks all flags and checks `flag.Name == name && flag.Changed`.
+
+### What warrants a second pair of eyes
+
+- **Non-standard output layouts:** `sync` infers `--archive-glob` as `<output-dir>/active/*/*.minitrace.json`. If the user's output directory structure differs, sync won't find any files. Document this assumption.
+- **No validation of taxonomy codes:** `add` accepts any taxonomy string and passes it through. Taxonomy codes are not validated.
+
+### What should be done in the future
+
+- Add `--format table` / `--format json` to all commands consistently (currently only `list` has it)
+- Add `annotate get` command to fetch a single annotation by ID
+- Consider `annotate stats` to summarize annotation counts by category/session
+
+### Code review instructions
+
+**Start at:** `cmd/go-minitrace/cmds/annotate/root.go`
+
+Key files to review:
+- `add.go` — flag validation, category enum check
+- `synccmd.go` — session index building, archive-glob inference
+- `edit.go` — flagIsSet usage for partial patching
+
+**Validate:**
+```bash
+go build ./cmd/go-minitrace/
+./go-minitrace annotate --help
+./go-minitrace annotate add --help
+./go-minitrace annotate sync --help
+```
+
+### Technical details
+
+**Category validation:** `validCategories` map with known values: `observation`, `ai-failure`, `user-error`, `environment-issue`, `success`, `question`, `to-discuss`, `to-improve`.
+
+**Default output-dir inference:** If `--output-dir` is not set, commands use `./output`. The `sync` command then infers the glob as `./output/active/*/*.minitrace.json`.
+
+**Commit:** `eec4611` — "cmd/annotate: add CLI commands for annotation management"
