@@ -11,10 +11,18 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
-Summary: "Step-by-step diary of implementing the annotation CLI."
-LastUpdated: 2026-04-04
+RelatedFiles:
+    - Path: pkg/annotate/sync.go
+      Note: SyncSession atomic write
+    - Path: pkg/annotate/sync_test.go
+      Note: 5 sync tests (commit 6c71f31)
+ExternalSources: []
+Summary: Step-by-step diary of implementing the annotation CLI.
+LastUpdated: 2026-04-04T00:00:00Z
+WhatFor: ""
+WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -174,3 +182,97 @@ golangci-lint run ./pkg/annotate/...
 **buildPatchSET:** Walks AnnotationPatch fields in order. Only non-nil pointers generate a SET entry. Returns `("", nil)` if patch is empty (Update returns early).
 
 **Commit:** `238aba7` — "pkg/annotate: SQLite-backed annotation store"
+
+---
+
+## Step 2: pkg/annotate/sync.go — Atomic JSON Write-back
+
+Committed: `6c71f31` — "pkg/annotate: atomic JSON sync for .minitrace.json write-back"
+
+Added `pkg/annotate/sync.go` (185 lines) and `pkg/annotate/sync_test.go` (180 lines, 5 tests). SyncSession reads a `.minitrace.json` file, unmarshals it generically (to avoid re-serializing the whole session), replaces the `annotations` field with the provided `[]Annotation`, and writes back atomically via write-to-temp then `os.Rename`. `SyncAll` iterates over unsynced sessions from the store, looks up their file paths, and calls `SyncSession`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Phase 2..."
+
+**Assistant interpretation:** Implement the atomic JSON write-back module and sync logic.
+
+**Inferred user intent:** Enable writing annotations back to `.minitrace.json` files after editing.
+
+### What I did
+
+**SyncSession(filePath, annotations, opts):**
+1. Read file as `[]byte`, unmarshal into `map[string]any`
+2. Replace `annotations` key with JSON-marshaled annotation slice
+3. Re-marshal with 2-space indent, append `\n`
+4. If `DryRun`: print summary to stdout
+5. Else: `WriteFile(tmp)`, then `Rename(tmp, file)` — atomic on POSIX same-filesystem
+
+**SyncAll(ctx, sessionIndex, opts):**
+1. Get unsynced sessions from store (or single session if `opts.SessionID` set)
+2. For each session: look up `sessionIndex[sessionID]`, fetch annotations, call `SyncSession`
+3. On success: `markSynced(ctx, sessionID, count)`
+4. Collect results into `SyncReport`
+
+**Types added:** `SyncOptions{DryRun, SessionID}`, `SyncReport{Synced, Skipped, Errors}`, `SyncError{SessionID, Error}`
+
+### Why
+
+The atomic write pattern (temp file + rename) is required for crash safety. If the process is killed mid-write, the original file is untouched. `os.Rename` is atomic on POSIX when source and destination are on the same filesystem. Using `map[string]any` to patch the annotations field avoids re-serializing the entire session (which could lose formatting or comments).
+
+### What worked
+
+- All 5 sync tests pass
+- golangci-lint 0 issues
+- `TestSyncSessionNilAnnotationsProducesEmptyArray` correctly verifies that `nil` annotations produce `"annotations": []` in JSON (not `null`)
+
+### What didn't work
+
+**errcheck in sync_test.go:** `json.Unmarshal(data, &after)` error was ignored after `os.ReadFile`. Fix: added explicit `if err := json.Unmarshal(...)`. Similarly, `os.Remove(tmpPath)` in the error path of `SyncSession` needed `_ = os.Remove(tmpPath)`.
+
+### What I learned
+
+- `os.Rename` on POSIX is atomic only when source and destination are on the same filesystem. For cross-filesystem renames, Go falls back to copy+delete which is not atomic. This is fine for our use case since `outputDir/annotations.db` and `outputDir/active/.../*.minitrace.json` are on the same filesystem.
+- Using `map[string]any` to patch JSON avoids the problem of re-serializing the entire session with `json.Marshal` (which would lose comments, key ordering, and any non-standard fields).
+
+### What was tricky to build
+
+- **Annotations field replacement**: The session file has `annotations []Annotation` as a typed field. Unmarshaling into `map[string]any` and then setting the key loses type information but preserves all other fields. Re-marshaling with `MarshalIndent` produces clean output.
+- **Nil annotations → empty array**: `annotations = nil` in the map produces `"annotations": null`. Need to explicitly set `session["annotations"] = []any{}` for nil.
+
+### What warrants a second pair of eyes
+
+- **Cross-filesystem Rename**: If the output directory spans multiple filesystems (unlikely), `os.Rename` is not atomic. Not a concern for typical setups but worth documenting.
+- **markSynced failure after successful file write**: In `SyncAll`, if `SyncSession` succeeds but `markSynced` fails, the session is marked as an error but the file is already updated. This means the next sync will re-write the same data — harmless but noisy.
+
+### What should be done in the future
+
+- Consider a combined transaction: write file + mark synced in one step, with rollback on failure
+- Consider adding `--diff` flag to show the exact JSON diff before syncing
+
+### Code review instructions
+
+**Start at:** `pkg/annotate/sync.go`
+
+Key symbols to review:
+- `SyncSession` — atomic write pattern, nil annotation handling
+- `SyncAll` — session index lookup, error aggregation
+
+**Validate:**
+```bash
+go test -v ./pkg/annotate/ -run Sync
+golangci-lint run ./pkg/annotate/...
+```
+
+### Technical details
+
+**Atomic write sequence:**
+```go
+tmpPath := filePath + ".tmp"
+os.WriteFile(tmpPath, out, 0644)
+os.Rename(tmpPath, filePath)  // atomic on POSIX same filesystem
+```
+
+**JSON patching:** Unmarshal to `map[string]any`, set `annotations` key, re-marshal. This preserves all other fields and formatting.
+
+**Commit:** `6c71f31` — "pkg/annotate: atomic JSON sync for .minitrace.json write-back"

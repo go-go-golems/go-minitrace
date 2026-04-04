@@ -60,3 +60,13 @@ Step 1: pkg/annotate/store.go (commit 238aba7). SQLite CRUD: Open, AddAnnotation
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/store_test.go — 11 tests (commit 238aba7)
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/04/ANNOTATE-CLI--go-minitrace-annotation-cli-and-storage-backend-design/reference/02-diary.md — Diary Step 1
 
+
+## 2026-04-04
+
+Step 2: pkg/annotate/sync.go (commit 6c71f31). Atomic JSON write-back: SyncSession reads .minitrace.json, patches annotations field using map[string]any to preserve all other fields, writes to .tmp then Rename (atomic on POSIX). SyncAll iterates unsynced sessions from store, looks up file paths in sessionIndex, calls SyncSession, marks synced. Handles nil annotations (produces [] not null). 5 tests pass, 0 lint issues.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/sync.go — SyncSession
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/annotate/sync_test.go — 5 tests (commit 6c71f31)
+
