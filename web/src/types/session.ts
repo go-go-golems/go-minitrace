@@ -119,3 +119,63 @@ export interface SessionDetail {
   provenance: SessionProvenance;
   blocks: SessionBlock[];
 }
+
+/** Annotation types — matches the minitrace annotation schema */
+
+// A single annotation on a session, turn, or tool_call.
+export interface Annotation {
+  id: string;
+  timestamp: string;
+  annotator: string;
+  scope: {
+    type: "session" | "turn" | "tool_call";
+    target_id: string;
+  };
+  content: {
+    category: string;
+    tags: string[];
+    title: string;
+    detail: string;
+  };
+  taxonomy_mappings: {
+    minitrace: string[];
+    mast: string[];
+    toolemu: string[];
+  };
+  classification?: string;
+}
+
+export type AnnotationCategory =
+  | "observation"
+  | "ai-failure"
+  | "user-error"
+  | "environment-issue"
+  | "success"
+  | "question"
+  | "to-discuss"
+  | "to-improve";
+
+export const ANNOTATION_CATEGORY_COLORS: Record<string, "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"> = {
+  observation: "default",
+  "ai-failure": "error",
+  "user-error": "error",
+  "environment-issue": "warning",
+  success: "success",
+  question: "info",
+  "to-discuss": "secondary",
+  "to-improve": "primary",
+};
+
+// Response from GET /api/sessions/:id/annotations
+export interface SessionAnnotationsResponse {
+  session_id: string;
+  count: number;
+  annotations: Annotation[];
+}
+
+// Sync report returned by POST /api/annotations/sync
+export interface SyncReport {
+  synced: string[];
+  skipped: string[];
+  errors: { session_id: string; error: string }[];
+}

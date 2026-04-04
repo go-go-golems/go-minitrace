@@ -1,14 +1,19 @@
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
+import CommentIcon from "@mui/icons-material/Comment";
 import type { SessionDetail } from "../../types";
 import { ActiveBadge, FormatWallActive } from "../shared";
 import { BlockCard } from "./BlockCard";
+import { AnnotationPanel } from "./AnnotationPanel";
 
 interface TranscriptViewerProps {
   session: SessionDetail;
@@ -21,6 +26,8 @@ export function TranscriptViewer({
   onBack,
   onQuerySession,
 }: TranscriptViewerProps) {
+  const [view, setView] = useState<"transcript" | "annotations">("transcript");
+
   const activePct =
     (session.timing.active_duration_seconds /
       Math.max(session.timing.duration_seconds, 1)) *
@@ -108,18 +115,47 @@ export function TranscriptViewer({
         </Stack>
       </Paper>
 
-      {/* Block list */}
-      <Box sx={{ flex: 1, overflow: "auto", px: 2, pb: 2 }}>
-        <Typography variant="overline" color="text.secondary" sx={{ mb: 1 }}>
-          {session.blocks.length} blocks
-        </Typography>
-        {session.blocks.map((block) => (
-          <BlockCard
-            key={block.block_num}
-            block={block}
-            defaultExpanded={block.block_num === 1}
+      {/* View toggle */}
+      <Box sx={{ px: 2, pb: 1 }}>
+        <Tabs
+          value={view}
+          onChange={(_, v) => setView(v)}
+          sx={{ minHeight: 36 }}
+        >
+          <Tab
+            value="transcript"
+            label={`Transcript (${session.blocks.length} blocks)`}
+            sx={{ minHeight: 36, py: 0 }}
           />
-        ))}
+          <Tab
+            value="annotations"
+            icon={<CommentIcon sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label="Annotations"
+            sx={{ minHeight: 36, py: 0 }}
+          />
+        </Tabs>
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, overflow: "auto", px: 2, pb: 2 }}>
+        {view === "transcript" && (
+          <>
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1 }}>
+              {session.blocks.length} blocks
+            </Typography>
+            {session.blocks.map((block) => (
+              <BlockCard
+                key={block.block_num}
+                block={block}
+                defaultExpanded={block.block_num === 1}
+              />
+            ))}
+          </>
+        )}
+        {view === "annotations" && (
+          <AnnotationPanel sessionId={session.id} onClose={() => setView("transcript")} />
+        )}
       </Box>
     </Box>
   );
