@@ -105,3 +105,15 @@ Step 5: HTTP API handlers (commit f155b6e). handlers_annotations.go: 6 handlers 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_annotations.go — 6 annotation handlers (commit f155b6e)
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — annoStore field
 
+
+## 2026-04-04
+
+Step 6: Web UI AnnotationPanel (commit 7421127). web/src/types/session.ts: Annotation types. web/src/api/minitrace.ts: 5 RTK Query annotation endpoints. AnnotationPanel.tsx: panel with list, add form (category select, title, detail, tags), delete, sync button. TranscriptViewer.tsx: added Transcript/Annotations tab toggle. npm build passes.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts — 5 annotation RTK Query endpoints (commit 7421127)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/AnnotationPanel.tsx — annotation panel component (commit 7421127)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx — Transcript/Annotations tab toggle (commit 7421127)
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts — Annotation types (commit 7421127)
+

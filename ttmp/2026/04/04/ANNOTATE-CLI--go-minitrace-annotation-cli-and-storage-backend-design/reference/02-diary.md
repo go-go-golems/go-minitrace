@@ -477,3 +477,52 @@ This ensures serve continues to work even if the annotation store can't be opene
 **Annotation patch from JSON:** Uses type assertions (`if s, ok := v.(string); ok`) to extract typed values from `map[string]any`. Arrays handled similarly with `[]any` → `[]string` conversion.
 
 **Commit:** `f155b6e` — "serve: add annotation HTTP API handlers"
+---
+
+## Step 6: Web UI — AnnotationPanel
+
+Committed: `7421127` — "web: add annotation panel and API to React frontend"
+
+Added annotation support to the React frontend using Redux Toolkit Query (RTK Query). The AnnotationPanel is integrated into the TranscriptViewer as a "Transcript/Annotations" tab.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Phase 5: Web UI..."
+
+**Assistant interpretation:** Add the annotation panel to the React frontend.
+
+**Inferred user intent:** Provide a UI for creating, viewing, and deleting annotations directly in the browser.
+
+### What I did
+
+**web/src/types/session.ts:** Added `Annotation`, `AnnotationCategory`, `ANNOTATION_CATEGORY_COLORS`, `SessionAnnotationsResponse`, `SyncReport` types. These mirror the Go HTTP API response shapes.
+
+**web/src/api/minitrace.ts:** Added 5 RTK Query endpoints:
+- `useGetSessionAnnotationsQuery` — fetches annotations for a session
+- `useCreateAnnotationMutation` — creates annotation, invalidates session's annotation cache
+- `useUpdateAnnotationMutation` — patches annotation
+- `useDeleteAnnotationMutation` — deletes annotation
+- `useSyncAnnotationsMutation` — syncs annotations back to .minitrace.json
+
+**AnnotationPanel.tsx (351 lines):** MUI-based panel with:
+- Annotation list rendered as Cards with color-coded category chips
+- Add form: category Select, title TextField, detail multiline TextField, tags TextField
+- Delete button per annotation
+- "Sync to JSON" button in footer
+- Loading/error states using RTK Query hooks
+
+**TranscriptViewer.tsx:** Added `Tabs` component with "Transcript" and "Annotations" tabs. When "Annotations" tab is active, renders `<AnnotationPanel>`.
+
+### What didn't work
+
+**TypeScript lint errors:** `Divider` was imported but never used, and `ANNOTATION_CATEGORY_COLORS` was imported twice (once as type import, once as value). Fixed by removing the unused `Divider` import and consolidating to the single `CATEGORY_COLORS` alias.
+
+### Technical details
+
+**RTK Query invalidation:** `createAnnotation` and `deleteAnnotation` invalidate the `Annotations` tag for the specific session ID, causing `useGetSessionAnnotationsQuery` to re-fetch automatically when the cache is invalidated.
+
+**MUI color mapping:** `CATEGORY_COLORS` maps each category to a MUI `Chip` color variant (`error`, `warning`, `success`, `info`, etc.).
+
+**npm build:** `tsc -b && vite build` passes (685 modules, 962KB bundle).
+
+**Commit:** `7421127` — "web: add annotation panel and API to React frontend"

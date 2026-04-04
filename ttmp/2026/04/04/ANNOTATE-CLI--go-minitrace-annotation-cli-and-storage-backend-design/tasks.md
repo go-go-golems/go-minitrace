@@ -28,8 +28,8 @@ Reference: implementation guide Part 2 (lines ~1050–1200)
   - Indexes: session_id, (scope_type, target_id), category, annotator
   - `sync_state` table
   - `sessions` registry table
-- [ ] Implement `Close() error`
-- [ ] Implement `AddAnnotation(ctx, ann minitrace.Annotation, sessionID string) error`
+- [x] Implement `Close() error`
+- [x] Implement `AddAnnotation(ctx, ann minitrace.Annotation, sessionID string) error`
   - JSON-encode tags and taxonomy arrays
   - `INSERT INTO annotations ...`
   - Call `markUnsynced(ctx, sessionID)`
