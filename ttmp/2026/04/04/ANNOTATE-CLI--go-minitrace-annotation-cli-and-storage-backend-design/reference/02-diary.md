@@ -565,9 +565,11 @@ Added annotation support to the React frontend using Redux Toolkit Query (RTK Qu
 
 **gofmt output for map literals**: When all values are `true`, gofmt aligns the RHS at column 12. `"observation"` is 11 chars, so one space before `true`.
 
-**Commit graph:** `238aba7` → `6c71f31` → `eec4611` → `4116a58` → `f155b6e` → `7421127` → `b663b03` → `5430a20` → `bb3fcc5`
+**Commit graph:** `238aba7` → `6c71f31` → `eec4611` → `4116a58` → `f155b6e` → `7421127` → `2e15017` → `82017db` → `b663b03` → `5430a20` → `bb3fcc5`
 
 **New commits:**
 - `b663b03` fix(serve): extractPathParam parts[2]→parts[1] (index OOB), gofmt fix
 - `5430a20` pkg/validate: annotate annotation structure in go-minitrace validate
 - `bb3fcc5` README: add Annotations section covering CLI, HTTP API, storage model, DuckDB queries
+- `2e15017` serve: open annotate.Store at startup, pass to NewServer
+- `82017db` diary + tasks: Step 7 complete
