@@ -319,21 +319,22 @@ func (s *Server) handleSyncAnnotations(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, status, report)
 }
 
-// extractPathParam extracts a path segment from a mux pattern like "/api/sessions/{id}/annotations".
-// For patterns with named params, we rely on the request's URL path.
+// extractPathParam extracts a named path parameter from the request URL.
+// mux patterns like "/api/annotations/{annId}" match the URL path, then we split.
+// URL path: /api/annotations/UUID → [annotations, UUID] → parts[1] = UUID
 func extractPathParam(r *http.Request, name string) string {
-	// Simple approach: trim the pattern prefix.
 	path := strings.TrimPrefix(r.URL.Path, "/api/")
 	parts := strings.Split(path, "/")
 	switch name {
 	case "id":
+		// /api/sessions/UUID → parts[1] = UUID
 		if len(parts) >= 2 {
 			return parts[1]
 		}
 	case "annId":
-		// /api/annotations/{annId} or /api/annotations/{annId}/...
+		// /api/annotations/UUID → parts[1] = UUID
 		if len(parts) >= 2 {
-			return parts[2]
+			return parts[1]
 		}
 	}
 	return ""
