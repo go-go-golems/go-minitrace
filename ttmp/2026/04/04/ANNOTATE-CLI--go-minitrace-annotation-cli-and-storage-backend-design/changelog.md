@@ -117,3 +117,46 @@ Step 6: Web UI AnnotationPanel (commit 7421127). web/src/types/session.ts: Annot
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx — Transcript/Annotations tab toggle (commit 7421127)
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts — Annotation types (commit 7421127)
 
+
+## 2026-04-04
+
+**ANNOTATE-CLI feature complete.** All 10 feature commits merged. Full postmortem report written and uploaded to reMarkable.
+
+### Summary
+
+- 16 Go commits: 6 core packages + CLI + HTTP API + web UI + E2E tests + validation + README
+- SQLite working store at `outputDir/annotations.db` (WAL mode, crash-safe)
+- DuckDB live queries via `sqlite_scanner` (no refresh needed)
+- Atomic JSON write-back via `go-minitrace annotate sync`
+- 6 CLI subcommands, 6 HTTP API endpoints, web UI with RTK Query
+- 12 validation tests, 3 E2E shell scripts
+
+### Commit graph
+
+`238aba7` pkg/annotate: SQLite-backed annotation store
+`6c71f31` pkg/annotate: atomic JSON sync
+`eec4611` cmd/annotate: 6 CLI commands
+`4116a58` pkg/annotate: DuckDB sqlite_scanner
+`f155b6e` serve: 6 annotation HTTP API handlers
+`7421127` web: AnnotationPanel + RTK Query
+`b663b03` fix: extractPathParam OOB + 3 E2E scripts
+`5430a20` pkg/validate: annotation structure validation
+`bb3fcc5` README: Annotations section
+`2e15017` serve: open Store at startup, pass to NewServer
+`b2bc104` docs: full postmortem report
+
+### Key bugs caught
+
+1. SQLite ON CONFLICT VALUES restriction → UPDATE+INSERT workaround
+2. DuckDB positional boolean in sqlite_attach → named parameter required
+3. extractPathParam parts[2] OOB → parts[1]
+4. json.Unmarshal nil slice for "[]" → explicit parseJSONArray guard
+5. Shell variable leakage in E2E test → _BODY/_CODE globals
+
+### Related Files
+
+- `POSTMORTEM.md` — Full postmortem report (intern guide, architecture, API reference, bug log)
+- `reference/02-diary.md` — Step-by-step implementation diary
+- `tasks.md` — Fine-grained task status table
+- `design-doc/01-annotation-storage-backend-and-cli-design-decision.md` — Design rationale
+- `design-doc/02-annotation-cli-implementation-guide.md` — Implementation guide
