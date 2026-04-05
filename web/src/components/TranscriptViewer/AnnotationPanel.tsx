@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -45,16 +45,27 @@ interface NewAnnotation {
   title: string;
   detail: string;
   tags: string;
+  scopeType: "session" | "turn" | "tool_call";
+  targetId: string;
 }
 
 interface AnnotationPanelProps {
   sessionId: string;
   onClose: () => void;
+  onNavigateToTarget?: (annotation: Annotation) => void;
+  draftTarget?: {
+    scopeType: "session" | "turn" | "tool_call";
+    targetId: string;
+  } | null;
+  onDraftHandled?: () => void;
 }
 
 export function AnnotationPanel({
   sessionId,
   onClose,
+  onNavigateToTarget,
+  draftTarget = null,
+  onDraftHandled,
 }: AnnotationPanelProps) {
   const { data, isLoading, isError } = useGetSessionAnnotationsQuery(sessionId);
   const [createAnnotation, { isLoading: isCreating }] = useCreateAnnotationMutation();
@@ -67,10 +78,26 @@ export function AnnotationPanel({
     title: "",
     detail: "",
     tags: "",
+    scopeType: "session",
+    targetId: sessionId,
   });
   const [error, setError] = useState<string | null>(null);
 
   const annotations = data?.annotations ?? [];
+
+  useEffect(() => {
+    if (!draftTarget) {
+      return;
+    }
+    setShowForm(true);
+    setError(null);
+    setForm((f) => ({
+      ...f,
+      scopeType: draftTarget.scopeType,
+      targetId: draftTarget.targetId,
+    }));
+    onDraftHandled?.();
+  }, [draftTarget, onDraftHandled]);
 
   const handleCreate = async () => {
     if (!form.title.trim()) {
@@ -84,6 +111,8 @@ export function AnnotationPanel({
         category: form.category,
         title: form.title.trim(),
         detail: form.detail.trim(),
+        scope_type: form.scopeType,
+        target_id: form.targetId,
         tags: form.tags
           ? form.tags
               .split(",")
@@ -91,7 +120,14 @@ export function AnnotationPanel({
               .filter(Boolean)
           : [],
       }).unwrap();
-      setForm({ category: "observation", title: "", detail: "", tags: "" });
+      setForm({
+        category: "observation",
+        title: "",
+        detail: "",
+        tags: "",
+        scopeType: "session",
+        targetId: sessionId,
+      });
       setShowForm(false);
     } catch {
       setError("Failed to create annotation");
@@ -173,6 +209,7 @@ export function AnnotationPanel({
             key={ann.id}
             annotation={ann}
             onDelete={() => handleDelete(ann.id)}
+            onNavigateToTarget={onNavigateToTarget}
           />
         ))}
 
@@ -223,6 +260,11 @@ export function AnnotationPanel({
                 onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))}
                 placeholder="Optional detail..."
               />
+
+              <Alert severity="info" variant="outlined">
+                Scope: <strong>{form.scopeType}</strong>
+                {form.scopeType !== "session" ? ` · target ${form.targetId}` : ""}
+              </Alert>
 
               <TextField
                 label="Tags"
@@ -300,13 +342,37 @@ export function AnnotationPanel({
 interface AnnotationCardProps {
   annotation: Annotation;
   onDelete: () => void;
+  onNavigateToTarget?: (annotation: Annotation) => void;
 }
 
-function AnnotationCard({ annotation, onDelete }: AnnotationCardProps) {
+function formatScopeLabel(annotation: Annotation) {
+  if (annotation.scope.type === "session") {
+    return "Session";
+  }
+  if (annotation.scope.type === "turn") {
+    return `Turn #${annotation.scope.target_id}`;
+  }
+  return `Tool call ${annotation.scope.target_id.slice(0, 12)}…`;
+}
+
+function AnnotationCard({
+  annotation,
+  onDelete,
+  onNavigateToTarget,
+}: AnnotationCardProps) {
   const color = CATEGORY_COLORS[annotation.content.category] ?? "default";
   return (
     <Paper
-      sx={{ p: 1.5, mb: 1, borderLeft: 3, borderColor: `${color}.main` }}
+      onClick={() => onNavigateToTarget?.(annotation)}
+      sx={{
+        p: 1.5,
+        mb: 1,
+        borderLeft: 3,
+        borderColor: `${color}.main`,
+        cursor: onNavigateToTarget ? "pointer" : "default",
+        transition: "background-color 0.15s, border-color 0.15s",
+        '&:hover': onNavigateToTarget ? { bgcolor: 'action.hover' } : undefined,
+      }}
       variant="outlined"
     >
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
@@ -338,11 +404,22 @@ function AnnotationCard({ annotation, onDelete }: AnnotationCardProps) {
               {annotation.taxonomy_mappings.minitrace.join(", ")}
             </Typography>
           )}
-          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+            {formatScopeLabel(annotation)}
+            {onNavigateToTarget ? ' · click to jump to transcript' : ''}
+          </Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.25, display: "block" }}>
             {annotation.annotator} · {new Date(annotation.timestamp).toLocaleString()}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onDelete} sx={{ mt: -0.5 }}>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          sx={{ mt: -0.5 }}
+        >
           <DeleteOutlineIcon fontSize="small" />
         </IconButton>
       </Box>

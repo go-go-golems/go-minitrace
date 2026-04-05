@@ -95,6 +95,19 @@ Implementation status as of 2026-04-04.
 | 6.7 | `## Annotations` section in README | ✅ Committed `bb3fcc5` |
 | 6.8 | Classification escalation enforcement | ❌ Not enforced (levels defined, not enforced) |
 
+### Phase 7 — Transcript-Linked Annotation UI
+
+| # | Task | Status |
+|---|------|--------|
+| 7.1 | Click annotation card → switch to Transcript tab and jump to session/turn/tool-call target | ✅ |
+| 7.2 | Add DOM anchors + highlight state for session top, turn rows, and tool-call rows | ✅ |
+| 7.3 | Expand containing block automatically when a target turn/tool-call is focused | ✅ |
+| 7.4 | Show scope label / target label on annotation cards (`Session`, `Turn #15`, `Tool call ...`) | ✅ |
+| 7.5 | Inline transcript markers: show annotation chips/counts on turns and tool-call rows | ✅ |
+| 7.6 | Add `Annotate` affordance on turn rows with prefilled `scope_type=turn,target_id=idx` | ✅ |
+| 7.7 | Add `Annotate` affordance on tool-call rows with prefilled `scope_type=tool_call,target_id=id` | ✅ |
+| 7.8 | Add basic frontend test or E2E smoke test for annotation → transcript navigation | 🔄 In progress |
+
 ---
 
 ## ❌ Remaining

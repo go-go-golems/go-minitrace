@@ -13,17 +13,41 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import CommitIcon from "@mui/icons-material/Commit";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import EditNoteIcon from "@mui/icons-material/EditNote";
-import type { SessionBlock } from "../../types";
+import type { Annotation, SessionBlock } from "../../types";
+import { ANNOTATION_CATEGORY_COLORS as CATEGORY_COLORS } from "../../types/session";
 import { ToolCallRow } from "./ToolCallRow";
+
+interface FocusedTranscriptTarget {
+  scopeType: "session" | "turn" | "tool_call";
+  targetId: string;
+  nonce: number;
+}
 
 interface BlockCardProps {
   block: SessionBlock;
   defaultExpanded?: boolean;
+  forceExpanded?: boolean;
+  focusedTarget?: FocusedTranscriptTarget | null;
+  turnAnnotations?: Record<string, Annotation[]>;
+  toolCallAnnotations?: Record<string, Annotation[]>;
+  onCreateScopedAnnotation?: (
+    scopeType: "session" | "turn" | "tool_call",
+    targetId: string,
+  ) => void;
 }
 
-export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
+export function BlockCard({
+  block,
+  defaultExpanded = false,
+  forceExpanded = false,
+  focusedTarget = null,
+  turnAnnotations = {},
+  toolCallAnnotations = {},
+  onCreateScopedAnnotation,
+}: BlockCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [showAllTools, setShowAllTools] = useState(false);
+  const isExpanded = expanded || forceExpanded;
 
   const date = new Date(block.user_ts);
   const timeStr = date.toLocaleTimeString("en-GB", {
@@ -45,13 +69,13 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
         mb: 1.5,
         overflow: "hidden",
         border: "1px solid",
-        borderColor: expanded ? "primary.dark" : "divider",
+        borderColor: isExpanded ? "primary.dark" : "divider",
         transition: "border-color 0.15s",
       }}
     >
       {/* Block header */}
       <Box
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpanded(!isExpanded)}
         sx={{
           display: "flex",
           alignItems: "center",
@@ -59,7 +83,7 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
           px: 2,
           py: 1,
           cursor: "pointer",
-          bgcolor: expanded ? "rgba(245,166,35,0.04)" : "transparent",
+          bgcolor: isExpanded ? "rgba(245,166,35,0.04)" : "transparent",
           "&:hover": { bgcolor: "action.hover" },
         }}
       >
@@ -67,7 +91,7 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
           <ExpandMoreIcon
             sx={{
               fontSize: 18,
-              transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+              transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
               transition: "transform 0.15s",
             }}
           />
@@ -101,7 +125,7 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            fontWeight: expanded ? 600 : 400,
+            fontWeight: isExpanded ? 600 : 400,
           }}
         >
           {block.user_content}
@@ -145,7 +169,7 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
       </Box>
 
       {/* Expanded content */}
-      <Collapse in={expanded}>
+      <Collapse in={isExpanded}>
         <Box sx={{ px: 2, pb: 2 }}>
           {/* Artifact summary */}
           {hasArtifacts && (
@@ -181,8 +205,26 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
           )}
 
           {/* Turns */}
-          {block.turns.map((t) => (
-            <Box key={t.idx} sx={{ mb: 1.5 }}>
+          {block.turns.map((t) => {
+            const turnFocused =
+              focusedTarget?.scopeType === "turn" &&
+              focusedTarget.targetId === String(t.idx);
+
+            return (
+              <Box
+              key={t.idx}
+              data-turn-idx={String(t.idx)}
+              sx={{
+                mb: 1.5,
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                border: "1px solid",
+                borderColor: turnFocused ? "warning.main" : "transparent",
+                bgcolor: turnFocused ? "rgba(245,166,35,0.08)" : "transparent",
+                transition: "background-color 0.2s, border-color 0.2s",
+              }}
+            >
               {/* Role header */}
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                 {t.role === "user" ? (
@@ -201,6 +243,32 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
                 <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
                   #{t.idx}
                 </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  sx={{ minWidth: 0, px: 0.75, fontSize: "0.7rem" }}
+                  onClick={() => onCreateScopedAnnotation?.("turn", String(t.idx))}
+                >
+                  Annotate
+                </Button>
+                {(turnAnnotations[String(t.idx)] ?? []).slice(0, 2).map((ann) => (
+                  <Chip
+                    key={ann.id}
+                    label={ann.content.category}
+                    size="small"
+                    color={CATEGORY_COLORS[ann.content.category] ?? "default"}
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: "0.65rem" }}
+                  />
+                ))}
+                {(turnAnnotations[String(t.idx)] ?? []).length > 2 && (
+                  <Chip
+                    label={`+${(turnAnnotations[String(t.idx)] ?? []).length - 2}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: "0.65rem" }}
+                  />
+                )}
               </Stack>
 
               {/* Content */}
@@ -226,7 +294,16 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
                     ? t.tool_calls_in_turn
                     : t.tool_calls_in_turn.slice(0, 5)
                   ).map((tc) => (
-                    <ToolCallRow key={tc.id} tc={tc} />
+                    <ToolCallRow
+                      key={tc.id}
+                      tc={tc}
+                      focused={
+                        focusedTarget?.scopeType === "tool_call" &&
+                        focusedTarget.targetId === tc.id
+                      }
+                      annotations={toolCallAnnotations[tc.id] ?? []}
+                      onAnnotate={() => onCreateScopedAnnotation?.("tool_call", tc.id)}
+                    />
                   ))}
                   {!showAllTools && t.tool_calls_in_turn.length > 5 && (
                     <Button
@@ -239,8 +316,9 @@ export function BlockCard({ block, defaultExpanded = false }: BlockCardProps) {
                   )}
                 </Box>
               )}
-            </Box>
-          ))}
+              </Box>
+            );
+          })}
         </Box>
       </Collapse>
     </Paper>
