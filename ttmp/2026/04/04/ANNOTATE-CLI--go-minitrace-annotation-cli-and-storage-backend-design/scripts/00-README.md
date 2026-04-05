@@ -37,3 +37,18 @@ sqlite3 /tmp/test-annotations.db < scripts/05-sqlite-schema.sql
 # Insert test data
 sqlite3 /tmp/test-annotations.db "INSERT INTO annotations VALUES (...);"
 ```
+
+## Later implementation / smoke scripts
+
+These were added during later implementation and debugging rounds so the full workflow can be retraced:
+
+| # | File | Purpose |
+|---|------|---------|
+| 08 | `08-e2e-annotate-cli.sh` | CLI E2E: add/list/edit/delete/sync/validate |
+| 09 | `09-e2e-duckdb-sqlite-live.sh` | Serve + live DuckDB sqlite_scanner verification |
+| 10 | `10-e2e-api.sh` | HTTP API E2E for annotation endpoints |
+| 11 | `11-ui-smoke-annotation-navigation.mjs` | Playwright smoke: annotation card → transcript target navigation |
+| 12 | `12-real-sessions-annotation-smoke.sh` | Ad-hoc real-session smoke using PI / Claude Code / Codex converted sessions |
+| 13 | `13-setup-ui-smoke-fixture.sh` | Recreate deterministic UI fixture from one real Codex session |
+| 14 | `14-start-ui-smoke-tmux.sh` | Start backend + frontend in tmux against the UI smoke fixture |
+| 15 | `15-ui-workflow-live-stack-smoke.mjs` | Playwright smoke against an already-running live dev stack for inline composer + URL state |
