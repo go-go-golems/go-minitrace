@@ -12,7 +12,8 @@ export function SessionBrowserPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { filterText } = useSelector((state: RootState) => state.ui);
   const { data: sessions = [] } = useGetSessionsQuery();
-  const { data: annotations = [] } = useGetAnnotationsQuery();
+  const { data: annotationData } = useGetAnnotationsQuery();
+  const annotations = Array.isArray(annotationData) ? annotationData : [];
 
   const annotationSummaryBySession = useMemo(() => {
     const summary: Record<string, { count: number; categories: AnnotationCategory[] }> = {};

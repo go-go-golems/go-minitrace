@@ -62,6 +62,8 @@ export const minitraceApi = createApi({
 
     getAnnotations: builder.query<AnnotationListRow[], void>({
       query: () => "annotations",
+      transformResponse: (response: AnnotationListRow[] | null) =>
+        Array.isArray(response) ? response : [],
       providesTags: [{ type: "Annotations" }],
     }),
 
