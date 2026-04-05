@@ -106,7 +106,7 @@ Implementation status as of 2026-04-04.
 | 7.5 | Inline transcript markers: show annotation chips/counts on turns and tool-call rows | ✅ |
 | 7.6 | Add `Annotate` affordance on turn rows with prefilled `scope_type=turn,target_id=idx` | ✅ |
 | 7.7 | Add `Annotate` affordance on tool-call rows with prefilled `scope_type=tool_call,target_id=id` | ✅ |
-| 7.8 | Add basic frontend test or E2E smoke test for annotation → transcript navigation | 🔄 In progress |
+| 7.8 | Add basic frontend test or E2E smoke test for annotation → transcript navigation | ✅ `scripts/11-ui-smoke-annotation-navigation.mjs` |
 
 ---
 

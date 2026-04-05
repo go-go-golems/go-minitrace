@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -61,6 +61,17 @@ export function BlockCard({
     block.artifacts.tickets_created.length > 0 ||
     block.artifacts.docs_added.length > 0 ||
     block.artifacts.diary_writes > 0;
+
+  useEffect(() => {
+    if (
+      focusedTarget?.scopeType === "tool_call" &&
+      block.turns.some((t) =>
+        t.tool_calls_in_turn.some((tc) => tc.id === focusedTarget.targetId),
+      )
+    ) {
+      setShowAllTools(true);
+    }
+  }, [block.turns, focusedTarget]);
 
   return (
     <Paper
