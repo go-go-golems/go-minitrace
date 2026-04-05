@@ -9,13 +9,21 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Chip from "@mui/material/Chip";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import SearchIcon from "@mui/icons-material/Search";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
-import type { SessionSummary } from "../../types";
+import CommentIcon from "@mui/icons-material/Comment";
+import type { AnnotationCategory, SessionSummary } from "../../types";
+import { ANNOTATION_CATEGORY_COLORS as CATEGORY_COLORS } from "../../types/session";
 import { ActiveBadge, FormatWallActive } from "../shared";
+
+interface SessionAnnotationSummary {
+  count: number;
+  categories: AnnotationCategory[];
+}
 
 interface SessionBrowserProps {
   sessions: SessionSummary[];
@@ -23,6 +31,7 @@ interface SessionBrowserProps {
   onFilterChange: (text: string) => void;
   onSelectSession: (id: string) => void;
   onQuerySession: (id: string) => void;
+  annotationSummaryBySession?: Record<string, SessionAnnotationSummary>;
 }
 
 export function SessionBrowser({
@@ -31,6 +40,7 @@ export function SessionBrowser({
   onFilterChange,
   onSelectSession,
   onQuerySession,
+  annotationSummaryBySession = {},
 }: SessionBrowserProps) {
   const filtered = useMemo(() => {
     if (!filterText.trim()) return sessions;
@@ -105,6 +115,7 @@ export function SessionBrowser({
                   Math.max(session.timing.duration_seconds, 1)) *
                 100;
               const date = new Date(session.timing.started_at);
+              const annotationSummary = annotationSummaryBySession[session.id];
               return (
                 <TableRow
                   key={session.id}
@@ -139,6 +150,36 @@ export function SessionBrowser({
                     >
                       {session.title}
                     </Typography>
+                    {annotationSummary && annotationSummary.count > 0 && (
+                      <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 0.5, flexWrap: "wrap" }}>
+                        <Chip
+                          icon={<CommentIcon sx={{ fontSize: 14 }} />}
+                          label={annotationSummary.count}
+                          size="small"
+                          color="warning"
+                          variant="outlined"
+                          sx={{ fontFamily: "monospace", height: 22 }}
+                        />
+                        {annotationSummary.categories.slice(0, 2).map((category) => (
+                          <Chip
+                            key={category}
+                            label={category}
+                            size="small"
+                            color={CATEGORY_COLORS[category] ?? "default"}
+                            variant="outlined"
+                            sx={{ height: 22, fontSize: "0.68rem" }}
+                          />
+                        ))}
+                        {annotationSummary.categories.length > 2 && (
+                          <Chip
+                            label={`+${annotationSummary.categories.length - 2}`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ height: 22, fontSize: "0.68rem" }}
+                          />
+                        )}
+                      </Box>
+                    )}
                     <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
                       {session.operational_context.working_directory}
                     </Typography>

@@ -79,7 +79,7 @@ Implementation status as of 2026-04-04.
 | 5.3 | `AnnotationPanel.tsx` — list + add form + delete + sync | ✅ |
 | 5.4 | Transcript/Annotations tab toggle in `TranscriptViewer.tsx` | ✅ |
 | 5.5 | `npm run build` passes | ✅ |
-| 5.6 | `SessionBrowser` annotation badges | ❌ |
+| 5.6 | `SessionBrowser` annotation badges | ✅ |
 | 5.7 | `QueryEditor` cross-session annotation search | ❌ |
 
 ### Phase 6 — Polish

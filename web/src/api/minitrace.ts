@@ -6,6 +6,7 @@ import type {
   SavedQuery,
   QueryResult,
   Annotation,
+  AnnotationListRow,
   SessionAnnotationsResponse,
   SyncReport,
 } from "../types";
@@ -59,6 +60,11 @@ export const minitraceApi = createApi({
       ],
     }),
 
+    getAnnotations: builder.query<AnnotationListRow[], void>({
+      query: () => "annotations",
+      providesTags: [{ type: "Annotations" }],
+    }),
+
     createAnnotation: builder.mutation<
       Annotation,
       { session_id: string; category: string; title: string; detail?: string; scope_type?: string; target_id?: string; tags?: string[] }
@@ -110,6 +116,7 @@ export const {
   useGetSavedQueriesQuery,
   useSaveQueryMutation,
   useGetSessionAnnotationsQuery,
+  useGetAnnotationsQuery,
   useCreateAnnotationMutation,
   useUpdateAnnotationMutation,
   useDeleteAnnotationMutation,

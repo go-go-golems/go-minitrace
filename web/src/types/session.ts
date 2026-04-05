@@ -173,6 +173,25 @@ export interface SessionAnnotationsResponse {
   annotations: Annotation[];
 }
 
+// Row from GET /api/annotations (flattened store view; Go JSON uses exported field names)
+export interface AnnotationListRow {
+  ID: string;
+  SessionID: string;
+  Annotator: string;
+  ScopeType: string;
+  TargetID: string;
+  Category: string;
+  Title: string;
+  Detail: string;
+  Tags: string[];
+  TaxonomyM: string[];
+  TaxonomyMast: string[];
+  TaxonomyTm: string[];
+  Classification?: string | null;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
 // Sync report returned by POST /api/annotations/sync
 export interface SyncReport {
   synced: string[];
