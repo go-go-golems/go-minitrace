@@ -165,8 +165,8 @@ func outputDirFromGlobs(globs []string) (string, error) {
 	if err != nil || len(files) == 0 {
 		return "", err
 	}
-	// outputDir is two levels up from the session file: outputDir/active/period/file.minitrace.json
-	absDir := filepath.Dir(filepath.Dir(files[0]))
+	// outputDir is three levels up from the session file: outputDir/active/YYYY-MM/file.minitrace.json
+	absDir := filepath.Dir(filepath.Dir(filepath.Dir(files[0])))
 	rel, err := filepath.Rel(".", absDir)
 	if err != nil {
 		return absDir, nil
