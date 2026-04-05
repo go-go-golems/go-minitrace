@@ -160,3 +160,12 @@ Step 6: Web UI AnnotationPanel (commit 7421127). web/src/types/session.ts: Annot
 - `tasks.md` — Fine-grained task status table
 - `design-doc/01-annotation-storage-backend-and-cli-design-decision.md` — Design rationale
 - `design-doc/02-annotation-cli-implementation-guide.md` — Implementation guide
+
+## 2026-04-04
+
+Added design doc 03 for transcript-linked annotation UX: clickable annotation cards that jump to transcript targets, inline turn/tool-call markers, and in-context scoped annotation creation. Included ASCII wireframes and a YAML DSL component sketch; uploaded to reMarkable.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/04/ANNOTATE-CLI--go-minitrace-annotation-cli-and-storage-backend-design/design-doc/03-transcript-linked-annotation-ui-design.md — New UI design doc for annotation-to-transcript navigation and inline markers
+
