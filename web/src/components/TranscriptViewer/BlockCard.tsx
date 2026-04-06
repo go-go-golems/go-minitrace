@@ -10,6 +10,7 @@ import type { FocusedTranscriptTarget } from "./types";
 interface BlockCardProps {
   block: SessionBlock;
   defaultExpanded?: boolean;
+  expanded?: boolean;
   forceExpanded?: boolean;
   focusedTarget?: FocusedTranscriptTarget | null;
   turnAnnotations?: Record<string, Annotation[]>;
@@ -19,21 +20,26 @@ interface BlockCardProps {
     targetId: string,
   ) => void;
   onOpenAnnotation?: (annotation: Annotation) => void;
+  onToggleExpanded?: () => void;
 }
 
 function BlockCardImpl({
   block,
   defaultExpanded = false,
+  expanded = false,
   forceExpanded = false,
   focusedTarget = null,
   turnAnnotations = {},
   toolCallAnnotations = {},
   onCreateScopedAnnotation,
   onOpenAnnotation,
+  onToggleExpanded,
 }: BlockCardProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const [showAllTools, setShowAllTools] = useState(false);
-  const isExpanded = expanded || forceExpanded;
+  const isControlled = onToggleExpanded != null;
+  const baseExpanded = isControlled ? expanded : expanded || internalExpanded;
+  const isExpanded = baseExpanded || forceExpanded;
 
   useEffect(() => {
     if (
@@ -60,7 +66,13 @@ function BlockCardImpl({
       <BlockHeader
         block={block}
         isExpanded={isExpanded}
-        onToggle={() => setExpanded(!isExpanded)}
+        onToggle={() => {
+          if (isControlled) {
+            onToggleExpanded?.();
+            return;
+          }
+          setInternalExpanded((current) => !current);
+        }}
       />
 
       <Collapse in={isExpanded} unmountOnExit>

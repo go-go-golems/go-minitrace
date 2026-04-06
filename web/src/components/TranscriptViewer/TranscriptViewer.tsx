@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "react-router";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -13,6 +19,7 @@ import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import CommentIcon from "@mui/icons-material/Comment";
 import type { Annotation, SessionDetail } from "../../types";
 import { useGetSessionAnnotationsQuery } from "../../api/minitrace";
+import { useVirtualList } from "../shared/useVirtualList";
 import { ActiveBadge, FormatWallActive } from "../shared";
 import { BlockCard } from "./BlockCard";
 import { AnnotationPanel } from "./AnnotationPanel";
@@ -35,6 +42,13 @@ export function TranscriptViewer({
 }: TranscriptViewerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [focusedTarget, setFocusedTarget] = useState<FocusedTranscriptTarget | null>(null);
+  const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>({});
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const firstBlockNum = session.blocks[0]?.block_num;
+    setExpandedBlocks(firstBlockNum == null ? {} : { [firstBlockNum]: true });
+  }, [session.id, session.blocks]);
 
   const { data: annotationData } = useGetSessionAnnotationsQuery(session.id);
   const annotations = annotationData?.annotations ?? [];
@@ -113,19 +127,68 @@ export function TranscriptViewer({
     return null;
   }, [urlFocusedTarget, session.blocks]);
 
-  const setUrlState = useCallback((patch: Record<string, string | null>) => {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      for (const [k, v] of Object.entries(patch)) {
-        if (v == null || v === "") {
-          next.delete(k);
-        } else {
-          next.set(k, v);
-        }
+  const firstBlockNum = session.blocks[0]?.block_num ?? 1;
+
+  const isBlockExpanded = useCallback(
+    (blockNum: number) => expandedBlocks[blockNum] ?? blockNum === firstBlockNum,
+    [expandedBlocks, firstBlockNum],
+  );
+
+  const estimateBlockSize = useCallback(
+    (index: number) => {
+      const block = session.blocks[index];
+      if (!block) {
+        return 88;
       }
-      return next;
-    }, { replace: false });
+      if (isBlockExpanded(block.block_num) || focusedBlockNum === block.block_num) {
+        return 900;
+      }
+      return 88;
+    },
+    [focusedBlockNum, isBlockExpanded, session.blocks],
+  );
+
+  const {
+    virtualItems,
+    topSpacerHeight,
+    bottomSpacerHeight,
+    measureElement,
+    scrollToIndex,
+  } = useVirtualList({
+    count: session.blocks.length,
+    scrollContainerRef,
+    estimateSize: estimateBlockSize,
+    overscan: 4,
+    enabled: session.blocks.length > 10,
+  });
+
+  const setUrlState = useCallback((patch: Record<string, string | null>) => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const [k, v] of Object.entries(patch)) {
+          if (v == null || v === "") {
+            next.delete(k);
+          } else {
+            next.set(k, v);
+          }
+        }
+        return next;
+      },
+      { replace: false },
+    );
   }, [setSearchParams]);
+
+  useEffect(() => {
+    if (view !== "transcript" || focusedBlockNum == null) {
+      return;
+    }
+
+    const index = session.blocks.findIndex((block) => block.block_num === focusedBlockNum);
+    if (index >= 0) {
+      scrollToIndex(index, "auto", "center");
+    }
+  }, [focusedBlockNum, scrollToIndex, session.blocks, view]);
 
   useEffect(() => {
     if (view !== "transcript" || !urlFocusedTarget) {
@@ -149,7 +212,7 @@ export function TranscriptViewer({
         ? (document.querySelector(selector) as HTMLElement | null)
         : null;
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 80);
+    }, 120);
 
     return () => window.clearTimeout(timer);
   }, [view, urlFocusedTarget, session.id]);
@@ -190,12 +253,18 @@ export function TranscriptViewer({
     });
   }, [setUrlState]);
 
+  const handleToggleBlock = useCallback((blockNum: number) => {
+    setExpandedBlocks((current) => ({
+      ...current,
+      [blockNum]: !(current[blockNum] ?? blockNum === firstBlockNum),
+    }));
+  }, [firstBlockNum]);
+
   return (
     <Box
       data-widget="transcript-viewer"
       sx={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
-      {/* Header */}
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
@@ -224,7 +293,6 @@ export function TranscriptViewer({
         </Button>
       </Box>
 
-      {/* Session info bar */}
       <Paper
         data-session-top={session.id}
         sx={{
@@ -295,7 +363,6 @@ export function TranscriptViewer({
         </Stack>
       </Paper>
 
-      {/* View toggle */}
       <Box sx={{ px: 2, pb: 1 }}>
         <Tabs
           value={view}
@@ -323,8 +390,7 @@ export function TranscriptViewer({
         </Tabs>
       </Box>
 
-      {/* Content */}
-      <Box sx={{ flex: 1, overflow: "auto", px: 2, pb: 2 }}>
+      <Box ref={scrollContainerRef} sx={{ flex: 1, overflow: "auto", px: 2, pb: 2 }}>
         <Box
           sx={{ display: view === "transcript" ? "block" : "none" }}
           aria-hidden={view !== "transcript"}
@@ -354,19 +420,26 @@ export function TranscriptViewer({
           >
             {session.blocks.length} blocks
           </Typography>
-          {session.blocks.map((block) => (
-            <BlockCard
-              key={block.block_num}
-              block={block}
-              defaultExpanded={block.block_num === 1}
-              forceExpanded={focusedBlockNum === block.block_num}
-              focusedTarget={focusedTarget}
-              turnAnnotations={annotationIndex.byTurn}
-              toolCallAnnotations={annotationIndex.byToolCall}
-              onCreateScopedAnnotation={handleCreateScopedAnnotation}
-              onOpenAnnotation={handleOpenAnnotation}
-            />
-          ))}
+          {topSpacerHeight > 0 && <Box sx={{ height: topSpacerHeight }} />}
+          {virtualItems.map((item) => {
+            const block = session.blocks[item.index];
+            return (
+              <Box key={block.block_num} ref={measureElement(item.index)}>
+                <BlockCard
+                  block={block}
+                  expanded={isBlockExpanded(block.block_num)}
+                  forceExpanded={focusedBlockNum === block.block_num}
+                  focusedTarget={focusedTarget}
+                  turnAnnotations={annotationIndex.byTurn}
+                  toolCallAnnotations={annotationIndex.byToolCall}
+                  onCreateScopedAnnotation={handleCreateScopedAnnotation}
+                  onOpenAnnotation={handleOpenAnnotation}
+                  onToggleExpanded={() => handleToggleBlock(block.block_num)}
+                />
+              </Box>
+            );
+          })}
+          {bottomSpacerHeight > 0 && <Box sx={{ height: bottomSpacerHeight }} />}
         </Box>
         <Box
           sx={{ display: view === "annotations" ? "block" : "none" }}
