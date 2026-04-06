@@ -34,6 +34,7 @@ export function useVirtualList({
   const [measuredHeights, setMeasuredHeights] = useState<Record<number, number>>({});
   const observerRef = useRef<ResizeObserver | null>(null);
   const elementMapRef = useRef(new Map<number, HTMLElement>());
+  const refCallbackMapRef = useRef(new Map<number, (node: HTMLElement | null) => void>());
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -42,8 +43,12 @@ export function useVirtualList({
     }
 
     const updateMetrics = () => {
-      setScrollTop(container.scrollTop);
-      setViewportHeight(container.clientHeight);
+      setScrollTop((current) =>
+        current === container.scrollTop ? current : container.scrollTop,
+      );
+      setViewportHeight((current) =>
+        current === container.clientHeight ? current : container.clientHeight,
+      );
     };
 
     updateMetrics();
@@ -92,9 +97,17 @@ export function useVirtualList({
     };
   }, []);
 
-  const measureElement = useCallback(
-    (index: number) => (node: HTMLElement | null) => {
+  const measureElement = useCallback((index: number) => {
+    const existing = refCallbackMapRef.current.get(index);
+    if (existing) {
+      return existing;
+    }
+
+    const callback = (node: HTMLElement | null) => {
       const prev = elementMapRef.current.get(index);
+      if (prev === node) {
+        return;
+      }
       if (prev && observerRef.current) {
         observerRef.current.unobserve(prev);
       }
@@ -106,16 +119,11 @@ export function useVirtualList({
       node.dataset.virtualIndex = String(index);
       elementMapRef.current.set(index, node);
       observerRef.current?.observe(node);
+    };
 
-      const height = Math.ceil(node.getBoundingClientRect().height);
-      if (height > 0) {
-        setMeasuredHeights((prevHeights) =>
-          prevHeights[index] === height ? prevHeights : { ...prevHeights, [index]: height },
-        );
-      }
-    },
-    [],
-  );
+    refCallbackMapRef.current.set(index, callback);
+    return callback;
+  }, []);
 
   const metrics = useMemo(() => {
     const starts = new Array<number>(count);
