@@ -235,6 +235,16 @@ Computed summary statistics. These are calculated during conversion from the tur
 
 Optional human or automated labels attached to a session, turn, or tool call.
 
+At the file-format level, annotations live inside the session JSON as the `annotations` array. In SQL, this appears as the `annotations` column on `sessions_base`, and the normal query pattern is:
+
+```sql
+SELECT ...
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+```
+
+The annotation object has these fields:
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Annotation identifier |
@@ -248,6 +258,71 @@ Optional human or automated labels attached to a session, turn, or tool call.
 | `content.detail` | string | Full annotation text |
 | `taxonomy_mappings` | object | Mappings to minitrace, MAST, and ToolEmu taxonomies |
 | `classification` | string? | Annotation classification |
+
+### Annotation scope semantics
+
+The `scope` object is how an annotation is attached to a concrete thing in the transcript.
+
+| `scope.type` | `scope.target_id` meaning |
+|--------------|---------------------------|
+| `session` | Usually the session ID itself |
+| `turn` | The turn index as a string, for example `0` or `14` |
+| `tool_call` | The tool-call ID, for example `call_Y70XEopD3Ef1mGctwTXG2CEq` |
+
+This distinction matters in analysis because a session-level label answers a different question than a turn-level or tool-call-level label.
+
+### Annotation categories
+
+The current built-in categories are:
+
+- `observation`
+- `ai-failure`
+- `user-error`
+- `environment-issue`
+- `success`
+- `question`
+- `to-discuss`
+- `to-improve`
+
+### Taxonomy mappings
+
+`taxonomy_mappings` is an object containing arrays of codes from three different labeling systems:
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `taxonomy_mappings.minitrace` | string[] | Minitrace taxonomy codes such as `F-AUT` |
+| `taxonomy_mappings.mast` | string[] | MAST taxonomy codes |
+| `taxonomy_mappings.toolemu` | string[] | ToolEmu taxonomy codes |
+
+### Annotation query paths
+
+These are the JSON paths you will most often use in SQL after `UNNEST(annotations)`:
+
+| Path | Meaning |
+|------|---------|
+| `$.annotator` | annotation author |
+| `$.scope.type` | annotation scope |
+| `$.scope.target_id` | transcript target |
+| `$.content.category` | primary label |
+| `$.content.title` | short summary |
+| `$.content.detail` | detailed note |
+| `$.content.tags` | free-form tag array |
+| `$.taxonomy_mappings.minitrace` | minitrace taxonomy array |
+| `$.taxonomy_mappings.mast` | MAST taxonomy array |
+| `$.taxonomy_mappings.toolemu` | ToolEmu taxonomy array |
+| `$.classification` | classification level |
+
+A compact SQL example:
+
+```sql
+SELECT
+  id AS session_id,
+  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
+  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
+  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann);
+```
 
 ## Coordination
 

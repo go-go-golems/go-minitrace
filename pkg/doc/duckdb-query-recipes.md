@@ -264,6 +264,86 @@ ORDER BY subagents DESC
 LIMIT 10;
 ```
 
+## Annotation analysis
+
+These recipes assume the archive already contains the annotations you care about. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first.
+
+### Count annotations by category
+
+```sql
+SELECT
+  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
+  COUNT(*) AS annotations
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+GROUP BY category
+ORDER BY annotations DESC;
+```
+
+### Annotation volume by framework
+
+```sql
+SELECT
+  environment->>'agent_framework' AS framework,
+  COUNT(*) AS annotations
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+GROUP BY framework
+ORDER BY annotations DESC;
+```
+
+### Turn-level vs tool-call-level vs session-level labels
+
+```sql
+SELECT
+  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
+  COUNT(*) AS annotations
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+GROUP BY scope_type
+ORDER BY annotations DESC;
+```
+
+### AI failures by framework
+
+```sql
+SELECT
+  environment->>'agent_framework' AS framework,
+  COUNT(*) AS ai_failures
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+WHERE REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') = 'ai-failure'
+GROUP BY framework
+ORDER BY ai_failures DESC;
+```
+
+### Tool-call annotations with target IDs
+
+```sql
+SELECT
+  id AS session_id,
+  REPLACE(CAST(json_extract(ann, '$.scope.target_id') AS VARCHAR), '"', '') AS tool_call_id,
+  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
+  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+WHERE REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') = 'tool_call'
+ORDER BY session_id;
+```
+
+### Minitrace taxonomy code usage
+
+```sql
+SELECT
+  REPLACE(CAST(json_extract(code, '$') AS VARCHAR), '"', '') AS taxonomy_code,
+  COUNT(*) AS annotations
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann),
+     UNNEST(CAST(json_extract(ann, '$.taxonomy_mappings.minitrace') AS JSON[])) AS t(code)
+GROUP BY taxonomy_code
+ORDER BY annotations DESC;
+```
+
 ## Advanced patterns
 
 ### Read ratio distribution by framework
@@ -314,6 +394,7 @@ The `queries/load.sql` file defaults to the glob `./output/active/*/*.minitrace.
 
 ## See also
 
+- `go-minitrace help annotation-playbook` — operator workflow for creating, syncing, and validating annotations
 - `go-minitrace help writing-duckdb-queries` — learn the query syntax step by step
 - `go-minitrace help query-commands` — command flags and modes
 - `go-minitrace help minitrace-schema` — field reference for all queryable fields

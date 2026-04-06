@@ -105,6 +105,61 @@ For string extraction from within `json_extract`, wrap in `CAST(... AS VARCHAR)`
 REPLACE(CAST(json_extract(tc, '$.tool_name') AS VARCHAR), '"', '') AS tool_name
 ```
 
+### Querying annotations
+
+Annotations follow the same `UNNEST` pattern, but there is one workflow-specific nuance: `go-minitrace query duckdb` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, sync them first:
+
+```bash
+go-minitrace annotate sync --output-dir ./output
+```
+
+Then query them like any other JSON array:
+
+```sql
+SELECT
+  id AS session_id,
+  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
+  REPLACE(CAST(json_extract(ann, '$.scope.target_id') AS VARCHAR), '"', '') AS target_id,
+  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
+  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann);
+```
+
+Common annotation paths:
+
+- `$.scope.type`
+- `$.scope.target_id`
+- `$.content.category`
+- `$.content.title`
+- `$.content.detail`
+- `$.taxonomy_mappings.minitrace`
+- `$.classification`
+
+Examples:
+
+```sql
+-- Count annotations by category
+SELECT
+  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
+  COUNT(*) AS n
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+GROUP BY category
+ORDER BY n DESC;
+```
+
+```sql
+-- Filter to tool-call-level annotations only
+SELECT
+  id AS session_id,
+  REPLACE(CAST(json_extract(ann, '$.scope.target_id') AS VARCHAR), '"', '') AS tool_call_id,
+  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+WHERE REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') = 'tool_call';
+```
+
 ### Multiple UNNEST
 
 You can unnest multiple arrays in the same query, but each creates a cross-product. Usually you want to unnest one array per query:
@@ -237,6 +292,7 @@ duckdb analysis.duckdb -init queries/load.sql -f queries/framework-summary.sql
 
 ## See also
 
+- `go-minitrace help annotation-playbook` — operator workflow for creating, syncing, and validating annotations
 - `go-minitrace help minitrace-schema` — complete field reference
 - `go-minitrace help query-commands` — query command flags and modes
 - `go-minitrace help duckdb-query-recipes` — ready-to-use query collection

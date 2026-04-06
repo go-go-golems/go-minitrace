@@ -163,6 +163,41 @@ The loaded table has these columns, all derived from the minitrace JSON schema:
 
 Use `->>'field'` to extract string values from JSON columns, then CAST to the appropriate type for numeric operations.
 
+### Querying annotations correctly
+
+The `annotations` column is a JSON array in the loaded archive. To work with it, unnest the array and then extract fields from each annotation object.
+
+The most common paths are:
+
+| Path | Meaning |
+|------|---------|
+| `$.annotator` | Who created the annotation |
+| `$.scope.type` | `session`, `turn`, or `tool_call` |
+| `$.scope.target_id` | The session ID, turn index, or tool-call ID being annotated |
+| `$.content.category` | The main label such as `ai-failure` or `question` |
+| `$.content.title` | Short human-readable summary |
+| `$.content.detail` | Longer explanatory note |
+| `$.content.tags` | Tag array |
+| `$.taxonomy_mappings.minitrace` | Minitrace taxonomy codes |
+| `$.taxonomy_mappings.mast` | MAST taxonomy codes |
+| `$.taxonomy_mappings.toolemu` | ToolEmu taxonomy codes |
+| `$.classification` | Optional classification level |
+
+A basic annotation query looks like this:
+
+```sql
+SELECT
+  id AS session_id,
+  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
+  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
+  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
+FROM sessions_base,
+     UNNEST(annotations) AS a(ann)
+ORDER BY session_id;
+```
+
+One subtle but important rule: `query duckdb` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first so the archive contains those changes.
+
 ## Troubleshooting
 
 | Problem | Cause | Solution |
@@ -175,6 +210,7 @@ Use `->>'field'` to extract string values from JSON columns, then CAST to the ap
 
 ## See also
 
+- `go-minitrace help annotation-playbook` — operator workflow for creating, syncing, and validating annotations
 - `go-minitrace help writing-duckdb-queries` — how to write custom SQL against the minitrace schema
 - `go-minitrace help duckdb-query-recipes` — ready-to-use query examples
 - `go-minitrace help output-formats-and-pipelines` — detailed Glazed output formatting guide
