@@ -28,13 +28,18 @@ export function QueryEditorPage() {
   const [lastLoadedSql, setLastLoadedSql] = useState<string | null>(null);
   const [externalUpdateAvailable, setExternalUpdateAvailable] = useState(false);
 
+  const presetPollingInterval = activeSource?.kind === "preset" ? 3000 : 15000;
+  const savedPollingInterval = activeSource?.kind === "saved" ? 3000 : 15000;
+
   const { data: presets = [] } = useGetPresetsQuery(undefined, {
-    pollingInterval: 3000,
+    pollingInterval: presetPollingInterval,
+    skipPollingIfUnfocused: true,
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
   const { data: savedQueries = [] } = useGetSavedQueriesQuery(undefined, {
-    pollingInterval: 3000,
+    pollingInterval: savedPollingInterval,
+    skipPollingIfUnfocused: true,
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
