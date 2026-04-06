@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -38,7 +38,7 @@ interface BlockCardProps {
   onOpenAnnotation?: (annotation: Annotation) => void;
 }
 
-export function BlockCard({
+function BlockCardImpl({
   block,
   defaultExpanded = false,
   forceExpanded = false,
@@ -348,3 +348,5 @@ export function BlockCard({
     </Paper>
   );
 }
+
+export const BlockCard = memo(BlockCardImpl);

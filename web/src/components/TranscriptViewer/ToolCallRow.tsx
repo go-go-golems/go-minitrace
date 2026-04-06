@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -24,7 +24,7 @@ interface ToolCallRowProps {
   onOpenAnnotation?: (annotation: Annotation) => void;
 }
 
-export function ToolCallRow({
+function ToolCallRowImpl({
   tc,
   defaultExpanded = false,
   focused = false,
@@ -232,3 +232,5 @@ export function ToolCallRow({
     </Box>
   );
 }
+
+export const ToolCallRow = memo(ToolCallRowImpl);

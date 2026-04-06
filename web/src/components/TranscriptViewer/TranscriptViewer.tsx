@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -118,17 +118,19 @@ export function TranscriptViewer({
     return null;
   }, [urlFocusedTarget, session.blocks]);
 
-  const setUrlState = (patch: Record<string, string | null>) => {
-    const next = new URLSearchParams(searchParams);
-    for (const [k, v] of Object.entries(patch)) {
-      if (v == null || v === "") {
-        next.delete(k);
-      } else {
-        next.set(k, v);
+  const setUrlState = useCallback((patch: Record<string, string | null>) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      for (const [k, v] of Object.entries(patch)) {
+        if (v == null || v === "") {
+          next.delete(k);
+        } else {
+          next.set(k, v);
+        }
       }
-    }
-    setSearchParams(next, { replace: false });
-  };
+      return next;
+    }, { replace: false });
+  }, [setSearchParams]);
 
   useEffect(() => {
     if (view !== "transcript" || !urlFocusedTarget) {
@@ -157,7 +159,7 @@ export function TranscriptViewer({
     return () => window.clearTimeout(timer);
   }, [view, urlFocusedTarget, session.id]);
 
-  const handleNavigateToAnnotationTarget = (annotation: Annotation) => {
+  const handleNavigateToAnnotationTarget = useCallback((annotation: Annotation) => {
     setUrlState({
       tab: "transcript",
       focusType: annotation.scope.type,
@@ -166,9 +168,9 @@ export function TranscriptViewer({
       composeType: null,
       composeTarget: null,
     });
-  };
+  }, [session.id, setUrlState]);
 
-  const handleOpenAnnotation = (annotation: Annotation) => {
+  const handleOpenAnnotation = useCallback((annotation: Annotation) => {
     setUrlState({
       tab: "annotations",
       annotation: annotation.id,
@@ -177,9 +179,9 @@ export function TranscriptViewer({
       composeType: null,
       composeTarget: null,
     });
-  };
+  }, [setUrlState]);
 
-  const handleCreateScopedAnnotation = (
+  const handleCreateScopedAnnotation = useCallback((
     scopeType: "session" | "turn" | "tool_call",
     targetId: string,
   ) => {
@@ -191,7 +193,7 @@ export function TranscriptViewer({
       composeType: scopeType,
       composeTarget: targetId,
     });
-  };
+  }, [setUrlState]);
 
   return (
     <Box
@@ -328,56 +330,60 @@ export function TranscriptViewer({
 
       {/* Content */}
       <Box sx={{ flex: 1, overflow: "auto", px: 2, pb: 2 }}>
-        {view === "transcript" && (
-          <>
-            {draftTarget && (
-              <AnnotationComposer
-                sessionId={session.id}
-                target={draftTarget}
-                title={`Add ${draftTarget.scopeType} annotation`}
-                compact
-                onCancel={() =>
-                  setUrlState({
-                    composeType: null,
-                    composeTarget: null,
-                  })}
-                onCreated={() =>
-                  setUrlState({
-                    composeType: null,
-                    composeTarget: null,
-                  })}
-              />
-            )}
-            <Typography
-              variant="overline"
-              color="text.secondary"
-              sx={{ mb: 1, display: "block", mt: draftTarget ? 1 : 0 }}
-            >
-              {session.blocks.length} blocks
-            </Typography>
-            {session.blocks.map((block) => (
-              <BlockCard
-                key={block.block_num}
-                block={block}
-                defaultExpanded={block.block_num === 1}
-                forceExpanded={focusedBlockNum === block.block_num}
-                focusedTarget={focusedTarget}
-                turnAnnotations={annotationIndex.byTurn}
-                toolCallAnnotations={annotationIndex.byToolCall}
-                onCreateScopedAnnotation={handleCreateScopedAnnotation}
-                onOpenAnnotation={handleOpenAnnotation}
-              />
-            ))}
-          </>
-        )}
-        {view === "annotations" && (
+        <Box
+          sx={{ display: view === "transcript" ? "block" : "none" }}
+          aria-hidden={view !== "transcript"}
+        >
+          {draftTarget && (
+            <AnnotationComposer
+              sessionId={session.id}
+              target={draftTarget}
+              title={`Add ${draftTarget.scopeType} annotation`}
+              compact
+              onCancel={() =>
+                setUrlState({
+                  composeType: null,
+                  composeTarget: null,
+                })}
+              onCreated={() =>
+                setUrlState({
+                  composeType: null,
+                  composeTarget: null,
+                })}
+            />
+          )}
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{ mb: 1, display: "block", mt: draftTarget ? 1 : 0 }}
+          >
+            {session.blocks.length} blocks
+          </Typography>
+          {session.blocks.map((block) => (
+            <BlockCard
+              key={block.block_num}
+              block={block}
+              defaultExpanded={block.block_num === 1}
+              forceExpanded={focusedBlockNum === block.block_num}
+              focusedTarget={focusedTarget}
+              turnAnnotations={annotationIndex.byTurn}
+              toolCallAnnotations={annotationIndex.byToolCall}
+              onCreateScopedAnnotation={handleCreateScopedAnnotation}
+              onOpenAnnotation={handleOpenAnnotation}
+            />
+          ))}
+        </Box>
+        <Box
+          sx={{ display: view === "annotations" ? "block" : "none" }}
+          aria-hidden={view !== "annotations"}
+        >
           <AnnotationPanel
             sessionId={session.id}
             onClose={() => setUrlState({ tab: "transcript", annotation: null })}
             onNavigateToTarget={handleNavigateToAnnotationTarget}
             selectedAnnotationId={selectedAnnotationId}
           />
-        )}
+        </Box>
       </Box>
     </Box>
   );
