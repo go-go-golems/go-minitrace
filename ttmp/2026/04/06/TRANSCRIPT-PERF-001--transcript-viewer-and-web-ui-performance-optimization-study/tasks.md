@@ -9,6 +9,7 @@
 - [x] Write the primary design / implementation guide
 - [x] Write the investigation diary
 - [x] Relate key files to the ticket docs
+- [x] Write a full TanStack React Virtual migration design and implementation guide for a new intern
 
 ## Execution plan
 
@@ -86,4 +87,31 @@
 - [x] Capture a follow-up measurement snapshot
 - [x] Commit the code changes
 - [x] Update diary and changelog for the step
+
+## Stabilization follow-up after virtualization rollout
+
+### Step 10 — Fix virtual-list maximum-update-depth regression
+
+- [ ] Stabilize virtual-row ref callbacks so they are not recreated every render
+- [ ] Remove or minimize synchronous measurement-driven state writes from the ref-attach path
+- [ ] Verify `npm run build` in `web/`
+- [ ] Commit the code changes
+- [ ] Update diary and changelog for the step
+
+### Step 11 — Add route-level error-boundary containment
+
+- [ ] Add a reusable app/route error boundary component
+- [ ] Wrap routed pages in boundaries in `App.tsx`
+- [ ] Add a transcript-specific boundary with session-aware fallback in `TranscriptViewerPage.tsx`
+- [ ] Verify `npm run build` in `web/`
+- [ ] Commit the code changes
+- [ ] Update diary and changelog for the step
+
+### Step 12 — Validate the exact failing transcript deep link
+
+- [ ] Add a reproducible smoke script under `scripts/` for the maximum-update-depth regression URL
+- [ ] Run the smoke against `http://127.0.0.1:5174` or the current dev stack
+- [ ] Confirm the focused tool-call + composer URL no longer crashes the app
+- [ ] Record the result in `sources/` if useful
+- [ ] Update diary and changelog for the step
 

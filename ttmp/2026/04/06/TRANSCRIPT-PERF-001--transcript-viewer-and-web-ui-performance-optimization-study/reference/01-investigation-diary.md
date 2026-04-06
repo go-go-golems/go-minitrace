@@ -1040,3 +1040,115 @@ Representative API snapshot:
 - blocks endpoint mean bytes: `1,801,428`
 - full detail endpoint mean duration: `50 ms`
 - full detail endpoint mean bytes: `1,802,424`
+
+## Step 10: Write a full TanStack React Virtual migration guide and publish it to reMarkable
+
+This follow-up step did not change frontend runtime behavior directly. Instead, it created the implementation map needed to replace the current custom virtualization hook with `@tanstack/react-virtual` in a disciplined way, with enough context that a new intern can understand the app before touching the hardest code paths.
+
+The document was written as a full ticket design doc rather than a short note because the migration is not a one-file refactor. It spans route shells, data flow, transcript focus behavior, dynamic-height measurement, error-boundary placement, and review/validation strategy. I also uploaded the finished guide to reMarkable and verified that it landed in the ticket folder.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's create a full implementation and design guide for moving to tansatck/react-virtual, with full details for a new intern. 
+
+Create a detailed analysis / design / implementation guide that is very detailed for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file
+  references.
+  It should be very clear and detailed. Store in the ticket and the nupload to remarkable."
+
+**Assistant interpretation:** Produce a comprehensive intern-oriented migration guide for adopting TanStack Virtual, store it under the existing performance ticket, and publish that guide to reMarkable.
+
+**Inferred user intent:** Create a durable onboarding and execution document so the upcoming migration is understandable, reviewable, and not dependent on conversational context.
+
+**Commit (code):** N/A — documentation and delivery step only
+
+### What I did
+
+- Added a new design doc:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md`
+- Updated ticket bookkeeping:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/index.md`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/tasks.md`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/changelog.md`
+- Ran reMarkable checks and upload commands:
+  - `remarquee status`
+  - `remarquee cloud account --non-interactive`
+  - `remarquee upload md --dry-run --non-interactive --name "TanStack React Virtual Migration Guide" --remote-dir "/ai/2026/04/06/TRANSCRIPT-PERF-001" ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md`
+  - `remarquee upload md --non-interactive --name "TanStack React Virtual Migration Guide" --remote-dir "/ai/2026/04/06/TRANSCRIPT-PERF-001" ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md`
+  - `remarquee cloud ls /ai/2026/04/06/TRANSCRIPT-PERF-001 --long --non-interactive`
+- Verified the uploaded document appears remotely as:
+  - `TanStack React Virtual Migration Guide`
+
+### Why
+
+- The current ticket already documented the custom virtualization rollout and the regression that followed, but it did not yet provide a dedicated migration guide for replacing the custom hook with a library solution.
+- The migration touches enough moving parts that a future implementer needs a narrative explanation of the system, not just task bullets.
+- Publishing the guide to reMarkable makes the design portable for review away from the terminal.
+
+### What worked
+
+- The guide was successfully written into the ticket as a new design doc.
+- The guide includes architecture context, migration rationale, API references, pseudocode, phased execution guidance, risks, and validation steps.
+- `remarquee` tooling was already authenticated and working.
+- Dry-run and real upload both succeeded.
+- Remote verification succeeded and showed:
+  - `TanStack React Virtual Migration Guide`
+  - `Transcript Viewer and Web UI Performance Optimization Study`
+
+### What didn't work
+
+- N/A — no runtime or tooling failure occurred in this documentation/upload step.
+- I did not run `docmgr doctor` because this ticket workspace is being maintained directly under `ttmp/...` rather than through a fresh `docmgr ticket create-ticket` flow in this step.
+
+### What I learned
+
+- The migration guide becomes much clearer when Session Browser and Transcript Viewer are treated as different virtualization shapes rather than forced into one abstraction.
+- The current app already contains most of the right state boundaries for TanStack Virtual; the biggest architectural shift is to stop owning a shared measurement engine ourselves.
+
+### What was tricky to build
+
+- The tricky part was deciding how much system context to include for a new engineer. A short migration memo would not have been enough because the transcript route relies on URL state, nested dynamic content, focus scrolling, and annotation workflows.
+- Another subtle point was keeping the document implementation-oriented rather than turning it into a generic library tutorial. I therefore anchored the guide to concrete local files and current ticket artifacts.
+
+### What warrants a second pair of eyes
+
+- Whether the recommended migration order should stay `Session Browser first, Transcript second`, or whether the current transcript regression urgency justifies reversing that order.
+- Whether `showAllTools` in `BlockCard` should remain local state or be moved upward as part of the transcript migration.
+
+### What should be done in the future
+
+- Execute the migration in small commits using the guide as the implementation backbone.
+- Pair the migration with route-level error boundaries and re-run the regression URL plus baseline measurement scripts afterward.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/index.md`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/tasks.md`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/changelog.md`
+
+Delivery validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace
+remarquee status
+remarquee cloud account --non-interactive
+remarquee cloud ls /ai/2026/04/06/TRANSCRIPT-PERF-001 --long --non-interactive
+```
+
+### Technical details
+
+Primary new deliverable:
+
+- `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md`
+
+Remote upload destination:
+
+- `/ai/2026/04/06/TRANSCRIPT-PERF-001`
+
+Important external references used in the guide:
+
+- `https://tanstack.com/virtual/latest/docs/api/virtualizer`
+- `https://tanstack.com/virtual/latest/docs/api/virtual-item`
+- `https://tanstack.com/virtual/latest/docs/framework/react/examples`

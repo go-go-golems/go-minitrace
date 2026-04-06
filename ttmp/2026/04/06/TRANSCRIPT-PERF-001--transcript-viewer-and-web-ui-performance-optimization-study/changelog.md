@@ -101,3 +101,15 @@ Step 9: split session summary metadata from transcript blocks at the API layer, 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/06-step-9-summary-and-blocks-split-measurements.json — Post-Step-9 API shaping snapshot
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/TranscriptViewerPage.tsx — Transcript page summary+blocks composition
 
+
+## 2026-04-06
+
+Added a full intern-oriented design and implementation guide for replacing the custom shared virtualization hook with `@tanstack/react-virtual`, including system overview, migration phases, pseudocode, file-by-file instructions, API references, and validation guidance.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md — New migration design and implementation guide for the TanStack Virtual adoption path
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/index.md — Ticket index updated to surface the new migration guide
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/tasks.md — Task list updated to record the new guide deliverable
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/reference/01-investigation-diary.md — Diary updated with the design-guide authoring step
+

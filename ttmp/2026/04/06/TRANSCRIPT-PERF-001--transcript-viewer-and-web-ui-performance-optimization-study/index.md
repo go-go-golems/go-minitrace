@@ -40,10 +40,12 @@ Current status:
 - Step 8 committed: virtualize Session Browser rows (`c4bb6ca`)
 - Step 9 committed: split session summary and blocks endpoints (`0835f29`)
 - implementation plan completed; future work is now optional follow-up rather than planned baseline work
+- follow-up design doc added for migrating the custom virtualization hook to TanStack React Virtual
 
 ## Key Links
 
 - **Primary design doc**: `design-doc/01-transcript-viewer-and-web-ui-performance-optimization-study-and-implementation-guide.md`
+- **TanStack migration guide**: `design-doc/02-migrating-go-minitrace-web-virtualization-to-tanstack-react-virtual.md`
 - **Diary**: `reference/01-investigation-diary.md`
 - **Measurement script**: `scripts/01-web-ui-baseline-perf.mjs`
 - **Captured baseline**: `sources/01-baseline-measurements.json`
