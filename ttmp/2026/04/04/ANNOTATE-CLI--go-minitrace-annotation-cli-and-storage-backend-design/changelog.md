@@ -169,3 +169,38 @@ Added design doc 03 for transcript-linked annotation UX: clickable annotation ca
 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/04/ANNOTATE-CLI--go-minitrace-annotation-cli-and-storage-backend-design/design-doc/03-transcript-linked-annotation-ui-design.md — New UI design doc for annotation-to-transcript navigation and inline markers
 
+## 2026-04-04
+
+Committed Phase 8 UX polish as a standalone frontend change (`ed7b997`). Extracted a reusable `AnnotationComposer`, moved transcript annotation creation toward inline composition, encoded tab/focus/selected-annotation state in URL search params, and added hover-preview / click-through behavior for inline chips in the transcript. `npm run build` passes on the resulting frontend state.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/AnnotationComposer.tsx — New reusable annotation creation form
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx — URL-backed transcript/annotation workflow state
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/AnnotationPanel.tsx — Selected-annotation scroll/highlight + composer reuse
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx — Hover previews and chip click-through on turn markers
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/ToolCallRow.tsx — Hover previews and chip click-through on tool-call markers
+
+## 2026-04-04
+
+Added a dedicated Glazed help playbook for annotation operators and LLM agents (`d56098f`). The new `annotation-playbook` page explains the SQLite working-store model, the sync lifecycle, session/turn/tool-call targeting rules, and many concrete command examples from minimal `annotate add` usage through synced `query duckdb` analysis. Uploaded the finished playbook to reMarkable as `go-minitrace Annotation Playbook` under `/ai/2026/04/04/ANNOTATE-CLI`.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/annotation-playbook.md — New operator playbook help page
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/README.md — Cross-link to the new playbook + clarified annotation query modes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/getting-started.md — Added first-annotation step and playbook link
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/query-duckdb.md — Added sync-first note and playbook link
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/overview.md — Added annotation capability summary and playbook link
+
+## 2026-04-04
+
+Completed a follow-up documentation pass focused on annotation query discoverability and schema reference quality (`e16f80a`). Clarified the SQL mental model for `UNNEST(annotations)`, documented common annotation JSON paths, expanded the schema section for annotation scope and taxonomy mappings, and added annotation-specific DuckDB recipes.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/query.md — Added annotation query model and JSON paths
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/minitrace-schema.md — Expanded annotation schema reference
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/writing-duckdb-queries.md — Added annotation-specific query patterns and sync-first rule
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/duckdb-query-recipes.md — Added annotation analysis recipe section
+

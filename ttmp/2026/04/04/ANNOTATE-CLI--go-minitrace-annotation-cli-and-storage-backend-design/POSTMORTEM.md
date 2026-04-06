@@ -544,7 +544,8 @@ ORDER BY a.created_at DESC;
    → ValidatePath() → validateAnnotations() → checks structure + categories
 
 4. User queries via DuckDB:
-   → Annotations are live via sqlite_scanner → immediate results
+   → In `go-minitrace serve`: annotations are live via sqlite_scanner → immediate results
+   → In `go-minitrace query duckdb`: synced `.minitrace.json` annotations are queried from the archive
 ```
 
 ### Key file locations
@@ -561,6 +562,11 @@ ORDER BY a.created_at DESC;
 | `pkg/validate/json.go` | Annotation structure validation |
 | `pkg/minitrace/schema.go` | `Annotation`, `AnnotationScope`, `AnnotationContent`, `TaxonomyMappings` types |
 | `queries/annotations.sql` | DuckDB annotation query recipe |
+| `pkg/doc/annotation-playbook.md` | Operator/LLM help playbook for add/list/edit/sync/query workflows |
+| `pkg/doc/query.md` | Query command reference with annotation query model |
+| `pkg/doc/minitrace-schema.md` | Expanded annotation schema and JSON path reference |
+| `pkg/doc/writing-duckdb-queries.md` | Annotation SQL patterns and sync-first guidance |
+| `pkg/doc/duckdb-query-recipes.md` | Annotation-specific DuckDB recipe collection |
 | `web/src/api/minitrace.ts` | RTK Query endpoints (frontend) |
 | `web/src/components/TranscriptViewer/AnnotationPanel.tsx` | Annotation UI panel |
 | `web/src/types/session.ts` | TypeScript annotation types |
@@ -590,6 +596,11 @@ web/src/api/minitrace.ts       — RTK Query endpoints (modified)
 web/src/types/session.ts       — TypeScript types (modified)
 web/src/components/TranscriptViewer/AnnotationPanel.tsx — new panel (modified)
 web/src/components/TranscriptViewer/TranscriptViewer.tsx — tab toggle (modified)
+pkg/doc/annotation-playbook.md — Glazed help playbook for annotation operators (follow-up)
+pkg/doc/query.md               — annotation query discoverability improvements (follow-up)
+pkg/doc/minitrace-schema.md    — expanded annotation field/query-path reference (follow-up)
+pkg/doc/writing-duckdb-queries.md — annotation SQL patterns and sync-first guidance (follow-up)
+pkg/doc/duckdb-query-recipes.md — annotation recipe collection (follow-up)
 ttmp/.../scripts/08-e2e-annotate-cli.sh     — 130 lines — CLI E2E
 ttmp/.../scripts/09-e2e-duckdb-sqlite-live.sh — 132 lines — DuckDB E2E
 ttmp/.../scripts/10-e2e-api.sh              — 151 lines — HTTP API E2E
@@ -631,6 +642,8 @@ README.md                            — added 104-line Annotations section
 | `08-e2e-annotate-cli.sh` | CLI add → sqlite3 verify → sync → validate → list → edit → delete |
 | `09-e2e-duckdb-sqlite-live.sh` | serve starts, CLI add, DuckDB `sqlite_attach` live query, clean up |
 | `10-e2e-api.sh` | All 6 HTTP endpoints: POST/GET/PUT/DELETE, 404 on unknown, 400 on bad input |
+| `11-ui-smoke-annotation-navigation.mjs` | Annotation-card-to-transcript navigation and scoped annotate affordance smoke |
+| `15-ui-workflow-live-stack-smoke.mjs` | Draft smoke coverage for inline composer + URL state + chip click-through |
 
 Run all E2E tests:
 ```bash
@@ -644,11 +657,21 @@ BIN=./go-minitrace bash 10-e2e-api.sh
 
 ## 10. Known Gaps
 
+### Post-feature documentation and UX follow-up now completed
+
+After the main implementation wave, three follow-up commits improved the usability story around the feature without changing the underlying storage architecture:
+
+- `ed7b997` — committed the transcript annotation workflow polish as a standalone frontend change
+- `d56098f` — added the new `annotation-playbook` help page and clarified annotation query modes
+- `e16f80a` — improved query/schema reference pages for annotation discoverability and SQL authoring
+
+These follow-ups matter because the hardest part of the feature is not only storing annotations correctly, but making the write/sync/query workflow legible to a future operator or LLM agent.
+
+
 These items were in the original design but not implemented in this phase:
 
 | Item | Description | Priority |
 |------|-------------|----------|
-| `SessionBrowser` annotation badges | Show annotation count/indicators in the session list UI | Medium |
 | `QueryEditor` cross-session annotation search | Search/filter sessions by annotation content in the query builder | Medium |
 | `annotate get` command | Fetch a single annotation by ID (currently only session-scoped listing exists) | Low |
 | `annotate stats` command | Summarize annotation counts by category, annotator, session | Low |

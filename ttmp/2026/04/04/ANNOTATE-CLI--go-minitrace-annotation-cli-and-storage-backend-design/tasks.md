@@ -94,6 +94,8 @@ Implementation status as of 2026-04-04.
 | 6.6 | Validation tests (12 cases) | ✅ |
 | 6.7 | `## Annotations` section in README | ✅ Committed `bb3fcc5` |
 | 6.8 | Classification escalation enforcement | ❌ Not enforced (levels defined, not enforced) |
+| 6.9 | Add Glazed help operator playbook for annotation workflows | ✅ Committed `d56098f` |
+| 6.10 | Clarify query/schema docs for annotation SQL discoverability | ✅ Committed `e16f80a` |
 
 ### Phase 7 — Transcript-Linked Annotation UI
 
@@ -116,12 +118,12 @@ Implementation status as of 2026-04-04.
 
 | # | Task | Status |
 |---|------|--------|
-| 8.1 | Inline annotation composer in Transcript view (no tab switch required) | 🔄 In progress |
-| 8.2 | Persist selected tab in URL (`?tab=...`) | ⏳ |
-| 8.3 | Persist focused transcript target / selected annotation in URL (`?focusType=&focusId=&annotation=`) | ⏳ |
-| 8.4 | Make inline annotation chips show hover preview (title/detail/scope) | ⏳ |
-| 8.5 | Make inline annotation chips clickable → switch to Annotations tab and scroll to card | ⏳ |
-| 8.6 | Add browser smoke test coverage for inline composer + URL state + chip click-through | ⏳ |
+| 8.1 | Inline annotation composer in Transcript view (no tab switch required) | ✅ Committed `ed7b997` |
+| 8.2 | Persist selected tab in URL (`?tab=...`) | ✅ Committed `ed7b997` |
+| 8.3 | Persist focused transcript target / selected annotation in URL (`?focusType=&focusId=&annotation=`) | ✅ Committed `ed7b997` |
+| 8.4 | Make inline annotation chips show hover preview (title/detail/scope) | ✅ Committed `ed7b997` |
+| 8.5 | Make inline annotation chips clickable → switch to Annotations tab and scroll to card | ✅ Committed `ed7b997` |
+| 8.6 | Add browser smoke test coverage for inline composer + URL state + chip click-through | 🔄 Script drafted (`scripts/15-ui-workflow-live-stack-smoke.mjs`), build passes, final smoke stabilization still desirable |
 
 ### Nice-to-Have
 - [x] `SessionBrowser` annotation badges (web)
@@ -148,3 +150,6 @@ Implementation status as of 2026-04-04.
 | `b663b03` | fix(serve): extractPathParam OOB fix + 3 E2E scripts |
 | `5430a20` | pkg/validate: annotation structure validation |
 | `bb3fcc5` | README: Annotations section |
+| `d56098f` | docs: add annotation playbook and clarify annotation query flows |
+| `ed7b997` | web: polish transcript annotation workflow |
+| `e16f80a` | docs: improve annotation query and schema references |
