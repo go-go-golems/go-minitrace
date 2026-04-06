@@ -20,17 +20,12 @@ import {
   AnnotationComposer,
   type AnnotationDraftTarget,
 } from "./AnnotationComposer";
+import type { FocusedTranscriptTarget } from "./types";
 
 interface TranscriptViewerProps {
   session: SessionDetail;
   onBack: () => void;
   onQuerySession: (id: string) => void;
-}
-
-interface FocusedTranscriptTarget {
-  scopeType: "session" | "turn" | "tool_call";
-  targetId: string;
-  nonce: number;
 }
 
 export function TranscriptViewer({
