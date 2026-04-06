@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-04-06T16:52:26.911973884-04:00
+LastUpdated: 2026-04-06T18:40:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -29,9 +29,13 @@ Current status:
 
 - architecture mapping complete
 - baseline Playwright measurement script added
-- one baseline measurement capture saved into `sources/`
+- baseline and follow-up measurement captures saved into `sources/`
 - design doc and diary written
-- ticket ready for implementation work to begin
+- Step 2 committed: keep transcript pane mounted across tab switches (`22aafff`)
+- Step 3 committed: unmount collapsed transcript subtrees (`6bf9596`)
+- Step 4 committed: memoize query result sorting (`7a6e30c`)
+- Step 5 committed: reduce background query-editor polling (`17600ec`)
+- next major work remains: transcript block header/body split and eventual virtualization
 
 ## Key Links
 
@@ -39,6 +43,8 @@ Current status:
 - **Diary**: `reference/01-investigation-diary.md`
 - **Measurement script**: `scripts/01-web-ui-baseline-perf.mjs`
 - **Captured baseline**: `sources/01-baseline-measurements.json`
+- **Step 2 snapshot**: `sources/02-step-2-persistent-mount-measurements.json`
+- **Step 3 snapshot**: `sources/03-step-3-unmount-on-exit-measurements.json`
 - **Related Files**: See frontmatter `RelatedFiles`
 - **External Sources**: See frontmatter `ExternalSources`
 

@@ -12,24 +12,30 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/App.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/TranscriptViewerPage.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/ToolCallRow.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/SessionBrowser/SessionBrowser.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/QueryEditorPage.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/QueryEditor/ResultsTable.tsx
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/blocks.go
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs
-    - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/01-baseline-measurements.json
+    - Path: cmd/go-minitrace/cmds/serve/blocks.go
+    - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
+    - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs
+    - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/01-baseline-measurements.json
+    - Path: web/src/App.tsx
+    - Path: web/src/components/QueryEditor/ResultsTable.tsx
+      Note: Implemented Step 4 sort memoization (commit 7a6e30c)
+    - Path: web/src/components/SessionBrowser/SessionBrowser.tsx
+    - Path: web/src/components/TranscriptViewer/BlockCard.tsx
+      Note: Implemented Step 3 subtree unmount optimization for blocks (commit 6bf9596)
+    - Path: web/src/components/TranscriptViewer/ToolCallRow.tsx
+      Note: Implemented Step 3 subtree unmount optimization for tool calls (commit 6bf9596)
+    - Path: web/src/components/TranscriptViewer/TranscriptViewer.tsx
+      Note: Implemented Step 2 persistent transcript pane optimization (commit 22aafff)
+    - Path: web/src/pages/QueryEditorPage.tsx
+      Note: Implemented Step 5 polling hygiene refinement (commit 17600ec)
+    - Path: web/src/pages/TranscriptViewerPage.tsx
 ExternalSources: []
 Summary: Evidence-backed study of current performance bottlenecks in the go-minitrace web UI, centered on transcript rendering, with a phased optimization plan for an intern to implement safely.
 LastUpdated: 2026-04-06T17:15:00-04:00
 WhatFor: Understand and optimize the slow paths in the go-minitrace web UI, especially large transcript rendering, tab switching, and large-table rendering.
 WhenToUse: Use when planning or implementing frontend performance work, profiling transcript rendering, or onboarding an engineer to optimize the web UI safely.
 ---
+
 
 # Transcript viewer and web UI performance optimization study and implementation guide
 

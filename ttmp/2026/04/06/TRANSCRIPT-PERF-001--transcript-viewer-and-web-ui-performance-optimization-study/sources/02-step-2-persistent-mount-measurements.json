@@ -1,0 +1,102 @@
+{
+  "baseUrl": "http://127.0.0.1:5174",
+  "apiUrl": "http://127.0.0.1:8080",
+  "iterations": 3,
+  "session": {
+    "id": "019d0295-d06b-7033-b154-a991a94672b6",
+    "title": "Let's tackle an issue in smailnail now that it's deployed on coolify:  1. I don'",
+    "blocks": 32,
+    "turns": 243,
+    "toolCalls": 589,
+    "model": "gpt-5.4"
+  },
+  "sessionBrowser": {
+    "meanLoadMs": 988,
+    "last": {
+      "loadMs": 1134,
+      "rows": 86,
+      "nodes": 2467
+    },
+    "runs": [
+      {
+        "loadMs": 830,
+        "rows": 86,
+        "nodes": 2467
+      },
+      {
+        "loadMs": 1001,
+        "rows": 86,
+        "nodes": 2467
+      },
+      {
+        "loadMs": 1134,
+        "rows": 86,
+        "nodes": 2467
+      }
+    ]
+  },
+  "transcript": {
+    "meanInitialLoadMs": 6931,
+    "meanToAnnotationsMs": 2438,
+    "meanBackToTranscriptMs": 88,
+    "last": {
+      "initialLoadMs": 8265,
+      "toAnnotationsMs": 2125,
+      "backToTranscriptMs": 54,
+      "blocks": 32,
+      "turns": 243,
+      "toolCalls": 534,
+      "nodes": 15479
+    },
+    "runs": [
+      {
+        "initialLoadMs": 5836,
+        "toAnnotationsMs": 2052,
+        "backToTranscriptMs": 66,
+        "blocks": 32,
+        "turns": 243,
+        "toolCalls": 534,
+        "nodes": 15479
+      },
+      {
+        "initialLoadMs": 6693,
+        "toAnnotationsMs": 3138,
+        "backToTranscriptMs": 145,
+        "blocks": 32,
+        "turns": 243,
+        "toolCalls": 534,
+        "nodes": 15479
+      },
+      {
+        "initialLoadMs": 8265,
+        "toAnnotationsMs": 2125,
+        "backToTranscriptMs": 54,
+        "blocks": 32,
+        "turns": 243,
+        "toolCalls": 534,
+        "nodes": 15479
+      }
+    ]
+  },
+  "queryPage": {
+    "meanLoadMs": 258,
+    "last": {
+      "loadMs": 156,
+      "nodes": 346
+    },
+    "runs": [
+      {
+        "loadMs": 217,
+        "nodes": 346
+      },
+      {
+        "loadMs": 402,
+        "nodes": 346
+      },
+      {
+        "loadMs": 156,
+        "nodes": 346
+      }
+    ]
+  }
+}
