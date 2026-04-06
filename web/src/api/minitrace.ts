@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type {
   SessionSummary,
+  SessionSummaryDetail,
   SessionDetail,
   SessionBlock,
   SavedQuery,
@@ -24,6 +25,10 @@ export const minitraceApi = createApi({
 
     getSession: builder.query<SessionDetail, string>({
       query: (id) => `sessions/${id}`,
+    }),
+
+    getSessionSummary: builder.query<SessionSummaryDetail, string>({
+      query: (id) => `sessions/${id}/summary`,
     }),
 
     getSessionBlocks: builder.query<SessionBlock[], string>({
@@ -112,6 +117,7 @@ export const minitraceApi = createApi({
 export const {
   useGetSessionsQuery,
   useGetSessionQuery,
+  useGetSessionSummaryQuery,
   useGetSessionBlocksQuery,
   useExecuteQueryMutation,
   useGetPresetsQuery,

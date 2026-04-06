@@ -1,18 +1,36 @@
+import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
-import { useGetSessionQuery } from "../api/minitrace";
+import {
+  useGetSessionBlocksQuery,
+  useGetSessionSummaryQuery,
+} from "../api/minitrace";
 import { TranscriptViewer } from "../components/TranscriptViewer";
 
 export function TranscriptViewerPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { data: session, isLoading, error } = useGetSessionQuery(sessionId ?? "", {
+
+  const summaryQuery = useGetSessionSummaryQuery(sessionId ?? "", {
+    skip: !sessionId,
+  });
+  const blocksQuery = useGetSessionBlocksQuery(sessionId ?? "", {
     skip: !sessionId,
   });
 
-  if (isLoading) {
+  const session = useMemo(() => {
+    if (!summaryQuery.data || !blocksQuery.data) {
+      return null;
+    }
+    return {
+      ...summaryQuery.data,
+      blocks: blocksQuery.data,
+    };
+  }, [blocksQuery.data, summaryQuery.data]);
+
+  if (summaryQuery.isLoading || blocksQuery.isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
         <CircularProgress />
@@ -20,7 +38,7 @@ export function TranscriptViewerPage() {
     );
   }
 
-  if (error || !session) {
+  if (summaryQuery.error || blocksQuery.error || !session) {
     return (
       <Box sx={{ p: 4 }}>
         <Typography color="error">Session not found: {sessionId}</Typography>

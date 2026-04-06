@@ -74,6 +74,7 @@ func NewServer(
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/sessions", s.handleGetSessions)
 	s.mux.HandleFunc("GET /api/sessions/{id}", s.handleGetSession)
+	s.mux.HandleFunc("GET /api/sessions/{id}/summary", s.handleGetSessionSummary)
 	s.mux.HandleFunc("GET /api/sessions/{id}/blocks", s.handleGetSessionBlocks)
 	s.mux.HandleFunc("POST /api/query", s.handleExecuteQuery)
 	s.mux.HandleFunc("GET /api/presets", s.handleGetPresets)

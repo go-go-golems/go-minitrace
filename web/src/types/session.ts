@@ -106,8 +106,8 @@ export interface SessionBlock {
   artifacts: BlockArtifacts;
 }
 
-/** Full session detail returned by /api/sessions/:id */
-export interface SessionDetail {
+/** Summary detail returned by /api/sessions/:id/summary */
+export interface SessionSummaryDetail {
   id: string;
   title: string;
   summary: string | null;
@@ -117,6 +117,10 @@ export interface SessionDetail {
   environment: SessionEnvironment;
   operational_context: SessionOperationalContext;
   provenance: SessionProvenance;
+}
+
+/** Full session detail returned by /api/sessions/:id */
+export interface SessionDetail extends SessionSummaryDetail {
   blocks: SessionBlock[];
 }
 

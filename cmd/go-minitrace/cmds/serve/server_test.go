@@ -245,6 +245,55 @@ func TestHandleGetSessionsReturnsNormalizedSummaries(t *testing.T) {
 	}
 }
 
+func TestHandleGetSessionSummaryReturnsMetadataWithoutBlocks(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase2-summary")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
+	if err != nil {
+		t.Fatalf("buildSessionIndex returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase2-summary/summary", nil)
+	request.SetPathValue("id", "phase2-summary")
+	response := httptest.NewRecorder()
+
+	server.handleGetSessionSummary(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload SessionSummaryDetailResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshaling summary detail: %v", err)
+	}
+	if payload.ID != "phase2-summary" {
+		t.Fatalf("unexpected session ID %q", payload.ID)
+	}
+	if payload.Title != "Fixture Session" {
+		t.Fatalf("unexpected session title %q", payload.Title)
+	}
+	if payload.Provenance.SourceFormat != "fixture" {
+		t.Fatalf("unexpected source format %q", payload.Provenance.SourceFormat)
+	}
+	if strings.Contains(response.Body.String(), "\"blocks\"") {
+		t.Fatalf("summary response should not include blocks: %s", response.Body.String())
+	}
+}
+
 func TestHandleGetSessionReturnsDetailWithBlocks(t *testing.T) {
 	archiveRoot := t.TempDir()
 	session := buildFixtureSession(t, "phase2-detail")
