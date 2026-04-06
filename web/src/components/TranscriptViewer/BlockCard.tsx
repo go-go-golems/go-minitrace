@@ -183,7 +183,7 @@ function BlockCardImpl({
       </Box>
 
       {/* Expanded content */}
-      <Collapse in={isExpanded}>
+      <Collapse in={isExpanded} unmountOnExit>
         <Box sx={{ px: 2, pb: 2 }}>
           {/* Artifact summary */}
           {hasArtifacts && (

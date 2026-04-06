@@ -145,7 +145,7 @@ function ToolCallRowImpl({
       </Box>
 
       {/* Expanded detail */}
-      <Collapse in={expanded}>
+      <Collapse in={expanded} unmountOnExit>
         <Box
           sx={{
             mx: 1.5,
