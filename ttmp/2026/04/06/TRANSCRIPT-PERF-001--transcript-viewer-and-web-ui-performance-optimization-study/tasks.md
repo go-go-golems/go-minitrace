@@ -47,28 +47,43 @@
 - [x] Commit the code changes
 - [x] Update diary and changelog for the step
 
-## Later / larger phases
+## Remaining execution steps
 
-### Phase 2 — Split block header from block body
+### Step 6 — Split transcript block header from block body
 
-- [ ] Separate lightweight block header UI from expensive block body UI
+- [ ] Extract a lightweight always-mounted block header component
+- [ ] Extract a lazily mounted block body component
 - [ ] Keep collapsed block footprint minimal
 - [ ] Verify focused-target and annotation navigation still work correctly
+- [ ] Run `npm run build` in `web/`
+- [ ] Commit the code changes
+- [ ] Update diary and changelog for the step
 
-### Phase 3 — Transcript virtualization
+### Step 7 — Virtualize transcript block rendering
 
-- [ ] Choose a virtualization approach for block lists
+- [ ] Choose and implement a virtualization approach for block lists
 - [ ] Render only visible blocks plus overscan
 - [ ] Integrate focused target scrolling with virtualized rows
 - [ ] Rerun baseline measurements on the same session
+- [ ] Commit the code changes
+- [ ] Update diary and changelog for the step
 
-### Phase 4 — Session Browser scalability
+### Step 8 — Add Session Browser virtualization
 
 - [ ] Add virtualization or threshold-based virtualization to Session Browser
-- [ ] Rerun route-load measurements on a larger archive if available
+- [ ] Verify click-through and query-button interactions still work
+- [ ] Run `npm run build` in `web/`
+- [ ] Capture a route measurement snapshot if practical
+- [ ] Commit the code changes
+- [ ] Update diary and changelog for the step
 
-### Phase 6 — Backend shaping (optional)
+### Step 9 — Backend session summary/body shaping
 
-- [ ] Evaluate whether transcript summary/body payload splitting is justified
-- [ ] Prototype a block-body-on-demand API only if frontend wins are insufficient
+- [ ] Add a summary-only session-detail API path or equivalent shaping mechanism
+- [ ] Update the transcript page to fetch summary metadata separately from blocks
+- [ ] Run `npm run build` in `web/`
+- [ ] Run Go tests/build for the serve package or repo
+- [ ] Capture a follow-up measurement snapshot
+- [ ] Commit the code changes
+- [ ] Update diary and changelog for the step
 

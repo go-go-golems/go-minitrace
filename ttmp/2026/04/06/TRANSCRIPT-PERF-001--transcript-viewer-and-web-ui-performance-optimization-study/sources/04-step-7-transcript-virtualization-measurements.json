@@ -1,0 +1,102 @@
+{
+  "baseUrl": "http://127.0.0.1:5174",
+  "apiUrl": "http://127.0.0.1:8080",
+  "iterations": 3,
+  "session": {
+    "id": "019d0295-d06b-7033-b154-a991a94672b6",
+    "title": "Let's tackle an issue in smailnail now that it's deployed on coolify:  1. I don'",
+    "blocks": 32,
+    "turns": 243,
+    "toolCalls": 589,
+    "model": "gpt-5.4"
+  },
+  "sessionBrowser": {
+    "meanLoadMs": 690,
+    "last": {
+      "loadMs": 643,
+      "rows": 86,
+      "nodes": 2467
+    },
+    "runs": [
+      {
+        "loadMs": 875,
+        "rows": 86,
+        "nodes": 2467
+      },
+      {
+        "loadMs": 552,
+        "rows": 86,
+        "nodes": 2467
+      },
+      {
+        "loadMs": 643,
+        "rows": 86,
+        "nodes": 2467
+      }
+    ]
+  },
+  "transcript": {
+    "meanInitialLoadMs": 763,
+    "meanToAnnotationsMs": 169,
+    "meanBackToTranscriptMs": 38,
+    "last": {
+      "initialLoadMs": 657,
+      "toAnnotationsMs": 254,
+      "backToTranscriptMs": 36,
+      "blocks": 6,
+      "turns": 12,
+      "toolCalls": 34,
+      "nodes": 1419
+    },
+    "runs": [
+      {
+        "initialLoadMs": 862,
+        "toAnnotationsMs": 132,
+        "backToTranscriptMs": 37,
+        "blocks": 6,
+        "turns": 12,
+        "toolCalls": 34,
+        "nodes": 1419
+      },
+      {
+        "initialLoadMs": 769,
+        "toAnnotationsMs": 120,
+        "backToTranscriptMs": 40,
+        "blocks": 6,
+        "turns": 12,
+        "toolCalls": 34,
+        "nodes": 1419
+      },
+      {
+        "initialLoadMs": 657,
+        "toAnnotationsMs": 254,
+        "backToTranscriptMs": 36,
+        "blocks": 6,
+        "turns": 12,
+        "toolCalls": 34,
+        "nodes": 1419
+      }
+    ]
+  },
+  "queryPage": {
+    "meanLoadMs": 132,
+    "last": {
+      "loadMs": 127,
+      "nodes": 346
+    },
+    "runs": [
+      {
+        "loadMs": 150,
+        "nodes": 346
+      },
+      {
+        "loadMs": 119,
+        "nodes": 198
+      },
+      {
+        "loadMs": 127,
+        "nodes": 346
+      }
+    ]
+  }
+}
