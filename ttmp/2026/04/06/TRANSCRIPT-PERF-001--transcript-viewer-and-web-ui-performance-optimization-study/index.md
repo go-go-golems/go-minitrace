@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-04-06T18:40:00-04:00
+LastUpdated: 2026-04-06T22:25:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -35,7 +35,11 @@ Current status:
 - Step 3 committed: unmount collapsed transcript subtrees (`6bf9596`)
 - Step 4 committed: memoize query result sorting (`7a6e30c`)
 - Step 5 committed: reduce background query-editor polling (`17600ec`)
-- next major work remains: transcript block header/body split and eventual virtualization
+- Step 6 committed: split transcript block header and body (`e6fa2c8`)
+- Step 7 committed: virtualize transcript block rendering (`6abe053`)
+- Step 8 committed: virtualize Session Browser rows (`c4bb6ca`)
+- Step 9 committed: split session summary and blocks endpoints (`0835f29`)
+- implementation plan completed; future work is now optional follow-up rather than planned baseline work
 
 ## Key Links
 
@@ -45,6 +49,9 @@ Current status:
 - **Captured baseline**: `sources/01-baseline-measurements.json`
 - **Step 2 snapshot**: `sources/02-step-2-persistent-mount-measurements.json`
 - **Step 3 snapshot**: `sources/03-step-3-unmount-on-exit-measurements.json`
+- **Step 7 snapshot**: `sources/04-step-7-transcript-virtualization-measurements.json`
+- **Step 8 snapshot**: `sources/05-step-8-session-browser-virtualization-measurements.json`
+- **Step 9 snapshot**: `sources/06-step-9-summary-and-blocks-split-measurements.json`
 - **Related Files**: See frontmatter `RelatedFiles`
 - **External Sources**: See frontmatter `ExternalSources`
 

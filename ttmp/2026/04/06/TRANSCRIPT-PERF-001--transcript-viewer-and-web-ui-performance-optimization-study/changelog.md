@@ -57,3 +57,47 @@ Step 5: reduced background query-editor polling pressure by polling the active s
 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/QueryEditorPage.tsx — Active/inactive polling split with skipPollingIfUnfocused
 
+
+## 2026-04-06
+
+Step 6: split transcript blocks into a lightweight header and a lazily mounted body, making the transcript tree easier to reason about and optimize (commit e6fa2c8).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockBody.tsx — Lazily mounted block body
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx — Block shell coordinating the split
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockHeader.tsx — Always-mounted block header
+
+
+## 2026-04-06
+
+Step 7: virtualized transcript block rendering with measured heights, overscan, and focused-row scrolling; the follow-up measurement showed a much smaller mounted transcript tree and sub-second initial load on the sampled session (commit 6abe053).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/04-step-7-transcript-virtualization-measurements.json — Post-Step-7 transcript virtualization snapshot
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx — Virtualized transcript block list and parent-owned expansion state
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/shared/useVirtualList.ts — Measured-window virtualization hook
+
+
+## 2026-04-06
+
+Step 8: virtualized Session Browser rows using the shared measured-window hook, reducing mounted row count and DOM size on the sessions page (commit c4bb6ca).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/05-step-8-session-browser-virtualization-measurements.json — Post-Step-8 Session Browser virtualization snapshot
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/SessionBrowser/SessionBrowser.tsx — Virtualized session table body
+
+
+## 2026-04-06
+
+Step 9: split session summary metadata from transcript blocks at the API layer, updated the transcript page to fetch them separately, and captured an API-level measurement showing the summary payload is tiny compared to the blocks/full-detail payloads (commit 0835f29).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go — Summary-only session endpoint and normalization helper
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/02-session-summary-blocks-split-perf.mjs — API measurement script for the backend shaping step
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/06-step-9-summary-and-blocks-split-measurements.json — Post-Step-9 API shaping snapshot
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/TranscriptViewerPage.tsx — Transcript page summary+blocks composition
+

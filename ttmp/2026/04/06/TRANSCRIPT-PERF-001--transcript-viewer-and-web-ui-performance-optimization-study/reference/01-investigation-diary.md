@@ -12,28 +12,57 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
+      Note: Step 9 separated session summary normalization from heavy block payload generation (commit 0835f29)
+    - Path: cmd/go-minitrace/cmds/serve/server.go
+      Note: Step 9 registered the summary-only session API route (commit 0835f29)
+    - Path: cmd/go-minitrace/cmds/serve/server_test.go
+      Note: Step 9 added a summary-endpoint handler test (commit 0835f29)
     - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs
+    - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/02-session-summary-blocks-split-perf.mjs
+      Note: API measurement script for the summary-vs-blocks backend shaping step
     - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/01-baseline-measurements.json
     - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/02-step-2-persistent-mount-measurements.json
       Note: Post-Step-2 snapshot for mounted transcript pane behavior
     - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/03-step-3-unmount-on-exit-measurements.json
       Note: Post-Step-3 snapshot showing large mounted-tree reduction
+    - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/04-step-7-transcript-virtualization-measurements.json
+      Note: Post-Step-7 transcript virtualization snapshot
+    - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/05-step-8-session-browser-virtualization-measurements.json
+      Note: Post-Step-8 Session Browser virtualization snapshot
+    - Path: ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/06-step-9-summary-and-blocks-split-measurements.json
+      Note: Post-Step-9 API shaping snapshot
+    - Path: web/src/api/minitrace.ts
+      Note: Step 9 added the session summary RTK Query endpoint (commit 0835f29)
     - Path: web/src/components/QueryEditor/ResultsTable.tsx
       Note: Step 4 memoized full-table sorting (commit 7a6e30c)
+    - Path: web/src/components/SessionBrowser/SessionBrowser.tsx
+      Note: Step 8 virtualized Session Browser rows (commit c4bb6ca)
+    - Path: web/src/components/TranscriptViewer/BlockBody.tsx
+      Note: Step 6 extracted the lazily mounted transcript block body (commit e6fa2c8)
     - Path: web/src/components/TranscriptViewer/BlockCard.tsx
       Note: Steps 2-3 memoized heavy block rows and unmounted collapsed block bodies (commits 22aafff
+    - Path: web/src/components/TranscriptViewer/BlockHeader.tsx
+      Note: Step 6 extracted the lightweight always-mounted transcript block header (commit e6fa2c8)
     - Path: web/src/components/TranscriptViewer/ToolCallRow.tsx
       Note: Steps 2-3 memoized heavy tool-call rows and unmounted collapsed tool-call details (commits 22aafff
     - Path: web/src/components/TranscriptViewer/TranscriptViewer.tsx
       Note: Step 2 kept transcript pane mounted across tab switches (commit 22aafff)
+    - Path: web/src/components/shared/useVirtualList.ts
+      Note: Steps 7-8 added a shared measured-window virtualization hook for transcript blocks and session rows (commits 6abe053
     - Path: web/src/pages/QueryEditorPage.tsx
       Note: Step 5 reduced background polling pressure while preserving active-source refreshes (commit 17600ec)
+    - Path: web/src/pages/TranscriptViewerPage.tsx
+      Note: Step 9 now composes the transcript view from summary metadata plus blocks (commit 0835f29)
+    - Path: web/src/types/session.ts
+      Note: Step 9 introduced a summary-detail type distinct from full transcript detail (commit 0835f29)
 ExternalSources: []
 Summary: Chronological diary of the performance study for the transcript viewer and broader web UI, including measurements and evidence-gathering commands.
-LastUpdated: 2026-04-06T18:35:00-04:00
+LastUpdated: 2026-04-06T22:20:00-04:00
 WhatFor: Preserve the reasoning, commands, measurements, and evidence used to produce the performance optimization study.
 WhenToUse: Use when continuing transcript-performance work, reviewing how the measurements were gathered, or validating the rationale behind the optimization phases.
 ---
+
 
 
 # Investigation diary
@@ -594,3 +623,420 @@ skipPollingIfUnfocused: true,
 refetchOnFocus: true,
 refetchOnReconnect: true,
 ```
+
+## Step 6: Split transcript block header from block body
+
+This step turned the transcript block into an explicit performance boundary in code. Instead of one large `BlockCard` component holding both cheap summary UI and expensive turn/tool-call UI in a single file, the block now has a lightweight header and a lazily mounted body.
+
+This refactor was partly about performance and partly about maintainability. The transcript optimization work had reached the point where the component structure itself was getting in the way of the next step. By making the block shell, header, and body more distinct, I created a cleaner foundation for virtualization and future tuning.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue executing the remaining performance tasks in order, with small commits and a diary trail.
+
+**Inferred user intent:** Finish the execution side of the performance ticket rather than leaving the large structural transcript work as a future note.
+
+**Commit (code):** `e6fa2c8` — `web: split transcript block header and body`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockHeader.tsx`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockBody.tsx`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/types.ts`
+- Refactored:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx`
+- Moved the cheap summary/header UI into `BlockHeader`.
+- Moved artifact, turn, and tool-call rendering into `BlockBody`.
+- Kept the expensive body behind `Collapse ... unmountOnExit`.
+- Added `content-visibility: auto` plus `containIntrinsicSize` around the mounted body wrapper as an incremental paint/layout hint.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- Committed the code change.
+
+### Why
+
+- The transcript block needed a sharper separation between always-mounted and expensive content.
+- This makes the performance model easier to reason about and makes the following virtualization step much less invasive.
+
+### What worked
+
+- The build passed cleanly.
+- The new structure reduced the amount of logic concentrated in `BlockCard.tsx`.
+- The refactor did not require API or data-shape changes.
+
+### What didn't work
+
+- N/A — no build/runtime failures on this step.
+- I did not create a separate measurement snapshot for this refactor alone because the next step (virtualization) was immediately dependent on it and more meaningful to measure.
+
+### What I learned
+
+- Once collapsed subtree unmounting was in place, the next limit was not only mounted DOM size; it was also component organization. The transcript tree became easier to optimize once the block boundary was explicit.
+
+### What was tricky to build
+
+- The tricky part was preserving behavior while moving rendering logic across files. The block still needed to preserve focus styling, annotation chips, and tool-call affordances exactly as before.
+- Another subtle point was not accidentally losing the uncontrolled Storybook/demo behavior for `BlockCard`, which mattered once expansion control started shifting toward the parent for the next step.
+
+### What warrants a second pair of eyes
+
+- Whether the `content-visibility: auto` wrapper has any surprising interaction with focused target scrolling in edge cases.
+- Whether the new component split leaves prop surfaces stable enough to keep memoization effective.
+
+### What should be done in the future
+
+- Keep state that must survive virtualization or unmount/remount boundaries in the parent viewer rather than in row-local state.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockHeader.tsx`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockBody.tsx`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/types.ts`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+The important architectural change is that `BlockCard` now acts primarily as a shell/coordinator:
+
+- `BlockHeader` is always mounted and cheap.
+- `BlockBody` is only mounted when the block is expanded or force-expanded.
+
+## Step 7: Virtualize transcript block rendering
+
+This was the biggest frontend structural optimization in the ticket. Instead of rendering every block row up front, the transcript viewer now window-renders only the visible block range plus overscan, while tracking measured row heights and scrolling focused blocks into view.
+
+The result is the clearest transcript performance win after subtree unmounting. The saved measurement snapshot shows that the transcript route now mounts only a handful of blocks on initial load, and the route timings dropped dramatically again.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue through the remaining structural performance work, including the larger transcript rendering changes.
+
+**Inferred user intent:** Finish the core transcript scalability work rather than stopping at cheap wins.
+
+**Commit (code):** `6abe053` — `web: virtualize transcript block rendering`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/shared/useVirtualList.ts`
+- Updated:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx`
+- Introduced a shared measured-window virtualization hook.
+- Switched transcript block expansion state from row-local state toward viewer-managed state so virtualization would not lose important expansion behavior when rows unmount.
+- Rendered only the visible transcript block range plus overscan, using top/bottom spacers.
+- Added focused-block scroll-to-index behavior before the existing DOM-anchor `scrollIntoView` path.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && node ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs > ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/04-step-7-transcript-virtualization-measurements.json`
+- Committed the code change.
+
+### Why
+
+- The transcript route was still paying for every block row even after subtree unmounting.
+- Virtualization is the main structural answer once wasted collapsed-content mounting has already been removed.
+
+### What worked
+
+- The build passed cleanly.
+- The measurement snapshot was strongly positive:
+  - mean transcript initial load: `763 ms`
+  - mean transcript → annotations: `169 ms`
+  - mean transcript back: `38 ms`
+  - mounted blocks on the sampled state: `6`
+  - DOM nodes: `1419`
+- Focus navigation still had a viable path because the viewer now scrolls to the virtual row before trying to find the specific turn/tool-call anchor.
+
+### What didn't work
+
+- No build failure on the final implementation.
+- One intermediate issue surfaced during the refactor: Storybook stories still passed `defaultExpanded` after `BlockCard` became more controlled. `npm run build` failed with TypeScript errors like:
+
+```text
+Object literal may only specify known properties, and 'defaultExpanded' does not exist in type ...
+```
+
+- I resolved this by restoring an uncontrolled fallback path in `BlockCard` while keeping the controlled mode for the viewer.
+
+### What I learned
+
+- Transcript virtualization required one prerequisite that was easy to underestimate: block expansion state had to stop living purely inside virtual rows.
+- A small shared virtualization hook was enough for this app; I did not need to bring in a new external library to get the first strong win.
+
+### What was tricky to build
+
+- The hardest part was coordinating virtualization with deep-link/focus behavior. A tool-call target cannot be scrolled into view if its containing block is not currently rendered, so the viewer had to scroll the virtual row first and only then perform the anchor-level scroll.
+- Dynamic heights also mattered because expanded blocks are much taller than collapsed ones. The measured-height hook plus overscan was a practical compromise.
+
+### What warrants a second pair of eyes
+
+- Whether very tall expanded blocks need additional measurement stabilization or finer-grained virtualization later.
+- Whether the overscan settings are optimal across both small and large transcript sets.
+
+### What should be done in the future
+
+- If the transcript grows beyond block-level comfort again, the next frontier would be turn-level virtualization inside extremely large expanded blocks.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/shared/useVirtualList.ts`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && node ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs
+```
+
+### Technical details
+
+Measurement artifact:
+
+- `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/04-step-7-transcript-virtualization-measurements.json`
+
+The virtualized transcript path now uses:
+
+- measured item heights,
+- top/bottom spacer boxes,
+- parent-owned expansion state,
+- pre-anchor virtual row scrolling for focused targets.
+
+## Step 8: Add Session Browser virtualization
+
+After transcript virtualization, I applied the same measured-window idea to the Session Browser table. The route was not the top hotspot, but it still rendered every filtered row into the table body, which was a clear scalability risk once archives grow.
+
+The measured follow-up snapshot confirms the expected shape: the Session Browser now mounts far fewer rows and far fewer DOM nodes while preserving the same interaction model.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue the remaining performance tasks across the app, not only inside the transcript route.
+
+**Inferred user intent:** Finish the full app-side execution plan, including secondary scalability surfaces.
+
+**Commit (code):** `c4bb6ca` — `web: virtualize session browser rows`
+
+### What I did
+
+- Updated:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/SessionBrowser/SessionBrowser.tsx`
+- Reused the shared `useVirtualList` hook for the session table body.
+- Virtualized the filtered session rows when the filtered set exceeds a threshold.
+- Preserved row click-through and the query-button interaction.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && node ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs > ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/05-step-8-session-browser-virtualization-measurements.json`
+- Committed the code change.
+
+### Why
+
+- The Session Browser was not broken today, but it had the same “render everything” pattern as the earlier transcript implementation.
+- This was a low-risk way to make archive growth less dangerous.
+
+### What worked
+
+- The build passed cleanly.
+- The route measurement snapshot showed that the browser now mounted only a subset of rows:
+  - mounted rows in the sampled state: `27`
+  - DOM nodes: `1035`
+- The row click and query-icon click behavior were preserved.
+
+### What didn't work
+
+- N/A — no build/runtime failures on this step.
+- I did not add a dedicated browser-interaction smoke beyond the route measurement, so validation here is still lighter than the transcript path.
+
+### What I learned
+
+- The shared virtualization hook was general enough to pay off twice immediately.
+- Even the simpler table route benefits materially in DOM size from the same windowing approach.
+
+### What was tricky to build
+
+- Virtualizing a `<TableBody>` is slightly awkward because it needs spacer rows rather than generic div spacers. The measured hook still worked, but the rendering shape had to respect table semantics.
+
+### What warrants a second pair of eyes
+
+- Whether the threshold (`filtered.length > 40`) is the right cutoff.
+- Whether row height estimation remains stable enough when annotation badges wrap more than expected.
+
+### What should be done in the future
+
+- If the Session Browser gets richer row content, consider whether a grid/list component with built-in virtualization would be simpler long-term.
+
+### Code review instructions
+
+Review:
+
+- `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/SessionBrowser/SessionBrowser.tsx`
+- `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/components/shared/useVirtualList.ts`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && node ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs
+```
+
+### Technical details
+
+Measurement artifact:
+
+- `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/05-step-8-session-browser-virtualization-measurements.json`
+
+## Step 9: Split session summary metadata from transcript blocks at the API layer
+
+This step completed the backend-shaping part of the execution plan. The server now exposes a summary-only session endpoint, and the transcript page fetches summary metadata separately from the heavy block payload.
+
+The most important part of this step is not raw latency reduction on its own. It is that the API surface now expresses the real data boundary: session metadata is small, while transcript blocks are large. The follow-up measurement artifact confirms just how different those payload sizes are.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Finish the remaining execution work, including backend shaping where it is justified.
+
+**Inferred user intent:** Complete the ticket rather than leaving the API-side optimization only as a design recommendation.
+
+**Commit (code):** `0835f29` — `serve: split session summary and blocks endpoints`
+
+### What I did
+
+- Updated backend:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+- Updated frontend:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/TranscriptViewerPage.tsx`
+- Added a new route:
+  - `GET /api/sessions/{id}/summary`
+- Added a shared normalization helper for session summary detail on the server.
+- Switched `TranscriptViewerPage` to fetch:
+  - summary metadata via `useGetSessionSummaryQuery`
+  - blocks via `useGetSessionBlocksQuery`
+- Added a new API measurement script:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/02-session-summary-blocks-split-perf.mjs`
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./cmd/go-minitrace/cmds/serve/...`
+  - pre-commit also ran `go test ./...`
+- Captured:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/06-step-9-summary-and-blocks-split-measurements.json`
+- Committed the code change.
+
+### Why
+
+- The UI and server already knew that transcript blocks are the expensive part, but the API surface still bundled metadata and blocks together for the main detail route.
+- Separating those concerns makes the contract clearer and gives the frontend more room to load and reason about them independently.
+
+### What worked
+
+- The frontend build passed.
+- The new serve-package test passed.
+- The full repo test suite passed via the pre-commit hook on the final code commit.
+- The API measurement snapshot clearly showed the payload split:
+  - summary endpoint mean size: `987 bytes`
+  - blocks endpoint mean size: `1,801,428 bytes`
+  - full detail endpoint mean size: `1,802,424 bytes`
+- The summary endpoint is therefore dramatically smaller and correctly omits the `blocks` field.
+
+### What didn't work
+
+- My first serve-package test assertion used the wrong fixture values and failed twice:
+
+```text
+unexpected session title "Fixture Session"
+unexpected source format "fixture"
+```
+
+- I corrected the test to match the actual fixture.
+- I also attempted to reuse the Playwright route measurement script against a temporary standalone `serve` process, but the embedded non-dev frontend path was not reliable enough for that exact script in this environment. I therefore captured the step with a dedicated API-level measurement script instead, which was a better fit for this particular backend-shaping change.
+
+### What I learned
+
+- The data-shape split is real and large. The blocks payload dominates both bytes and backend work; the summary payload is tiny.
+- For this step, an API-focused measurement was more informative than a browser-route measurement because the change was specifically about transport and endpoint separation.
+
+### What was tricky to build
+
+- The tricky part was not the route itself. It was validating the change in a way that matched the change. The generic browser timing script was built for route responsiveness, while this step was primarily about request shape and payload separation.
+- Another subtle point was keeping the transcript page wiring simple: fetch summary and blocks separately, then compose the existing `SessionDetail` shape in the page layer.
+
+### What warrants a second pair of eyes
+
+- Whether the now-less-used `GET /api/sessions/{id}` full-detail route should remain as-is for compatibility or eventually become an internal/debug convenience.
+- Whether the transcript page should eventually render the header immediately from summary data and stream blocks in visually afterward rather than waiting for both.
+
+### What should be done in the future
+
+- If desired, the next UX refinement would be to render the summary/header chrome while blocks are still loading.
+- If the full-detail route stops being useful, consider de-emphasizing or deprecating it in favor of summary + blocks.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/TranscriptViewerPage.tsx`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./cmd/go-minitrace/cmds/serve/...
+```
+
+API-shape measurement:
+
+```bash
+BASE_URL=http://127.0.0.1:18081 \
+SESSION_ID=019d0295-d06b-7033-b154-a991a94672b6 \
+ITERATIONS=5 \
+node ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/02-session-summary-blocks-split-perf.mjs
+```
+
+### Technical details
+
+Measurement artifact:
+
+- `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/sources/06-step-9-summary-and-blocks-split-measurements.json`
+
+New endpoint:
+
+```text
+GET /api/sessions/{id}/summary
+```
+
+Representative API snapshot:
+
+- summary endpoint mean duration: `31 ms`
+- summary endpoint mean bytes: `987`
+- blocks endpoint mean duration: `49 ms`
+- blocks endpoint mean bytes: `1,801,428`
+- full detail endpoint mean duration: `50 ms`
+- full detail endpoint mean bytes: `1,802,424`

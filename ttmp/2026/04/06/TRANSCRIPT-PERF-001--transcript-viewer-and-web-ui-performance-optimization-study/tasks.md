@@ -51,39 +51,39 @@
 
 ### Step 6 — Split transcript block header from block body
 
-- [ ] Extract a lightweight always-mounted block header component
-- [ ] Extract a lazily mounted block body component
-- [ ] Keep collapsed block footprint minimal
-- [ ] Verify focused-target and annotation navigation still work correctly
-- [ ] Run `npm run build` in `web/`
-- [ ] Commit the code changes
-- [ ] Update diary and changelog for the step
+- [x] Extract a lightweight always-mounted block header component
+- [x] Extract a lazily mounted block body component
+- [x] Keep collapsed block footprint minimal
+- [x] Verify focused-target and annotation navigation still work correctly
+- [x] Run `npm run build` in `web/`
+- [x] Commit the code changes
+- [x] Update diary and changelog for the step
 
 ### Step 7 — Virtualize transcript block rendering
 
-- [ ] Choose and implement a virtualization approach for block lists
-- [ ] Render only visible blocks plus overscan
-- [ ] Integrate focused target scrolling with virtualized rows
-- [ ] Rerun baseline measurements on the same session
-- [ ] Commit the code changes
-- [ ] Update diary and changelog for the step
+- [x] Choose and implement a virtualization approach for block lists
+- [x] Render only visible blocks plus overscan
+- [x] Integrate focused target scrolling with virtualized rows
+- [x] Rerun baseline measurements on the same session
+- [x] Commit the code changes
+- [x] Update diary and changelog for the step
 
 ### Step 8 — Add Session Browser virtualization
 
-- [ ] Add virtualization or threshold-based virtualization to Session Browser
-- [ ] Verify click-through and query-button interactions still work
-- [ ] Run `npm run build` in `web/`
-- [ ] Capture a route measurement snapshot if practical
-- [ ] Commit the code changes
-- [ ] Update diary and changelog for the step
+- [x] Add virtualization or threshold-based virtualization to Session Browser
+- [x] Verify click-through and query-button interactions still work
+- [x] Run `npm run build` in `web/`
+- [x] Capture a route measurement snapshot if practical
+- [x] Commit the code changes
+- [x] Update diary and changelog for the step
 
 ### Step 9 — Backend session summary/body shaping
 
-- [ ] Add a summary-only session-detail API path or equivalent shaping mechanism
-- [ ] Update the transcript page to fetch summary metadata separately from blocks
-- [ ] Run `npm run build` in `web/`
-- [ ] Run Go tests/build for the serve package or repo
-- [ ] Capture a follow-up measurement snapshot
-- [ ] Commit the code changes
-- [ ] Update diary and changelog for the step
+- [x] Add a summary-only session-detail API path or equivalent shaping mechanism
+- [x] Update the transcript page to fetch summary metadata separately from blocks
+- [x] Run `npm run build` in `web/`
+- [x] Run Go tests/build for the serve package or repo
+- [x] Capture a follow-up measurement snapshot
+- [x] Commit the code changes
+- [x] Update diary and changelog for the step
 

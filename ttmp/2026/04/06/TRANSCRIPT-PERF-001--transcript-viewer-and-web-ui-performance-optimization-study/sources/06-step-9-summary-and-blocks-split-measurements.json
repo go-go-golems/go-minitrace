@@ -1,0 +1,117 @@
+{
+  "baseUrl": "http://127.0.0.1:18081",
+  "sessionId": "019d0295-d06b-7033-b154-a991a94672b6",
+  "iterations": 5,
+  "summaryEndpoint": {
+    "meanDurationMs": 31,
+    "meanBytes": 987,
+    "last": {
+      "status": 200,
+      "durationMs": 21,
+      "bytes": 987,
+      "hasBlocksField": false,
+      "title": "Let's tackle an issue in smailnail now that it's deployed on coolify:  1. I don'"
+    },
+    "runs": [
+      {
+        "status": 200,
+        "durationMs": 62,
+        "bytes": 987
+      },
+      {
+        "status": 200,
+        "durationMs": 21,
+        "bytes": 987
+      },
+      {
+        "status": 200,
+        "durationMs": 35,
+        "bytes": 987
+      },
+      {
+        "status": 200,
+        "durationMs": 18,
+        "bytes": 987
+      },
+      {
+        "status": 200,
+        "durationMs": 21,
+        "bytes": 987
+      }
+    ]
+  },
+  "blocksEndpoint": {
+    "meanDurationMs": 49,
+    "meanBytes": 1801428,
+    "last": {
+      "status": 200,
+      "durationMs": 37,
+      "bytes": 1801428,
+      "blockCount": 32
+    },
+    "runs": [
+      {
+        "status": 200,
+        "durationMs": 50,
+        "bytes": 1801428
+      },
+      {
+        "status": 200,
+        "durationMs": 52,
+        "bytes": 1801428
+      },
+      {
+        "status": 200,
+        "durationMs": 68,
+        "bytes": 1801428
+      },
+      {
+        "status": 200,
+        "durationMs": 38,
+        "bytes": 1801428
+      },
+      {
+        "status": 200,
+        "durationMs": 37,
+        "bytes": 1801428
+      }
+    ]
+  },
+  "fullDetailEndpoint": {
+    "meanDurationMs": 50,
+    "meanBytes": 1802424,
+    "last": {
+      "status": 200,
+      "durationMs": 31,
+      "bytes": 1802424,
+      "blockCount": 32
+    },
+    "runs": [
+      {
+        "status": 200,
+        "durationMs": 47,
+        "bytes": 1802424
+      },
+      {
+        "status": 200,
+        "durationMs": 41,
+        "bytes": 1802424
+      },
+      {
+        "status": 200,
+        "durationMs": 58,
+        "bytes": 1802424
+      },
+      {
+        "status": 200,
+        "durationMs": 73,
+        "bytes": 1802424
+      },
+      {
+        "status": 200,
+        "durationMs": 31,
+        "bytes": 1802424
+      }
+    ]
+  }
+}
