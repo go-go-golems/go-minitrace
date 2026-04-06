@@ -64,6 +64,12 @@ duckdb analysis.duckdb -init queries/load.sql -f queries/framework-summary.sql
 
 Minitrace sessions support an `annotations` array for human-authored metadata on sessions, turns, and tool calls. Annotations are stored in a parallel SQLite database and can be written via CLI or HTTP API, then synced back to `.minitrace.json` source files.
 
+For a step-by-step operator workflow, including when to use `annotate add`, `annotate sync`, `query duckdb`, and `validate`, see:
+
+```bash
+go-minitrace help annotation-playbook
+```
+
 ### Storage model
 
 - **Working store**: `outputDir/annotations.db` (SQLite, WAL mode)
@@ -134,7 +140,12 @@ go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
 
 ### DuckDB queries
 
-With `sqlite_scanner` attached, annotations are queryable alongside session data:
+There are two annotation query modes, and they behave differently:
+
+1. **`go-minitrace serve`** attaches `outputDir/annotations.db` live via `sqlite_scanner`, so the `annotations` table is available directly.
+2. **`go-minitrace query duckdb`** loads `.minitrace.json` archive files, so it sees the `annotations` arrays embedded in those files. If you used `annotate add` / `edit` / `delete` first, run `annotate sync` before expecting `query duckdb` to see the latest annotations.
+
+With `sqlite_scanner` attached in `serve`, annotations are queryable alongside session data:
 
 ```sql
 SELECT
@@ -151,16 +162,29 @@ ORDER BY a.created_at DESC;
 Or through the serve HTTP API:
 
 ```bash
-# Cross-session failure query
+# Cross-session failure query against the live SQLite-backed annotations table
 curl -X POST http://localhost:8080/api/query \
   -H 'Content-Type: application/json' \
   -d '{"sql":"SELECT a.session_id, a.category, a.title FROM annotations a JOIN sessions_base sb ON sb.id = a.session_id WHERE a.category = '\''ai-failure'\'''}''
 ```
 
-Or query directly:
+For CLI-only querying after sync, query the embedded `annotations` arrays in the archive:
 
 ```bash
-go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --sql "SELECT a.session_id, a.category, a.title FROM annotations a JOIN sessions_base sb ON sb.id = a.session_id WHERE a.category = 'ai-failure'"
+go-minitrace annotate sync --output-dir ./output
+
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --sql "
+    SELECT
+      id AS session_id,
+      environment->>'agent_framework' AS framework,
+      REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '\"', '') AS category,
+      REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '\"', '') AS title
+    FROM sessions_base,
+         UNNEST(annotations) AS a(ann)
+    WHERE REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '\"', '') = 'ai-failure'
+  "
 ```
 
 ## Or query directly through the CLI:

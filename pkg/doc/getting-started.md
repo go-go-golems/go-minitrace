@@ -177,8 +177,35 @@ go-minitrace validate --path ./output --recursive
 
 This walks the directory tree, checks each JSON file, and reports any parse errors.
 
+## Step 7: Add your first annotation
+
+If you want to enrich the archive with human review notes, start with the annotation CLI. Annotations are first written to `./output/annotations.db`, then synced back into `.minitrace.json` when you decide to persist them into the archive.
+
+Add a simple session-level note:
+
+```bash
+go-minitrace annotate add \
+  --output-dir ./output \
+  --session <SESSION_ID> \
+  --category observation \
+  --title "Interesting session to review later"
+```
+
+Write those annotations back into the archive:
+
+```bash
+go-minitrace annotate sync --output-dir ./output
+```
+
+If you plan to use annotations regularly, the dedicated operator guide is:
+
+```bash
+go-minitrace help annotation-playbook
+```
+
 ## Next steps
 
+- `go-minitrace help annotation-playbook` — step-by-step workflow for adding, syncing, and querying annotations correctly
 - `go-minitrace help minitrace-schema` — understand every field in a session
 - `go-minitrace help writing-duckdb-queries` — learn DuckDB JSON operators and query patterns
 - `go-minitrace help convert-commands` — detailed reference for each conversion subcommand
