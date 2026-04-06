@@ -4,6 +4,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -20,6 +21,7 @@ interface ToolCallRowProps {
   focused?: boolean;
   annotations?: Annotation[];
   onAnnotate?: () => void;
+  onOpenAnnotation?: (annotation: Annotation) => void;
 }
 
 export function ToolCallRow({
@@ -28,6 +30,7 @@ export function ToolCallRow({
   focused = false,
   annotations = [],
   onAnnotate,
+  onOpenAnnotation,
 }: ToolCallRowProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const cmd =
@@ -101,14 +104,23 @@ export function ToolCallRow({
             <ToolCallBadgeChip key={b} badge={b} />
           ))}
           {annotations.slice(0, 1).map((ann) => (
-            <Chip
+            <Tooltip
               key={ann.id}
-              label={annotations.length === 1 ? ann.content.category : `${annotations.length} annotations`}
-              size="small"
-              color={CATEGORY_COLORS[ann.content.category] ?? "default"}
-              variant="outlined"
-              sx={{ height: 20, fontSize: "0.65rem" }}
-            />
+              title={`${ann.content.title}${ann.content.detail ? ` — ${ann.content.detail}` : ""}`}
+              arrow
+            >
+              <Chip
+                label={annotations.length === 1 ? ann.content.category : `${annotations.length} annotations`}
+                size="small"
+                color={CATEGORY_COLORS[ann.content.category] ?? "default"}
+                variant="outlined"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAnnotation?.(ann);
+                }}
+                sx={{ height: 20, fontSize: "0.65rem", cursor: "pointer" }}
+              />
+            </Tooltip>
           ))}
         </Stack>
         <Button

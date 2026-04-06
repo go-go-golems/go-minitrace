@@ -6,11 +6,6 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import IconButton from "@mui/material/IconButton";
-import TextField from "@mui/material/TextField";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import CloseIcon from "@mui/icons-material/Close";
@@ -19,120 +14,47 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SyncIcon from "@mui/icons-material/Sync";
 import {
   useGetSessionAnnotationsQuery,
-  useCreateAnnotationMutation,
   useDeleteAnnotationMutation,
   useSyncAnnotationsMutation,
 } from "../../api/minitrace";
-import type {
-  Annotation,
-  AnnotationCategory,
-} from "../../types";
+import type { Annotation } from "../../types";
 import { ANNOTATION_CATEGORY_COLORS as CATEGORY_COLORS } from "../../types/session";
-
-const CATEGORIES: AnnotationCategory[] = [
-  "observation",
-  "ai-failure",
-  "user-error",
-  "environment-issue",
-  "success",
-  "question",
-  "to-discuss",
-  "to-improve",
-];
-
-interface NewAnnotation {
-  category: AnnotationCategory;
-  title: string;
-  detail: string;
-  tags: string;
-  scopeType: "session" | "turn" | "tool_call";
-  targetId: string;
-}
+import { AnnotationComposer } from "./AnnotationComposer";
 
 interface AnnotationPanelProps {
   sessionId: string;
   onClose: () => void;
   onNavigateToTarget?: (annotation: Annotation) => void;
-  draftTarget?: {
-    scopeType: "session" | "turn" | "tool_call";
-    targetId: string;
-  } | null;
-  onDraftHandled?: () => void;
+  selectedAnnotationId?: string | null;
 }
 
 export function AnnotationPanel({
   sessionId,
   onClose,
   onNavigateToTarget,
-  draftTarget = null,
-  onDraftHandled,
+  selectedAnnotationId = null,
 }: AnnotationPanelProps) {
   const { data, isLoading, isError } = useGetSessionAnnotationsQuery(sessionId);
-  const [createAnnotation, { isLoading: isCreating }] = useCreateAnnotationMutation();
   const [deleteAnnotation] = useDeleteAnnotationMutation();
   const [syncAnnotations, { isLoading: isSyncing }] = useSyncAnnotationsMutation();
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<NewAnnotation>({
-    category: "observation",
-    title: "",
-    detail: "",
-    tags: "",
-    scopeType: "session",
-    targetId: sessionId,
-  });
   const [error, setError] = useState<string | null>(null);
 
   const annotations = data?.annotations ?? [];
 
   useEffect(() => {
-    if (!draftTarget) {
+    if (!selectedAnnotationId) {
       return;
     }
-    setShowForm(true);
-    setError(null);
-    setForm((f) => ({
-      ...f,
-      scopeType: draftTarget.scopeType,
-      targetId: draftTarget.targetId,
-    }));
-    onDraftHandled?.();
-  }, [draftTarget, onDraftHandled]);
-
-  const handleCreate = async () => {
-    if (!form.title.trim()) {
-      setError("Title is required");
-      return;
-    }
-    setError(null);
-    try {
-      await createAnnotation({
-        session_id: sessionId,
-        category: form.category,
-        title: form.title.trim(),
-        detail: form.detail.trim(),
-        scope_type: form.scopeType,
-        target_id: form.targetId,
-        tags: form.tags
-          ? form.tags
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
-      }).unwrap();
-      setForm({
-        category: "observation",
-        title: "",
-        detail: "",
-        tags: "",
-        scopeType: "session",
-        targetId: sessionId,
-      });
-      setShowForm(false);
-    } catch {
-      setError("Failed to create annotation");
-    }
-  };
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector(
+        `[data-annotation-id="${selectedAnnotationId}"]`,
+      ) as HTMLElement | null;
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [selectedAnnotationId]);
 
   const handleDelete = async (annotationId: string) => {
     try {
@@ -194,6 +116,12 @@ export function AnnotationPanel({
           </Alert>
         )}
 
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         {!isLoading && annotations.length === 0 && !showForm && (
           <Typography
             variant="body2"
@@ -210,96 +138,23 @@ export function AnnotationPanel({
             annotation={ann}
             onDelete={() => handleDelete(ann.id)}
             onNavigateToTarget={onNavigateToTarget}
+            selected={selectedAnnotationId === ann.id}
           />
         ))}
 
         {/* Add form */}
         {showForm && (
-          <Paper sx={{ p: 2, mt: 2 }} variant="outlined">
-            <Stack spacing={1.5}>
-              <FormControl size="small" fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={form.category}
-                  label="Category"
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, category: e.target.value as AnnotationCategory }))
-                  }
-                >
-                  {CATEGORIES.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      <Chip
-                        label={cat}
-                        size="small"
-                        color={CATEGORY_COLORS[cat] ?? "default"}
-                        sx={{ mr: 1 }}
-                      />
-                      {cat}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                label="Title"
-                size="small"
-                fullWidth
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Brief description"
-                autoFocus
-              />
-
-              <TextField
-                label="Detail"
-                size="small"
-                fullWidth
-                multiline
-                minRows={2}
-                value={form.detail}
-                onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))}
-                placeholder="Optional detail..."
-              />
-
-              <Alert severity="info" variant="outlined">
-                Scope: <strong>{form.scopeType}</strong>
-                {form.scopeType !== "session" ? ` · target ${form.targetId}` : ""}
-              </Alert>
-
-              <TextField
-                label="Tags"
-                size="small"
-                fullWidth
-                value={form.tags}
-                onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-                placeholder="comma-separated tags"
-                helperText="e.g. auth, regression, slow"
-              />
-
-              {error && <Alert severity="error">{error}</Alert>}
-
-              <Stack direction="row" spacing={1} justifyContent="flex-end">
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => {
-                    setShowForm(false);
-                    setError(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={handleCreate}
-                  disabled={isCreating || !form.title.trim()}
-                >
-                  {isCreating ? "Saving..." : "Save"}
-                </Button>
-              </Stack>
-            </Stack>
-          </Paper>
+          <AnnotationComposer
+            sessionId={sessionId}
+            target={{ scopeType: "session", targetId: sessionId }}
+            title="Add session annotation"
+            onCancel={() => {
+              setShowForm(false);
+            }}
+            onCreated={() => {
+              setShowForm(false);
+            }}
+          />
         )}
       </Box>
 
@@ -343,6 +198,7 @@ interface AnnotationCardProps {
   annotation: Annotation;
   onDelete: () => void;
   onNavigateToTarget?: (annotation: Annotation) => void;
+  selected?: boolean;
 }
 
 function formatScopeLabel(annotation: Annotation) {
@@ -359,16 +215,19 @@ function AnnotationCard({
   annotation,
   onDelete,
   onNavigateToTarget,
+  selected = false,
 }: AnnotationCardProps) {
   const color = CATEGORY_COLORS[annotation.content.category] ?? "default";
   return (
     <Paper
+      data-annotation-id={annotation.id}
       onClick={() => onNavigateToTarget?.(annotation)}
       sx={{
         p: 1.5,
         mb: 1,
         borderLeft: 3,
-        borderColor: `${color}.main`,
+        borderColor: selected ? "warning.main" : `${color}.main`,
+        bgcolor: selected ? "rgba(245,166,35,0.08)" : undefined,
         cursor: onNavigateToTarget ? "pointer" : "default",
         transition: "background-color 0.15s, border-color 0.15s",
         '&:hover': onNavigateToTarget ? { bgcolor: 'action.hover' } : undefined,

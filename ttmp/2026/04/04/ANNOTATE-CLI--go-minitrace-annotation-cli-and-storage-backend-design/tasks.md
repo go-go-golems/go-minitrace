@@ -112,8 +112,19 @@ Implementation status as of 2026-04-04.
 
 ## ❌ Remaining
 
+### Phase 8 — Transcript Annotation Workflow Polish
+
+| # | Task | Status |
+|---|------|--------|
+| 8.1 | Inline annotation composer in Transcript view (no tab switch required) | 🔄 In progress |
+| 8.2 | Persist selected tab in URL (`?tab=...`) | ⏳ |
+| 8.3 | Persist focused transcript target / selected annotation in URL (`?focusType=&focusId=&annotation=`) | ⏳ |
+| 8.4 | Make inline annotation chips show hover preview (title/detail/scope) | ⏳ |
+| 8.5 | Make inline annotation chips clickable → switch to Annotations tab and scroll to card | ⏳ |
+| 8.6 | Add browser smoke test coverage for inline composer + URL state + chip click-through | ⏳ |
+
 ### Nice-to-Have
-- [ ] `SessionBrowser` annotation badges (web)
+- [x] `SessionBrowser` annotation badges (web)
 - [ ] `QueryEditor` cross-session annotation search (web)
 - [ ] `annotate get` command (fetch single annotation by ID)
 - [ ] `annotate stats` (counts by category/session)

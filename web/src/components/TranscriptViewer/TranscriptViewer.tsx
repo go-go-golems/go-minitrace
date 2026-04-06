@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -15,6 +16,10 @@ import { useGetSessionAnnotationsQuery } from "../../api/minitrace";
 import { ActiveBadge, FormatWallActive } from "../shared";
 import { BlockCard } from "./BlockCard";
 import { AnnotationPanel } from "./AnnotationPanel";
+import {
+  AnnotationComposer,
+  type AnnotationDraftTarget,
+} from "./AnnotationComposer";
 
 interface TranscriptViewerProps {
   session: SessionDetail;
@@ -28,22 +33,40 @@ interface FocusedTranscriptTarget {
   nonce: number;
 }
 
-interface DraftAnnotationTarget {
-  scopeType: "session" | "turn" | "tool_call";
-  targetId: string;
-}
-
 export function TranscriptViewer({
   session,
   onBack,
   onQuerySession,
 }: TranscriptViewerProps) {
-  const [view, setView] = useState<"transcript" | "annotations">("transcript");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [focusedTarget, setFocusedTarget] = useState<FocusedTranscriptTarget | null>(null);
-  const [draftTarget, setDraftTarget] = useState<DraftAnnotationTarget | null>(null);
 
   const { data: annotationData } = useGetSessionAnnotationsQuery(session.id);
   const annotations = annotationData?.annotations ?? [];
+
+  const view = searchParams.get("tab") === "annotations" ? "annotations" : "transcript";
+  const selectedAnnotationId = searchParams.get("annotation");
+  const focusTypeParam = searchParams.get("focusType");
+  const focusIdParam = searchParams.get("focusId");
+  const composeTypeParam = searchParams.get("composeType");
+  const composeTargetParam = searchParams.get("composeTarget");
+
+  const urlFocusedTarget =
+    focusTypeParam && focusIdParam
+      ? ({
+          scopeType: focusTypeParam as "session" | "turn" | "tool_call",
+          targetId: focusIdParam,
+          nonce: 0,
+        } satisfies FocusedTranscriptTarget)
+      : null;
+
+  const draftTarget =
+    composeTypeParam && composeTargetParam
+      ? ({
+          scopeType: composeTypeParam as "session" | "turn" | "tool_call",
+          targetId: composeTargetParam,
+        } satisfies AnnotationDraftTarget)
+      : null;
 
   const activePct =
     (session.timing.active_duration_seconds /
@@ -71,21 +94,21 @@ export function TranscriptViewer({
   }, [annotations]);
 
   const focusedBlockNum = useMemo(() => {
-    if (!focusedTarget) {
+    if (!urlFocusedTarget) {
       return null;
     }
-    if (focusedTarget.scopeType === "turn") {
+    if (urlFocusedTarget.scopeType === "turn") {
       for (const block of session.blocks) {
-        if (block.turns.some((t) => String(t.idx) === focusedTarget.targetId)) {
+        if (block.turns.some((t) => String(t.idx) === urlFocusedTarget.targetId)) {
           return block.block_num;
         }
       }
     }
-    if (focusedTarget.scopeType === "tool_call") {
+    if (urlFocusedTarget.scopeType === "tool_call") {
       for (const block of session.blocks) {
         if (
           block.turns.some((t) =>
-            t.tool_calls_in_turn.some((tc) => tc.id === focusedTarget.targetId),
+            t.tool_calls_in_turn.some((tc) => tc.id === urlFocusedTarget.targetId),
           )
         ) {
           return block.block_num;
@@ -93,23 +116,37 @@ export function TranscriptViewer({
       }
     }
     return null;
-  }, [focusedTarget, session.blocks]);
+  }, [urlFocusedTarget, session.blocks]);
+
+  const setUrlState = (patch: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [k, v] of Object.entries(patch)) {
+      if (v == null || v === "") {
+        next.delete(k);
+      } else {
+        next.set(k, v);
+      }
+    }
+    setSearchParams(next, { replace: false });
+  };
 
   useEffect(() => {
-    if (view !== "transcript" || !focusedTarget) {
+    if (view !== "transcript" || !urlFocusedTarget) {
       return;
     }
 
+    setFocusedTarget({ ...urlFocusedTarget, nonce: Date.now() });
+
     const timer = window.setTimeout(() => {
       let selector = "";
-      if (focusedTarget.scopeType === "session") {
+      if (urlFocusedTarget.scopeType === "session") {
         selector = `[data-session-top="${session.id}"]`;
       }
-      if (focusedTarget.scopeType === "turn") {
-        selector = `[data-turn-idx="${focusedTarget.targetId}"]`;
+      if (urlFocusedTarget.scopeType === "turn") {
+        selector = `[data-turn-idx="${urlFocusedTarget.targetId}"]`;
       }
-      if (focusedTarget.scopeType === "tool_call") {
-        selector = `[data-tool-call-id="${focusedTarget.targetId}"]`;
+      if (urlFocusedTarget.scopeType === "tool_call") {
+        selector = `[data-tool-call-id="${urlFocusedTarget.targetId}"]`;
       }
       const el = selector
         ? (document.querySelector(selector) as HTMLElement | null)
@@ -118,22 +155,27 @@ export function TranscriptViewer({
     }, 80);
 
     return () => window.clearTimeout(timer);
-  }, [view, focusedTarget, session.id]);
+  }, [view, urlFocusedTarget, session.id]);
 
-  useEffect(() => {
-    if (!focusedTarget) {
-      return;
-    }
-    const timer = window.setTimeout(() => setFocusedTarget(null), 2500);
-    return () => window.clearTimeout(timer);
-  }, [focusedTarget]);
+  const handleNavigateToAnnotationTarget = (annotation: Annotation) => {
+    setUrlState({
+      tab: "transcript",
+      focusType: annotation.scope.type,
+      focusId: annotation.scope.target_id || session.id,
+      annotation: null,
+      composeType: null,
+      composeTarget: null,
+    });
+  };
 
-  const handleNavigateToAnnotationTarget = (annotation: { scope: { type: "session" | "turn" | "tool_call"; target_id: string } }) => {
-    setView("transcript");
-    setFocusedTarget({
-      scopeType: annotation.scope.type,
-      targetId: annotation.scope.target_id || session.id,
-      nonce: Date.now(),
+  const handleOpenAnnotation = (annotation: Annotation) => {
+    setUrlState({
+      tab: "annotations",
+      annotation: annotation.id,
+      focusType: null,
+      focusId: null,
+      composeType: null,
+      composeTarget: null,
     });
   };
 
@@ -141,8 +183,14 @@ export function TranscriptViewer({
     scopeType: "session" | "turn" | "tool_call",
     targetId: string,
   ) => {
-    setDraftTarget({ scopeType, targetId });
-    setView("annotations");
+    setUrlState({
+      tab: "transcript",
+      focusType: scopeType,
+      focusId: targetId,
+      annotation: null,
+      composeType: scopeType,
+      composeTarget: targetId,
+    });
   };
 
   return (
@@ -254,7 +302,13 @@ export function TranscriptViewer({
       <Box sx={{ px: 2, pb: 1 }}>
         <Tabs
           value={view}
-          onChange={(_, v) => setView(v)}
+          onChange={(_, v) =>
+            setUrlState({
+              tab: v,
+              annotation: v === "annotations" ? selectedAnnotationId : null,
+              composeType: null,
+              composeTarget: null,
+            })}
           sx={{ minHeight: 36 }}
         >
           <Tab
@@ -276,7 +330,29 @@ export function TranscriptViewer({
       <Box sx={{ flex: 1, overflow: "auto", px: 2, pb: 2 }}>
         {view === "transcript" && (
           <>
-            <Typography variant="overline" color="text.secondary" sx={{ mb: 1 }}>
+            {draftTarget && (
+              <AnnotationComposer
+                sessionId={session.id}
+                target={draftTarget}
+                title={`Add ${draftTarget.scopeType} annotation`}
+                compact
+                onCancel={() =>
+                  setUrlState({
+                    composeType: null,
+                    composeTarget: null,
+                  })}
+                onCreated={() =>
+                  setUrlState({
+                    composeType: null,
+                    composeTarget: null,
+                  })}
+              />
+            )}
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ mb: 1, display: "block", mt: draftTarget ? 1 : 0 }}
+            >
               {session.blocks.length} blocks
             </Typography>
             {session.blocks.map((block) => (
@@ -289,6 +365,7 @@ export function TranscriptViewer({
                 turnAnnotations={annotationIndex.byTurn}
                 toolCallAnnotations={annotationIndex.byToolCall}
                 onCreateScopedAnnotation={handleCreateScopedAnnotation}
+                onOpenAnnotation={handleOpenAnnotation}
               />
             ))}
           </>
@@ -296,10 +373,9 @@ export function TranscriptViewer({
         {view === "annotations" && (
           <AnnotationPanel
             sessionId={session.id}
-            onClose={() => setView("transcript")}
+            onClose={() => setUrlState({ tab: "transcript", annotation: null })}
             onNavigateToTarget={handleNavigateToAnnotationTarget}
-            draftTarget={draftTarget}
-            onDraftHandled={() => setDraftTarget(null)}
+            selectedAnnotationId={selectedAnnotationId}
           />
         )}
       </Box>

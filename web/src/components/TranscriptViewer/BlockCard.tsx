@@ -7,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonIcon from "@mui/icons-material/Person";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
@@ -34,6 +35,7 @@ interface BlockCardProps {
     scopeType: "session" | "turn" | "tool_call",
     targetId: string,
   ) => void;
+  onOpenAnnotation?: (annotation: Annotation) => void;
 }
 
 export function BlockCard({
@@ -44,6 +46,7 @@ export function BlockCard({
   turnAnnotations = {},
   toolCallAnnotations = {},
   onCreateScopedAnnotation,
+  onOpenAnnotation,
 }: BlockCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [showAllTools, setShowAllTools] = useState(false);
@@ -263,14 +266,23 @@ export function BlockCard({
                   Annotate
                 </Button>
                 {(turnAnnotations[String(t.idx)] ?? []).slice(0, 2).map((ann) => (
-                  <Chip
+                  <Tooltip
                     key={ann.id}
-                    label={ann.content.category}
-                    size="small"
-                    color={CATEGORY_COLORS[ann.content.category] ?? "default"}
-                    variant="outlined"
-                    sx={{ height: 20, fontSize: "0.65rem" }}
-                  />
+                    title={`${ann.content.title}${ann.content.detail ? ` — ${ann.content.detail}` : ""}`}
+                    arrow
+                  >
+                    <Chip
+                      label={ann.content.category}
+                      size="small"
+                      color={CATEGORY_COLORS[ann.content.category] ?? "default"}
+                      variant="outlined"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenAnnotation?.(ann);
+                      }}
+                      sx={{ height: 20, fontSize: "0.65rem", cursor: "pointer" }}
+                    />
+                  </Tooltip>
                 ))}
                 {(turnAnnotations[String(t.idx)] ?? []).length > 2 && (
                   <Chip
@@ -314,6 +326,7 @@ export function BlockCard({
                       }
                       annotations={toolCallAnnotations[tc.id] ?? []}
                       onAnnotate={() => onCreateScopedAnnotation?.("tool_call", tc.id)}
+                      onOpenAnnotation={onOpenAnnotation}
                     />
                   ))}
                   {!showAllTools && t.tool_calls_in_turn.length > 5 && (
