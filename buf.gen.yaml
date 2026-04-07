@@ -3,8 +3,8 @@ plugins:
   - remote: buf.build/bufbuild/es
     out: web/src/gen
     opt:
-      - target=ts
-      - import_extension=none
+      - target=js+dts
+      - import_extension=js
   - remote: buf.build/protocolbuffers/go
     out: .
     opt:
