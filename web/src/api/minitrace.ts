@@ -27,6 +27,11 @@ import {
   decodeSyncReport,
   decodeUpdateStatus,
 } from "./annotationProtoAdapters";
+import {
+  decodePresets,
+  decodeSavedQueries,
+  decodeSavedQuery,
+} from "./queryProtoAdapters";
 
 export const minitraceApi = createApi({
   reducerPath: "minitraceApi",
@@ -61,11 +66,13 @@ export const minitraceApi = createApi({
     }),
 
     getPresets: builder.query<SavedQuery[], void>({
-      query: () => "presets",
+      query: () => "v2/presets",
+      transformResponse: decodePresets,
     }),
 
     getSavedQueries: builder.query<SavedQuery[], void>({
-      query: () => "queries",
+      query: () => "v2/queries",
+      transformResponse: decodeSavedQueries,
       providesTags: ["Queries"],
     }),
 
@@ -73,7 +80,8 @@ export const minitraceApi = createApi({
       SavedQuery,
       { name: string; folder: string; description: string; sql: string }
     >({
-      query: (body) => ({ url: "queries", method: "POST", body }),
+      query: (body) => ({ url: "v2/queries", method: "POST", body }),
+      transformResponse: decodeSavedQuery,
       invalidatesTags: ["Queries"],
     }),
 

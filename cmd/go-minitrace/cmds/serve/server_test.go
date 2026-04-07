@@ -1046,6 +1046,200 @@ func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
 	}
 }
 
+func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
+	presetDir1 := t.TempDir()
+	presetDir2 := t.TempDir()
+	if err := os.WriteFile(filepath.Join(presetDir1, "custom.sql"), []byte("-- custom preset\nSELECT 1;"), 0o644); err != nil {
+		t.Fatalf("writing custom preset: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(presetDir2, "analysis"), 0o755); err != nil {
+		t.Fatalf("creating nested preset dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(presetDir2, "analysis", "extra.sql"), []byte("-- extra preset\nSELECT 2;"), 0o644); err != nil {
+		t.Fatalf("writing extra preset: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{
+		TableName: "sessions_base",
+		PresetDir: []string{presetDir1, presetDir2},
+	}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v2/presets", nil)
+	response := httptest.NewRecorder()
+
+	server.handleGetPresetsV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ListPresetsResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal presets v2: %v", err)
+	}
+	if payload.GetMeta().GetSchemaVersion() != 1 {
+		t.Fatalf("unexpected schema version %d", payload.GetMeta().GetSchemaVersion())
+	}
+	foundBuiltIn := false
+	foundCustom := false
+	foundExtra := false
+	for _, query := range payload.GetPresets() {
+		if query.GetName() == "session-list" && query.GetFolder() == "core" && query.GetReadonly() {
+			foundBuiltIn = true
+		}
+		if query.GetName() == "custom" && query.GetDescription() == "custom preset" && query.GetReadonly() {
+			foundCustom = true
+		}
+		if query.GetPath() == "analysis/extra.sql" && query.GetDescription() == "extra preset" && query.GetReadonly() {
+			foundExtra = true
+		}
+	}
+	if !foundBuiltIn || !foundCustom || !foundExtra {
+		t.Fatalf("expected built-in/custom/extra presets in %#v", payload.GetPresets())
+	}
+}
+
+func TestQueryCRUDV2ValidatesPathsAndPersistsQueries(t *testing.T) {
+	queryDir1 := t.TempDir()
+	queryDir2 := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(queryDir2, "shared"), 0o755); err != nil {
+		t.Fatalf("creating second query dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(queryDir2, "shared", "team.sql"), []byte("-- team query\nSELECT 9;"), 0o644); err != nil {
+		t.Fatalf("writing second-root query: %v", err)
+	}
+	server := NewServer(nil, &ServeSettings{
+		TableName: "sessions_base",
+		QueryDir:  []string{queryDir1, queryDir2},
+	}, map[string]string{}, nil, nil)
+
+	saveReq := &apiv1.SaveQueryRequest{
+		Name:        "wesen-os-filter",
+		Folder:      "saved/analysis",
+		Description: "saved query",
+		Sql:         "SELECT 1;",
+	}
+	saveBody, err := protojson.Marshal(saveReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal saveReq: %v", err)
+	}
+	saveRequest := httptest.NewRequest(http.MethodPost, "/api/v2/queries", strings.NewReader(string(saveBody)))
+	saveResponse := httptest.NewRecorder()
+	server.handleSaveQueryV2(saveResponse, saveRequest)
+
+	if saveResponse.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d with body %s", saveResponse.Code, saveResponse.Body.String())
+	}
+
+	var saved apiv1.SavedQuery
+	if err := protojson.Unmarshal(saveResponse.Body.Bytes(), &saved); err != nil {
+		t.Fatalf("protojson.Unmarshal saved query: %v", err)
+	}
+	if saved.GetPath() != "saved/analysis/wesen-os-filter.sql" {
+		t.Fatalf("unexpected saved path %q", saved.GetPath())
+	}
+
+	getRequest := httptest.NewRequest(http.MethodGet, "/api/v2/queries", nil)
+	getResponse := httptest.NewRecorder()
+	server.handleGetQueriesV2(getResponse, getRequest)
+	if getResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", getResponse.Code, getResponse.Body.String())
+	}
+	var queries apiv1.ListQueriesResponse
+	if err := protojson.Unmarshal(getResponse.Body.Bytes(), &queries); err != nil {
+		t.Fatalf("protojson.Unmarshal queries v2: %v", err)
+	}
+	foundSaved := false
+	foundSecondRoot := false
+	for _, query := range queries.GetQueries() {
+		if query.GetPath() == "saved/analysis/wesen-os-filter.sql" {
+			foundSaved = true
+		}
+		if query.GetPath() == "shared/team.sql" && query.GetDescription() == "team query" {
+			foundSecondRoot = true
+		}
+	}
+	if !foundSaved || !foundSecondRoot {
+		t.Fatalf("expected queries from both roots, got %#v", queries.GetQueries())
+	}
+
+	updateReq := &apiv1.UpdateQueryRequest{Description: "updated query", Sql: "SELECT 2;"}
+	updateBody, err := protojson.Marshal(updateReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal updateReq: %v", err)
+	}
+	updateRequest := httptest.NewRequest(http.MethodPut, "/api/v2/queries/saved/analysis/wesen-os-filter.sql", strings.NewReader(string(updateBody)))
+	updateRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
+	updateResponse := httptest.NewRecorder()
+	server.handleUpdateQueryV2(updateResponse, updateRequest)
+	if updateResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", updateResponse.Code, updateResponse.Body.String())
+	}
+
+	updateSecondRootReq := &apiv1.UpdateQueryRequest{Description: "updated team query", Sql: "SELECT 10;"}
+	updateSecondRootBody, err := protojson.Marshal(updateSecondRootReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal updateSecondRootReq: %v", err)
+	}
+	updateSecondRootRequest := httptest.NewRequest(http.MethodPut, "/api/v2/queries/shared/team.sql", strings.NewReader(string(updateSecondRootBody)))
+	updateSecondRootRequest.SetPathValue("path", "shared/team.sql")
+	updateSecondRootResponse := httptest.NewRecorder()
+	server.handleUpdateQueryV2(updateSecondRootResponse, updateSecondRootRequest)
+	if updateSecondRootResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200 for second-root update, got %d with body %s", updateSecondRootResponse.Code, updateSecondRootResponse.Body.String())
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/v2/queries/saved/analysis/wesen-os-filter.sql", nil)
+	deleteRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
+	deleteResponse := httptest.NewRecorder()
+	server.handleDeleteQueryV2(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", deleteResponse.Code, deleteResponse.Body.String())
+	}
+	var deleted apiv1.DeleteQueryResponse
+	if err := protojson.Unmarshal(deleteResponse.Body.Bytes(), &deleted); err != nil {
+		t.Fatalf("protojson.Unmarshal deleted query response: %v", err)
+	}
+	if deleted.GetStatus() != "deleted" || deleted.GetPath() != "saved/analysis/wesen-os-filter.sql" {
+		t.Fatalf("unexpected delete response status=%q path=%q", deleted.GetStatus(), deleted.GetPath())
+	}
+
+	traversalSaveReq := &apiv1.SaveQueryRequest{Name: "bad", Folder: "../escape", Description: "x", Sql: "SELECT 1;"}
+	traversalSaveBody, err := protojson.Marshal(traversalSaveReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal traversalSaveReq: %v", err)
+	}
+	traversalRequest := httptest.NewRequest(http.MethodPost, "/api/v2/queries", strings.NewReader(string(traversalSaveBody)))
+	traversalResponse := httptest.NewRecorder()
+	server.handleSaveQueryV2(traversalResponse, traversalRequest)
+	if traversalResponse.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for traversal, got %d with body %s", traversalResponse.Code, traversalResponse.Body.String())
+	}
+
+	absoluteUpdateReq := &apiv1.UpdateQueryRequest{Description: "x", Sql: "SELECT 1;"}
+	absoluteUpdateBody, err := protojson.Marshal(absoluteUpdateReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal absoluteUpdateReq: %v", err)
+	}
+	absoluteUpdateRequest := httptest.NewRequest(http.MethodPut, "/api/v2/queries/tmp/evil.sql", strings.NewReader(string(absoluteUpdateBody)))
+	absoluteUpdateRequest.SetPathValue("path", "/tmp/evil.sql")
+	absoluteUpdateResponse := httptest.NewRecorder()
+	server.handleUpdateQueryV2(absoluteUpdateResponse, absoluteUpdateRequest)
+	if absoluteUpdateResponse.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for absolute path update, got %d with body %s", absoluteUpdateResponse.Code, absoluteUpdateResponse.Body.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(queryDir1, "saved", "analysis", "wesen-os-filter.sql")); !os.IsNotExist(err) {
+		t.Fatalf("expected saved query to be deleted from first root, stat err=%v", err)
+	}
+	secondRootContent, err := os.ReadFile(filepath.Join(queryDir2, "shared", "team.sql"))
+	if err != nil {
+		t.Fatalf("reading updated second-root query: %v", err)
+	}
+	if !strings.Contains(string(secondRootContent), "updated team query") {
+		t.Fatalf("expected second-root file to be updated, got %q", string(secondRootContent))
+	}
+}
+
 func TestSpaHandlerFallsBackToIndexHTML(t *testing.T) {
 	handler := spaHandler(fstest.MapFS{
 		"index.html":        {Data: []byte("<html>index</html>")},

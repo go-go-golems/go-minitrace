@@ -86,6 +86,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
 	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
 	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
+	s.mux.HandleFunc("GET /api/v2/presets", s.handleGetPresetsV2)
+	s.mux.HandleFunc("GET /api/v2/queries", s.handleGetQueriesV2)
+	s.mux.HandleFunc("POST /api/v2/queries", s.handleSaveQueryV2)
+	s.mux.HandleFunc("PUT /api/v2/queries/{path...}", s.handleUpdateQueryV2)
+	s.mux.HandleFunc("DELETE /api/v2/queries/{path...}", s.handleDeleteQueryV2)
 
 	// Annotation routes.
 	s.mux.HandleFunc("GET /api/sessions/{id}/annotations", s.handleGetSessionAnnotations)
