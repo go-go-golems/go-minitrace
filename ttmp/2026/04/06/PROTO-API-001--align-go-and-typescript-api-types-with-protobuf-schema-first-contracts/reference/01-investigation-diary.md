@@ -672,3 +672,140 @@ Example pattern:
 const decoded = fromJson(ListSessionsResponseSchema, response as never);
 return decoded.sessions.map(adaptSessionSummary);
 ```
+
+## Step 6: Define the annotations protobuf schema and make patch semantics explicit
+
+This step returned to the schema layer before wiring more handlers. The main goal was to make the annotations contract as intentional as the sessions contract, with one extra wrinkle: update semantics for repeated-string fields such as tags and taxonomy mappings need presence, not just a value shape.
+
+The biggest design improvement in this step is that the flattened annotation list row is now an explicit schema artifact instead of a leaky mirror of the Go store struct. The old frontend shape had to follow Go-exported names like `SessionID` and `ScopeType`; the new schema defines a camelCase-friendly contract from the start.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the phased protobuf rollout by defining the annotation schema before touching the v2 annotation handlers.
+
+**Inferred user intent:** Keep the migration disciplined and schema-first, rather than mixing handler rewrites with unresolved contract design.
+
+**Commit (code):** `d20d61c` — `build: define protobuf annotations schema`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/annotations.proto`
+- Expanded:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto`
+- Added shared support for patch semantics via:
+  - `StringList` in `common.proto`
+- Defined annotation enums:
+  - `AnnotationScopeType`
+  - `AnnotationCategory`
+- Defined core messages:
+  - `AnnotationScope`
+  - `AnnotationContent`
+  - `TaxonomyMappings`
+  - `Annotation`
+- Defined an intentional flattened list-row shape:
+  - `AnnotationListRow`
+- Defined response envelopes:
+  - `GetSessionAnnotationsResponse`
+  - `ListAnnotationsResponse`
+  - `UpdateAnnotationResponse`
+  - `DeleteAnnotationResponse`
+  - `SyncAnnotationsResponse`
+- Defined request messages:
+  - `CreateAnnotationRequest`
+  - `UpdateAnnotationRequest`
+  - `SyncAnnotationsRequest`
+- Regenerated Go and frontend bindings.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+
+### Why
+
+- The annotations surface currently mixes raw `minitrace.Annotation`, ad hoc maps, flattened store rows, and weakly typed patch decoding. It benefits even more from schema clarification than sessions did.
+- Repeated-string patch fields such as `tags` and taxonomy arrays need explicit presence if we want to distinguish “not provided” from “set to empty.”
+- The frontend should stop inheriting Go-exported storage-field casing as part of the public contract.
+
+### What worked
+
+- `buf generate` succeeded.
+- Full Go test suite passed.
+- Frontend build passed.
+- The new annotations schema covers:
+  - per-session annotation list
+  - global flattened annotation list
+  - create/update/sync requests
+  - sync report details
+- The new `AnnotationListRow` is now intentionally designed with camelCase-friendly generated fields (`sessionId`, `scopeType`, `createdAt`, etc.).
+
+### What didn't work
+
+- No build or generation failure occurred in this step.
+- I have not yet proven the request/response ergonomics against the actual annotation handlers; that is the purpose of Step 7.
+
+### What I learned
+
+- Annotation patch semantics are the first place where presence on list fields matters enough to justify a small shared wrapper message (`StringList`).
+- The schema becomes much easier to reason about once the flattened list-row contract is written down explicitly instead of being inferred from the SQLite store struct.
+
+### What was tricky to build
+
+- The trickiest part was choosing how to express “optional repeated strings” for patch semantics. Protobuf repeated fields do not carry presence by themselves, so I introduced a shared `StringList` message instead of pretending an empty list and an absent list mean the same thing.
+- Another subtle decision was enum scope. I introduced enums for annotation categories and scope types now because those are stable enough to justify stronger typing across Go and TypeScript.
+
+### What warrants a second pair of eyes
+
+- Whether `UpdateAnnotationResponse` and `DeleteAnnotationResponse` should eventually return the updated/deleted annotation object instead of just `id` and `status`.
+- Whether `CreateAnnotationRequest.scope_type` should remain required at the schema level or become optional with a server-side default to `session`.
+- Whether the schema should eventually include a typed list-filter request model, even though the HTTP surface currently expresses filters as query parameters.
+
+### What should be done in the future
+
+- Implement Step 7 by adding `/api/v2/annotations...` handlers and mapping the current store/domain values into the generated annotation protobuf messages.
+- Revisit create/update response payload richness once the UI starts consuming the v2 annotation routes.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/annotations.proto`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/common.pb.go`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/annotations.pb.go`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.d.ts`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js`
+7. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.d.ts`
+8. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.js`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+Presence-safe repeated-string patch fields are modeled like this:
+
+```proto
+message StringList {
+  repeated string values = 1;
+}
+
+message UpdateAnnotationRequest {
+  StringList tags = 4;
+  StringList taxonomy_minitrace = 5;
+  StringList taxonomy_mast = 6;
+  StringList taxonomy_toolemu = 7;
+}
+```
+
+This lets the server distinguish:
+
+- field absent → do not modify
+- present with empty list → clear the list

@@ -66,3 +66,18 @@ Step 5: switched the frontend session RTK Query endpoints to `/api/v2/...`, deco
 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts — Session API endpoints now query `/api/v2/...` and decode protobuf responses
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/sessionProtoAdapters.ts — New frontend decode-and-adapt layer from generated protobuf messages to existing UI-facing session models
+
+## 2026-04-06
+
+Step 6: defined the annotations protobuf schema, redesigned the flattened annotation list row as an intentional contract, added presence-safe list wrappers for patch semantics, and regenerated Go/TypeScript bindings (commit d20d61c).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto — Added the shared `StringList` message for presence-safe repeated-string patch fields
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/annotations.proto — Defined annotation enums, core annotation messages, list row, create/update/sync contracts, and response envelopes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/common.pb.go — Regenerated Go bindings for the shared common schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/annotations.pb.go — Generated Go bindings for the annotations API schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.d.ts — Regenerated frontend declaration output for shared protobuf definitions
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js — Regenerated frontend runtime output for shared protobuf definitions
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.d.ts — Generated frontend declaration output for the annotations protobuf schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.js — Generated frontend runtime output for the annotations protobuf schema

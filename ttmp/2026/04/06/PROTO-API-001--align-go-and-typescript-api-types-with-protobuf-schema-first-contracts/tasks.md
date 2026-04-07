@@ -52,12 +52,12 @@
 
 ### Step 6 — Define and implement protobuf schema for annotations
 
-- [ ] Define `annotations.proto`
-- [ ] Replace the flattened annotation list row with a consciously designed schema
-- [ ] Define typed create/update/sync request and response messages
-- [ ] Regenerate Go and TypeScript outputs
-- [ ] Commit the annotation schema changes
-- [ ] Update diary and changelog for the step
+- [x] Define `annotations.proto`
+- [x] Replace the flattened annotation list row with a consciously designed schema
+- [x] Define typed create/update/sync request and response messages
+- [x] Regenerate Go and TypeScript outputs
+- [x] Commit the annotation schema changes
+- [x] Update diary and changelog for the step
 
 ### Step 7 — Implement Go `/api/v2/annotations...` protobuf-backed JSON endpoints
 
