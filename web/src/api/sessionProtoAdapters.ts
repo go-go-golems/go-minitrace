@@ -1,0 +1,225 @@
+import { fromJson } from "@bufbuild/protobuf";
+import {
+  ListSessionsResponseSchema,
+  GetSessionSummaryResponseSchema,
+  GetSessionBlocksResponseSchema,
+  GetSessionDetailResponseSchema,
+  type SessionSummary as PbSessionSummary,
+  type SessionSummaryDetail as PbSessionSummaryDetail,
+  type SessionBlock as PbSessionBlock,
+  type SessionDetail as PbSessionDetail,
+  type Turn as PbTurn,
+  type ToolCall as PbToolCall,
+} from "../gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js";
+import { ToolCallBadge } from "../gen/proto/go_go_golems/minitrace/api/v1/common_pb.js";
+import type {
+  SessionSummary,
+  SessionSummaryDetail,
+  SessionBlock,
+  SessionDetail,
+  Turn,
+  ToolCall,
+  ToolCallBadge as UiToolCallBadge,
+} from "../types";
+
+export function decodeSessionSummaries(response: unknown): SessionSummary[] {
+  const decoded = fromJson(ListSessionsResponseSchema, response as never);
+  return decoded.sessions.map(adaptSessionSummary);
+}
+
+export function decodeSessionSummaryDetail(response: unknown): SessionSummaryDetail {
+  const decoded = fromJson(GetSessionSummaryResponseSchema, response as never);
+  return adaptSessionSummaryDetail(decoded.session);
+}
+
+export function decodeSessionBlocks(response: unknown): SessionBlock[] {
+  const decoded = fromJson(GetSessionBlocksResponseSchema, response as never);
+  return decoded.blocks.map(adaptSessionBlock);
+}
+
+export function decodeSessionDetail(response: unknown): SessionDetail {
+  const decoded = fromJson(GetSessionDetailResponseSchema, response as never);
+  return adaptSessionDetail(decoded.session);
+}
+
+function adaptSessionSummary(summary?: PbSessionSummary): SessionSummary {
+  return {
+    id: summary?.id ?? "",
+    title: summary?.title ?? "",
+    summary: summary?.summary ?? null,
+    classification: summary?.classification ?? "",
+    timing: {
+      started_at: summary?.timing?.startedAt ?? "",
+      ended_at: summary?.timing?.endedAt ?? null,
+      duration_seconds: summary?.timing?.durationSeconds ?? 0,
+      active_duration_seconds: summary?.timing?.activeDurationSeconds ?? 0,
+      hour_of_day: summary?.timing?.hourOfDay ?? 0,
+      day_of_week: summary?.timing?.dayOfWeek ?? 0,
+    },
+    metrics: {
+      turn_count: summary?.metrics?.turnCount ?? 0,
+      tool_call_count: summary?.metrics?.toolCallCount ?? 0,
+      total_input_tokens: summary?.metrics?.totalInputTokens,
+      total_output_tokens: summary?.metrics?.totalOutputTokens,
+      total_cache_read_tokens: summary?.metrics?.totalCacheReadTokens,
+    },
+    environment: {
+      agent_framework: summary?.environment?.agentFramework ?? "",
+      model: summary?.environment?.model ?? "",
+    },
+    operational_context: {
+      working_directory: summary?.operationalContext?.workingDirectory ?? "",
+      autonomy_level: summary?.operationalContext?.autonomyLevel,
+      sandbox: summary?.operationalContext?.sandbox,
+    },
+  };
+}
+
+function adaptSessionSummaryDetail(summary?: PbSessionSummaryDetail): SessionSummaryDetail {
+  return {
+    id: summary?.id ?? "",
+    title: summary?.title ?? "",
+    summary: summary?.summary ?? null,
+    classification: summary?.classification ?? "",
+    timing: {
+      started_at: summary?.timing?.startedAt ?? "",
+      ended_at: summary?.timing?.endedAt ?? null,
+      duration_seconds: summary?.timing?.durationSeconds ?? 0,
+      active_duration_seconds: summary?.timing?.activeDurationSeconds ?? 0,
+      hour_of_day: summary?.timing?.hourOfDay ?? 0,
+      day_of_week: summary?.timing?.dayOfWeek ?? 0,
+    },
+    metrics: {
+      turn_count: summary?.metrics?.turnCount ?? 0,
+      tool_call_count: summary?.metrics?.toolCallCount ?? 0,
+      total_input_tokens: summary?.metrics?.totalInputTokens,
+      total_output_tokens: summary?.metrics?.totalOutputTokens,
+      total_cache_read_tokens: summary?.metrics?.totalCacheReadTokens,
+    },
+    environment: {
+      agent_framework: summary?.environment?.agentFramework ?? "",
+      model: summary?.environment?.model ?? "",
+    },
+    operational_context: {
+      working_directory: summary?.operationalContext?.workingDirectory ?? "",
+      autonomy_level: summary?.operationalContext?.autonomyLevel,
+      sandbox: summary?.operationalContext?.sandbox,
+    },
+    provenance: {
+      source_format: summary?.provenance?.sourceFormat ?? "",
+      source_path: summary?.provenance?.sourcePath ?? "",
+      original_session_id: summary?.provenance?.originalSessionId ?? "",
+      converted_at: summary?.provenance?.convertedAt ?? "",
+    },
+  };
+}
+
+function adaptSessionDetail(detail?: PbSessionDetail): SessionDetail {
+  return {
+    id: detail?.id ?? "",
+    title: detail?.title ?? "",
+    summary: detail?.summary ?? null,
+    classification: detail?.classification ?? "",
+    timing: {
+      started_at: detail?.timing?.startedAt ?? "",
+      ended_at: detail?.timing?.endedAt ?? null,
+      duration_seconds: detail?.timing?.durationSeconds ?? 0,
+      active_duration_seconds: detail?.timing?.activeDurationSeconds ?? 0,
+      hour_of_day: detail?.timing?.hourOfDay ?? 0,
+      day_of_week: detail?.timing?.dayOfWeek ?? 0,
+    },
+    metrics: {
+      turn_count: detail?.metrics?.turnCount ?? 0,
+      tool_call_count: detail?.metrics?.toolCallCount ?? 0,
+      total_input_tokens: detail?.metrics?.totalInputTokens,
+      total_output_tokens: detail?.metrics?.totalOutputTokens,
+      total_cache_read_tokens: detail?.metrics?.totalCacheReadTokens,
+    },
+    environment: {
+      agent_framework: detail?.environment?.agentFramework ?? "",
+      model: detail?.environment?.model ?? "",
+    },
+    operational_context: {
+      working_directory: detail?.operationalContext?.workingDirectory ?? "",
+      autonomy_level: detail?.operationalContext?.autonomyLevel,
+      sandbox: detail?.operationalContext?.sandbox,
+    },
+    provenance: {
+      source_format: detail?.provenance?.sourceFormat ?? "",
+      source_path: detail?.provenance?.sourcePath ?? "",
+      original_session_id: detail?.provenance?.originalSessionId ?? "",
+      converted_at: detail?.provenance?.convertedAt ?? "",
+    },
+    blocks: detail?.blocks.map(adaptSessionBlock) ?? [],
+  };
+}
+
+function adaptSessionBlock(block: PbSessionBlock): SessionBlock {
+  return {
+    block_num: block.blockNum,
+    user_turn_idx: block.userTurnIdx,
+    user_ts: block.userTs,
+    user_content: block.userContent,
+    agent_turns: block.agentTurns,
+    tool_calls: block.toolCalls,
+    gap_minutes: block.gapMinutes ?? null,
+    turns: block.turns.map(adaptTurn),
+    artifacts: {
+      commits: [...(block.artifacts?.commits ?? [])],
+      tickets_created: [...(block.artifacts?.ticketsCreated ?? [])],
+      docs_added: [...(block.artifacts?.docsAdded ?? [])],
+      diary_writes: block.artifacts?.diaryWrites ?? 0,
+    },
+  };
+}
+
+function adaptTurn(turn: PbTurn): Turn {
+  return {
+    idx: turn.idx,
+    role: turn.role as Turn["role"],
+    source: turn.source,
+    content: turn.content,
+    timestamp: turn.timestamp,
+    tool_calls_in_turn: turn.toolCallsInTurn.map(adaptToolCall),
+  };
+}
+
+function adaptToolCall(toolCall: PbToolCall): ToolCall {
+  return {
+    id: toolCall.id,
+    tool_name: toolCall.toolName,
+    timestamp: toolCall.timestamp,
+    operation_type: toolCall.operationType,
+    input: {
+      command: toolCall.input?.command,
+      arguments: toolCall.input?.arguments,
+      file_path: toolCall.input?.filePath ?? null,
+    },
+    output: {
+      success: toolCall.output?.success ?? false,
+      result: toolCall.output?.result ?? null,
+      error: toolCall.output?.error ?? null,
+      duration_ms: toolCall.output?.durationMs ?? 0,
+      truncated: toolCall.output?.truncated ?? false,
+    },
+    badges: toolCall.badges.map(adaptToolCallBadge),
+  };
+}
+
+function adaptToolCallBadge(badge: ToolCallBadge): UiToolCallBadge {
+  switch (badge) {
+    case ToolCallBadge.COMMIT:
+      return "commit";
+    case ToolCallBadge.TICKET_CREATE:
+      return "ticket-create";
+    case ToolCallBadge.DOC_ADD:
+      return "doc-add";
+    case ToolCallBadge.DIARY_WRITE:
+      return "diary-write";
+    case ToolCallBadge.ERROR:
+      return "error";
+    case ToolCallBadge.UNSPECIFIED:
+    default:
+      return "error";
+  }
+}

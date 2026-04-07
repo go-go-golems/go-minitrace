@@ -11,6 +11,12 @@ import type {
   SessionAnnotationsResponse,
   SyncReport,
 } from "../types";
+import {
+  decodeSessionBlocks,
+  decodeSessionDetail,
+  decodeSessionSummaries,
+  decodeSessionSummaryDetail,
+} from "./sessionProtoAdapters";
 
 export const minitraceApi = createApi({
   reducerPath: "minitraceApi",
@@ -19,20 +25,24 @@ export const minitraceApi = createApi({
   endpoints: (builder) => ({
     // ── sessions ─────────────────────────────────
     getSessions: builder.query<SessionSummary[], void>({
-      query: () => "sessions",
+      query: () => "v2/sessions",
+      transformResponse: decodeSessionSummaries,
       providesTags: ["Sessions"],
     }),
 
     getSession: builder.query<SessionDetail, string>({
-      query: (id) => `sessions/${id}`,
+      query: (id) => `v2/sessions/${id}`,
+      transformResponse: decodeSessionDetail,
     }),
 
     getSessionSummary: builder.query<SessionSummaryDetail, string>({
-      query: (id) => `sessions/${id}/summary`,
+      query: (id) => `v2/sessions/${id}/summary`,
+      transformResponse: decodeSessionSummaryDetail,
     }),
 
     getSessionBlocks: builder.query<SessionBlock[], string>({
-      query: (id) => `sessions/${id}/blocks`,
+      query: (id) => `v2/sessions/${id}/blocks`,
+      transformResponse: decodeSessionBlocks,
     }),
 
     // ── queries ──────────────────────────────────
