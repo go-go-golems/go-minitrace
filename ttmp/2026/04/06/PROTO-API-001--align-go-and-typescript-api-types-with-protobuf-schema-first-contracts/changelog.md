@@ -81,3 +81,14 @@ Step 6: defined the annotations protobuf schema, redesigned the flattened annota
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js — Regenerated frontend runtime output for shared protobuf definitions
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.d.ts — Generated frontend declaration output for the annotations protobuf schema
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.js — Generated frontend runtime output for the annotations protobuf schema
+
+## 2026-04-06
+
+Step 7: added protobuf-backed `/api/v2/annotations...` handlers, replaced weakly typed annotation patch decoding on the new v2 surface with generated request messages, and added focused annotation v2 handler tests (commit f314896).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Registered the new `/api/v2/annotations...` routes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/protojson.go — Reused shared protobuf JSON request/response helpers for the annotation v2 routes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_annotations_v2.go — Added the new protobuf-backed annotation handlers and enum/string normalization helpers
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Added create/get/list/update/delete/sync tests for the v2 annotation routes

@@ -809,3 +809,125 @@ This lets the server distinguish:
 
 - field absent → do not modify
 - present with empty list → clear the list
+
+## Step 7: Add protobuf-backed `/api/v2/annotations...` handlers and test the end-to-end annotation contract
+
+This step took the new annotation schema from paper to code. Like the session migration, I kept the existing annotation routes in place and added a parallel v2 route family that uses generated protobuf messages for both request decoding and response emission. The main benefit here is stronger request typing: the v2 update route no longer decodes `map[string]any` and reconstructs a patch by hand.
+
+The other important improvement is that the backend now owns the enum/string translation explicitly. The SQLite store and archived session format still use the current string conventions for categories and scope types, but the v2 API contract now uses protobuf enums, and the conversion is centralized rather than implicit in frontend assumptions.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue into the annotation backend migration by wiring the new protobuf schema into real v2 handlers with tests.
+
+**Inferred user intent:** Prove that annotations can follow the same schema-first rollout pattern as sessions, including typed requests and responses.
+
+**Commit (code):** `f314896` — `serve: add protobuf-backed annotation v2 endpoints`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_annotations_v2.go`
+- Updated route registration in:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+- Added v2 annotation routes:
+  - `GET /api/v2/sessions/{id}/annotations`
+  - `POST /api/v2/sessions/{id}/annotations`
+  - `GET /api/v2/annotations`
+  - `PUT /api/v2/annotations/{annId}`
+  - `DELETE /api/v2/annotations/{annId}`
+  - `POST /api/v2/annotations/sync`
+- Reused the shared protobuf JSON helper from `protojson.go`.
+- Added normalization/conversion helpers for:
+  - scope type enum ↔ string
+  - category enum ↔ string
+  - `minitrace.Annotation` → protobuf `Annotation`
+  - flattened `annotate.AnnotationRow` → protobuf `AnnotationListRow`
+  - `annotate.SyncReport` → protobuf `SyncAnnotationsResponse`
+- Removed weakly typed patch handling on the v2 surface by decoding `UpdateAnnotationRequest` directly and mapping it to `annotate.AnnotationPatch`.
+- Added focused tests in `server_test.go` for:
+  - create + get session annotations v2
+  - list annotations v2
+  - update + delete annotation v2
+  - sync annotations v2
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && gofmt -w ...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- Pre-commit also ran:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+
+- The annotation API benefits strongly from generated request typing because update semantics were previously reconstructed from arbitrary JSON maps.
+- A v2 route family lets us migrate safely without breaking the existing annotation UI until the frontend is ready.
+- Focused tests are especially important here because annotation behavior spans HTTP handlers, the SQLite store, and sync back into session archive JSON files.
+
+### What worked
+
+- The new v2 annotation routes compile and test cleanly.
+- The update path now uses generated request messages instead of `map[string]any` decoding.
+- The sync route successfully returns a structured protobuf-backed report and writes annotations back to the archive JSON file.
+- Full Go tests and frontend build passed.
+
+### What didn't work
+
+- No build or lint failure occurred in this step.
+- I have not yet migrated the frontend annotation consumers, so the new routes are validated by backend tests rather than UI usage so far.
+
+### What I learned
+
+- The annotation API is an even better candidate than sessions for request typing because patch semantics are much easier to reason about once the request shape is generated and explicit.
+- The string/enum translation boundary is manageable as long as it is centralized in one file rather than spread across handlers and frontend assumptions.
+
+### What was tricky to build
+
+- The trickiest part was deciding what the v2 delete route should return. The old route used `204 No Content`, but the new protobuf schema included a typed `DeleteAnnotationResponse`. I chose a typed `200 OK` response for the v2 route so the contract remains explicit.
+- Another subtle point was how to treat unspecified enum values. The create handler keeps current behavior by defaulting unspecified scope to `session`, while still rejecting unspecified categories.
+
+### What warrants a second pair of eyes
+
+- Whether the v2 create/update/delete responses should eventually converge on returning full `Annotation` objects instead of `id/status` for update/delete.
+- Whether the enum↔string conversion helpers should remain local to the handler file or move into a shared transport normalization package once more v2 surfaces exist.
+
+### What should be done in the future
+
+- Continue with Step 8 and switch the frontend annotation endpoints to the v2 protobuf-backed routes.
+- Revisit whether the global list route should eventually support a typed filter request instead of query-parameter filters alone.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_annotations_v2.go`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/protojson.go`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+New v2 annotation routes:
+
+```text
+GET /api/v2/sessions/{id}/annotations
+POST /api/v2/sessions/{id}/annotations
+GET /api/v2/annotations
+PUT /api/v2/annotations/{annId}
+DELETE /api/v2/annotations/{annId}
+POST /api/v2/annotations/sync
+```
+
+Key contract improvement over the old route family:
+
+- old v1 update route: decode `map[string]any` and reconstruct `annotate.AnnotationPatch`
+- new v2 update route: decode generated `UpdateAnnotationRequest` and map it directly to `annotate.AnnotationPatch`

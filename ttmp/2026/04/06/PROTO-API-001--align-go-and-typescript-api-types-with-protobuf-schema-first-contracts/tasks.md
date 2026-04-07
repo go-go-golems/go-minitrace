@@ -61,14 +61,14 @@
 
 ### Step 7 — Implement Go `/api/v2/annotations...` protobuf-backed JSON endpoints
 
-- [ ] Add `/api/v2/sessions/{id}/annotations`
-- [ ] Add `/api/v2/annotations`
-- [ ] Add `/api/v2/annotations/{annId}` update/delete support as appropriate
-- [ ] Add `/api/v2/annotations/sync`
-- [ ] Remove weakly typed `map[string]any` patch decoding from the new v2 surface
-- [ ] Add/adjust serve tests for the new routes
-- [ ] Commit the backend annotation API changes
-- [ ] Update diary and changelog for the step
+- [x] Add `/api/v2/sessions/{id}/annotations`
+- [x] Add `/api/v2/annotations`
+- [x] Add `/api/v2/annotations/{annId}` update/delete support as appropriate
+- [x] Add `/api/v2/annotations/sync`
+- [x] Remove weakly typed `map[string]any` patch decoding from the new v2 surface
+- [x] Add/adjust serve tests for the new routes
+- [x] Commit the backend annotation API changes
+- [x] Update diary and changelog for the step
 
 ### Step 8 — Switch frontend annotation APIs to generated protobuf decoders
 
