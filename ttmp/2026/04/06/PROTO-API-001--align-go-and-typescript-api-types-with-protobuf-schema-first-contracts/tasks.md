@@ -81,12 +81,12 @@
 
 ### Step 9 — Align saved-query metadata with protobuf
 
-- [ ] Define `queries.proto` for presets and saved-query metadata
-- [ ] Keep ad hoc query execution results out of the first protobuf phase
-- [ ] Add `/api/v2/presets` and `/api/v2/queries`
-- [ ] Switch frontend preset/query metadata consumers to generated decoders
-- [ ] Commit the saved-query metadata changes
-- [ ] Update diary and changelog for the step
+- [x] Define `queries.proto` for presets and saved-query metadata
+- [x] Keep ad hoc query execution results out of the first protobuf phase
+- [x] Add `/api/v2/presets` and `/api/v2/queries`
+- [x] Switch frontend preset/query metadata consumers to generated decoders
+- [x] Commit the saved-query metadata changes
+- [x] Update diary and changelog for the step
 
 ### Step 10 — Document and validate the dynamic query-result exception
 

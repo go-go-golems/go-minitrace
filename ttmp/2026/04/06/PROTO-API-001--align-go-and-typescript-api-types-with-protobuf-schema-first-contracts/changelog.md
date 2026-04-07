@@ -103,3 +103,20 @@ Step 8: switched the frontend annotation RTK Query layer to the protobuf-backed 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/annotationProtoAdapters.ts — New annotation decode-and-encode adapter layer for protobuf-backed annotation transport
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts — `AnnotationListRow` now reflects the intentional lower-camel API contract instead of Go-exported field casing
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/SessionBrowserPage.tsx — Session-browser annotation aggregation updated to the new list-row contract
+
+## 2026-04-06
+
+Step 9: added protobuf-backed saved-query metadata contracts and `/api/v2/presets`/`/api/v2/queries` routes, migrated the frontend preset and saved-query metadata consumers to generated decoders, and kept `POST /api/query` deliberately out of the protobuf transport in this implementation slice (commit adce7eb).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/queries.proto — Defined the saved-query metadata schema and request/response envelopes for phase 1 query metadata
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/queries.pb.go — Generated Go bindings for the query-metadata protobuf schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_queries_v2.go — Added protobuf-backed presets and saved-query metadata handlers
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Registered the new `/api/v2/presets` and `/api/v2/queries` routes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Added protojson-based v2 query metadata handler tests
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/queryProtoAdapters.ts — Added frontend decode helpers for protobuf-backed preset and saved-query metadata responses
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts — Query metadata endpoints now call the new `/api/v2/...` routes and decode generated responses
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.d.ts — Generated frontend declaration output for the query-metadata protobuf schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.js — Generated frontend runtime output for the query-metadata protobuf schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/mocks/handlers.ts — Updated mock handlers so the query editor’s metadata endpoints work against the new v2 envelope shapes

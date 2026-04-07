@@ -1048,3 +1048,133 @@ Important design choice in this step:
 - migrate `AnnotationListRow` fully to the new intentional lower-camel contract now
 
 This removes the most obvious legacy Go-exported-field leak while keeping the broader UI migration incremental.
+
+## Step 9: Add protobuf-backed saved-query metadata routes and switch the frontend query metadata consumers
+
+This step completed the third structured API slice in the phase-1 migration: presets and saved-query metadata. I kept the scope intentionally narrow around query *metadata* and did not touch ad hoc query execution yet. That preserves the ticket’s core decision that `POST /api/query` is a different problem from listable, file-backed query definitions.
+
+The implementation mirrored the earlier session and annotation pattern: define a protobuf schema, generate Go/TypeScript bindings, add `/api/v2/...` handlers that emit protojson, and switch the frontend RTK Query consumers to generated decoders.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead,"
+
+**Assistant interpretation:** Continue from completed annotation migration into the saved-query metadata slice, then follow up with the explicit query-execution exception documentation.
+
+**Inferred user intent:** Finish the remaining structured protobuf rollout work before the final documentation and validation pass.
+
+**Commit (code):** `adce7eb` — `serve: add protobuf-backed query metadata endpoints`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/queries.proto`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/queries.pb.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.d.ts`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.js`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_queries_v2.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/queryProtoAdapters.ts`
+- Updated:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/mocks/handlers.ts`
+- Defined `queries.proto` with:
+  - `SavedQuery`
+  - `ListPresetsResponse`
+  - `ListQueriesResponse`
+  - `SaveQueryRequest`
+  - `UpdateQueryRequest`
+  - `DeleteQueryResponse`
+- Added protobuf-backed v2 routes:
+  - `GET /api/v2/presets`
+  - `GET /api/v2/queries`
+  - `POST /api/v2/queries`
+  - `PUT /api/v2/queries/{path...}`
+  - `DELETE /api/v2/queries/{path...}`
+- Added protojson-based tests for:
+  - presets v2 envelope
+  - saved-query CRUD v2 behavior
+- Switched the frontend query metadata consumers to:
+  - `GET /api/v2/presets`
+  - `GET /api/v2/queries`
+  - `POST /api/v2/queries`
+- Added frontend decode helpers for the new envelopes while keeping the existing UI-facing `SavedQuery` shape stable.
+- Updated MSW handlers so the query editor metadata flows still work against mock responses.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- Pre-commit also ran:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+
+- Presets and saved queries are a strong protobuf fit because they are file-backed metadata, not arbitrary row sets.
+- This completes the structured API surfaces that the original design doc identified as phase-1 protobuf candidates.
+- Migrating the query metadata consumers now narrows the remaining exception to one very explicit endpoint: `POST /api/query`.
+
+### What worked
+
+- The new `queries.proto` schema generated cleanly.
+- Backend v2 query metadata handlers compiled and passed tests.
+- Frontend build passed after switching the query metadata endpoints to `/api/v2/...`.
+- The query editor’s metadata consumers could remain on the existing `SavedQuery` view-model shape through a small adapter layer.
+- The mock handlers were easy to update because the new responses are explicit envelopes.
+
+### What didn't work
+
+- I initially ran `buf generate` and the frontend build in parallel, which caused a transient TypeScript failure because the generated `queries_pb.js` file was not available yet when the build started.
+- Pre-commit caught a `govet` issue in a test where I formatted a protobuf message value directly in `t.Fatalf`, which copied an embedded mutex. I fixed that by logging the specific fields instead.
+- `buf lint` still reports the pre-existing package/directory mismatch for the repo’s current proto layout (`proto/go_go_golems/...` versus package-relative path expectations). I did not change that layout in this step because it predates the query metadata schema and would be a separate repo-wide proto-structure change.
+
+### What I learned
+
+- The saved-query metadata slice is simpler than annotations because the shape is flatter and does not need presence-aware patch wrappers beyond the existing request fields.
+- The right migration strategy here was to keep the UI-facing `SavedQuery` shape stable and only change the transport envelopes.
+- Once sessions, annotations, and query metadata are all moved, the remaining protobuf exception becomes much easier to explain cleanly.
+
+### What was tricky to build
+
+- The main tricky part was keeping the scope disciplined. It would have been easy to let this step drift into dynamic query-result modeling, but that would have mixed file metadata concerns with arbitrary SQL result transport.
+- Another subtle point was mock compatibility: because the frontend now decodes envelopes with `fromJson(...)`, the MSW handlers needed to return the new v2 response shapes rather than simple arrays.
+
+### What warrants a second pair of eyes
+
+- Whether the v2 query metadata surface should eventually gain explicit protobuf-backed `GET /api/v2/queries/{path}` support, or whether list/create/update/delete are sufficient.
+- Whether the repo should eventually restructure the `proto/` tree to satisfy `buf lint` package-directory expectations rather than continuing with the currently working generation layout.
+
+### What should be done in the future
+
+- Move to Step 10 and explicitly document why `POST /api/query` remains JSON-native.
+- Finish the ticket with final validation, doc cleanup, and delivery after that documentation step lands.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/queries.proto`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_queries_v2.go`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/queryProtoAdapters.ts`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+7. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/mocks/handlers.ts`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+The important scope boundary stayed intact in this step:
+
+- protobuf now covers saved-query metadata
+- protobuf still does **not** cover ad hoc query execution results
+
+That remaining exception is intentional and will be documented explicitly in the next step.

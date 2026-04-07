@@ -44,8 +44,11 @@ Current status:
 - ticket workspace created
 - current API duplication analyzed
 - detailed design and implementation guide written
-- phased task list created
-- implementation work not yet started beyond planning/scaffolding preparation
+- protobuf/Buf scaffolding complete
+- sessions API migrated to protobuf-backed `/api/v2/...`
+- annotations API migrated to protobuf-backed `/api/v2/...`
+- saved-query metadata migrated to protobuf-backed `/api/v2/...`
+- dynamic `POST /api/query` intentionally still pending explicit documentation as the phase-1 JSON-native exception
 
 ## Key Links
 
