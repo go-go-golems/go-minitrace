@@ -41,6 +41,10 @@ type QueryError struct {
 	Message string `json:"message"`
 }
 
+// QueryResponse intentionally remains JSON-native in phase 1 of the protobuf API rollout.
+// The execute-query surface returns arbitrary row shapes (`[]map[string]any`) whose schema
+// depends on user SQL, so sessions, annotations, and saved-query metadata were migrated first.
+// A future wrapper could use google.protobuf.Struct if a protobuf envelope becomes worthwhile.
 type QueryResponse struct {
 	Columns    []string         `json:"columns"`
 	Rows       []map[string]any `json:"rows"`

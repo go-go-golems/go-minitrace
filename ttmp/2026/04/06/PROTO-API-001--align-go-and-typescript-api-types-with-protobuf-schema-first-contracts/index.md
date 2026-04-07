@@ -48,12 +48,13 @@ Current status:
 - sessions API migrated to protobuf-backed `/api/v2/...`
 - annotations API migrated to protobuf-backed `/api/v2/...`
 - saved-query metadata migrated to protobuf-backed `/api/v2/...`
-- dynamic `POST /api/query` intentionally still pending explicit documentation as the phase-1 JSON-native exception
+- dynamic `POST /api/query` intentionally remains JSON-native in phase 1 and is now explicitly documented as the main rollout exception
 
 ## Key Links
 
 - **Primary design doc**: `design-doc/01-protobuf-schema-first-api-alignment-analysis-and-implementation-guide.md`
 - **Diary**: `reference/01-investigation-diary.md`
+- **Query exception note**: `reference/02-query-execution-json-native-exception-and-validation-notes.md`
 - **Tasks**: `tasks.md`
 - **Changelog**: `changelog.md`
 - **Related Files**: See frontmatter `RelatedFiles`

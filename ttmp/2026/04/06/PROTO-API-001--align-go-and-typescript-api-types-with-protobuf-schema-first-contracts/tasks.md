@@ -90,11 +90,11 @@
 
 ### Step 10 — Document and validate the dynamic query-result exception
 
-- [ ] Write down why `POST /api/query` remains JSON-native for now
-- [ ] Optionally sketch a future `google.protobuf.Struct` path, but do not block the ticket on it
-- [ ] Add validation notes for protojson casing, optional fields, and any 64-bit numeric choices
-- [ ] Commit the documentation updates
-- [ ] Update diary and changelog for the step
+- [x] Write down why `POST /api/query` remains JSON-native for now
+- [x] Optionally sketch a future `google.protobuf.Struct` path, but do not block the ticket on it
+- [x] Add validation notes for protojson casing, optional fields, and any 64-bit numeric choices
+- [x] Commit the documentation updates
+- [x] Update diary and changelog for the step
 
 ### Step 11 — Final validation, ticket cleanup, and reMarkable delivery
 

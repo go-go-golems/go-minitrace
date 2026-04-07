@@ -508,6 +508,8 @@ Current shape:
 
 This is intentionally dynamic. It can be modeled later with `google.protobuf.Struct`, but doing so in the first phase would add complexity while giving limited practical type safety.
 
+Implementation note (2026-04-06): the phase-1 rollout kept `POST /api/query` JSON-native and recorded the rationale plus validation notes in `reference/02-query-execution-json-native-exception-and-validation-notes.md`.
+
 The recommended design decision is therefore:
 
 > Keep the query execution endpoint JSON-native in phase 1 and document that this is an intentional exception.

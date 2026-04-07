@@ -1178,3 +1178,102 @@ The important scope boundary stayed intact in this step:
 - protobuf still does **not** cover ad hoc query execution results
 
 That remaining exception is intentional and will be documented explicitly in the next step.
+
+## Step 10: Document the deliberate JSON-native query execution exception and record validation notes
+
+This step closed the loop on the main phase-1 boundary decision: sessions, annotations, and saved-query metadata are now protobuf-backed, while dynamic query execution remains JSON-native on purpose. The goal here was not to add more code, but to make the exception durable and explicit so future work does not misread it as an accidental omission.
+
+I documented the decision both in ticket docs and directly in code. That way reviewers can see the reasoning at the architecture level, and future implementers who land in `server.go` can also see why `QueryResponse` still uses a generic JSON shape.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead,"
+
+**Assistant interpretation:** After completing the saved-query metadata migration, finish the planned documentation step for the remaining JSON-native query execution endpoint.
+
+**Inferred user intent:** Complete the first-phase protobuf rollout cleanly, including the rationale for what was intentionally left out.
+
+**Commit (code/docs):** pending at the time of writing this entry
+
+### What I did
+
+- Updated `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go` with an explicit comment above `QueryResponse` explaining why it remains JSON-native in phase 1.
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/reference/02-query-execution-json-native-exception-and-validation-notes.md`
+- Updated:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/design-doc/01-protobuf-schema-first-api-alignment-analysis-and-implementation-guide.md`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/index.md`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/tasks.md`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/changelog.md`
+- Wrote down:
+  - why arbitrary SQL result rows are a poor first protobuf target
+  - what a future `google.protobuf.Struct` wrapper could look like
+  - validation notes for protojson lower-camel casing
+  - validation notes for `optional`/presence semantics
+  - validation notes for 64-bit numeric ergonomics
+  - a practical reminder that `buf generate` must run before the frontend build
+
+### Why
+
+- The protobuf rollout is easier to maintain if its one major exception is documented explicitly rather than only implied by missing code changes.
+- The team now has a durable reference for why structured metadata migrated while arbitrary query results did not.
+- The validation notes capture migration lessons that are easy to forget but likely to matter again as the API surface grows.
+
+### What worked
+
+- The code comment in `server.go` makes the exception visible directly at the transport type definition.
+- The new reference note cleanly separates architectural rationale from code implementation details.
+- The ticket index now links directly to the exception note, so reviewers do not need to infer the decision from scattered comments.
+
+### What didn't work
+
+- No runtime validation was needed in this step because it was documentation and code-comment work.
+- The repo’s current `buf lint` package/directory warning remains relevant context, but it is still a separate repo-structure concern rather than part of the dynamic query exception itself.
+
+### What I learned
+
+- Once the structured surfaces are migrated, the remaining exception is much easier to explain cleanly and tersely.
+- Capturing validation lessons as part of the ticket is useful because protobuf migrations fail as often on transport conventions and sequencing as on schema design itself.
+
+### What was tricky to build
+
+- The tricky part was writing a note that is specific enough to be actionable without overcommitting to a future `Struct` design that the repo may never need.
+- Another subtle point was deciding where the rationale should live: I chose both code-local documentation and a durable ticket reference note.
+
+### What warrants a second pair of eyes
+
+- Whether the future protobuf-wrapper sketch for query execution is the right level of specificity or should stay even more abstract.
+- Whether this exception note should eventually be summarized in a user-facing API doc outside the ticket workspace as well.
+
+### What should be done in the future
+
+- Finish the ticket with the final validation and cleanup pass.
+- Optionally decide later whether the dynamic query route should keep its JSON-native shape permanently or gain a protobuf envelope with `google.protobuf.Struct` rows.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/reference/02-query-execution-json-native-exception-and-validation-notes.md`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/design-doc/01-protobuf-schema-first-api-alignment-analysis-and-implementation-guide.md`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/index.md`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/tasks.md`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/changelog.md`
+
+Validation guidance for the overall rollout remains:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+Decision preserved by this step:
+
+- structured DTO surfaces use protobuf-backed `/api/v2/...`
+- dynamic ad hoc query execution remains JSON-native on `/api/query`
+
+That is the intended phase-1 boundary, not a partially finished migration.

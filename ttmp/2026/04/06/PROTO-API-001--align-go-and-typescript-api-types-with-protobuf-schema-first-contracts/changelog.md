@@ -120,3 +120,14 @@ Step 9: added protobuf-backed saved-query metadata contracts and `/api/v2/preset
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.d.ts — Generated frontend declaration output for the query-metadata protobuf schema
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.js — Generated frontend runtime output for the query-metadata protobuf schema
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/mocks/handlers.ts — Updated mock handlers so the query editor’s metadata endpoints work against the new v2 envelope shapes
+
+## 2026-04-06
+
+Step 10: documented the deliberate phase-1 exception for `POST /api/query`, added a code comment on the JSON-native dynamic query transport, and recorded validation notes for protojson casing, optional fields, 64-bit numeric choices, and codegen sequencing (pending docs commit).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go — Added an explicit code comment documenting why `QueryResponse` remains JSON-native in phase 1
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/reference/02-query-execution-json-native-exception-and-validation-notes.md — New durable note explaining the dynamic query-result exception and future `google.protobuf.Struct` option
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/design-doc/01-protobuf-schema-first-api-alignment-analysis-and-implementation-guide.md — Added an implementation note linking the dynamic query exception record
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/index.md — Linked the new exception note from the ticket index
