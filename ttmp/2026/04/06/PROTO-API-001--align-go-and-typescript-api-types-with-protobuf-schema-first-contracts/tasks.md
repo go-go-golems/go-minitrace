@@ -30,25 +30,25 @@
 
 ### Step 4 — Implement Go `/api/v2/sessions...` protobuf-backed JSON endpoints
 
-- [ ] Add `/api/v2/sessions`
-- [ ] Add `/api/v2/sessions/{id}/summary`
-- [ ] Add `/api/v2/sessions/{id}/blocks`
-- [ ] Optionally add `/api/v2/sessions/{id}` if the full-detail route remains useful
-- [ ] Normalize internal session values into generated protobuf messages
-- [ ] Emit JSON with `protojson`
-- [ ] Add/adjust serve tests for the new routes
-- [ ] Commit the backend session API changes
-- [ ] Update diary and changelog for the step
+- [x] Add `/api/v2/sessions`
+- [x] Add `/api/v2/sessions/{id}/summary`
+- [x] Add `/api/v2/sessions/{id}/blocks`
+- [x] Optionally add `/api/v2/sessions/{id}` if the full-detail route remains useful
+- [x] Normalize internal session values into generated protobuf messages
+- [x] Emit JSON with `protojson`
+- [x] Add/adjust serve tests for the new routes
+- [x] Commit the backend session API changes
+- [x] Update diary and changelog for the step
 
 ### Step 5 — Switch frontend session APIs to generated protobuf decoders
 
-- [ ] Add generated TS imports and decode helpers using `fromJson(...)`
-- [ ] Migrate session RTK Query endpoints to `/api/v2/...`
-- [ ] Keep React component expectations stable with thin adapters if needed
-- [ ] Run `cd web && npm run build`
-- [ ] Smoke-test Session Browser and Transcript Viewer
-- [ ] Commit the frontend session API changes
-- [ ] Update diary and changelog for the step
+- [x] Add generated TS imports and decode helpers using `fromJson(...)`
+- [x] Migrate session RTK Query endpoints to `/api/v2/...`
+- [x] Keep React component expectations stable with thin adapters if needed
+- [x] Run `cd web && npm run build`
+- [x] Smoke-test Session Browser and Transcript Viewer
+- [x] Commit the frontend session API changes
+- [x] Update diary and changelog for the step
 
 ### Step 6 — Define and implement protobuf schema for annotations
 

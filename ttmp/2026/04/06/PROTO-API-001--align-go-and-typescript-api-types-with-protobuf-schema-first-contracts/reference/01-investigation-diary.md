@@ -411,3 +411,264 @@ google.protobuf.Struct arguments = 2;
 ```
 
 which generated to `JsonObject` in TypeScript.
+
+## Step 4: Add protobuf-backed `/api/v2/sessions...` routes and protojson tests
+
+This step was the first full end-to-end proof that the schema-first approach can coexist with the existing API. I added a parallel `/api/v2/sessions...` route family instead of replacing the old JSON handlers in place, and I built the new route logic by converting the current normalized session DTOs into generated protobuf messages.
+
+A useful surprise in this step was a frontend build issue unrelated to the handler logic itself. The original TypeScript protobuf generation target (`target=ts`) emitted `enum` syntax, which conflicts with the repo’s `erasableSyntaxOnly` compiler setting. Rather than weakening the compiler settings for the whole frontend, I changed the generation mode to `js+dts`, regenerated the frontend protobuf outputs, and kept the repo’s stricter TS rules intact.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue with the next implementation step by wiring the new schema into real backend routes, while preserving reviewable boundaries and a detailed diary trail.
+
+**Inferred user intent:** See the protobuf approach validated in real code, not only in schema definitions.
+
+**Commit (code):** `00670d2` — `serve: add protobuf-backed session v2 endpoints`
+
+### What I did
+
+- Added a shared protobuf JSON writer:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/protojson.go`
+- Added session v2 handlers:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions_v2.go`
+- Updated route registration in:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+- Added `/api/v2/...` session routes:
+  - `GET /api/v2/sessions`
+  - `GET /api/v2/sessions/{id}`
+  - `GET /api/v2/sessions/{id}/summary`
+  - `GET /api/v2/sessions/{id}/blocks`
+- Built a normalization layer from the existing normalized session DTOs into generated protobuf messages, including:
+  - summaries
+  - summary detail
+  - full detail
+  - transcript blocks / turns / tool calls
+  - badge conversion
+  - `google.protobuf.Struct` conversion for tool-call arguments
+- Added protojson-based tests in:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+- Adjusted frontend protobuf generation mode in:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/buf.gen.yaml`
+- Regenerated frontend outputs to `js+dts`, producing:
+  - `.d.ts` declaration files
+  - `.js` runtime files
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && gofmt -w ...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./cmd/go-minitrace/cmds/serve/...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- During commit, pre-commit also ran:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+
+- A versioned route family allows the protobuf-backed contract to prove itself without breaking the existing consumers immediately.
+- Reusing the current normalized DTO semantics reduces risk because we do not have to solve transport migration and view-model redesign at the same time.
+- The frontend generation-mode adjustment was necessary to keep the generated protobuf runtime compatible with the repo’s TypeScript compiler policy.
+
+### What worked
+
+- The new v2 session routes compile and test cleanly.
+- The tests verify protojson envelopes rather than only checking that handlers return a `200`.
+- Full Go test suite passed.
+- Frontend build passed after switching generated protobuf output to `js+dts`.
+- Keeping the old `/api/...` routes in place made the new v2 implementation straightforward to stage and review.
+
+### What didn't work
+
+- My first attempt to commit the step failed because `golangci-lint`’s `exhaustive` checker rejected the initial badge conversion `switch` in `handlers_sessions_v2.go`:
+
+```text
+missing cases in switch of type serve.BadgeType: serve.BadgeCommit, serve.BadgeTicketCreate, serve.BadgeDocAdd, serve.BadgeDiaryWrite, serve.BadgeError
+```
+
+- I fixed that by replacing the switch with a small lookup map.
+- I also hit a frontend build failure after generating TypeScript protobuf files with `target=ts`:
+
+```text
+src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.ts(...): error TS1294: This syntax is not allowed when 'erasableSyntaxOnly' is enabled.
+```
+
+- The cause was generated `enum` syntax in the TS output. I fixed that by switching Buf’s frontend plugin target to `js+dts`.
+- One commit retry also failed because the corrected `handlers_sessions_v2.go` content had not been re-staged yet; the pre-commit hook was still linting the previously staged version.
+
+### What I learned
+
+- A parallel v2 route family is a very practical way to roll out protobuf-backed JSON without destabilizing existing UI code.
+- The repo’s TS compiler policy matters when choosing protobuf-es output mode; `target=ts` is not universally safe in stricter TS projects.
+- Converting from the current normalized DTO layer to generated protobuf messages is a good transitional architecture because it preserves current semantics while still making the new transport contract explicit.
+
+### What was tricky to build
+
+- The trickiest part was not the route registration; it was preserving the exact field semantics while converting to generated protobuf messages, especially around optional values and dynamic tool-call arguments.
+- Another subtle problem was generated frontend output compatibility. It is easy to assume codegen is purely backend-facing, but the TS compiler settings strongly influence which codegen target is viable.
+- The failed commit retries were also a reminder that staged content matters when working incrementally in a dirty repository.
+
+### What warrants a second pair of eyes
+
+- Whether the current conversion helpers should stay in `handlers_sessions_v2.go` or move into a dedicated normalization package once annotations and queries get their own protobuf-backed handlers.
+- Whether `GetSessionDetailResponse` should remain part of v2 long-term, or whether the app should lean on summary + blocks only.
+- Whether the `js+dts` generation mode is the preferred long-term frontend output, or whether the repo should later isolate generated TS from the stricter app tsconfig instead.
+
+### What should be done in the future
+
+- Move on to Step 5 and switch the frontend session APIs to generated decoders against `/api/v2/...`.
+- Revisit shared conversion/helper organization after more v2 route families exist.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/protojson.go`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions_v2.go`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/buf.gen.yaml`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.d.ts`
+7. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js`
+8. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.d.ts`
+9. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+New v2 routes:
+
+```text
+GET /api/v2/sessions
+GET /api/v2/sessions/{id}
+GET /api/v2/sessions/{id}/summary
+GET /api/v2/sessions/{id}/blocks
+```
+
+The frontend protobuf generation mode changed from:
+
+```yaml
+target=ts
+```
+
+to:
+
+```yaml
+target=js+dts
+import_extension=js
+```
+
+because the repo’s TypeScript config uses `erasableSyntaxOnly` and the previous generated TS `enum` output was not accepted by the compiler.
+
+## Step 5: Switch frontend session APIs to generated protobuf decoders while keeping the UI model stable
+
+This step moved the frontend session API layer onto the new protobuf-backed `/api/v2/...` routes without forcing a large React component refactor. Instead of changing every transcript/session component to consume protobuf-generated message shapes directly, I added a decode-and-adapt layer that turns generated protobuf messages back into the existing UI-facing session models.
+
+That adapter approach is intentionally transitional. It gives us the contract alignment benefits immediately at the API boundary while keeping the rest of the frontend reviewable and low-risk. We can later decide whether the UI should consume generated types more directly, but that is no longer required just to adopt the schema-first transport layer.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue through the task plan by migrating the frontend session API consumers to the new protobuf-backed transport while avoiding unnecessary UI churn.
+
+**Inferred user intent:** Prove that the protobuf-backed API can be consumed by the real frontend, not only by backend tests.
+
+**Commit (code):** `272b937` — `web: decode protobuf session api responses`
+
+### What I did
+
+- Added a new adapter/decode module:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/sessionProtoAdapters.ts`
+- Updated:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+- Switched session RTK Query endpoints from `/api/...` to `/api/v2/...` for:
+  - session list
+  - full session detail
+  - summary detail
+  - blocks
+- Decoded the protobuf-backed JSON envelopes using generated schemas and `fromJson(...)`.
+- Adapted generated protobuf messages back into the existing frontend session model shape, including:
+  - session timing / metrics / environment / context / provenance
+  - transcript blocks / turns / tool calls
+  - tool-call badge mapping from protobuf enum values back to the existing string-union UI badge type
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+
+### Why
+
+- The component tree already expects the existing session-shaped transport objects, especially for transcript blocks and tool-call rows.
+- Forcing a UI-wide field-casing and type migration at the same time as the transport migration would make review and debugging much harder.
+- A thin decode-and-adapt layer lets us shift the source of truth for transport contracts to generated protobuf messages without destabilizing the rest of the UI.
+
+### What worked
+
+- The frontend build passed.
+- The full Go test suite still passed.
+- The session API layer now consumes protobuf-generated schemas and the v2 backend routes.
+- The adaptation layer kept the current session page and transcript page model expectations intact.
+
+### What didn't work
+
+- My first adapter implementation tried to reuse `adaptSessionSummary(...)` for `SessionSummaryDetail` and `SessionDetail`, but TypeScript rejected that because protobuf-generated message types include a branded `$typeName` field and are therefore not structurally interchangeable even when they share the same fields.
+- The build failed with errors like:
+
+```text
+Argument of type 'SessionSummaryDetail | undefined' is not assignable to parameter of type 'SessionSummary | undefined'.
+Types of property '$typeName' are incompatible.
+```
+
+- I fixed this by writing explicit adapter functions for summary detail and full detail instead of trying to share a branded protobuf message type across helper boundaries.
+
+### What I learned
+
+- Generated protobuf messages in TypeScript are not just plain structural data bags; the `$typeName` branding matters and affects helper design.
+- A decode-and-adapt layer is a very practical middle ground for incremental migration: the API boundary becomes generated and strongly aligned, while the React tree can evolve later at its own pace.
+
+### What was tricky to build
+
+- The trickiest part was keeping the adapter layer honest about optionality and default values. The existing UI expects many fields to exist in snake_case with `null` or empty-string conventions, while the generated protobuf types are camelCase with optional presence.
+- Another subtle point was badge mapping. The protobuf schema now uses an enum for tool-call badges, but the UI still expects the older string-union badge type.
+
+### What warrants a second pair of eyes
+
+- Whether the adapter layer should remain in `web/src/api/` long-term or eventually move to a dedicated transport/view-model boundary module.
+- Whether the current fallback for `ToolCallBadge.UNSPECIFIED` should remain mapped to `"error"` or instead be filtered/dropped explicitly.
+- Whether the now-larger frontend bundle size should be revisited after more generated protobuf modules are added.
+
+### What should be done in the future
+
+- Continue with annotations as the next major protobuf-backed API surface.
+- Decide later whether the React components should eventually consume protobuf-generated camelCase models more directly.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/sessionProtoAdapters.ts`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+```
+
+### Technical details
+
+The new frontend decoder path uses generated schemas and `fromJson(...)` against the v2 response envelopes, then adapts them into the existing UI-facing types.
+
+Example pattern:
+
+```ts
+const decoded = fromJson(ListSessionsResponseSchema, response as never);
+return decoded.sessions.map(adaptSessionSummary);
+```
