@@ -13,6 +13,7 @@ import (
 	"time"
 
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
+	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -592,6 +593,293 @@ func TestHandleGetSessionV2ReturnsDetailEnvelope(t *testing.T) {
 	}
 	if payload.Session.GetBlocks()[0].GetTurns()[1].GetToolCallsInTurn()[0].GetToolName() != "exec_command" {
 		t.Fatalf("unexpected tool name %q", payload.Session.GetBlocks()[0].GetTurns()[1].GetToolCallsInTurn()[0].GetToolName())
+	}
+}
+
+func TestHandleCreateAndGetSessionAnnotationsV2(t *testing.T) {
+	ctx := context.Background()
+	outputDir := t.TempDir()
+	store, err := annotate.Open(ctx, outputDir)
+	if err != nil {
+		t.Fatalf("annotate.Open returned error: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, map[string]string{})
+
+	createReq := &apiv1.CreateAnnotationRequest{
+		ScopeType:      apiv1.AnnotationScopeType_ANNOTATION_SCOPE_TYPE_TURN,
+		TargetId:       "1",
+		Category:       apiv1.AnnotationCategory_ANNOTATION_CATEGORY_OBSERVATION,
+		Title:          "Investigate this turn",
+		Detail:         "Initial note",
+		Tags:           []string{"triage", "ui"},
+		TaxonomyMast:   []string{"M-OBS"},
+		Classification: stringPtr("candidate"),
+	}
+	createBody, err := protojson.Marshal(createReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal createReq: %v", err)
+	}
+	createRequest := httptest.NewRequest(http.MethodPost, "/api/v2/sessions/sess-v2-ann/annotations", strings.NewReader(string(createBody)))
+	createRequest.SetPathValue("id", "sess-v2-ann")
+	createResponse := httptest.NewRecorder()
+
+	server.handleCreateAnnotationV2(createResponse, createRequest)
+
+	if createResponse.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d with body %s", createResponse.Code, createResponse.Body.String())
+	}
+
+	var created apiv1.Annotation
+	if err := protojson.Unmarshal(createResponse.Body.Bytes(), &created); err != nil {
+		t.Fatalf("protojson.Unmarshal created annotation: %v", err)
+	}
+	if created.GetScope().GetType() != apiv1.AnnotationScopeType_ANNOTATION_SCOPE_TYPE_TURN {
+		t.Fatalf("unexpected scope type %v", created.GetScope().GetType())
+	}
+	if created.GetContent().GetCategory() != apiv1.AnnotationCategory_ANNOTATION_CATEGORY_OBSERVATION {
+		t.Fatalf("unexpected category %v", created.GetContent().GetCategory())
+	}
+	if len(created.GetContent().GetTags()) != 2 {
+		t.Fatalf("expected 2 tags, got %d", len(created.GetContent().GetTags()))
+	}
+
+	getRequest := httptest.NewRequest(http.MethodGet, "/api/v2/sessions/sess-v2-ann/annotations", nil)
+	getRequest.SetPathValue("id", "sess-v2-ann")
+	getResponse := httptest.NewRecorder()
+
+	server.handleGetSessionAnnotationsV2(getResponse, getRequest)
+
+	if getResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", getResponse.Code, getResponse.Body.String())
+	}
+
+	var payload apiv1.GetSessionAnnotationsResponse
+	if err := protojson.Unmarshal(getResponse.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal get session annotations v2: %v", err)
+	}
+	if payload.GetSessionId() != "sess-v2-ann" {
+		t.Fatalf("unexpected session id %q", payload.GetSessionId())
+	}
+	if payload.GetCount() != 1 {
+		t.Fatalf("expected count=1, got %d", payload.GetCount())
+	}
+	if payload.GetAnnotations()[0].GetContent().GetTitle() != "Investigate this turn" {
+		t.Fatalf("unexpected title %q", payload.GetAnnotations()[0].GetContent().GetTitle())
+	}
+}
+
+func TestHandleListAnnotationsV2ReturnsIntentionalRows(t *testing.T) {
+	ctx := context.Background()
+	outputDir := t.TempDir()
+	store, err := annotate.Open(ctx, outputDir)
+	if err != nil {
+		t.Fatalf("annotate.Open returned error: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+
+	ann := minitrace.Annotation{
+		ID:        "ann-v2-list",
+		Timestamp: minitrace.FormatTimestamp(time.Now().UTC()),
+		Annotator: "user",
+		Scope:     minitrace.AnnotationScope{Type: "tool_call", TargetID: "call-123"},
+		Content: minitrace.AnnotationContent{
+			Category: "ai-failure",
+			Title:    "Bad output",
+			Detail:   "Tool failed",
+			Tags:     []string{"triage"},
+		},
+		TaxonomyMappings: minitrace.TaxonomyMappings{
+			Minitrace: []string{"F-01"},
+		},
+	}
+	if err := store.AddAnnotation(ctx, ann, "sess-v2-list"); err != nil {
+		t.Fatalf("AddAnnotation returned error: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, map[string]string{})
+	request := httptest.NewRequest(http.MethodGet, "/api/v2/annotations", nil)
+	response := httptest.NewRecorder()
+
+	server.handleListAnnotationsV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ListAnnotationsResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal list annotations v2: %v", err)
+	}
+	if len(payload.GetAnnotations()) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(payload.GetAnnotations()))
+	}
+	row := payload.GetAnnotations()[0]
+	if row.GetSessionId() != "sess-v2-list" {
+		t.Fatalf("unexpected session id %q", row.GetSessionId())
+	}
+	if row.GetScopeType() != apiv1.AnnotationScopeType_ANNOTATION_SCOPE_TYPE_TOOL_CALL {
+		t.Fatalf("unexpected scope type %v", row.GetScopeType())
+	}
+	if !strings.Contains(response.Body.String(), "sessionId") {
+		t.Fatalf("expected camelCase sessionId field in response: %s", response.Body.String())
+	}
+}
+
+func TestHandleUpdateAndDeleteAnnotationV2(t *testing.T) {
+	ctx := context.Background()
+	outputDir := t.TempDir()
+	store, err := annotate.Open(ctx, outputDir)
+	if err != nil {
+		t.Fatalf("annotate.Open returned error: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+
+	ann := minitrace.Annotation{
+		ID:        "ann-v2-update",
+		Timestamp: minitrace.FormatTimestamp(time.Now().UTC()),
+		Annotator: "user",
+		Scope:     minitrace.AnnotationScope{Type: "session", TargetID: "sess-v2-update"},
+		Content: minitrace.AnnotationContent{
+			Category: "observation",
+			Title:    "Original",
+			Detail:   "Old detail",
+			Tags:     []string{"old"},
+		},
+		TaxonomyMappings: minitrace.TaxonomyMappings{
+			Minitrace: []string{"OLD"},
+		},
+	}
+	if err := store.AddAnnotation(ctx, ann, "sess-v2-update"); err != nil {
+		t.Fatalf("AddAnnotation returned error: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, map[string]string{})
+	newCategory := apiv1.AnnotationCategory_ANNOTATION_CATEGORY_QUESTION
+	updateReq := &apiv1.UpdateAnnotationRequest{
+		Title:             stringPtr("Updated"),
+		Detail:            stringPtr("New detail"),
+		Category:          &newCategory,
+		Tags:              &apiv1.StringList{Values: []string{}},
+		TaxonomyMinitrace: &apiv1.StringList{Values: []string{"NEW"}},
+	}
+	updateBody, err := protojson.Marshal(updateReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal updateReq: %v", err)
+	}
+	updateRequest := httptest.NewRequest(http.MethodPut, "/api/v2/annotations/ann-v2-update", strings.NewReader(string(updateBody)))
+	updateRequest.SetPathValue("annId", "ann-v2-update")
+	updateResponse := httptest.NewRecorder()
+
+	server.handleUpdateAnnotationV2(updateResponse, updateRequest)
+
+	if updateResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", updateResponse.Code, updateResponse.Body.String())
+	}
+
+	stored, err := store.GetAnnotationsForSession(ctx, "sess-v2-update")
+	if err != nil {
+		t.Fatalf("GetAnnotationsForSession returned error: %v", err)
+	}
+	if stored[0].Content.Title != "Updated" {
+		t.Fatalf("unexpected updated title %q", stored[0].Content.Title)
+	}
+	if len(stored[0].Content.Tags) != 0 {
+		t.Fatalf("expected tags to be cleared, got %#v", stored[0].Content.Tags)
+	}
+	if stored[0].Content.Category != "question" {
+		t.Fatalf("unexpected updated category %q", stored[0].Content.Category)
+	}
+	if len(stored[0].TaxonomyMappings.Minitrace) != 1 || stored[0].TaxonomyMappings.Minitrace[0] != "NEW" {
+		t.Fatalf("unexpected taxonomy %#v", stored[0].TaxonomyMappings.Minitrace)
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/v2/annotations/ann-v2-update", nil)
+	deleteRequest.SetPathValue("annId", "ann-v2-update")
+	deleteResponse := httptest.NewRecorder()
+
+	server.handleDeleteAnnotationV2(deleteResponse, deleteRequest)
+
+	if deleteResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", deleteResponse.Code, deleteResponse.Body.String())
+	}
+
+	storedAfterDelete, err := store.GetAnnotationsForSession(ctx, "sess-v2-update")
+	if err != nil {
+		t.Fatalf("GetAnnotationsForSession after delete returned error: %v", err)
+	}
+	if len(storedAfterDelete) != 0 {
+		t.Fatalf("expected 0 annotations after delete, got %d", len(storedAfterDelete))
+	}
+}
+
+func TestHandleSyncAnnotationsV2ReturnsStructuredReport(t *testing.T) {
+	ctx := context.Background()
+	archiveRoot := t.TempDir()
+	outputDir := t.TempDir()
+	session := buildFixtureSession(t, "sess-v2-sync")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
+	if err != nil {
+		t.Fatalf("buildSessionIndex returned error: %v", err)
+	}
+	store, err := annotate.Open(ctx, outputDir)
+	if err != nil {
+		t.Fatalf("annotate.Open returned error: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+
+	ann := minitrace.Annotation{
+		ID:        "ann-v2-sync",
+		Timestamp: minitrace.FormatTimestamp(time.Now().UTC()),
+		Annotator: "user",
+		Scope:     minitrace.AnnotationScope{Type: "session", TargetID: "sess-v2-sync"},
+		Content: minitrace.AnnotationContent{
+			Category: "success",
+			Title:    "Synced annotation",
+		},
+	}
+	if err := store.AddAnnotation(ctx, ann, "sess-v2-sync"); err != nil {
+		t.Fatalf("AddAnnotation returned error: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, index)
+	syncReq := &apiv1.SyncAnnotationsRequest{SessionId: stringPtr("sess-v2-sync")}
+	syncBody, err := protojson.Marshal(syncReq)
+	if err != nil {
+		t.Fatalf("protojson.Marshal syncReq: %v", err)
+	}
+	syncRequest := httptest.NewRequest(http.MethodPost, "/api/v2/annotations/sync", strings.NewReader(string(syncBody)))
+	syncResponse := httptest.NewRecorder()
+
+	server.handleSyncAnnotationsV2(syncResponse, syncRequest)
+
+	if syncResponse.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", syncResponse.Code, syncResponse.Body.String())
+	}
+
+	var payload apiv1.SyncAnnotationsResponse
+	if err := protojson.Unmarshal(syncResponse.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal sync annotations v2: %v", err)
+	}
+	if len(payload.GetSynced()) != 1 || payload.GetSynced()[0] != "sess-v2-sync" {
+		t.Fatalf("unexpected synced report %#v", payload.GetSynced())
+	}
+
+	sessionPath := index["sess-v2-sync"]
+	payloadBytes, err := os.ReadFile(sessionPath)
+	if err != nil {
+		t.Fatalf("reading synced session file: %v", err)
+	}
+	var syncedSession minitrace.Session
+	if err := json.Unmarshal(payloadBytes, &syncedSession); err != nil {
+		t.Fatalf("json.Unmarshal synced session: %v", err)
+	}
+	if len(syncedSession.Annotations) != 1 || syncedSession.Annotations[0].Content.Title != "Synced annotation" {
+		t.Fatalf("unexpected synced annotations %#v", syncedSession.Annotations)
 	}
 }
 

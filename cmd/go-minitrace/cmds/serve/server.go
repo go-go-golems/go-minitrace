@@ -94,6 +94,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/annotations/{annId}", s.handleUpdateAnnotation)
 	s.mux.HandleFunc("DELETE /api/annotations/{annId}", s.handleDeleteAnnotation)
 	s.mux.HandleFunc("POST /api/annotations/sync", s.handleSyncAnnotations)
+	s.mux.HandleFunc("GET /api/v2/sessions/{id}/annotations", s.handleGetSessionAnnotationsV2)
+	s.mux.HandleFunc("POST /api/v2/sessions/{id}/annotations", s.handleCreateAnnotationV2)
+	s.mux.HandleFunc("GET /api/v2/annotations", s.handleListAnnotationsV2)
+	s.mux.HandleFunc("PUT /api/v2/annotations/{annId}", s.handleUpdateAnnotationV2)
+	s.mux.HandleFunc("DELETE /api/v2/annotations/{annId}", s.handleDeleteAnnotationV2)
+	s.mux.HandleFunc("POST /api/v2/annotations/sync", s.handleSyncAnnotationsV2)
 
 	if !s.devMode {
 		s.mux.Handle("/", spaHandler(frontendFS))
