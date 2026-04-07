@@ -339,10 +339,8 @@ func (s *Store) GetUnsyncedSessions(ctx context.Context) ([]SyncState, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT ss.session_id, ss.synced_at, ss.change_count
 		FROM sync_state ss
-		JOIN annotations a ON a.session_id = ss.session_id
-		GROUP BY ss.session_id, ss.synced_at, ss.change_count
-		HAVING COUNT(*) > 0
-		ORDER BY MAX(a.created_at) ASC`)
+		WHERE ss.change_count > 0
+		ORDER BY ss.session_id ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("querying unsynced sessions: %w", err)
 	}
