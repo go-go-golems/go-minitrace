@@ -1,0 +1,12 @@
+version: v2
+plugins:
+  - remote: buf.build/bufbuild/es
+    out: web/src/gen
+    opt:
+      - target=ts
+      - import_extension=none
+  - remote: buf.build/protocolbuffers/go
+    out: .
+    opt:
+      - paths=import
+      - module=github.com/go-go-golems/go-minitrace

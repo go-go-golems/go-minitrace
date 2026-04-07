@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package go_go_golems.minitrace.api.v1;
+
+option go_package = "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1;apiv1";
+
+// ApiMeta is a small shared envelope fragment for versioned API responses.
+message ApiMeta {
+  uint32 schema_version = 1;
+}
