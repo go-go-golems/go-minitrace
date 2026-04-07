@@ -47,7 +47,14 @@ export function TranscriptViewer({
 
   useEffect(() => {
     const firstBlockNum = session.blocks[0]?.block_num;
-    setExpandedBlocks(firstBlockNum == null ? {} : { [firstBlockNum]: true });
+    setExpandedBlocks((current) => {
+      if (firstBlockNum == null) {
+        return Object.keys(current).length === 0 ? current : {};
+      }
+      return current[firstBlockNum] && Object.keys(current).length === 1
+        ? current
+        : { [firstBlockNum]: true };
+    });
   }, [session.id, session.blocks]);
 
   const { data: annotationData } = useGetSessionAnnotationsQuery(session.id);
@@ -60,22 +67,28 @@ export function TranscriptViewer({
   const composeTypeParam = searchParams.get("composeType");
   const composeTargetParam = searchParams.get("composeTarget");
 
-  const urlFocusedTarget =
-    focusTypeParam && focusIdParam
-      ? ({
-          scopeType: focusTypeParam as "session" | "turn" | "tool_call",
-          targetId: focusIdParam,
-          nonce: 0,
-        } satisfies FocusedTranscriptTarget)
-      : null;
+  const urlFocusedTarget = useMemo(
+    () =>
+      focusTypeParam && focusIdParam
+        ? ({
+            scopeType: focusTypeParam as "session" | "turn" | "tool_call",
+            targetId: focusIdParam,
+            nonce: 0,
+          } satisfies FocusedTranscriptTarget)
+        : null,
+    [focusIdParam, focusTypeParam],
+  );
 
-  const draftTarget =
-    composeTypeParam && composeTargetParam
-      ? ({
-          scopeType: composeTypeParam as "session" | "turn" | "tool_call",
-          targetId: composeTargetParam,
-        } satisfies AnnotationDraftTarget)
-      : null;
+  const draftTarget = useMemo(
+    () =>
+      composeTypeParam && composeTargetParam
+        ? ({
+            scopeType: composeTypeParam as "session" | "turn" | "tool_call",
+            targetId: composeTargetParam,
+          } satisfies AnnotationDraftTarget)
+        : null,
+    [composeTargetParam, composeTypeParam],
+  );
 
   const activePct =
     (session.timing.active_duration_seconds /
