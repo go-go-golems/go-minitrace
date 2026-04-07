@@ -931,3 +931,120 @@ Key contract improvement over the old route family:
 
 - old v1 update route: decode `map[string]any` and reconstruct `annotate.AnnotationPatch`
 - new v2 update route: decode generated `UpdateAnnotationRequest` and map it directly to `annotate.AnnotationPatch`
+
+## Step 8: Switch the frontend annotation APIs to protobuf-backed routes and adopt the intentional list-row contract
+
+This step completed the first end-to-end annotation migration on the frontend side. The RTK Query annotation endpoints now talk to the protobuf-backed `/api/v2/...` routes, decode generated response envelopes, and convert request payloads into the protobuf JSON shape expected by the new backend handlers.
+
+I kept the main `Annotation` and panel-facing session-annotation response shape stable for the UI, but I intentionally changed the flattened annotation list row to the new lower-camel contract. That was worth doing now because the old capitalized list row shape was exactly the kind of Go-implementation leak this ticket is trying to eliminate.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the migration by switching the frontend annotation consumers to the new protobuf-backed transport without causing unnecessary UI churn.
+
+**Inferred user intent:** Finish the annotation API alignment end to end, not just on the backend.
+
+**Commit (code):** `e21331f` — `web: decode protobuf annotation api responses`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/annotationProtoAdapters.ts`
+- Updated:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/SessionBrowserPage.tsx`
+- Switched frontend annotation RTK Query endpoints to `/api/v2/...` for:
+  - session annotation list
+  - global annotation list
+  - create annotation
+  - update annotation
+  - delete annotation
+  - sync annotations
+- Added generated-protobuf decode helpers for:
+  - a single `Annotation`
+  - `GetSessionAnnotationsResponse`
+  - `ListAnnotationsResponse`
+  - `SyncAnnotationsResponse`
+  - `UpdateAnnotationResponse`
+- Added request-body builders that convert the existing UI argument shapes into protobuf JSON payloads, including:
+  - enum numeric values for category and scope type
+  - `StringList` wrapper objects for patchable repeated-string fields
+  - camelCase request field names for the v2 handlers
+- Changed `AnnotationListRow` from the old capitalized Go-exported-field shape to the new intentional lower-camel API contract.
+- Updated the Session Browser annotation aggregation to use:
+  - `sessionId`
+  - `category`
+  instead of `SessionID` / `Category`.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+
+### Why
+
+- The frontend annotation flows needed to use the same generated contract boundary as the backend or the alignment work would remain partial.
+- A decode-and-adapt layer keeps the React UI stable where that is useful, while still letting us fix the most obviously bad transport shape: the old capitalized flattened annotation row.
+- Request builders are necessary because protobuf JSON enums and presence-aware wrapper messages do not line up 1:1 with the older handwritten request object shapes.
+
+### What worked
+
+- Frontend build passed.
+- Full Go test suite still passed.
+- The annotation RTK Query layer now consumes the protobuf-backed v2 routes.
+- The Session Browser path now uses the intentional lower-camel annotation list-row contract.
+- The rest of the annotation UI could remain largely unchanged because the adapter layer preserved the old `Annotation` shape where it was still convenient.
+
+### What didn't work
+
+- No build or test failure occurred in this step.
+- I did not run an interactive browser smoke in this step; validation was build-level plus existing backend tests.
+
+### What I learned
+
+- Annotation transport migration benefits from two different strategies at once:
+  - adapt-to-existing-shape for complex UI surfaces like the panel,
+  - adopt-the-new-contract directly for obviously bad legacy transport shapes like the flattened list row.
+- Protobuf request encoding on the frontend is easiest to manage with small explicit builder helpers instead of trying to push generated message objects through every mutation call site immediately.
+
+### What was tricky to build
+
+- The trickiest part was request encoding rather than response decoding. The new backend expects protobuf JSON semantics, which means categories and scope types are no longer just legacy strings at the transport layer.
+- Another subtle point was deciding which frontend types to preserve and which to change now. I chose to preserve the main `Annotation` view shape but intentionally updated `AnnotationListRow` because its old capitalized form was an implementation leak, not a useful UI abstraction.
+
+### What warrants a second pair of eyes
+
+- Whether the frontend should eventually stop adapting `Annotation` back to the old snake_case shape and instead move more UI code onto generated/camelCase models directly.
+- Whether the request-body builders should eventually be replaced by explicit generated-message creation plus `toJson(...)` for stronger symmetry.
+- Whether the bundle-size increase from the growing protobuf runtime surface needs a later optimization pass.
+
+### What should be done in the future
+
+- Continue with Step 9 for saved-query metadata.
+- Later decide whether the ad hoc query execution surface should stay JSON-native permanently or get a limited protobuf wrapper.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/annotationProtoAdapters.ts`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/SessionBrowserPage.tsx`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+```
+
+### Technical details
+
+Important design choice in this step:
+
+- keep `Annotation` adapted to the current UI-facing shape for now
+- migrate `AnnotationListRow` fully to the new intentional lower-camel contract now
+
+This removes the most obvious legacy Go-exported-field leak while keeping the broader UI migration incremental.

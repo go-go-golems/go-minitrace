@@ -72,12 +72,12 @@
 
 ### Step 8 — Switch frontend annotation APIs to generated protobuf decoders
 
-- [ ] Migrate annotation RTK Query endpoints to `/api/v2/...`
-- [ ] Replace handwritten transport typings with generated decoders
-- [ ] Verify annotation panel, session badges, and sync flows
-- [ ] Run `cd web && npm run build`
-- [ ] Commit the frontend annotation API changes
-- [ ] Update diary and changelog for the step
+- [x] Migrate annotation RTK Query endpoints to `/api/v2/...`
+- [x] Replace handwritten transport typings with generated decoders
+- [x] Verify annotation panel, session badges, and sync flows
+- [x] Run `cd web && npm run build`
+- [x] Commit the frontend annotation API changes
+- [x] Update diary and changelog for the step
 
 ### Step 9 — Align saved-query metadata with protobuf
 

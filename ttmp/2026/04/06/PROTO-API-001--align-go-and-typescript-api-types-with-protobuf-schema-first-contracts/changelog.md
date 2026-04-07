@@ -92,3 +92,14 @@ Step 7: added protobuf-backed `/api/v2/annotations...` handlers, replaced weakly
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/protojson.go — Reused shared protobuf JSON request/response helpers for the annotation v2 routes
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_annotations_v2.go — Added the new protobuf-backed annotation handlers and enum/string normalization helpers
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go — Added create/get/list/update/delete/sync tests for the v2 annotation routes
+
+## 2026-04-06
+
+Step 8: switched the frontend annotation RTK Query layer to the protobuf-backed `/api/v2/...` routes, decoded generated annotation envelopes, and adopted the new intentional lower-camel annotation list-row contract in the Session Browser path (commit e21331f).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/minitrace.ts — Annotation endpoints now call `/api/v2/...` and use protobuf-backed decode/encode helpers
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/api/annotationProtoAdapters.ts — New annotation decode-and-encode adapter layer for protobuf-backed annotation transport
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/types/session.ts — `AnnotationListRow` now reflects the intentional lower-camel API contract instead of Go-exported field casing
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/pages/SessionBrowserPage.tsx — Session-browser annotation aggregation updated to the new list-row contract
