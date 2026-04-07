@@ -10,14 +10,14 @@
 
 ### Step 2 — Add protobuf/Buf scaffolding
 
-- [ ] Add `buf.yaml` and `buf.gen.yaml`
-- [ ] Add a `proto/go_go_golems/minitrace/api/v1/` layout
-- [ ] Add protobuf runtime dependencies for Go and TypeScript
-- [ ] Choose generated output directories for Go and TypeScript
-- [ ] Run `buf generate`
-- [ ] Run `go test ./...` and `cd web && npm run build`
-- [ ] Commit the scaffolding changes
-- [ ] Update diary and changelog for the step
+- [x] Add `buf.yaml` and `buf.gen.yaml`
+- [x] Add a `proto/go_go_golems/minitrace/api/v1/` layout
+- [x] Add protobuf runtime dependencies for Go and TypeScript
+- [x] Choose generated output directories for Go and TypeScript
+- [x] Run `buf generate`
+- [x] Run `go test ./...` and `cd web && npm run build`
+- [x] Commit the scaffolding changes
+- [x] Update diary and changelog for the step
 
 ### Step 3 — Define protobuf schema for the typed sessions API
 

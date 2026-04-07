@@ -166,3 +166,117 @@ Important evidence gathered for the guide:
 - dynamic query execution currently uses `[]map[string]any` in `server.go`
 - frontend mirrors these shapes manually in `web/src/types/session.ts` and `web/src/types/query.ts`
 - no existing `buf.yaml`, `buf.gen.yaml`, `proto/`, or generated protobuf runtime dependency is currently present
+
+## Step 2: Add protobuf/Buf scaffolding and prove the generation toolchain works
+
+This step intentionally stayed narrow. The goal was not to define the full API schema yet, but to prove that the repository can support a schema-first workflow at all: Buf config, generation outputs, runtime dependencies, and a minimal shared proto package. That gives the next schema-heavy step a stable base and flushes out tooling issues early.
+
+I also kept the first proto deliberately small. Instead of trying to define sessions immediately, I created a minimal `common.proto` with a shared `ApiMeta` message so that `buf generate` would produce real Go and TypeScript outputs and we could validate the output directories and runtime setup before adding more complicated messages.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue through the task list in small, reviewable steps, starting with protobuf scaffolding rather than jumping straight to full endpoint migration.
+
+**Inferred user intent:** Make steady implementation progress while keeping the work easy to review and easy to continue.
+
+**Commit (code):** `924ff74` — `build: add protobuf buf scaffolding`
+
+### What I did
+
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/buf.yaml`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/buf.gen.yaml`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/common.pb.go`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.ts`
+- Updated runtime dependencies:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/go.mod`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/go.sum`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/package.json`
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/package-lock.json`
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go get google.golang.org/protobuf@latest`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm install @bufbuild/protobuf`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- Pre-commit additionally ran:
+  - `go test ./...`
+  - `golangci-lint run -v`
+
+### Why
+
+- Tooling friction is easiest to fix before the repo is full of real schema files and handler integrations.
+- A minimal shared proto file is enough to validate generation layout choices without prematurely locking the transport schema.
+- Installing runtimes and confirming generation now reduces the risk that a later schema step gets blocked on infrastructure mistakes.
+
+### What worked
+
+- `buf generate` succeeded.
+- Go and TypeScript outputs landed in the expected directories.
+- `go test ./...` passed.
+- `cd web && npm run build` passed.
+- The pre-commit hook also passed both tests and `golangci-lint`.
+- The chosen generation layout (`gen/proto/...` for Go and `web/src/gen/...` for TypeScript) worked cleanly enough for the first scaffold.
+
+### What didn't work
+
+- `npm install @bufbuild/protobuf` emitted a peer-dependency warning from Storybook’s `@joshwooding/vite-plugin-react-docgen-typescript` about supported `vite` ranges. The install still completed successfully.
+- I have not yet validated whether the current Go output layout remains ergonomically ideal once multiple proto files import each other; that will become clearer in Step 3.
+
+### What I learned
+
+- The repo can support a schema-first generation loop without any special local plugin installation beyond Buf and runtime deps.
+- Starting with a deliberately tiny proto file is a good way to validate output directories and module settings before message complexity increases.
+
+### What was tricky to build
+
+- The main tricky part was choosing a Go generation strategy that avoids awkward import paths. I used a module-aware generation config so the generated code lands under `gen/proto/...` instead of embedding the full module path into the filesystem layout.
+- Another subtle point was keeping this step isolated from the unrelated dirty working tree. I had to stage only the scaffolding and generated protobuf files for the commit.
+
+### What warrants a second pair of eyes
+
+- Whether the chosen Go output directory and `go_package` convention will remain clean once we add multiple proto files and imports.
+- Whether we want a dedicated `make proto` or similar generation target soon, or whether that is better deferred until more schema files exist.
+
+### What should be done in the future
+
+- Move on to Step 3 and define the actual typed sessions schema in `common.proto` and `sessions.proto`.
+- Revisit the shared/common message layout after the first real API proto files are added.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/buf.yaml`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/buf.gen.yaml`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/common.pb.go`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.ts`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/go.mod`
+7. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/package.json`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+Buf config used:
+
+- remote plugin `buf.build/bufbuild/es` for TypeScript output to `web/src/gen`
+- remote plugin `buf.build/protocolbuffers/go` for Go output using module-aware paths
+
+First shared proto message:
+
+```proto
+message ApiMeta {
+  uint32 schema_version = 1;
+}
+```
