@@ -84,12 +84,22 @@ type SessionBlock struct {
 	Artifacts   BlockArtifacts `json:"artifacts"`
 }
 
+type TurnUsageResponse struct {
+	InputTokens     *int `json:"input_tokens,omitempty"`
+	OutputTokens    *int `json:"output_tokens,omitempty"`
+	CacheReadTokens *int `json:"cache_read_tokens,omitempty"`
+	ReasoningTokens *int `json:"reasoning_tokens,omitempty"`
+}
+
 type TurnResponse struct {
 	Idx             int                `json:"idx"`
 	Role            string             `json:"role"`
 	Source          string             `json:"source"`
 	Content         string             `json:"content"`
 	Timestamp       string             `json:"timestamp"`
+	Thinking        *string            `json:"thinking,omitempty"`
+	Model           *string            `json:"model,omitempty"`
+	Usage           *TurnUsageResponse `json:"usage,omitempty"`
 	ToolCallsInTurn []ToolCallResponse `json:"tool_calls_in_turn"`
 }
 
@@ -350,7 +360,22 @@ func normalizeTurn(turn minitrace.Turn, tcByID map[string]minitrace.ToolCall) Tu
 		Source:          stringValue(turn.Source),
 		Content:         turn.Content,
 		Timestamp:       stringValue(turn.Timestamp),
+		Thinking:        turn.Thinking,
+		Model:           turn.Model,
+		Usage:           normalizeUsage(turn.Usage),
 		ToolCallsInTurn: toolCalls,
+	}
+}
+
+func normalizeUsage(u *minitrace.Usage) *TurnUsageResponse {
+	if u == nil {
+		return nil
+	}
+	return &TurnUsageResponse{
+		InputTokens:     u.InputTokens,
+		OutputTokens:    u.OutputTokens,
+		CacheReadTokens: u.CacheReadTokens,
+		ReasoningTokens: u.ReasoningTokens,
 	}
 }
 
