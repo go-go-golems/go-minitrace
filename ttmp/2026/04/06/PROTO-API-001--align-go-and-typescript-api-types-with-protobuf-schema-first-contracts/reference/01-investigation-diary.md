@@ -1277,3 +1277,109 @@ Decision preserved by this step:
 - dynamic ad hoc query execution remains JSON-native on `/api/query`
 
 That is the intended phase-1 boundary, not a partially finished migration.
+
+## Step 11: Run final validation, doctor the ticket, and deliver the bundle to reMarkable
+
+This step closed the ticket operationally. The code work was already in place by the end of Step 10, so the remaining job was to prove the final state end to end, run the ticket-health checks, and publish a durable bundle to reMarkable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead,"
+
+**Assistant interpretation:** Finish the remaining ticket tasks instead of stopping after the core code changes.
+
+**Inferred user intent:** Complete the protobuf migration ticket all the way through final validation and delivery.
+
+**Commit (docs):** pending at the time of writing this entry
+
+### What I did
+
+- Ran the final validation sequence:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- Ran ticket hygiene:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && docmgr doctor --ticket PROTO-API-001 --stale-after 30`
+- Verified reMarkable tooling:
+  - `remarquee status`
+- Dry-ran bundle upload:
+  - `remarquee upload bundle --dry-run --name "PROTO-API-001 Protobuf API Alignment" --remote-dir "/ai/2026/04/06/PROTO-API-001" --toc-depth 2 ...`
+- Uploaded the final bundle:
+  - `remarquee upload bundle --name "PROTO-API-001 Protobuf API Alignment" --remote-dir "/ai/2026/04/06/PROTO-API-001" --toc-depth 2 ...`
+- Verified the remote listing:
+  - `remarquee cloud ls /ai/2026/04/06 --long --non-interactive`
+  - `remarquee cloud ls '/ai/2026/04/06/PROTO-API-001/' --long --non-interactive`
+- Updated the ticket docs to mark Step 11 complete and the overall ticket status complete.
+
+### Why
+
+- A ticket is not really done until its validation trail and delivery artifacts are recorded.
+- The final upload gives the project a durable offline-readable bundle of the analysis, diary, task list, and changelog.
+- `docmgr doctor` serves as a useful last pass to confirm the ticket metadata and structure are still healthy.
+
+### What worked
+
+- `buf generate` succeeded.
+- `go test ./...` succeeded.
+- `cd web && npm run build` succeeded.
+- `docmgr doctor --ticket PROTO-API-001 --stale-after 30` reported all checks passed.
+- `remarquee status` reported `ok`.
+- The dry-run bundle upload showed the expected files and destination.
+- The real upload succeeded:
+  - `OK: uploaded PROTO-API-001 Protobuf API Alignment.pdf -> /ai/2026/04/06/PROTO-API-001`
+- The remote listing verified the uploaded document inside the ticket folder.
+
+### What didn't work
+
+- My first direct listing of `/ai/2026/04/06/PROTO-API-001` returned `Error: no matches for 'PROTO-API-001'` even though the upload had succeeded.
+- Listing the parent folder first showed the directory existed, and listing the subfolder again with a trailing slash and quoted path worked correctly.
+
+### What I learned
+
+- The final validation loop is smooth now that the codegen/build/test steps are already stabilized.
+- The reMarkable listing command can be a little picky about exact path formatting, so retrying with a quoted path and trailing slash is a good verification fallback.
+
+### What was tricky to build
+
+- There was no difficult code in this step; the only subtle part was interpreting the first reMarkable listing failure correctly instead of assuming the upload had failed.
+
+### What warrants a second pair of eyes
+
+- Nothing substantial remains in this ticket from an implementation perspective.
+- The only notable follow-up outside this ticket is whether the repo should eventually fix the proto package-directory layout so `buf lint` stops complaining.
+
+### What should be done in the future
+
+- If the team wants the ticket bundle somewhere else too, the same curated bundle can be reused.
+- Any future protobuf work should likely be a new ticket or a clearly scoped follow-up, rather than reopening this one casually.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/tasks.md`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/index.md`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/changelog.md`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/reference/01-investigation-diary.md`
+
+Validation commands recorded in this step:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && docmgr doctor --ticket PROTO-API-001 --stale-after 30
+remarquee status
+remarquee upload bundle --dry-run --name "PROTO-API-001 Protobuf API Alignment" --remote-dir "/ai/2026/04/06/PROTO-API-001" --toc-depth 2 ...
+remarquee upload bundle --name "PROTO-API-001 Protobuf API Alignment" --remote-dir "/ai/2026/04/06/PROTO-API-001" --toc-depth 2 ...
+remarquee cloud ls /ai/2026/04/06 --long --non-interactive
+remarquee cloud ls '/ai/2026/04/06/PROTO-API-001/' --long --non-interactive
+```
+
+### Technical details
+
+Final verified upload target:
+
+- `/ai/2026/04/06/PROTO-API-001/PROTO-API-001 Protobuf API Alignment`
+
+The ticket is now complete.

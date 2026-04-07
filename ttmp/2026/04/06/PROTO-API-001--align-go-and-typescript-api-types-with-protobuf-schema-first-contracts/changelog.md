@@ -131,3 +131,13 @@ Step 10: documented the deliberate phase-1 exception for `POST /api/query`, adde
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/reference/02-query-execution-json-native-exception-and-validation-notes.md — New durable note explaining the dynamic query-result exception and future `google.protobuf.Struct` option
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/design-doc/01-protobuf-schema-first-api-alignment-analysis-and-implementation-guide.md — Added an implementation note linking the dynamic query exception record
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/index.md — Linked the new exception note from the ticket index
+
+## 2026-04-06
+
+Step 11: completed final validation, ran `docmgr doctor`, uploaded the ticket bundle to reMarkable under `/ai/2026/04/06/PROTO-API-001/`, and verified the remote listing (pending final docs commit).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/tasks.md — Final execution checklist is now fully checked off
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/index.md — Ticket status updated to complete and final validation/upload status recorded
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/06/PROTO-API-001--align-go-and-typescript-api-types-with-protobuf-schema-first-contracts/reference/01-investigation-diary.md — Added the final validation and delivery diary entry

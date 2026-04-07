@@ -98,10 +98,10 @@
 
 ### Step 11 — Final validation, ticket cleanup, and reMarkable delivery
 
-- [ ] Run `buf generate`
-- [ ] Run `go test ./...`
-- [ ] Run `cd web && npm run build`
-- [ ] Run `docmgr doctor --ticket PROTO-API-001 --stale-after 30`
-- [ ] Upload the final ticket bundle to reMarkable
-- [ ] Verify the remote listing
-- [ ] Commit the final ticket/docs updates
+- [x] Run `buf generate`
+- [x] Run `go test ./...`
+- [x] Run `cd web && npm run build`
+- [x] Run `docmgr doctor --ticket PROTO-API-001 --stale-after 30`
+- [x] Upload the final ticket bundle to reMarkable
+- [x] Verify the remote listing
+- [x] Commit the final ticket/docs updates

@@ -1,7 +1,7 @@
 ---
 Title: Align Go and TypeScript API types with protobuf schema-first contracts
 Ticket: PROTO-API-001
-Status: active
+Status: complete
 Topics:
     - backend
     - frontend
@@ -48,7 +48,9 @@ Current status:
 - sessions API migrated to protobuf-backed `/api/v2/...`
 - annotations API migrated to protobuf-backed `/api/v2/...`
 - saved-query metadata migrated to protobuf-backed `/api/v2/...`
-- dynamic `POST /api/query` intentionally remains JSON-native in phase 1 and is now explicitly documented as the main rollout exception
+- dynamic `POST /api/query` intentionally remains JSON-native in phase 1 and is explicitly documented as the main rollout exception
+- final validation passed (`buf generate`, `go test ./...`, `cd web && npm run build`, `docmgr doctor`)
+- ticket bundle uploaded to reMarkable and remote listing verified under `/ai/2026/04/06/PROTO-API-001/`
 
 ## Key Links
 
@@ -61,7 +63,7 @@ Current status:
 
 ## Status
 
-Current status: **active**
+Current status: **complete**
 
 ## Topics
 
