@@ -232,3 +232,41 @@ No new npm dependencies needed — the diff is just red/green line rendering fro
 
 All tests pass. Frontend rebuilt and embedded.
 
+
+---
+
+## Step 10: The protobuf blind spot
+
+**What happened:** After fixing the server (`TurnResponse`) and frontend (`Turn` type, `BlockBody.tsx`), the user reported that thinking blocks still didn't appear in the web UI.
+
+**Investigation:**
+
+The frontend uses `useGetSessionBlocksQuery` which calls `/api/v2/sessions/:id/blocks`. This is the **v2 API** which goes through **protobuf serialization**. The v1 API (`/api/sessions/:id`) returns plain JSON.
+
+The v2 proto `Turn` message only had 6 fields (`idx`, `role`, `source`, `content`, `timestamp`, `tool_calls_in_turn`). Protobuf silently drops any field not in the schema — so `Thinking`, `Model`, `Usage` were being lost during proto serialization.
+
+**Root cause chain:**
+```
+TurnResponse (Go) → has thinking/model/usage ✓
+  → protoTurn() → apiv1.Turn → protobuf drops unknown fields ✗
+    → JSON response → frontend → no thinking ✗
+```
+
+**Fix (3 layers):**
+
+1. **Proto schema** (`proto/.../sessions.proto`): Added `TurnUsage` message and 3 new fields to `Turn`:
+   ```protobuf
+   message TurnUsage { ... }
+   message Turn {
+     ...
+     optional string thinking = 7;
+     optional string model = 8;
+     TurnUsage usage = 9;
+   }
+   ```
+
+2. **Go server** (`handlers_sessions_v2.go`): Added `protoTurnUsage()` helper and wired `Thinking`, `Model`, `Usage` in `protoTurn()`.
+
+3. **Frontend adapter** (`sessionProtoAdapters.ts`): Updated `adaptTurn()` to map `turn.thinking`, `turn.model`, `turn.usage` from proto camelCase to the UI's snake_case types.
+
+**Lesson:** When the v2 API uses protobuf, changes to `TurnResponse` alone are not enough. The proto schema is the actual contract — everything else is just plumbing.

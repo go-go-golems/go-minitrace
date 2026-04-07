@@ -260,6 +260,30 @@ func protoTurns(turns []TurnResponse) ([]*apiv1.Turn, error) {
 	return ret, nil
 }
 
+func protoTurnUsage(u *TurnUsageResponse) *apiv1.TurnUsage {
+	if u == nil {
+		return nil
+	}
+	ret := &apiv1.TurnUsage{}
+	if u.InputTokens != nil {
+		v := uint32(*u.InputTokens)
+		ret.InputTokens = &v
+	}
+	if u.OutputTokens != nil {
+		v := uint32(*u.OutputTokens)
+		ret.OutputTokens = &v
+	}
+	if u.CacheReadTokens != nil {
+		v := uint32(*u.CacheReadTokens)
+		ret.CacheReadTokens = &v
+	}
+	if u.ReasoningTokens != nil {
+		v := uint32(*u.ReasoningTokens)
+		ret.ReasoningTokens = &v
+	}
+	return ret
+}
+
 func protoTurn(turn TurnResponse) (*apiv1.Turn, error) {
 	toolCalls, err := protoToolCalls(turn.ToolCallsInTurn)
 	if err != nil {
@@ -272,6 +296,9 @@ func protoTurn(turn TurnResponse) (*apiv1.Turn, error) {
 		Content:         turn.Content,
 		Timestamp:       turn.Timestamp,
 		ToolCallsInTurn: toolCalls,
+		Thinking:        turn.Thinking,
+		Model:           turn.Model,
+		Usage:           protoTurnUsage(turn.Usage),
 	}, nil
 }
 

@@ -458,6 +458,74 @@ func (x *ToolCall) GetBadges() []ToolCallBadge {
 	return nil
 }
 
+type TurnUsage struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	InputTokens     *uint32                `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3,oneof" json:"input_tokens,omitempty"`
+	OutputTokens    *uint32                `protobuf:"varint,2,opt,name=output_tokens,json=outputTokens,proto3,oneof" json:"output_tokens,omitempty"`
+	CacheReadTokens *uint32                `protobuf:"varint,3,opt,name=cache_read_tokens,json=cacheReadTokens,proto3,oneof" json:"cache_read_tokens,omitempty"`
+	ReasoningTokens *uint32                `protobuf:"varint,4,opt,name=reasoning_tokens,json=reasoningTokens,proto3,oneof" json:"reasoning_tokens,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TurnUsage) Reset() {
+	*x = TurnUsage{}
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TurnUsage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TurnUsage) ProtoMessage() {}
+
+func (x *TurnUsage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TurnUsage.ProtoReflect.Descriptor instead.
+func (*TurnUsage) Descriptor() ([]byte, []int) {
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *TurnUsage) GetInputTokens() uint32 {
+	if x != nil && x.InputTokens != nil {
+		return *x.InputTokens
+	}
+	return 0
+}
+
+func (x *TurnUsage) GetOutputTokens() uint32 {
+	if x != nil && x.OutputTokens != nil {
+		return *x.OutputTokens
+	}
+	return 0
+}
+
+func (x *TurnUsage) GetCacheReadTokens() uint32 {
+	if x != nil && x.CacheReadTokens != nil {
+		return *x.CacheReadTokens
+	}
+	return 0
+}
+
+func (x *TurnUsage) GetReasoningTokens() uint32 {
+	if x != nil && x.ReasoningTokens != nil {
+		return *x.ReasoningTokens
+	}
+	return 0
+}
+
 type Turn struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Idx             uint32                 `protobuf:"varint,1,opt,name=idx,proto3" json:"idx,omitempty"`
@@ -466,13 +534,16 @@ type Turn struct {
 	Content         string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	Timestamp       string                 `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	ToolCallsInTurn []*ToolCall            `protobuf:"bytes,6,rep,name=tool_calls_in_turn,json=toolCallsInTurn,proto3" json:"tool_calls_in_turn,omitempty"`
+	Thinking        *string                `protobuf:"bytes,7,opt,name=thinking,proto3,oneof" json:"thinking,omitempty"`
+	Model           *string                `protobuf:"bytes,8,opt,name=model,proto3,oneof" json:"model,omitempty"`
+	Usage           *TurnUsage             `protobuf:"bytes,9,opt,name=usage,proto3" json:"usage,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Turn) Reset() {
 	*x = Turn{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[5]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -484,7 +555,7 @@ func (x *Turn) String() string {
 func (*Turn) ProtoMessage() {}
 
 func (x *Turn) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[5]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -497,7 +568,7 @@ func (x *Turn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Turn.ProtoReflect.Descriptor instead.
 func (*Turn) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{5}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Turn) GetIdx() uint32 {
@@ -542,6 +613,27 @@ func (x *Turn) GetToolCallsInTurn() []*ToolCall {
 	return nil
 }
 
+func (x *Turn) GetThinking() string {
+	if x != nil && x.Thinking != nil {
+		return *x.Thinking
+	}
+	return ""
+}
+
+func (x *Turn) GetModel() string {
+	if x != nil && x.Model != nil {
+		return *x.Model
+	}
+	return ""
+}
+
+func (x *Turn) GetUsage() *TurnUsage {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
 type SessionBlock struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BlockNum      uint32                 `protobuf:"varint,1,opt,name=block_num,json=blockNum,proto3" json:"block_num,omitempty"`
@@ -559,7 +651,7 @@ type SessionBlock struct {
 
 func (x *SessionBlock) Reset() {
 	*x = SessionBlock{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[6]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -571,7 +663,7 @@ func (x *SessionBlock) String() string {
 func (*SessionBlock) ProtoMessage() {}
 
 func (x *SessionBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[6]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -584,7 +676,7 @@ func (x *SessionBlock) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionBlock.ProtoReflect.Descriptor instead.
 func (*SessionBlock) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{6}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SessionBlock) GetBlockNum() uint32 {
@@ -668,7 +760,7 @@ type SessionDetail struct {
 
 func (x *SessionDetail) Reset() {
 	*x = SessionDetail{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[7]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -680,7 +772,7 @@ func (x *SessionDetail) String() string {
 func (*SessionDetail) ProtoMessage() {}
 
 func (x *SessionDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[7]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -693,7 +785,7 @@ func (x *SessionDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionDetail.ProtoReflect.Descriptor instead.
 func (*SessionDetail) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{7}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SessionDetail) GetId() string {
@@ -776,7 +868,7 @@ type ListSessionsResponse struct {
 
 func (x *ListSessionsResponse) Reset() {
 	*x = ListSessionsResponse{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[8]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -788,7 +880,7 @@ func (x *ListSessionsResponse) String() string {
 func (*ListSessionsResponse) ProtoMessage() {}
 
 func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[8]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -801,7 +893,7 @@ func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsResponse.ProtoReflect.Descriptor instead.
 func (*ListSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{8}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListSessionsResponse) GetMeta() *ApiMeta {
@@ -828,7 +920,7 @@ type GetSessionSummaryResponse struct {
 
 func (x *GetSessionSummaryResponse) Reset() {
 	*x = GetSessionSummaryResponse{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[9]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -840,7 +932,7 @@ func (x *GetSessionSummaryResponse) String() string {
 func (*GetSessionSummaryResponse) ProtoMessage() {}
 
 func (x *GetSessionSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[9]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -853,7 +945,7 @@ func (x *GetSessionSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{9}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetSessionSummaryResponse) GetMeta() *ApiMeta {
@@ -880,7 +972,7 @@ type GetSessionBlocksResponse struct {
 
 func (x *GetSessionBlocksResponse) Reset() {
 	*x = GetSessionBlocksResponse{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[10]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -892,7 +984,7 @@ func (x *GetSessionBlocksResponse) String() string {
 func (*GetSessionBlocksResponse) ProtoMessage() {}
 
 func (x *GetSessionBlocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[10]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -905,7 +997,7 @@ func (x *GetSessionBlocksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionBlocksResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionBlocksResponse) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{10}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetSessionBlocksResponse) GetMeta() *ApiMeta {
@@ -932,7 +1024,7 @@ type GetSessionDetailResponse struct {
 
 func (x *GetSessionDetailResponse) Reset() {
 	*x = GetSessionDetailResponse{}
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[11]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -944,7 +1036,7 @@ func (x *GetSessionDetailResponse) String() string {
 func (*GetSessionDetailResponse) ProtoMessage() {}
 
 func (x *GetSessionDetailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[11]
+	mi := &file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -957,7 +1049,7 @@ func (x *GetSessionDetailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionDetailResponse.ProtoReflect.Descriptor instead.
 func (*GetSessionDetailResponse) Descriptor() ([]byte, []int) {
-	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{11}
+	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetSessionDetailResponse) GetMeta() *ApiMeta {
@@ -1028,14 +1120,28 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"\x0eoperation_type\x18\x04 \x01(\tR\roperationType\x12B\n" +
 	"\x05input\x18\x05 \x01(\v2,.go_go_golems.minitrace.api.v1.ToolCallInputR\x05input\x12E\n" +
 	"\x06output\x18\x06 \x01(\v2-.go_go_golems.minitrace.api.v1.ToolCallOutputR\x06output\x12D\n" +
-	"\x06badges\x18\a \x03(\x0e2,.go_go_golems.minitrace.api.v1.ToolCallBadgeR\x06badges\"\xd2\x01\n" +
+	"\x06badges\x18\a \x03(\x0e2,.go_go_golems.minitrace.api.v1.ToolCallBadgeR\x06badges\"\x8c\x02\n" +
+	"\tTurnUsage\x12&\n" +
+	"\finput_tokens\x18\x01 \x01(\rH\x00R\vinputTokens\x88\x01\x01\x12(\n" +
+	"\routput_tokens\x18\x02 \x01(\rH\x01R\foutputTokens\x88\x01\x01\x12/\n" +
+	"\x11cache_read_tokens\x18\x03 \x01(\rH\x02R\x0fcacheReadTokens\x88\x01\x01\x12.\n" +
+	"\x10reasoning_tokens\x18\x04 \x01(\rH\x03R\x0freasoningTokens\x88\x01\x01B\x0f\n" +
+	"\r_input_tokensB\x10\n" +
+	"\x0e_output_tokensB\x14\n" +
+	"\x12_cache_read_tokensB\x13\n" +
+	"\x11_reasoning_tokens\"\xe5\x02\n" +
 	"\x04Turn\x12\x10\n" +
 	"\x03idx\x18\x01 \x01(\rR\x03idx\x12\x12\n" +
 	"\x04role\x18\x02 \x01(\tR\x04role\x12\x16\n" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12\x1c\n" +
 	"\ttimestamp\x18\x05 \x01(\tR\ttimestamp\x12T\n" +
-	"\x12tool_calls_in_turn\x18\x06 \x03(\v2'.go_go_golems.minitrace.api.v1.ToolCallR\x0ftoolCallsInTurn\"\x89\x03\n" +
+	"\x12tool_calls_in_turn\x18\x06 \x03(\v2'.go_go_golems.minitrace.api.v1.ToolCallR\x0ftoolCallsInTurn\x12\x1f\n" +
+	"\bthinking\x18\a \x01(\tH\x00R\bthinking\x88\x01\x01\x12\x19\n" +
+	"\x05model\x18\b \x01(\tH\x01R\x05model\x88\x01\x01\x12>\n" +
+	"\x05usage\x18\t \x01(\v2(.go_go_golems.minitrace.api.v1.TurnUsageR\x05usageB\v\n" +
+	"\t_thinkingB\b\n" +
+	"\x06_model\"\x89\x03\n" +
 	"\fSessionBlock\x12\x1b\n" +
 	"\tblock_num\x18\x01 \x01(\rR\bblockNum\x12\"\n" +
 	"\ruser_turn_idx\x18\x02 \x01(\x05R\vuserTurnIdx\x12\x17\n" +
@@ -1091,66 +1197,68 @@ func file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescGZIP() []byt
 	return file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDescData
 }
 
-var file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_go_go_golems_minitrace_api_v1_sessions_proto_goTypes = []any{
 	(*SessionSummary)(nil),            // 0: go_go_golems.minitrace.api.v1.SessionSummary
 	(*SessionSummaryDetail)(nil),      // 1: go_go_golems.minitrace.api.v1.SessionSummaryDetail
 	(*ToolCallInput)(nil),             // 2: go_go_golems.minitrace.api.v1.ToolCallInput
 	(*ToolCallOutput)(nil),            // 3: go_go_golems.minitrace.api.v1.ToolCallOutput
 	(*ToolCall)(nil),                  // 4: go_go_golems.minitrace.api.v1.ToolCall
-	(*Turn)(nil),                      // 5: go_go_golems.minitrace.api.v1.Turn
-	(*SessionBlock)(nil),              // 6: go_go_golems.minitrace.api.v1.SessionBlock
-	(*SessionDetail)(nil),             // 7: go_go_golems.minitrace.api.v1.SessionDetail
-	(*ListSessionsResponse)(nil),      // 8: go_go_golems.minitrace.api.v1.ListSessionsResponse
-	(*GetSessionSummaryResponse)(nil), // 9: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse
-	(*GetSessionBlocksResponse)(nil),  // 10: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse
-	(*GetSessionDetailResponse)(nil),  // 11: go_go_golems.minitrace.api.v1.GetSessionDetailResponse
-	(*SessionTiming)(nil),             // 12: go_go_golems.minitrace.api.v1.SessionTiming
-	(*SessionMetrics)(nil),            // 13: go_go_golems.minitrace.api.v1.SessionMetrics
-	(*SessionEnvironment)(nil),        // 14: go_go_golems.minitrace.api.v1.SessionEnvironment
-	(*SessionOperationalContext)(nil), // 15: go_go_golems.minitrace.api.v1.SessionOperationalContext
-	(*SessionProvenance)(nil),         // 16: go_go_golems.minitrace.api.v1.SessionProvenance
-	(*structpb.Struct)(nil),           // 17: google.protobuf.Struct
-	(ToolCallBadge)(0),                // 18: go_go_golems.minitrace.api.v1.ToolCallBadge
-	(*BlockArtifacts)(nil),            // 19: go_go_golems.minitrace.api.v1.BlockArtifacts
-	(*ApiMeta)(nil),                   // 20: go_go_golems.minitrace.api.v1.ApiMeta
+	(*TurnUsage)(nil),                 // 5: go_go_golems.minitrace.api.v1.TurnUsage
+	(*Turn)(nil),                      // 6: go_go_golems.minitrace.api.v1.Turn
+	(*SessionBlock)(nil),              // 7: go_go_golems.minitrace.api.v1.SessionBlock
+	(*SessionDetail)(nil),             // 8: go_go_golems.minitrace.api.v1.SessionDetail
+	(*ListSessionsResponse)(nil),      // 9: go_go_golems.minitrace.api.v1.ListSessionsResponse
+	(*GetSessionSummaryResponse)(nil), // 10: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse
+	(*GetSessionBlocksResponse)(nil),  // 11: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse
+	(*GetSessionDetailResponse)(nil),  // 12: go_go_golems.minitrace.api.v1.GetSessionDetailResponse
+	(*SessionTiming)(nil),             // 13: go_go_golems.minitrace.api.v1.SessionTiming
+	(*SessionMetrics)(nil),            // 14: go_go_golems.minitrace.api.v1.SessionMetrics
+	(*SessionEnvironment)(nil),        // 15: go_go_golems.minitrace.api.v1.SessionEnvironment
+	(*SessionOperationalContext)(nil), // 16: go_go_golems.minitrace.api.v1.SessionOperationalContext
+	(*SessionProvenance)(nil),         // 17: go_go_golems.minitrace.api.v1.SessionProvenance
+	(*structpb.Struct)(nil),           // 18: google.protobuf.Struct
+	(ToolCallBadge)(0),                // 19: go_go_golems.minitrace.api.v1.ToolCallBadge
+	(*BlockArtifacts)(nil),            // 20: go_go_golems.minitrace.api.v1.BlockArtifacts
+	(*ApiMeta)(nil),                   // 21: go_go_golems.minitrace.api.v1.ApiMeta
 }
 var file_proto_go_go_golems_minitrace_api_v1_sessions_proto_depIdxs = []int32{
-	12, // 0: go_go_golems.minitrace.api.v1.SessionSummary.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
-	13, // 1: go_go_golems.minitrace.api.v1.SessionSummary.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
-	14, // 2: go_go_golems.minitrace.api.v1.SessionSummary.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
-	15, // 3: go_go_golems.minitrace.api.v1.SessionSummary.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
-	12, // 4: go_go_golems.minitrace.api.v1.SessionSummaryDetail.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
-	13, // 5: go_go_golems.minitrace.api.v1.SessionSummaryDetail.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
-	14, // 6: go_go_golems.minitrace.api.v1.SessionSummaryDetail.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
-	15, // 7: go_go_golems.minitrace.api.v1.SessionSummaryDetail.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
-	16, // 8: go_go_golems.minitrace.api.v1.SessionSummaryDetail.provenance:type_name -> go_go_golems.minitrace.api.v1.SessionProvenance
-	17, // 9: go_go_golems.minitrace.api.v1.ToolCallInput.arguments:type_name -> google.protobuf.Struct
+	13, // 0: go_go_golems.minitrace.api.v1.SessionSummary.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
+	14, // 1: go_go_golems.minitrace.api.v1.SessionSummary.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
+	15, // 2: go_go_golems.minitrace.api.v1.SessionSummary.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
+	16, // 3: go_go_golems.minitrace.api.v1.SessionSummary.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
+	13, // 4: go_go_golems.minitrace.api.v1.SessionSummaryDetail.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
+	14, // 5: go_go_golems.minitrace.api.v1.SessionSummaryDetail.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
+	15, // 6: go_go_golems.minitrace.api.v1.SessionSummaryDetail.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
+	16, // 7: go_go_golems.minitrace.api.v1.SessionSummaryDetail.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
+	17, // 8: go_go_golems.minitrace.api.v1.SessionSummaryDetail.provenance:type_name -> go_go_golems.minitrace.api.v1.SessionProvenance
+	18, // 9: go_go_golems.minitrace.api.v1.ToolCallInput.arguments:type_name -> google.protobuf.Struct
 	2,  // 10: go_go_golems.minitrace.api.v1.ToolCall.input:type_name -> go_go_golems.minitrace.api.v1.ToolCallInput
 	3,  // 11: go_go_golems.minitrace.api.v1.ToolCall.output:type_name -> go_go_golems.minitrace.api.v1.ToolCallOutput
-	18, // 12: go_go_golems.minitrace.api.v1.ToolCall.badges:type_name -> go_go_golems.minitrace.api.v1.ToolCallBadge
+	19, // 12: go_go_golems.minitrace.api.v1.ToolCall.badges:type_name -> go_go_golems.minitrace.api.v1.ToolCallBadge
 	4,  // 13: go_go_golems.minitrace.api.v1.Turn.tool_calls_in_turn:type_name -> go_go_golems.minitrace.api.v1.ToolCall
-	5,  // 14: go_go_golems.minitrace.api.v1.SessionBlock.turns:type_name -> go_go_golems.minitrace.api.v1.Turn
-	19, // 15: go_go_golems.minitrace.api.v1.SessionBlock.artifacts:type_name -> go_go_golems.minitrace.api.v1.BlockArtifacts
-	12, // 16: go_go_golems.minitrace.api.v1.SessionDetail.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
-	13, // 17: go_go_golems.minitrace.api.v1.SessionDetail.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
-	14, // 18: go_go_golems.minitrace.api.v1.SessionDetail.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
-	15, // 19: go_go_golems.minitrace.api.v1.SessionDetail.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
-	16, // 20: go_go_golems.minitrace.api.v1.SessionDetail.provenance:type_name -> go_go_golems.minitrace.api.v1.SessionProvenance
-	6,  // 21: go_go_golems.minitrace.api.v1.SessionDetail.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
-	20, // 22: go_go_golems.minitrace.api.v1.ListSessionsResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	0,  // 23: go_go_golems.minitrace.api.v1.ListSessionsResponse.sessions:type_name -> go_go_golems.minitrace.api.v1.SessionSummary
-	20, // 24: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	1,  // 25: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionSummaryDetail
-	20, // 26: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	6,  // 27: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
-	20, // 28: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	7,  // 29: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionDetail
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	5,  // 14: go_go_golems.minitrace.api.v1.Turn.usage:type_name -> go_go_golems.minitrace.api.v1.TurnUsage
+	6,  // 15: go_go_golems.minitrace.api.v1.SessionBlock.turns:type_name -> go_go_golems.minitrace.api.v1.Turn
+	20, // 16: go_go_golems.minitrace.api.v1.SessionBlock.artifacts:type_name -> go_go_golems.minitrace.api.v1.BlockArtifacts
+	13, // 17: go_go_golems.minitrace.api.v1.SessionDetail.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
+	14, // 18: go_go_golems.minitrace.api.v1.SessionDetail.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
+	15, // 19: go_go_golems.minitrace.api.v1.SessionDetail.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
+	16, // 20: go_go_golems.minitrace.api.v1.SessionDetail.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
+	17, // 21: go_go_golems.minitrace.api.v1.SessionDetail.provenance:type_name -> go_go_golems.minitrace.api.v1.SessionProvenance
+	7,  // 22: go_go_golems.minitrace.api.v1.SessionDetail.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
+	21, // 23: go_go_golems.minitrace.api.v1.ListSessionsResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	0,  // 24: go_go_golems.minitrace.api.v1.ListSessionsResponse.sessions:type_name -> go_go_golems.minitrace.api.v1.SessionSummary
+	21, // 25: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	1,  // 26: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionSummaryDetail
+	21, // 27: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	7,  // 28: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
+	21, // 29: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	8,  // 30: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionDetail
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_proto_go_go_golems_minitrace_api_v1_sessions_proto_init() }
@@ -1163,15 +1271,17 @@ func file_proto_go_go_golems_minitrace_api_v1_sessions_proto_init() {
 	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[1].OneofWrappers = []any{}
 	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[2].OneofWrappers = []any{}
 	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[3].OneofWrappers = []any{}
+	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[5].OneofWrappers = []any{}
 	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[6].OneofWrappers = []any{}
 	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[7].OneofWrappers = []any{}
+	file_proto_go_go_golems_minitrace_api_v1_sessions_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc), len(file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

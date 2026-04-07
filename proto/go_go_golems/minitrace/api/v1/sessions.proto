@@ -54,6 +54,13 @@ message ToolCall {
   repeated ToolCallBadge badges = 7;
 }
 
+message TurnUsage {
+  optional uint32 input_tokens = 1;
+  optional uint32 output_tokens = 2;
+  optional uint32 cache_read_tokens = 3;
+  optional uint32 reasoning_tokens = 4;
+}
+
 message Turn {
   uint32 idx = 1;
   string role = 2;
@@ -61,6 +68,9 @@ message Turn {
   string content = 4;
   string timestamp = 5;
   repeated ToolCall tool_calls_in_turn = 6;
+  optional string thinking = 7;
+  optional string model = 8;
+  TurnUsage usage = 9;
 }
 
 message SessionBlock {
