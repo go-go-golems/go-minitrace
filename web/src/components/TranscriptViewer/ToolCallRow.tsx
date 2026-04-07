@@ -1,22 +1,37 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import BuildIcon from "@mui/icons-material/Build";
-import type { ToolCall } from "../../types";
+import type { Annotation, ToolCall } from "../../types";
+import { ANNOTATION_CATEGORY_COLORS as CATEGORY_COLORS } from "../../types/session";
 import { ToolCallBadgeChip } from "../shared";
 
 interface ToolCallRowProps {
   tc: ToolCall;
   defaultExpanded?: boolean;
+  focused?: boolean;
+  annotations?: Annotation[];
+  onAnnotate?: () => void;
+  onOpenAnnotation?: (annotation: Annotation) => void;
 }
 
-export function ToolCallRow({ tc, defaultExpanded = false }: ToolCallRowProps) {
+function ToolCallRowImpl({
+  tc,
+  defaultExpanded = false,
+  focused = false,
+  annotations = [],
+  onAnnotate,
+  onOpenAnnotation,
+}: ToolCallRowProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const cmd =
     tc.input.command ||
@@ -26,11 +41,19 @@ export function ToolCallRow({ tc, defaultExpanded = false }: ToolCallRowProps) {
   return (
     <Box
       data-part="tool-call"
+      data-tool-call-id={tc.id}
       sx={{
         borderLeft: "2px solid",
-        borderColor: tc.output.success ? "divider" : "error.main",
+        borderColor: focused
+          ? "warning.main"
+          : tc.output.success
+            ? "divider"
+            : "error.main",
+        bgcolor: focused ? "rgba(245,166,35,0.08)" : "transparent",
+        borderRadius: 1,
         ml: 2,
         my: 0.5,
+        transition: "background-color 0.2s, border-color 0.2s",
       }}
     >
       {/* Summary row */}
@@ -80,7 +103,37 @@ export function ToolCallRow({ tc, defaultExpanded = false }: ToolCallRowProps) {
           {tc.badges.map((b) => (
             <ToolCallBadgeChip key={b} badge={b} />
           ))}
+          {annotations.slice(0, 1).map((ann) => (
+            <Tooltip
+              key={ann.id}
+              title={`${ann.content.title}${ann.content.detail ? ` — ${ann.content.detail}` : ""}`}
+              arrow
+            >
+              <Chip
+                label={annotations.length === 1 ? ann.content.category : `${annotations.length} annotations`}
+                size="small"
+                color={CATEGORY_COLORS[ann.content.category] ?? "default"}
+                variant="outlined"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAnnotation?.(ann);
+                }}
+                sx={{ height: 20, fontSize: "0.65rem", cursor: "pointer" }}
+              />
+            </Tooltip>
+          ))}
         </Stack>
+        <Button
+          size="small"
+          variant="text"
+          sx={{ minWidth: 0, px: 0.75, fontSize: "0.7rem" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAnnotate?.();
+          }}
+        >
+          Annotate
+        </Button>
         <Typography variant="caption" sx={{ fontFamily: "monospace", opacity: 0.6, minWidth: 50, textAlign: "right" }}>
           {(tc.output.duration_ms / 1000).toFixed(1)}s
         </Typography>
@@ -92,7 +145,7 @@ export function ToolCallRow({ tc, defaultExpanded = false }: ToolCallRowProps) {
       </Box>
 
       {/* Expanded detail */}
-      <Collapse in={expanded}>
+      <Collapse in={expanded} unmountOnExit>
         <Box
           sx={{
             mx: 1.5,
@@ -179,3 +232,5 @@ export function ToolCallRow({ tc, defaultExpanded = false }: ToolCallRowProps) {
     </Box>
   );
 }
+
+export const ToolCallRow = memo(ToolCallRowImpl);

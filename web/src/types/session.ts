@@ -106,8 +106,8 @@ export interface SessionBlock {
   artifacts: BlockArtifacts;
 }
 
-/** Full session detail returned by /api/sessions/:id */
-export interface SessionDetail {
+/** Summary detail returned by /api/sessions/:id/summary */
+export interface SessionSummaryDetail {
   id: string;
   title: string;
   summary: string | null;
@@ -117,5 +117,88 @@ export interface SessionDetail {
   environment: SessionEnvironment;
   operational_context: SessionOperationalContext;
   provenance: SessionProvenance;
+}
+
+/** Full session detail returned by /api/sessions/:id */
+export interface SessionDetail extends SessionSummaryDetail {
   blocks: SessionBlock[];
+}
+
+/** Annotation types — matches the minitrace annotation schema */
+
+// A single annotation on a session, turn, or tool_call.
+export interface Annotation {
+  id: string;
+  timestamp: string;
+  annotator: string;
+  scope: {
+    type: "session" | "turn" | "tool_call";
+    target_id: string;
+  };
+  content: {
+    category: string;
+    tags: string[];
+    title: string;
+    detail: string;
+  };
+  taxonomy_mappings: {
+    minitrace: string[];
+    mast: string[];
+    toolemu: string[];
+  };
+  classification?: string;
+}
+
+export type AnnotationCategory =
+  | "observation"
+  | "ai-failure"
+  | "user-error"
+  | "environment-issue"
+  | "success"
+  | "question"
+  | "to-discuss"
+  | "to-improve";
+
+export const ANNOTATION_CATEGORY_COLORS: Record<string, "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"> = {
+  observation: "default",
+  "ai-failure": "error",
+  "user-error": "error",
+  "environment-issue": "warning",
+  success: "success",
+  question: "info",
+  "to-discuss": "secondary",
+  "to-improve": "primary",
+};
+
+// Response from GET /api/sessions/:id/annotations
+export interface SessionAnnotationsResponse {
+  session_id: string;
+  count: number;
+  annotations: Annotation[];
+}
+
+// Row from GET /api/v2/annotations (intentional API schema, not Go-exported field casing)
+export interface AnnotationListRow {
+  id: string;
+  sessionId: string;
+  annotator: string;
+  scopeType: string;
+  targetId: string;
+  category: string;
+  title: string;
+  detail: string;
+  tags: string[];
+  taxonomyMinitrace: string[];
+  taxonomyMast: string[];
+  taxonomyToolemu: string[];
+  classification?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Sync report returned by POST /api/annotations/sync
+export interface SyncReport {
+  synced: string[];
+  skipped: string[];
+  errors: { session_id: string; error: string }[];
 }

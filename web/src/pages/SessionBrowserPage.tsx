@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useSelector, useDispatch } from "react-redux";
-import { useGetSessionsQuery } from "../api/minitrace";
+import { useGetAnnotationsQuery, useGetSessionsQuery } from "../api/minitrace";
 import { SessionBrowser } from "../components/SessionBrowser";
+import type { AnnotationCategory } from "../types";
 import type { RootState, AppDispatch } from "../store";
 import { setFilterText } from "../store";
 
@@ -10,6 +12,23 @@ export function SessionBrowserPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { filterText } = useSelector((state: RootState) => state.ui);
   const { data: sessions = [] } = useGetSessionsQuery();
+  const { data: annotationData } = useGetAnnotationsQuery();
+  const annotations = Array.isArray(annotationData) ? annotationData : [];
+
+  const annotationSummaryBySession = useMemo(() => {
+    const summary: Record<string, { count: number; categories: AnnotationCategory[] }> = {};
+    for (const ann of annotations) {
+      const sessionId = ann.sessionId;
+      if (!summary[sessionId]) {
+        summary[sessionId] = { count: 0, categories: [] };
+      }
+      summary[sessionId].count += 1;
+      if (!summary[sessionId].categories.includes(ann.category as AnnotationCategory)) {
+        summary[sessionId].categories.push(ann.category as AnnotationCategory);
+      }
+    }
+    return summary;
+  }, [annotations]);
 
   return (
     <SessionBrowser
@@ -20,6 +39,7 @@ export function SessionBrowserPage() {
       onQuerySession={(id) =>
         navigate(`/query?session=${id}`)
       }
+      annotationSummaryBySession={annotationSummaryBySession}
     />
   );
 }

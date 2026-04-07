@@ -5,6 +5,7 @@ import (
 	stderrors "errors"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/settings"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
+	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -100,6 +102,15 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 	defer func() { _ = conn.Close() }()
 	defer func() { _ = db.Close() }()
 
+	// Attach annotations SQLite DB to DuckDB via sqlite_scanner.
+	// This makes annotations directly queryable from DuckDB SQL.
+	outputDir, err := outputDirFromGlobs(settings_.ArchiveGlob)
+	if err == nil && outputDir != "" {
+		if err := annotate.AttachAnnotationsToDuckDB(signalCtx, conn, outputDir); err != nil {
+			log.Warn().Err(err).Str("output_dir", outputDir).Msg("could not attach annotations database")
+		}
+	}
+
 	if err := queryengine.LoadArchive(signalCtx, conn, queryengine.LoadOptions{
 		ArchiveGlobs: settings_.ArchiveGlob,
 		TableName:    settings_.TableName,
@@ -112,6 +123,19 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 		return err
 	}
 
+	// Open the annotation store (SQLite).
+	var annoStore *annotate.Store
+	if outputDir != "" {
+		annoStore, err = annotate.Open(signalCtx, outputDir)
+		if err != nil {
+			log.Warn().Err(err).Str("output_dir", outputDir).Msg("could not open annotation store")
+			annoStore = nil
+		}
+	}
+	if annoStore != nil {
+		defer func() { _ = annoStore.Close() }()
+	}
+
 	log.Info().
 		Strs("archive_globs", settings_.ArchiveGlob).
 		Str("db_path", settings_.DBPath).
@@ -120,7 +144,7 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 		Bool("dev_mode", settings_.DevMode).
 		Msg("loaded minitrace archive for serve")
 
-	server := NewServer(conn, settings_, sessionIndex)
+	server := NewServer(conn, settings_, sessionIndex, annoStore, sessionIndex)
 	if err := server.ListenAndServe(signalCtx, settings_.Port); err != nil {
 		if stderrors.Is(err, context.Canceled) {
 			return nil
@@ -128,6 +152,26 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 		return err
 	}
 	return nil
+}
+
+// outputDirFromGlobs infers the output directory from the first matching file
+// of the given archive globs. It assumes the standard layout: outputDir/active/period/*.minitrace.json.
+// Returns the output directory (e.g. ./output) or "" if no files match.
+func outputDirFromGlobs(globs []string) (string, error) {
+	if len(globs) == 0 {
+		return "", nil
+	}
+	files, err := queryengine.ExpandArchiveGlobs(globs)
+	if err != nil || len(files) == 0 {
+		return "", err
+	}
+	// outputDir is three levels up from the session file: outputDir/active/YYYY-MM/file.minitrace.json
+	absDir := filepath.Dir(filepath.Dir(filepath.Dir(files[0])))
+	rel, err := filepath.Rel(".", absDir)
+	if err != nil {
+		return absDir, nil
+	}
+	return rel, nil
 }
 
 func NewCommand() (*cobra.Command, error) {

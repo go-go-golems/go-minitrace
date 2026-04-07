@@ -24,3 +24,5 @@ dist/
 web/node_modules/
 web/dist/
 web/storybook-static/
+output/
+tmp/

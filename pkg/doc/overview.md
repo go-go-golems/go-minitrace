@@ -16,6 +16,8 @@ go-minitrace converts AI agent sessions from multiple frameworks into a single s
 
 If you use Claude Code, Codex, Pi, claude.ai, ChatGPT, or Geppetto/Pinocchio, this tool reads their native session stores and produces normalized JSON archives that you can query with SQL.
 
+It also supports a human annotation workflow layered on top of those archives: you can add session-, turn-, and tool-call-level review notes through the annotation CLI and web UI, sync them back into `.minitrace.json`, and then analyze them alongside the rest of the archive.
+
 ## The minitrace format
 
 A minitrace session is a JSON file that captures everything about one AI agent interaction: the conversation turns, every tool call with its input and output, token usage, timing information, and computed metrics like read ratio and time to first action.
@@ -87,7 +89,8 @@ go-minitrace query duckdb \
 
 ## See also
 
-- `go-minitrace help minitrace-schema` — field-by-field schema reference
 - `go-minitrace help getting-started` — step-by-step tutorial
+- `go-minitrace help annotation-playbook` — how to add, sync, and query annotations correctly
+- `go-minitrace help minitrace-schema` — field-by-field schema reference
 - `go-minitrace help convert-commands` — all conversion subcommands
 - `go-minitrace help query-commands` — query modes, presets, and custom SQL

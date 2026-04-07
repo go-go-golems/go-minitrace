@@ -21,6 +21,16 @@ topics:
       description: 'Topic: go-minitrace'
     - slug: wesen-os
       description: 'Topic: wesen-os'
+    - slug: performance
+      description: Performance analysis and optimization work
+    - slug: frontend
+      description: Frontend and browser-side work
+    - slug: react
+      description: React application and component work
+    - slug: web-ui
+      description: Web UI architecture and implementation
+    - slug: transcript-analysis
+      description: Transcript viewing and analysis workflows
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes

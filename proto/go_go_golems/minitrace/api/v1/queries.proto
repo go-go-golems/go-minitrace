@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package go_go_golems.minitrace.api.v1;
+
+import "proto/go_go_golems/minitrace/api/v1/common.proto";
+
+option go_package = "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1;apiv1";
+
+message SavedQuery {
+  string name = 1;
+  string folder = 2;
+  string path = 3;
+  string description = 4;
+  string sql = 5;
+  bool readonly = 6;
+}
+
+message ListPresetsResponse {
+  ApiMeta meta = 1;
+  repeated SavedQuery presets = 2;
+}
+
+message ListQueriesResponse {
+  ApiMeta meta = 1;
+  repeated SavedQuery queries = 2;
+}
+
+message SaveQueryRequest {
+  string name = 1;
+  string folder = 2;
+  string description = 3;
+  string sql = 4;
+}
+
+message UpdateQueryRequest {
+  string description = 1;
+  string sql = 2;
+}
+
+message DeleteQueryResponse {
+  ApiMeta meta = 1;
+  string path = 2;
+  string status = 3;
+}

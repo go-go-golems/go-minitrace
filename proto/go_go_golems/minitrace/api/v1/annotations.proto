@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package go_go_golems.minitrace.api.v1;
+
+import "proto/go_go_golems/minitrace/api/v1/common.proto";
+
+option go_package = "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1;apiv1";
+
+enum AnnotationScopeType {
+  ANNOTATION_SCOPE_TYPE_UNSPECIFIED = 0;
+  ANNOTATION_SCOPE_TYPE_SESSION = 1;
+  ANNOTATION_SCOPE_TYPE_TURN = 2;
+  ANNOTATION_SCOPE_TYPE_TOOL_CALL = 3;
+}
+
+enum AnnotationCategory {
+  ANNOTATION_CATEGORY_UNSPECIFIED = 0;
+  ANNOTATION_CATEGORY_OBSERVATION = 1;
+  ANNOTATION_CATEGORY_AI_FAILURE = 2;
+  ANNOTATION_CATEGORY_USER_ERROR = 3;
+  ANNOTATION_CATEGORY_ENVIRONMENT_ISSUE = 4;
+  ANNOTATION_CATEGORY_SUCCESS = 5;
+  ANNOTATION_CATEGORY_QUESTION = 6;
+  ANNOTATION_CATEGORY_TO_DISCUSS = 7;
+  ANNOTATION_CATEGORY_TO_IMPROVE = 8;
+}
+
+message AnnotationScope {
+  AnnotationScopeType type = 1;
+  string target_id = 2;
+}
+
+message AnnotationContent {
+  AnnotationCategory category = 1;
+  repeated string tags = 2;
+  string title = 3;
+  string detail = 4;
+}
+
+message TaxonomyMappings {
+  repeated string minitrace = 1;
+  repeated string mast = 2;
+  repeated string toolemu = 3;
+}
+
+message Annotation {
+  string id = 1;
+  string timestamp = 2;
+  string annotator = 3;
+  AnnotationScope scope = 4;
+  AnnotationContent content = 5;
+  TaxonomyMappings taxonomy_mappings = 6;
+  optional string classification = 7;
+}
+
+message AnnotationListRow {
+  string id = 1;
+  string session_id = 2;
+  string annotator = 3;
+  AnnotationScopeType scope_type = 4;
+  string target_id = 5;
+  AnnotationCategory category = 6;
+  string title = 7;
+  string detail = 8;
+  repeated string tags = 9;
+  repeated string taxonomy_minitrace = 10;
+  repeated string taxonomy_mast = 11;
+  repeated string taxonomy_toolemu = 12;
+  optional string classification = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message GetSessionAnnotationsResponse {
+  ApiMeta meta = 1;
+  string session_id = 2;
+  uint32 count = 3;
+  repeated Annotation annotations = 4;
+}
+
+message ListAnnotationsResponse {
+  ApiMeta meta = 1;
+  repeated AnnotationListRow annotations = 2;
+}
+
+message CreateAnnotationRequest {
+  optional string annotator = 1;
+  AnnotationScopeType scope_type = 2;
+  string target_id = 3;
+  AnnotationCategory category = 4;
+  string title = 5;
+  string detail = 6;
+  repeated string tags = 7;
+  repeated string taxonomy_minitrace = 8;
+  repeated string taxonomy_mast = 9;
+  repeated string taxonomy_toolemu = 10;
+  optional string classification = 11;
+}
+
+message UpdateAnnotationRequest {
+  optional string title = 1;
+  optional string detail = 2;
+  optional AnnotationCategory category = 3;
+  StringList tags = 4;
+  StringList taxonomy_minitrace = 5;
+  StringList taxonomy_mast = 6;
+  StringList taxonomy_toolemu = 7;
+  optional string classification = 8;
+}
+
+message UpdateAnnotationResponse {
+  ApiMeta meta = 1;
+  string id = 2;
+  string status = 3;
+}
+
+message DeleteAnnotationResponse {
+  ApiMeta meta = 1;
+  string id = 2;
+  string status = 3;
+}
+
+message SyncAnnotationsRequest {
+  optional string session_id = 1;
+  bool dry_run = 2;
+}
+
+message SyncError {
+  string session_id = 1;
+  string error = 2;
+}
+
+message SyncAnnotationsResponse {
+  ApiMeta meta = 1;
+  repeated string synced = 2;
+  repeated string skipped = 3;
+  repeated SyncError errors = 4;
+}

@@ -18,6 +18,8 @@ This page shows concrete query examples against converted minitrace archives. Fo
 
 All examples assume an archive at `./output/active/*/*.minitrace.json`. Adjust the `--archive-glob` for your setup.
 
+One annotation-specific nuance is worth stating up front: `go-minitrace query duckdb` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first so those annotation changes are present in the archive.
+
 ## Using built-in presets
 
 List all sessions sorted by start time:
@@ -188,3 +190,4 @@ go-minitrace query duckdb \
 - `go-minitrace help query-commands` — full flag reference
 - `go-minitrace help writing-duckdb-queries` — DuckDB JSON syntax and query patterns
 - `go-minitrace help duckdb-query-recipes` — more query recipes
+- `go-minitrace help annotation-playbook` — correct sync-first workflow when querying annotations created through the CLI

@@ -25,10 +25,14 @@ type SessionSummaryResponse struct {
 	OperationalContext SessionOperationalContextResponse `json:"operational_context"`
 }
 
-type SessionDetailResponse struct {
+type SessionSummaryDetailResponse struct {
 	SessionSummaryResponse
 	Provenance SessionProvenanceResponse `json:"provenance"`
-	Blocks     []SessionBlock            `json:"blocks"`
+}
+
+type SessionDetailResponse struct {
+	SessionSummaryDetailResponse
+	Blocks []SessionBlock `json:"blocks"`
 }
 
 type SessionTimingResponse struct {
@@ -212,6 +216,27 @@ func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, normalizeSessionDetail(session))
 }
 
+func (s *Server) handleGetSessionSummary(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	session, err := loadSessionByID(s.sessionIndex, sessionID)
+	if err != nil {
+		if isSessionNotFound(err) {
+			http.NotFound(w, r)
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, QueryResponse{
+			Columns:    []string{},
+			Rows:       []map[string]any{},
+			DurationMS: 0,
+			RowCount:   0,
+			Error:      &QueryError{Message: err.Error()},
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, normalizeSessionSummaryDetail(session))
+}
+
 func (s *Server) handleGetSessionBlocks(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
 	session, err := loadSessionByID(s.sessionIndex, sessionID)
@@ -286,8 +311,8 @@ func sessionSummaryFromValues(values []any) (SessionSummaryResponse, error) {
 	}, nil
 }
 
-func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
-	return SessionDetailResponse{
+func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDetailResponse {
+	return SessionSummaryDetailResponse{
 		SessionSummaryResponse: SessionSummaryResponse{
 			ID:                 session.ID,
 			Title:              stringValue(session.Title),
@@ -299,7 +324,13 @@ func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
 			OperationalContext: normalizeOperationalContext(session.OperationalContext),
 		},
 		Provenance: normalizeProvenance(session.Provenance),
-		Blocks:     buildSessionBlocks(session),
+	}
+}
+
+func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
+	return SessionDetailResponse{
+		SessionSummaryDetailResponse: normalizeSessionSummaryDetail(session),
+		Blocks:                       buildSessionBlocks(session),
 	}
 }
 

@@ -12,6 +12,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.11.0",
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/state": "^6.6.0",
     "@codemirror/theme-one-dark": "^6.1.3",

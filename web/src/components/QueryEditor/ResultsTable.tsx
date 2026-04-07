@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -82,7 +82,7 @@ export function ResultsTable({ result, onClickSessionId }: ResultsTableProps) {
     }
   };
 
-  const sortedRows = [...result.rows].sort((a, b) => {
+  const sortedRows = useMemo(() => [...result.rows].sort((a, b) => {
     if (!sortCol) return 0;
     const va = a[sortCol];
     const vb = b[sortCol];
@@ -94,7 +94,7 @@ export function ResultsTable({ result, onClickSessionId }: ResultsTableProps) {
         ? va - vb
         : String(va).localeCompare(String(vb));
     return sortDir === "asc" ? cmp : -cmp;
-  });
+  }), [result.rows, sortCol, sortDir]);
 
   return (
     <Box data-part="results-table">

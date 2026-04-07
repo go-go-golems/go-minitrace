@@ -63,12 +63,35 @@ export const handlers = [
     return HttpResponse.json(mockPresets);
   }),
 
+  http.get("/api/v2/presets", () => {
+    return HttpResponse.json({ meta: { schemaVersion: 1 }, presets: mockPresets });
+  }),
+
   http.get("/api/queries", () => {
     return HttpResponse.json(mockSavedQueries);
   }),
 
+  http.get("/api/v2/queries", () => {
+    return HttpResponse.json({ meta: { schemaVersion: 1 }, queries: mockSavedQueries });
+  }),
+
   http.post("/api/queries", async ({ request }) => {
-    const body = (await request.json()) as { name: string; sql: string };
+    const body = (await request.json()) as { name: string; sql: string; folder?: string; description?: string };
     return HttpResponse.json({ ...body, path: `my-queries/${body.name}.sql` }, { status: 201 });
+  }),
+
+  http.post("/api/v2/queries", async ({ request }) => {
+    const body = (await request.json()) as { name: string; sql: string; folder?: string; description?: string };
+    return HttpResponse.json(
+      {
+        name: body.name,
+        folder: body.folder ?? "my-queries",
+        path: `my-queries/${body.name}.sql`,
+        description: body.description ?? "",
+        sql: body.sql,
+        readonly: false,
+      },
+      { status: 201 }
+    );
   }),
 ];

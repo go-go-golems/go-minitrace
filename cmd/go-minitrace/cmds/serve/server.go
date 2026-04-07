@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -26,6 +27,8 @@ type Server struct {
 	presetDirs   []string
 	queryDirs    []string
 	sessionIndex map[string]string
+	annoStore    *annotate.Store
+	annoIndex    map[string]string
 	devMode      bool
 	mux          *http.ServeMux
 }
@@ -38,6 +41,10 @@ type QueryError struct {
 	Message string `json:"message"`
 }
 
+// QueryResponse intentionally remains JSON-native in phase 1 of the protobuf API rollout.
+// The execute-query surface returns arbitrary row shapes (`[]map[string]any`) whose schema
+// depends on user SQL, so sessions, annotations, and saved-query metadata were migrated first.
+// A future wrapper could use google.protobuf.Struct if a protobuf envelope becomes worthwhile.
 type QueryResponse struct {
 	Columns    []string         `json:"columns"`
 	Rows       []map[string]any `json:"rows"`
@@ -46,13 +53,21 @@ type QueryResponse struct {
 	Error      *QueryError      `json:"error,omitempty"`
 }
 
-func NewServer(conn *sql.Conn, settings *ServeSettings, sessionIndex map[string]string) *Server {
+func NewServer(
+	conn *sql.Conn,
+	settings *ServeSettings,
+	sessionIndex map[string]string,
+	annoStore *annotate.Store,
+	annoIndex map[string]string,
+) *Server {
 	s := &Server{
 		conn:         conn,
 		tableName:    settings.TableName,
 		presetDirs:   normalizeDirList(settings.PresetDir),
 		queryDirs:    normalizeDirList(settings.QueryDir),
 		sessionIndex: sessionIndex,
+		annoStore:    annoStore,
+		annoIndex:    annoIndex,
 		devMode:      settings.DevMode,
 	}
 	s.mux = http.NewServeMux()
@@ -63,13 +78,38 @@ func NewServer(conn *sql.Conn, settings *ServeSettings, sessionIndex map[string]
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/sessions", s.handleGetSessions)
 	s.mux.HandleFunc("GET /api/sessions/{id}", s.handleGetSession)
+	s.mux.HandleFunc("GET /api/sessions/{id}/summary", s.handleGetSessionSummary)
 	s.mux.HandleFunc("GET /api/sessions/{id}/blocks", s.handleGetSessionBlocks)
+	s.mux.HandleFunc("GET /api/v2/sessions", s.handleGetSessionsV2)
+	s.mux.HandleFunc("GET /api/v2/sessions/{id}", s.handleGetSessionV2)
+	s.mux.HandleFunc("GET /api/v2/sessions/{id}/summary", s.handleGetSessionSummaryV2)
+	s.mux.HandleFunc("GET /api/v2/sessions/{id}/blocks", s.handleGetSessionBlocksV2)
 	s.mux.HandleFunc("POST /api/query", s.handleExecuteQuery)
 	s.mux.HandleFunc("GET /api/presets", s.handleGetPresets)
 	s.mux.HandleFunc("GET /api/queries", s.handleGetQueries)
 	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
 	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
 	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
+	s.mux.HandleFunc("GET /api/v2/presets", s.handleGetPresetsV2)
+	s.mux.HandleFunc("GET /api/v2/queries", s.handleGetQueriesV2)
+	s.mux.HandleFunc("POST /api/v2/queries", s.handleSaveQueryV2)
+	s.mux.HandleFunc("PUT /api/v2/queries/{path...}", s.handleUpdateQueryV2)
+	s.mux.HandleFunc("DELETE /api/v2/queries/{path...}", s.handleDeleteQueryV2)
+
+	// Annotation routes.
+	s.mux.HandleFunc("GET /api/sessions/{id}/annotations", s.handleGetSessionAnnotations)
+	s.mux.HandleFunc("POST /api/sessions/{id}/annotations", s.handleCreateAnnotation)
+	s.mux.HandleFunc("GET /api/annotations", s.handleListAnnotations)
+	s.mux.HandleFunc("PUT /api/annotations/{annId}", s.handleUpdateAnnotation)
+	s.mux.HandleFunc("DELETE /api/annotations/{annId}", s.handleDeleteAnnotation)
+	s.mux.HandleFunc("POST /api/annotations/sync", s.handleSyncAnnotations)
+	s.mux.HandleFunc("GET /api/v2/sessions/{id}/annotations", s.handleGetSessionAnnotationsV2)
+	s.mux.HandleFunc("POST /api/v2/sessions/{id}/annotations", s.handleCreateAnnotationV2)
+	s.mux.HandleFunc("GET /api/v2/annotations", s.handleListAnnotationsV2)
+	s.mux.HandleFunc("PUT /api/v2/annotations/{annId}", s.handleUpdateAnnotationV2)
+	s.mux.HandleFunc("DELETE /api/v2/annotations/{annId}", s.handleDeleteAnnotationV2)
+	s.mux.HandleFunc("POST /api/v2/annotations/sync", s.handleSyncAnnotationsV2)
+
 	if !s.devMode {
 		s.mux.Handle("/", spaHandler(frontendFS))
 	}
@@ -322,6 +362,10 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		log.Error().Err(err).Msg("writing JSON response")
 	}
+}
+
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{"error": message})
 }
 
 func decodeRequest(r *http.Request, dest any) error {
