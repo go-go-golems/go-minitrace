@@ -8,3 +8,54 @@ option go_package = "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems
 message ApiMeta {
   uint32 schema_version = 1;
 }
+
+message SessionTiming {
+  string started_at = 1;
+  optional string ended_at = 2;
+  double duration_seconds = 3;
+  double active_duration_seconds = 4;
+  uint32 hour_of_day = 5;
+  uint32 day_of_week = 6;
+}
+
+message SessionMetrics {
+  uint32 turn_count = 1;
+  uint32 tool_call_count = 2;
+  optional uint32 total_input_tokens = 3;
+  optional uint32 total_output_tokens = 4;
+  optional uint32 total_cache_read_tokens = 5;
+}
+
+message SessionEnvironment {
+  string agent_framework = 1;
+  string model = 2;
+}
+
+message SessionOperationalContext {
+  string working_directory = 1;
+  optional string autonomy_level = 2;
+  optional bool sandbox = 3;
+}
+
+message SessionProvenance {
+  string source_format = 1;
+  string source_path = 2;
+  string original_session_id = 3;
+  string converted_at = 4;
+}
+
+enum ToolCallBadge {
+  TOOL_CALL_BADGE_UNSPECIFIED = 0;
+  TOOL_CALL_BADGE_COMMIT = 1;
+  TOOL_CALL_BADGE_TICKET_CREATE = 2;
+  TOOL_CALL_BADGE_DOC_ADD = 3;
+  TOOL_CALL_BADGE_DIARY_WRITE = 4;
+  TOOL_CALL_BADGE_ERROR = 5;
+}
+
+message BlockArtifacts {
+  repeated string commits = 1;
+  repeated string tickets_created = 2;
+  repeated string docs_added = 3;
+  uint32 diary_writes = 4;
+}

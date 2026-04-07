@@ -2,15 +2,15 @@
 // @generated from file proto/go_go_golems/minitrace/api/v1/common.proto (package go_go_golems.minitrace.api.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file proto/go_go_golems/minitrace/api/v1/common.proto.
  */
 export const file_proto_go_go_golems_minitrace_api_v1_common: GenFile = /*@__PURE__*/
-  fileDesc("CjBwcm90by9nb19nb19nb2xlbXMvbWluaXRyYWNlL2FwaS92MS9jb21tb24ucHJvdG8SHWdvX2dvX2dvbGVtcy5taW5pdHJhY2UuYXBpLnYxIiEKB0FwaU1ldGESFgoOc2NoZW1hX3ZlcnNpb24YASABKA1CVFpSZ2l0aHViLmNvbS9nby1nby1nb2xlbXMvZ28tbWluaXRyYWNlL2dlbi9wcm90by9nb19nb19nb2xlbXMvbWluaXRyYWNlL2FwaS92MTthcGl2MWIGcHJvdG8z");
+  fileDesc("CjBwcm90by9nb19nb19nb2xlbXMvbWluaXRyYWNlL2FwaS92MS9jb21tb24ucHJvdG8SHWdvX2dvX2dvbGVtcy5taW5pdHJhY2UuYXBpLnYxIiEKB0FwaU1ldGESFgoOc2NoZW1hX3ZlcnNpb24YASABKA0irAEKDVNlc3Npb25UaW1pbmcSEgoKc3RhcnRlZF9hdBgBIAEoCRIVCghlbmRlZF9hdBgCIAEoCUgAiAEBEhgKEGR1cmF0aW9uX3NlY29uZHMYAyABKAESHwoXYWN0aXZlX2R1cmF0aW9uX3NlY29uZHMYBCABKAESEwoLaG91cl9vZl9kYXkYBSABKA0SEwoLZGF5X29mX3dlZWsYBiABKA1CCwoJX2VuZGVkX2F0IvEBCg5TZXNzaW9uTWV0cmljcxISCgp0dXJuX2NvdW50GAEgASgNEhcKD3Rvb2xfY2FsbF9jb3VudBgCIAEoDRIfChJ0b3RhbF9pbnB1dF90b2tlbnMYAyABKA1IAIgBARIgChN0b3RhbF9vdXRwdXRfdG9rZW5zGAQgASgNSAGIAQESJAoXdG90YWxfY2FjaGVfcmVhZF90b2tlbnMYBSABKA1IAogBAUIVChNfdG90YWxfaW5wdXRfdG9rZW5zQhYKFF90b3RhbF9vdXRwdXRfdG9rZW5zQhoKGF90b3RhbF9jYWNoZV9yZWFkX3Rva2VucyI8ChJTZXNzaW9uRW52aXJvbm1lbnQSFwoPYWdlbnRfZnJhbWV3b3JrGAEgASgJEg0KBW1vZGVsGAIgASgJIogBChlTZXNzaW9uT3BlcmF0aW9uYWxDb250ZXh0EhkKEXdvcmtpbmdfZGlyZWN0b3J5GAEgASgJEhsKDmF1dG9ub215X2xldmVsGAIgASgJSACIAQESFAoHc2FuZGJveBgDIAEoCEgBiAEBQhEKD19hdXRvbm9teV9sZXZlbEIKCghfc2FuZGJveCJyChFTZXNzaW9uUHJvdmVuYW5jZRIVCg1zb3VyY2VfZm9ybWF0GAEgASgJEhMKC3NvdXJjZV9wYXRoGAIgASgJEhsKE29yaWdpbmFsX3Nlc3Npb25faWQYAyABKAkSFAoMY29udmVydGVkX2F0GAQgASgJImQKDkJsb2NrQXJ0aWZhY3RzEg8KB2NvbW1pdHMYASADKAkSFwoPdGlja2V0c19jcmVhdGVkGAIgAygJEhIKCmRvY3NfYWRkZWQYAyADKAkSFAoMZGlhcnlfd3JpdGVzGAQgASgNKsgBCg1Ub29sQ2FsbEJhZGdlEh8KG1RPT0xfQ0FMTF9CQURHRV9VTlNQRUNJRklFRBAAEhoKFlRPT0xfQ0FMTF9CQURHRV9DT01NSVQQARIhCh1UT09MX0NBTExfQkFER0VfVElDS0VUX0NSRUFURRACEhsKF1RPT0xfQ0FMTF9CQURHRV9ET0NfQUREEAMSHwobVE9PTF9DQUxMX0JBREdFX0RJQVJZX1dSSVRFEAQSGQoVVE9PTF9DQUxMX0JBREdFX0VSUk9SEAVCVFpSZ2l0aHViLmNvbS9nby1nby1nb2xlbXMvZ28tbWluaXRyYWNlL2dlbi9wcm90by9nb19nb19nb2xlbXMvbWluaXRyYWNlL2FwaS92MTthcGl2MWIGcHJvdG8z");
 
 /**
  * ApiMeta is a small shared envelope fragment for versioned API responses.
@@ -30,4 +30,237 @@ export type ApiMeta = Message<"go_go_golems.minitrace.api.v1.ApiMeta"> & {
  */
 export const ApiMetaSchema: GenMessage<ApiMeta> = /*@__PURE__*/
   messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 0);
+
+/**
+ * @generated from message go_go_golems.minitrace.api.v1.SessionTiming
+ */
+export type SessionTiming = Message<"go_go_golems.minitrace.api.v1.SessionTiming"> & {
+  /**
+   * @generated from field: string started_at = 1;
+   */
+  startedAt: string;
+
+  /**
+   * @generated from field: optional string ended_at = 2;
+   */
+  endedAt?: string;
+
+  /**
+   * @generated from field: double duration_seconds = 3;
+   */
+  durationSeconds: number;
+
+  /**
+   * @generated from field: double active_duration_seconds = 4;
+   */
+  activeDurationSeconds: number;
+
+  /**
+   * @generated from field: uint32 hour_of_day = 5;
+   */
+  hourOfDay: number;
+
+  /**
+   * @generated from field: uint32 day_of_week = 6;
+   */
+  dayOfWeek: number;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.SessionTiming.
+ * Use `create(SessionTimingSchema)` to create a new message.
+ */
+export const SessionTimingSchema: GenMessage<SessionTiming> = /*@__PURE__*/
+  messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 1);
+
+/**
+ * @generated from message go_go_golems.minitrace.api.v1.SessionMetrics
+ */
+export type SessionMetrics = Message<"go_go_golems.minitrace.api.v1.SessionMetrics"> & {
+  /**
+   * @generated from field: uint32 turn_count = 1;
+   */
+  turnCount: number;
+
+  /**
+   * @generated from field: uint32 tool_call_count = 2;
+   */
+  toolCallCount: number;
+
+  /**
+   * @generated from field: optional uint32 total_input_tokens = 3;
+   */
+  totalInputTokens?: number;
+
+  /**
+   * @generated from field: optional uint32 total_output_tokens = 4;
+   */
+  totalOutputTokens?: number;
+
+  /**
+   * @generated from field: optional uint32 total_cache_read_tokens = 5;
+   */
+  totalCacheReadTokens?: number;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.SessionMetrics.
+ * Use `create(SessionMetricsSchema)` to create a new message.
+ */
+export const SessionMetricsSchema: GenMessage<SessionMetrics> = /*@__PURE__*/
+  messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 2);
+
+/**
+ * @generated from message go_go_golems.minitrace.api.v1.SessionEnvironment
+ */
+export type SessionEnvironment = Message<"go_go_golems.minitrace.api.v1.SessionEnvironment"> & {
+  /**
+   * @generated from field: string agent_framework = 1;
+   */
+  agentFramework: string;
+
+  /**
+   * @generated from field: string model = 2;
+   */
+  model: string;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.SessionEnvironment.
+ * Use `create(SessionEnvironmentSchema)` to create a new message.
+ */
+export const SessionEnvironmentSchema: GenMessage<SessionEnvironment> = /*@__PURE__*/
+  messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 3);
+
+/**
+ * @generated from message go_go_golems.minitrace.api.v1.SessionOperationalContext
+ */
+export type SessionOperationalContext = Message<"go_go_golems.minitrace.api.v1.SessionOperationalContext"> & {
+  /**
+   * @generated from field: string working_directory = 1;
+   */
+  workingDirectory: string;
+
+  /**
+   * @generated from field: optional string autonomy_level = 2;
+   */
+  autonomyLevel?: string;
+
+  /**
+   * @generated from field: optional bool sandbox = 3;
+   */
+  sandbox?: boolean;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.SessionOperationalContext.
+ * Use `create(SessionOperationalContextSchema)` to create a new message.
+ */
+export const SessionOperationalContextSchema: GenMessage<SessionOperationalContext> = /*@__PURE__*/
+  messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 4);
+
+/**
+ * @generated from message go_go_golems.minitrace.api.v1.SessionProvenance
+ */
+export type SessionProvenance = Message<"go_go_golems.minitrace.api.v1.SessionProvenance"> & {
+  /**
+   * @generated from field: string source_format = 1;
+   */
+  sourceFormat: string;
+
+  /**
+   * @generated from field: string source_path = 2;
+   */
+  sourcePath: string;
+
+  /**
+   * @generated from field: string original_session_id = 3;
+   */
+  originalSessionId: string;
+
+  /**
+   * @generated from field: string converted_at = 4;
+   */
+  convertedAt: string;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.SessionProvenance.
+ * Use `create(SessionProvenanceSchema)` to create a new message.
+ */
+export const SessionProvenanceSchema: GenMessage<SessionProvenance> = /*@__PURE__*/
+  messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 5);
+
+/**
+ * @generated from message go_go_golems.minitrace.api.v1.BlockArtifacts
+ */
+export type BlockArtifacts = Message<"go_go_golems.minitrace.api.v1.BlockArtifacts"> & {
+  /**
+   * @generated from field: repeated string commits = 1;
+   */
+  commits: string[];
+
+  /**
+   * @generated from field: repeated string tickets_created = 2;
+   */
+  ticketsCreated: string[];
+
+  /**
+   * @generated from field: repeated string docs_added = 3;
+   */
+  docsAdded: string[];
+
+  /**
+   * @generated from field: uint32 diary_writes = 4;
+   */
+  diaryWrites: number;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.BlockArtifacts.
+ * Use `create(BlockArtifactsSchema)` to create a new message.
+ */
+export const BlockArtifactsSchema: GenMessage<BlockArtifacts> = /*@__PURE__*/
+  messageDesc(file_proto_go_go_golems_minitrace_api_v1_common, 6);
+
+/**
+ * @generated from enum go_go_golems.minitrace.api.v1.ToolCallBadge
+ */
+export enum ToolCallBadge {
+  /**
+   * @generated from enum value: TOOL_CALL_BADGE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: TOOL_CALL_BADGE_COMMIT = 1;
+   */
+  COMMIT = 1,
+
+  /**
+   * @generated from enum value: TOOL_CALL_BADGE_TICKET_CREATE = 2;
+   */
+  TICKET_CREATE = 2,
+
+  /**
+   * @generated from enum value: TOOL_CALL_BADGE_DOC_ADD = 3;
+   */
+  DOC_ADD = 3,
+
+  /**
+   * @generated from enum value: TOOL_CALL_BADGE_DIARY_WRITE = 4;
+   */
+  DIARY_WRITE = 4,
+
+  /**
+   * @generated from enum value: TOOL_CALL_BADGE_ERROR = 5;
+   */
+  ERROR = 5,
+}
+
+/**
+ * Describes the enum go_go_golems.minitrace.api.v1.ToolCallBadge.
+ */
+export const ToolCallBadgeSchema: GenEnum<ToolCallBadge> = /*@__PURE__*/
+  enumDesc(file_proto_go_go_golems_minitrace_api_v1_common, 0);
 
