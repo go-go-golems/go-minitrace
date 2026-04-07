@@ -28,3 +28,16 @@ Step 2: added protobuf/Buf scaffolding, runtime dependencies, a minimal shared `
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.ts — Generated TypeScript protobuf output for the shared proto package
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/go.mod — Added protobuf runtime dependency for Go
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/package.json — Added `@bufbuild/protobuf` runtime dependency for the frontend
+
+## 2026-04-06
+
+Step 3: defined the shared session-related protobuf messages and the first full `sessions.proto` API contract, then regenerated Go and TypeScript bindings (commit ebcee29).
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto — Expanded shared messages and added the `ToolCallBadge` enum plus session-related common types
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/sessions.proto — Defined session summaries, detail, blocks, turns, tool calls, and explicit response envelopes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/common.pb.go — Regenerated Go bindings for shared proto definitions
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/sessions.pb.go — Generated Go bindings for the sessions API schema
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.ts — Regenerated frontend bindings for shared proto definitions
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.ts — Generated frontend bindings for the sessions API schema

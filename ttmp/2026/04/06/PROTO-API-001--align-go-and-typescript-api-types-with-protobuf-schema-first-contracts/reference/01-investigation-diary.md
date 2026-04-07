@@ -280,3 +280,134 @@ message ApiMeta {
   uint32 schema_version = 1;
 }
 ```
+
+## Step 3: Define the typed sessions protobuf schema and regenerate bindings
+
+This step translated the current handwritten session API surface into the first real protobuf contract. The aim was to cover the stable, structured session routes end-to-end in schema form before touching any handlers. That meant capturing the current session summary/detail/block projection explicitly rather than trying to protobuf-encode the full internal archive model.
+
+The key architectural choice in this step was to preserve the current transcript block view model as the public API contract. The frontend already consumes blocks, turns, and tool calls as a normalized route shape, so the proto schema should model that projection directly instead of forcing clients to reconstruct it from lower-level archive fields.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the phased implementation by defining the first substantial API schema, keeping the change focused on schema/codegen rather than handlers.
+
+**Inferred user intent:** Build the migration incrementally, proving the protobuf contract layer one API surface at a time.
+
+**Commit (code):** `ebcee29` — `build: define protobuf sessions schema`
+
+### What I did
+
+- Expanded `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto` with shared session-related messages:
+  - `SessionTiming`
+  - `SessionMetrics`
+  - `SessionEnvironment`
+  - `SessionOperationalContext`
+  - `SessionProvenance`
+  - `BlockArtifacts`
+  - `ToolCallBadge`
+- Added:
+  - `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/sessions.proto`
+- Defined typed session messages for:
+  - summaries
+  - summary detail
+  - tool call input/output
+  - tool calls
+  - turns
+  - session blocks
+  - full session detail
+- Defined explicit response envelopes:
+  - `ListSessionsResponse`
+  - `GetSessionSummaryResponse`
+  - `GetSessionBlocksResponse`
+  - `GetSessionDetailResponse`
+- Used `google.protobuf.Struct` for `ToolCallInput.arguments` because that field is genuinely dynamic.
+- Ran:
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...`
+  - `cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build`
+- Committed regenerated outputs for both Go and TypeScript.
+
+### Why
+
+- Sessions are the best first real API surface for protobuf because they are structured, stable, and already normalized by the backend.
+- The current frontend already thinks in terms of session summaries, session detail, blocks, turns, and tool calls. The schema should reflect that reality instead of exposing a lower-level raw archive contract.
+- Explicit response envelopes are a cleaner fit for versioned protobuf-backed JSON than today’s bare-array routes.
+
+### What worked
+
+- `buf generate` succeeded after adding `sessions.proto`.
+- `go test ./...` passed.
+- `cd web && npm run build` passed.
+- The generated TS bindings confirm that camelCase frontend field access will work naturally (`operationalContext`, `durationMs`, `toolCallsInTurn`, etc.).
+- `google.protobuf.Struct` mapped to `JsonObject` in the generated TS for `ToolCallInput.arguments`, which matches the intended dynamic-field handling from the protobuf skill.
+
+### What didn't work
+
+- No build or generation failure occurred in this step.
+- I still have not proven the schema ergonomics against live handlers yet, so field optionality choices remain partly provisional until Step 4 wiring begins.
+
+### What I learned
+
+- The current sessions API maps cleanly to protobuf when treated as a transport projection instead of an attempt to mirror every field from `pkg/minitrace/schema.go`.
+- The generated TS layer already demonstrates a major ergonomic improvement: API field casing becomes intentional and consistent rather than being manually mirrored in handwritten interfaces.
+
+### What was tricky to build
+
+- The trickiest decision was which fields to model as optional. Some current HTTP DTOs normalize missing values to empty strings rather than `null`, while protobuf gives a stronger notion of presence. I chose optionality where it seemed semantically useful but kept many public-session strings non-optional to avoid overcomplicating the first pass.
+- Another subtle point was deciding whether to turn more string categories into enums immediately. I only promoted `ToolCallBadge` in this step and left other string fields for later phases to keep the first schema reviewable.
+
+### What warrants a second pair of eyes
+
+- Whether `SessionProvenance.source_path` and `original_session_id` should remain plain strings or become optional in the public schema.
+- Whether token counters should remain `uint32` or eventually move to 64-bit fields once real payload ranges are reviewed.
+- Whether `role` should stay a string or become a `TurnRole` enum in a later refinement.
+
+### What should be done in the future
+
+- Implement Step 4 by adding `/api/v2/sessions...` handlers that emit these generated messages through `protojson`.
+- Add small backend normalization helpers from the current `Session*Response` structs or directly from internal session values into generated protobuf messages.
+
+### Code review instructions
+
+Review in this order:
+
+1. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/common.proto`
+2. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/proto/go_go_golems/minitrace/api/v1/sessions.proto`
+3. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/common.pb.go`
+4. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/sessions.pb.go`
+5. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.ts`
+6. `/home/manuel/code/wesen/corporate-headquarters/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.ts`
+
+Validation:
+
+```bash
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && buf generate
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace && go test ./...
+cd /home/manuel/code/wesen/corporate-headquarters/go-minitrace/web && npm run build
+```
+
+### Technical details
+
+Important new session response envelopes:
+
+```proto
+message ListSessionsResponse {
+  ApiMeta meta = 1;
+  repeated SessionSummary sessions = 2;
+}
+
+message GetSessionBlocksResponse {
+  ApiMeta meta = 1;
+  repeated SessionBlock blocks = 2;
+}
+```
+
+Dynamic tool-call arguments are modeled as:
+
+```proto
+google.protobuf.Struct arguments = 2;
+```
+
+which generated to `JsonObject` in TypeScript.

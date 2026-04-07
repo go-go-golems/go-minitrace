@@ -21,12 +21,12 @@
 
 ### Step 3 — Define protobuf schema for the typed sessions API
 
-- [ ] Define `common.proto` message types needed by sessions
-- [ ] Define `sessions.proto` with explicit response envelopes
-- [ ] Keep transcript blocks as the public API projection rather than raw archive-only structs
-- [ ] Regenerate Go and TypeScript outputs
-- [ ] Commit the schema changes
-- [ ] Update diary and changelog for the step
+- [x] Define `common.proto` message types needed by sessions
+- [x] Define `sessions.proto` with explicit response envelopes
+- [x] Keep transcript blocks as the public API projection rather than raw archive-only structs
+- [x] Regenerate Go and TypeScript outputs
+- [x] Commit the schema changes
+- [x] Update diary and changelog for the step
 
 ### Step 4 — Implement Go `/api/v2/sessions...` protobuf-backed JSON endpoints
 
