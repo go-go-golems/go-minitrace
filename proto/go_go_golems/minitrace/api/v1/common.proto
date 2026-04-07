@@ -59,3 +59,7 @@ message BlockArtifacts {
   repeated string docs_added = 3;
   uint32 diary_writes = 4;
 }
+
+message StringList {
+  repeated string values = 1;
+}

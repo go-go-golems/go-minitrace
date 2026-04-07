@@ -215,6 +215,22 @@ export declare type BlockArtifacts = Message<"go_go_golems.minitrace.api.v1.Bloc
 export declare const BlockArtifactsSchema: GenMessage<BlockArtifacts>;
 
 /**
+ * @generated from message go_go_golems.minitrace.api.v1.StringList
+ */
+export declare type StringList = Message<"go_go_golems.minitrace.api.v1.StringList"> & {
+  /**
+   * @generated from field: repeated string values = 1;
+   */
+  values: string[];
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.StringList.
+ * Use `create(StringListSchema)` to create a new message.
+ */
+export declare const StringListSchema: GenMessage<StringList>;
+
+/**
  * @generated from enum go_go_golems.minitrace.api.v1.ToolCallBadge
  */
 export enum ToolCallBadge {

@@ -532,6 +532,50 @@ func (x *BlockArtifacts) GetDiaryWrites() uint32 {
 	return 0
 }
 
+type StringList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Values        []string               `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StringList) Reset() {
+	*x = StringList{}
+	mi := &file_proto_go_go_golems_minitrace_api_v1_common_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StringList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StringList) ProtoMessage() {}
+
+func (x *StringList) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_go_go_golems_minitrace_api_v1_common_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StringList.ProtoReflect.Descriptor instead.
+func (*StringList) Descriptor() ([]byte, []int) {
+	return file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *StringList) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
 var File_proto_go_go_golems_minitrace_api_v1_common_proto protoreflect.FileDescriptor
 
 const file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDesc = "" +
@@ -579,7 +623,10 @@ const file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDesc = "" +
 	"\x0ftickets_created\x18\x02 \x03(\tR\x0eticketsCreated\x12\x1d\n" +
 	"\n" +
 	"docs_added\x18\x03 \x03(\tR\tdocsAdded\x12!\n" +
-	"\fdiary_writes\x18\x04 \x01(\rR\vdiaryWrites*\xc8\x01\n" +
+	"\fdiary_writes\x18\x04 \x01(\rR\vdiaryWrites\"$\n" +
+	"\n" +
+	"StringList\x12\x16\n" +
+	"\x06values\x18\x01 \x03(\tR\x06values*\xc8\x01\n" +
 	"\rToolCallBadge\x12\x1f\n" +
 	"\x1bTOOL_CALL_BADGE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16TOOL_CALL_BADGE_COMMIT\x10\x01\x12!\n" +
@@ -601,7 +648,7 @@ func file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDescGZIP() []byte 
 }
 
 var file_proto_go_go_golems_minitrace_api_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_go_go_golems_minitrace_api_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_go_go_golems_minitrace_api_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_proto_go_go_golems_minitrace_api_v1_common_proto_goTypes = []any{
 	(ToolCallBadge)(0),                // 0: go_go_golems.minitrace.api.v1.ToolCallBadge
 	(*ApiMeta)(nil),                   // 1: go_go_golems.minitrace.api.v1.ApiMeta
@@ -611,6 +658,7 @@ var file_proto_go_go_golems_minitrace_api_v1_common_proto_goTypes = []any{
 	(*SessionOperationalContext)(nil), // 5: go_go_golems.minitrace.api.v1.SessionOperationalContext
 	(*SessionProvenance)(nil),         // 6: go_go_golems.minitrace.api.v1.SessionProvenance
 	(*BlockArtifacts)(nil),            // 7: go_go_golems.minitrace.api.v1.BlockArtifacts
+	(*StringList)(nil),                // 8: go_go_golems.minitrace.api.v1.StringList
 }
 var file_proto_go_go_golems_minitrace_api_v1_common_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -634,7 +682,7 @@ func file_proto_go_go_golems_minitrace_api_v1_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDesc), len(file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
