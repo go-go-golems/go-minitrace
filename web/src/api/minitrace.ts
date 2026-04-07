@@ -17,6 +17,16 @@ import {
   decodeSessionSummaries,
   decodeSessionSummaryDetail,
 } from "./sessionProtoAdapters";
+import {
+  buildCreateAnnotationBody,
+  buildSyncAnnotationsBody,
+  buildUpdateAnnotationBody,
+  decodeAnnotation,
+  decodeAnnotationRows,
+  decodeSessionAnnotations,
+  decodeSyncReport,
+  decodeUpdateStatus,
+} from "./annotationProtoAdapters";
 
 export const minitraceApi = createApi({
   reducerPath: "minitraceApi",
@@ -69,16 +79,16 @@ export const minitraceApi = createApi({
 
     // ── annotations ────────────────────────────────
     getSessionAnnotations: builder.query<SessionAnnotationsResponse, string>({
-      query: (sessionId) => `sessions/${sessionId}/annotations`,
+      query: (sessionId) => `v2/sessions/${sessionId}/annotations`,
+      transformResponse: decodeSessionAnnotations,
       providesTags: (_result, _error, sessionId) => [
         { type: "Annotations", id: sessionId },
       ],
     }),
 
     getAnnotations: builder.query<AnnotationListRow[], void>({
-      query: () => "annotations",
-      transformResponse: (response: AnnotationListRow[] | null) =>
-        Array.isArray(response) ? response : [],
+      query: () => "v2/annotations",
+      transformResponse: decodeAnnotationRows,
       providesTags: [{ type: "Annotations" }],
     }),
 
@@ -87,10 +97,11 @@ export const minitraceApi = createApi({
       { session_id: string; category: string; title: string; detail?: string; scope_type?: string; target_id?: string; tags?: string[] }
     >({
       query: ({ session_id, ...body }) => ({
-        url: `sessions/${session_id}/annotations`,
+        url: `v2/sessions/${session_id}/annotations`,
         method: "POST",
-        body,
+        body: buildCreateAnnotationBody(body),
       }),
+      transformResponse: decodeAnnotation,
       invalidatesTags: (_result, _error, { session_id }) => [
         { type: "Annotations", id: session_id },
       ],
@@ -101,24 +112,27 @@ export const minitraceApi = createApi({
       { id: string; patch: Record<string, unknown> }
     >({
       query: ({ id, patch }) => ({
-        url: `annotations/${id}`,
+        url: `v2/annotations/${id}`,
         method: "PUT",
-        body: patch,
+        body: buildUpdateAnnotationBody(patch),
       }),
+      transformResponse: decodeUpdateStatus,
       invalidatesTags: (_result, _error, { id: _annotationId }) => [
         { type: "Annotations" },
       ],
     }),
 
     deleteAnnotation: builder.mutation<void, { id: string; session_id: string }>({
-      query: ({ id }) => ({ url: `annotations/${id}`, method: "DELETE" }),
+      query: ({ id }) => ({ url: `v2/annotations/${id}`, method: "DELETE" }),
+      transformResponse: () => undefined,
       invalidatesTags: (_result, _error, { session_id }) => [
         { type: "Annotations", id: session_id },
       ],
     }),
 
     syncAnnotations: builder.mutation<SyncReport, { session_id?: string; dry_run?: boolean }>({
-      query: (body = {}) => ({ url: "annotations/sync", method: "POST", body }),
+      query: (body = {}) => ({ url: "v2/annotations/sync", method: "POST", body: buildSyncAnnotationsBody(body) }),
+      transformResponse: decodeSyncReport,
       invalidatesTags: [{ type: "Annotations" }],
     }),
   }),

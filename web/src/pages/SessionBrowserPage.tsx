@@ -18,13 +18,13 @@ export function SessionBrowserPage() {
   const annotationSummaryBySession = useMemo(() => {
     const summary: Record<string, { count: number; categories: AnnotationCategory[] }> = {};
     for (const ann of annotations) {
-      const sessionId = ann.SessionID;
+      const sessionId = ann.sessionId;
       if (!summary[sessionId]) {
         summary[sessionId] = { count: 0, categories: [] };
       }
       summary[sessionId].count += 1;
-      if (!summary[sessionId].categories.includes(ann.Category as AnnotationCategory)) {
-        summary[sessionId].categories.push(ann.Category as AnnotationCategory);
+      if (!summary[sessionId].categories.includes(ann.category as AnnotationCategory)) {
+        summary[sessionId].categories.push(ann.category as AnnotationCategory);
       }
     }
     return summary;

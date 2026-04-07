@@ -177,23 +177,23 @@ export interface SessionAnnotationsResponse {
   annotations: Annotation[];
 }
 
-// Row from GET /api/annotations (flattened store view; Go JSON uses exported field names)
+// Row from GET /api/v2/annotations (intentional API schema, not Go-exported field casing)
 export interface AnnotationListRow {
-  ID: string;
-  SessionID: string;
-  Annotator: string;
-  ScopeType: string;
-  TargetID: string;
-  Category: string;
-  Title: string;
-  Detail: string;
-  Tags: string[];
-  TaxonomyM: string[];
-  TaxonomyMast: string[];
-  TaxonomyTm: string[];
-  Classification?: string | null;
-  CreatedAt: string;
-  UpdatedAt: string;
+  id: string;
+  sessionId: string;
+  annotator: string;
+  scopeType: string;
+  targetId: string;
+  category: string;
+  title: string;
+  detail: string;
+  tags: string[];
+  taxonomyMinitrace: string[];
+  taxonomyMast: string[];
+  taxonomyToolemu: string[];
+  classification?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Sync report returned by POST /api/annotations/sync
