@@ -227,6 +227,37 @@ export declare type ToolCall = Message<"go_go_golems.minitrace.api.v1.ToolCall">
 export declare const ToolCallSchema: GenMessage<ToolCall>;
 
 /**
+ * @generated from message go_go_golems.minitrace.api.v1.TurnUsage
+ */
+export declare type TurnUsage = Message<"go_go_golems.minitrace.api.v1.TurnUsage"> & {
+  /**
+   * @generated from field: optional uint32 input_tokens = 1;
+   */
+  inputTokens?: number;
+
+  /**
+   * @generated from field: optional uint32 output_tokens = 2;
+   */
+  outputTokens?: number;
+
+  /**
+   * @generated from field: optional uint32 cache_read_tokens = 3;
+   */
+  cacheReadTokens?: number;
+
+  /**
+   * @generated from field: optional uint32 reasoning_tokens = 4;
+   */
+  reasoningTokens?: number;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.TurnUsage.
+ * Use `create(TurnUsageSchema)` to create a new message.
+ */
+export declare const TurnUsageSchema: GenMessage<TurnUsage>;
+
+/**
  * @generated from message go_go_golems.minitrace.api.v1.Turn
  */
 export declare type Turn = Message<"go_go_golems.minitrace.api.v1.Turn"> & {
@@ -259,6 +290,21 @@ export declare type Turn = Message<"go_go_golems.minitrace.api.v1.Turn"> & {
    * @generated from field: repeated go_go_golems.minitrace.api.v1.ToolCall tool_calls_in_turn = 6;
    */
   toolCallsInTurn: ToolCall[];
+
+  /**
+   * @generated from field: optional string thinking = 7;
+   */
+  thinking?: string;
+
+  /**
+   * @generated from field: optional string model = 8;
+   */
+  model?: string;
+
+  /**
+   * @generated from field: go_go_golems.minitrace.api.v1.TurnUsage usage = 9;
+   */
+  usage?: TurnUsage;
 };
 
 /**

@@ -180,6 +180,16 @@ function adaptTurn(turn: PbTurn): Turn {
     source: turn.source,
     content: turn.content,
     timestamp: turn.timestamp,
+    thinking: turn.thinking ?? null,
+    model: turn.model ?? null,
+    usage: turn.usage
+      ? {
+          input_tokens: turn.usage.inputTokens ?? null,
+          output_tokens: turn.usage.outputTokens ?? null,
+          cache_read_tokens: turn.usage.cacheReadTokens ?? null,
+          reasoning_tokens: turn.usage.reasoningTokens ?? null,
+        }
+      : null,
     tool_calls_in_turn: turn.toolCallsInTurn.map(adaptToolCall),
   };
 }

@@ -82,6 +82,14 @@ export interface Turn {
   source: string;
   content: string;
   timestamp: string;
+  thinking?: string | null;
+  model?: string | null;
+  usage?: {
+    input_tokens?: number | null;
+    output_tokens?: number | null;
+    cache_read_tokens?: number | null;
+    reasoning_tokens?: number | null;
+  } | null;
   tool_calls_in_turn: ToolCall[];
 }
 

@@ -24,6 +24,239 @@ interface ToolCallRowProps {
   onOpenAnnotation?: (annotation: Annotation) => void;
 }
 
+/** Simple line-based diff: color removed lines red, added lines green */
+function DiffView({ oldText, newText }: { oldText: string; newTitle?: string; newText: string }) {
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+  return (
+    <Box
+      component="pre"
+      sx={{
+        m: 0,
+        p: 1,
+        bgcolor: "#0d1117",
+        borderRadius: 1,
+        overflow: "auto",
+        maxHeight: 300,
+        fontSize: "0.7rem",
+        lineHeight: 1.5,
+        fontFamily: "monospace",
+      }}
+    >
+      {oldLines.map((line, i) => (
+        <Box key={`old-${i}`} component="span" sx={{ color: "#f85149" }}>
+          {"- "}{line}{"\n"}
+        </Box>
+      ))}
+      {newLines.map((line, i) => (
+        <Box key={`new-${i}`} component="span" sx={{ color: "#3fb950" }}>
+          {"+ "}{line}{"\n"}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+/** Scrollable code block for write tool call content */
+function ContentBlock({ content }: { content: string }) {
+  const [truncated, setTruncated] = useState(content.length > 2000);
+  const displayContent = truncated ? content.slice(0, 2000) : content;
+  return (
+    <Box>
+      <Box
+        component="pre"
+        sx={{
+          m: 0,
+          p: 1,
+          bgcolor: "#0d1117",
+          borderRadius: 1,
+          overflow: "auto",
+          maxHeight: 300,
+          fontSize: "0.7rem",
+          lineHeight: 1.5,
+          fontFamily: "monospace",
+          color: "success.light",
+        }}
+      >
+        {displayContent}
+        {truncated && "\n… (truncated)"}
+      </Box>
+      {truncated && (
+        <Button
+          size="small"
+          onClick={() => setTruncated(false)}
+          sx={{ mt: 0.5, fontSize: "0.65rem" }}
+        >
+          Show all ({content.length.toLocaleString()} chars)
+        </Button>
+      )}
+    </Box>
+  );
+}
+
+/** Render the expanded detail section, specialized by tool type */
+function ToolCallDetail({ tc, cmd }: { tc: ToolCall; cmd: string }) {
+  const args = tc.input.arguments;
+
+  // Edit tool: show diffs
+  if (tc.tool_name === "edit" && args?.edits && Array.isArray(args.edits)) {
+    const edits = args.edits as Array<{ oldText?: string; newText?: string }>;
+    return (
+      <>
+        {edits.length > 1 && (
+          <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+            {edits.length} edit(s)
+          </Typography>
+        )}
+        {edits.map((edit, i) => (
+          <Box key={i} sx={{ mb: 1 }}>
+            {edits.length > 1 && (
+              <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.6rem" }}>
+                Edit {i + 1}
+              </Typography>
+            )}
+            <DiffView oldText={edit.oldText ?? ""} newText={edit.newText ?? ""} />
+          </Box>
+        ))}
+        {tc.output.result && (
+          <>
+            <Typography variant="overline" color="text.secondary">
+              Result
+            </Typography>
+            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", display: "block" }}>
+              {tc.output.result}
+            </Typography>
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Write tool: show content
+  if (tc.tool_name === "write" && args?.content && typeof args.content === "string") {
+    return (
+      <>
+        <ContentBlock content={args.content} />
+        {tc.output.result && (
+          <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", display: "block", mt: 0.5 }}>
+            {tc.output.result}
+          </Typography>
+        )}
+      </>
+    );
+  }
+
+  // Bash tool: show command + output
+  if (tc.tool_name === "bash") {
+    return (
+      <>
+        <Typography variant="overline" color="text.secondary">
+          Command
+        </Typography>
+        <Box
+          component="pre"
+          sx={{
+            m: 0, mb: 1, p: 1,
+            bgcolor: "#0d1117", borderRadius: 1,
+            overflow: "auto", maxHeight: 200,
+            whiteSpace: "pre-wrap", wordBreak: "break-all",
+            fontSize: "0.7rem", color: "primary.light",
+          }}
+        >
+          {cmd}
+        </Box>
+        {tc.output.result && (
+          <>
+            <Typography variant="overline" color="text.secondary">Output</Typography>
+            <Box
+              component="pre"
+              sx={{
+                m: 0, p: 1,
+                bgcolor: "#0d1117", borderRadius: 1,
+                overflow: "auto", maxHeight: 300,
+                whiteSpace: "pre-wrap", wordBreak: "break-all",
+                fontSize: "0.7rem", color: "success.light",
+              }}
+            >
+              {tc.output.result}
+            </Box>
+          </>
+        )}
+        {tc.output.error && (
+          <>
+            <Typography variant="overline" color="error.main">Error</Typography>
+            <Box
+              component="pre"
+              sx={{
+                m: 0, p: 1,
+                bgcolor: "#0d1117", borderRadius: 1,
+                overflow: "auto", maxHeight: 300,
+                whiteSpace: "pre-wrap", wordBreak: "break-all",
+                fontSize: "0.7rem", color: "error.light",
+              }}
+            >
+              {tc.output.error}
+            </Box>
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Generic fallback: command + output
+  return (
+    <>
+      <Typography variant="overline" color="text.secondary">Command</Typography>
+      <Box
+        component="pre"
+        sx={{
+          m: 0, mb: 1, p: 1,
+          bgcolor: "#0d1117", borderRadius: 1,
+          overflow: "auto", maxHeight: 200,
+          whiteSpace: "pre-wrap", wordBreak: "break-all",
+          fontSize: "0.7rem", color: "primary.light",
+        }}
+      >
+        {cmd}
+      </Box>
+      {tc.output.result && (
+        <>
+          <Typography variant="overline" color="text.secondary">Output</Typography>
+          <Box
+            component="pre"
+            sx={{
+              m: 0, p: 1,
+              bgcolor: "#0d1117", borderRadius: 1,
+              overflow: "auto", maxHeight: 300,
+              whiteSpace: "pre-wrap", wordBreak: "break-all",
+              fontSize: "0.7rem", color: "success.light",
+            }}
+          >
+            {tc.output.result}
+          </Box>
+        </>
+      )}
+      {tc.output.error && (
+        <>
+          <Typography variant="overline" color="error.main">Error</Typography>
+          <Box
+            component="pre"
+            sx={{
+              m: 0, p: 1,
+              bgcolor: "#0d1117", borderRadius: 1,
+              overflow: "auto", maxHeight: 300,
+              whiteSpace: "pre-wrap", wordBreak: "break-all",
+              fontSize: "0.7rem", color: "error.light",
+            }}
+          >
+            {tc.output.error}
+          </Box>
+        </>
+      )}
+    </>
+  );
+}
+
 function ToolCallRowImpl({
   tc,
   defaultExpanded = false,
@@ -33,9 +266,17 @@ function ToolCallRowImpl({
   onOpenAnnotation,
 }: ToolCallRowProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  // Build a meaningful summary for the collapsed tool call row.
+  // Priority: command (bash) > file_path (read/write/edit) > query (web_search) > tool_name
   const cmd =
     tc.input.command ||
+    tc.input.file_path ||
+    (tc.input.arguments?.query?.toString()
+      ? `"${tc.input.arguments.query.toString()}"`
+      : undefined) ||
     tc.input.arguments?.cmd?.toString() ||
+    tc.input.arguments?.path?.toString() ||
+    tc.input.arguments?.url?.toString() ||
     tc.tool_name;
 
   return (
@@ -158,75 +399,7 @@ function ToolCallRowImpl({
             lineHeight: 1.6,
           }}
         >
-          <Typography variant="overline" color="text.secondary">
-            Command
-          </Typography>
-          <Box
-            component="pre"
-            sx={{
-              m: 0,
-              mb: 1,
-              p: 1,
-              bgcolor: "#0d1117",
-              borderRadius: 1,
-              overflow: "auto",
-              maxHeight: 200,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-              fontSize: "0.75rem",
-              color: "primary.light",
-            }}
-          >
-            {cmd}
-          </Box>
-          {tc.output.result && (
-            <>
-              <Typography variant="overline" color="text.secondary">
-                Output
-              </Typography>
-              <Box
-                component="pre"
-                sx={{
-                  m: 0,
-                  p: 1,
-                  bgcolor: "#0d1117",
-                  borderRadius: 1,
-                  overflow: "auto",
-                  maxHeight: 300,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                  fontSize: "0.75rem",
-                  color: "success.light",
-                }}
-              >
-                {tc.output.result}
-              </Box>
-            </>
-          )}
-          {tc.output.error && (
-            <>
-              <Typography variant="overline" color="error.main">
-                Error
-              </Typography>
-              <Box
-                component="pre"
-                sx={{
-                  m: 0,
-                  p: 1,
-                  bgcolor: "#0d1117",
-                  borderRadius: 1,
-                  overflow: "auto",
-                  maxHeight: 300,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                  fontSize: "0.75rem",
-                  color: "error.light",
-                }}
-              >
-                {tc.output.error}
-              </Box>
-            </>
-          )}
+          <ToolCallDetail tc={tc} cmd={cmd} />
         </Box>
       </Collapse>
     </Box>

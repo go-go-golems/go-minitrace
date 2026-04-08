@@ -97,8 +97,8 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != expectedWorkingDirectory {
 		t.Fatalf("expected normalized cwd, got %+v", session.OperationalContext.WorkingDirectory)
 	}
-	if len(session.Turns) != 3 {
-		t.Fatalf("expected 3 turns, got %d", len(session.Turns))
+	if len(session.Turns) != 2 {
+		t.Fatalf("expected 2 turns, got %d", len(session.Turns))
 	}
 	if len(session.ToolCalls) != 1 {
 		t.Fatalf("expected 1 tool call, got %d", len(session.ToolCalls))

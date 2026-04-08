@@ -177,6 +177,8 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 						delete(pendingToolCalls, toolCallID)
 					}
 				}
+				// Tool results are captured on the tool call objects, skip turn creation
+				continue
 			}
 
 			source, normalizedRole := classifyTurnRole(role)

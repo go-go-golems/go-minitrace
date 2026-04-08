@@ -26,3 +26,7 @@ web/dist/
 web/storybook-static/
 output/
 tmp/
+
+# Frontend build artifacts (copied from web/dist/ by build script)
+cmd/go-minitrace/cmds/serve/frontend/*
+!cmd/go-minitrace/cmds/serve/frontend/.gitkeep
