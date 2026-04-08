@@ -5,6 +5,8 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
+    # Build frontend assets and copy them into the serve command directory
+    - make frontend
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:

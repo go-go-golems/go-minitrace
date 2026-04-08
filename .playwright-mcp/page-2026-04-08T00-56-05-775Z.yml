@@ -1,0 +1,528 @@
+- generic [ref=e2]:
+  - region
+  - generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+      - /url: "#start-of-content"
+    - banner [ref=e6]:
+      - heading "Navigation Menu" [level=2] [ref=e7]
+      - generic [ref=e9]:
+        - button "Toggle navigation" [ref=e11] [cursor=pointer]
+        - link "Homepage" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - img [ref=e18]
+        - generic [ref=e20]:
+          - link "Sign in" [ref=e21] [cursor=pointer]:
+            - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fgo-go-golems%2Fgo-minitrace%2Fpull%2F3
+          - button "Appearance settings" [ref=e24] [cursor=pointer]:
+            - img
+  - main [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - img [ref=e33]
+          - link "go-go-golems" [ref=e36] [cursor=pointer]:
+            - /url: /go-go-golems
+          - generic [ref=e37]: /
+          - strong [ref=e38]:
+            - link "go-minitrace" [ref=e39] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace
+          - generic [ref=e40]: Public
+        - generic [ref=e41]:
+          - list:
+            - listitem [ref=e42]:
+              - link "You must be signed in to change notification settings" [ref=e43] [cursor=pointer]:
+                - /url: /login?return_to=%2Fgo-go-golems%2Fgo-minitrace
+                - img [ref=e44]
+                - text: Notifications
+            - listitem [ref=e46]:
+              - link "Fork 1" [ref=e47] [cursor=pointer]:
+                - /url: /login?return_to=%2Fgo-go-golems%2Fgo-minitrace
+                - img [ref=e48]
+                - text: Fork
+                - generic "1" [ref=e50]
+            - listitem [ref=e51]:
+              - link "You must be signed in to star a repository" [ref=e53] [cursor=pointer]:
+                - /url: /login?return_to=%2Fgo-go-golems%2Fgo-minitrace
+                - img [ref=e54]
+                - text: Star
+                - generic "0 users starred this repository" [ref=e56]: "0"
+      - navigation "Repository" [ref=e57]:
+        - list [ref=e58]:
+          - listitem [ref=e59]:
+            - link "Code" [ref=e60] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace
+              - img [ref=e61]
+              - generic [ref=e63]: Code
+          - listitem [ref=e64]:
+            - link "Issues" [ref=e65] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/issues
+              - img [ref=e66]
+              - generic [ref=e69]: Issues
+          - listitem [ref=e70]:
+            - link "Pull requests 1" [ref=e71] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/pulls
+              - img [ref=e72]
+              - generic [ref=e74]: Pull requests
+              - generic "1" [ref=e75]
+          - listitem [ref=e76]:
+            - link "Actions" [ref=e77] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/actions
+              - img [ref=e78]
+              - generic [ref=e80]: Actions
+          - listitem [ref=e81]:
+            - link "Projects" [ref=e82] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/projects
+              - img [ref=e83]
+              - generic [ref=e85]: Projects
+          - listitem [ref=e86]:
+            - link "Security and quality" [ref=e87] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/security
+              - img [ref=e88]
+              - generic [ref=e90]: Security and quality
+          - listitem [ref=e91]:
+            - link "Insights" [ref=e92] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/pulse
+              - img [ref=e93]
+              - generic [ref=e95]: Insights
+    - generic [ref=e102]:
+      - generic [ref=e105]:
+        - 'heading "Enhance pi trace visualization with thinking, model, and token usage data #3" [level=1] [ref=e107]':
+          - text: Enhance pi trace visualization with thinking, model, and token usage data
+          - generic [ref=e109]: "#3"
+        - generic [ref=e112]:
+          - generic [ref=e114]:
+            - img "Pull request" [ref=e115]
+            - text: Open
+          - generic [ref=e118]:
+            - link "wesen" [ref=e119] [cursor=pointer]:
+              - /url: /wesen
+            - text: wants to merge 5 commits into
+            - link "go-go-golems:main" [ref=e120] [cursor=pointer]:
+              - /url: /go-go-golems/go-minitrace/tree/main
+            - generic [ref=e121]: from
+            - generic [ref=e122]:
+              - link "wesen:misc/polish-smaller-issues" [ref=e123] [cursor=pointer]:
+                - /url: /wesen/go-minitrace/tree/misc/polish-smaller-issues
+              - button "Copy head branch name to clipboard" [ref=e124] [cursor=pointer]:
+                - img [ref=e125]
+        - navigation "Pull request navigation tabs" [ref=e131]:
+          - tablist [ref=e132]:
+            - tab "Conversation (3)" [selected] [ref=e133] [cursor=pointer]:
+              - img [ref=e134]
+              - text: Conversation
+              - generic [ref=e136]: "3"
+              - generic [ref=e137]: (3)
+            - tab "Commits (5)" [ref=e138] [cursor=pointer]:
+              - img [ref=e139]
+              - text: Commits
+              - generic [ref=e141]: "5"
+              - generic [ref=e142]: (5)
+            - tab "Checks (8)" [ref=e143] [cursor=pointer]:
+              - img [ref=e144]
+              - text: Checks
+              - generic [ref=e146]: "8"
+              - generic [ref=e147]: (8)
+            - tab "Files changed (64)" [ref=e148] [cursor=pointer]:
+              - img [ref=e149]
+              - text: Files changed
+              - generic [ref=e151]: "64"
+              - generic [ref=e152]: (64)
+      - generic [ref=e157]:
+        - generic [ref=e159]:
+          - heading "Conversation" [level=2] [ref=e160]
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e164]:
+                - link "@wesen" [ref=e165] [cursor=pointer]:
+                  - /url: /wesen
+                  - img "@wesen" [ref=e166]
+                - generic [ref=e168]:
+                  - generic [ref=e169]:
+                    - generic [ref=e170]:
+                      - group [ref=e172]:
+                        - button "Show options" [ref=e173] [cursor=pointer]:
+                          - img "Show options" [ref=e176]
+                      - generic "This user has previously committed to the go-minitrace repository." [ref=e179]:
+                        - generic [ref=e180]: Contributor
+                    - heading "wesen commented Apr 8, 20268 minutes ago" [level=3] [ref=e181]:
+                      - generic [ref=e182]:
+                        - strong [ref=e183]:
+                          - link "wesen" [ref=e184] [cursor=pointer]:
+                            - /url: /wesen
+                        - text: commented
+                        - link "Apr 8, 20268 minutes ago" [ref=e185] [cursor=pointer]:
+                          - /url: "#issue-4221403887"
+                  - generic [ref=e189]:
+                    - paragraph [ref=e190]:
+                      - text: This pull request addresses several gaps in the visualization of "pi traces" by
+                      - text: exposing more detailed information from the backend and rendering it in the
+                      - text: frontend UI.
+                    - paragraph [ref=e191]:
+                      - strong [ref=e192]: "Backend and API Changes:"
+                    - list [ref=e193]:
+                      - listitem [ref=e194]:
+                        - text: The
+                        - code [ref=e195]: Turn
+                        - text: message in the Protobuf API has been extended to include new
+                        - text: "optional fields:"
+                        - list [ref=e196]:
+                          - listitem [ref=e197]:
+                            - code [ref=e198]: thinking
+                            - text: ": To show the model's intermediate reasoning steps."
+                          - listitem [ref=e199]:
+                            - code [ref=e200]: model
+                            - text: ": The name of the model used for the turn."
+                          - listitem [ref=e201]:
+                            - code [ref=e202]: usage
+                            - text: ": A new message containing token counts (input, output,"
+                            - text: cache_read, reasoning).
+                      - listitem [ref=e203]:
+                        - text: Backend API handlers (both v1 JSON and v2 protobuf) are updated to populate
+                        - text: and serve this new data.
+                    - paragraph [ref=e204]:
+                      - strong [ref=e205]: "Frontend UI Enhancements:"
+                    - list [ref=e206]:
+                      - listitem [ref=e207]:
+                        - text: The transcript viewer now displays the
+                        - code [ref=e208]: thinking
+                        - text: block for assistant turns,
+                        - text: providing insight into the model's reasoning process.
+                      - listitem [ref=e209]:
+                        - text: The model name and detailed token usage statistics are now visible for each
+                        - text: relevant turn, which helps in debugging and cost analysis.
+                      - listitem [ref=e210]:
+                        - text: The UI components for displaying turns and tool calls have been refactored to
+                        - text: accommodate and clearly present this new information.
+                    - paragraph [ref=e211]:
+                      - strong [ref=e212]: "Build Process:"
+                    - list [ref=e213]:
+                      - listitem [ref=e214]:
+                        - text: The previously checked-in frontend build artifacts have been removed from
+                        - text: source control.
+                      - listitem [ref=e215]:
+                        - text: The main build process now includes a step to build the frontend, ensuring
+                        - text: the embedded web UI is always synchronized with the latest frontend source
+                        - text: code.
+                    - paragraph [ref=e216]:
+                      - strong [ref=e217]: "Documentation:"
+                    - list [ref=e218]:
+                      - listitem [ref=e219]:
+                        - text: Adds extensive design documentation, research notes, and a collection of
+                        - text: analysis scripts that were used to investigate the visualization gaps and
+                        - text: validate the new data structures.
+              - generic [ref=e220]:
+                - generic [ref=e222]:
+                  - generic [ref=e223]:
+                    - img [ref=e225]
+                    - generic [ref=e227]:
+                      - link "wesen" [ref=e228] [cursor=pointer]:
+                        - /url: /wesen
+                      - text: added 5 commits
+                      - link "April 7, 2026 17:293 hours ago" [ref=e229] [cursor=pointer]:
+                        - /url: "#commits-pushed-a5f69d0"
+                  - generic [ref=e230]:
+                    - generic [ref=e231]:
+                      - img [ref=e233]
+                      - generic [ref=e238]:
+                        - link "@wesen" [ref=e241] [cursor=pointer]:
+                          - /url: /wesen
+                          - img "@wesen" [ref=e242]
+                        - code [ref=e244]:
+                          - link "🎨 Bump go.mod" [ref=e245] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/a5f69d04120b1194cb5b6de40fd0a8b911bcae98
+                        - button "Unverified" [ref=e247] [cursor=pointer]:
+                          - generic [ref=e249]: Unverified
+                        - code [ref=e252]:
+                          - link "a5f69d0" [ref=e253] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/a5f69d04120b1194cb5b6de40fd0a8b911bcae98
+                    - generic [ref=e254]:
+                      - img [ref=e256]
+                      - generic [ref=e261]:
+                        - link "@wesen" [ref=e264] [cursor=pointer]:
+                          - /url: /wesen
+                          - img "@wesen" [ref=e265]
+                        - code [ref=e267]:
+                          - link "🚑 Fix pi tool call conversation" [ref=e268] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/22e6bd2050f6b76abaa20e365fbd23c4b553d441
+                        - button "Unverified" [ref=e270] [cursor=pointer]:
+                          - generic [ref=e272]: Unverified
+                        - code [ref=e275]:
+                          - link "22e6bd2" [ref=e276] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/22e6bd2050f6b76abaa20e365fbd23c4b553d441
+                    - generic [ref=e277]:
+                      - img [ref=e279]
+                      - generic [ref=e284]:
+                        - link "@wesen" [ref=e287] [cursor=pointer]:
+                          - /url: /wesen
+                          - img "@wesen" [ref=e288]
+                        - code [ref=e290]:
+                          - link "🚑 Fix display of thinking blocks" [ref=e291] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/8cc48362884ecb26f3b40c794625c3dd49db4477
+                        - button "Unverified" [ref=e293] [cursor=pointer]:
+                          - generic [ref=e295]: Unverified
+                        - code [ref=e298]:
+                          - link "8cc4836" [ref=e299] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/8cc48362884ecb26f3b40c794625c3dd49db4477
+                    - generic [ref=e300]:
+                      - img [ref=e302]
+                      - generic [ref=e307]:
+                        - link "@wesen" [ref=e310] [cursor=pointer]:
+                          - /url: /wesen
+                          - img "@wesen" [ref=e311]
+                        - code [ref=e313]:
+                          - link "🎨 🚑 Fix display of thinking blocks" [ref=e314] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/304ee3bc96165db1961f8272e9a8b1deb9d53aea
+                        - button "Unverified" [ref=e316] [cursor=pointer]:
+                          - generic [ref=e318]: Unverified
+                        - code [ref=e321]:
+                          - link "304ee3b" [ref=e322] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/304ee3bc96165db1961f8272e9a8b1deb9d53aea
+                    - generic [ref=e323]:
+                      - img [ref=e325]
+                      - generic [ref=e330]:
+                        - link "@wesen" [ref=e333] [cursor=pointer]:
+                          - /url: /wesen
+                          - img "@wesen" [ref=e334]
+                        - code [ref=e336]:
+                          - link "🎨 Analyze pi transcripts" [ref=e337] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/5e5b7b38813524e2436240384d1f30ab3d11ba7d
+                        - button "Unverified" [ref=e339] [cursor=pointer]:
+                          - generic [ref=e341]: Unverified
+                        - group [ref=e344]:
+                          - generic "7 / 8 checks OK" [ref=e345] [cursor=pointer]:
+                            - img "7 / 8 checks OK" [ref=e346]
+                        - code [ref=e349]:
+                          - link "5e5b7b3" [ref=e350] [cursor=pointer]:
+                            - /url: /go-go-golems/go-minitrace/pull/3/commits/5e5b7b38813524e2436240384d1f30ab3d11ba7d
+                - generic [ref=e353]:
+                  - generic [ref=e354]:
+                    - link "chatgpt-codex-connector[bot]" [ref=e355] [cursor=pointer]:
+                      - /url: /apps/chatgpt-codex-connector
+                      - img "chatgpt-codex-connector[bot]" [ref=e356]
+                    - img [ref=e358]
+                    - generic [ref=e360]:
+                      - generic [ref=e361]:
+                        - strong [ref=e362]:
+                          - link "chatgpt-codex-connector" [ref=e363] [cursor=pointer]:
+                            - /url: /apps/chatgpt-codex-connector
+                          - generic [ref=e364]: bot
+                        - text: reviewed
+                        - link "Apr 8, 20264 minutes ago" [ref=e366] [cursor=pointer]:
+                          - /url: "#pullrequestreview-4072219807"
+                      - link "View reviewed changes" [ref=e368] [cursor=pointer]:
+                        - /url: /go-go-golems/go-minitrace/pull/3/files/5e5b7b38813524e2436240384d1f30ab3d11ba7d
+                        - generic [ref=e370]: View reviewed changes
+                  - generic [ref=e373]:
+                    - generic [ref=e374]:
+                      - group [ref=e377]:
+                        - button "Show options" [ref=e378] [cursor=pointer]:
+                          - img "Show options" [ref=e381]
+                      - heading "chatgpt-codex-connector bot left a comment" [level=3] [ref=e383]:
+                        - generic [ref=e384]:
+                          - strong [ref=e385]:
+                            - link "chatgpt-codex-connector" [ref=e386] [cursor=pointer]:
+                              - /url: /apps/chatgpt-codex-connector
+                            - generic [ref=e387]: bot
+                          - text: left a comment
+                    - generic [ref=e390]:
+                      - heading "💡 Codex Review" [level=3] [ref=e391]
+                      - paragraph [ref=e392]: Here are some automated review suggestions for this pull request.
+                      - paragraph [ref=e393]:
+                        - strong [ref=e394]: "Reviewed commit:"
+                        - code [ref=e395]: 5e5b7b3881
+                      - group [ref=e396]:
+                        - generic "ℹ️ About Codex in GitHub" [ref=e397] [cursor=pointer]
+                  - generic [ref=e399]:
+                    - group [ref=e403]:
+                      - button "Collapse comment thread" [expanded] [ref=e404] [cursor=pointer]:
+                        - link "Makefile" [ref=e407]:
+                          - /url: /go-go-golems/go-minitrace/pull/3/files/5e5b7b38813524e2436240384d1f30ab3d11ba7d#diff-76ed074a9305c04054cdebb9e9aad2d818052b07091de1f20cad0bbac34ffb52
+                      - generic [ref=e408]:
+                        - table [ref=e410]:
+                          - rowgroup [ref=e411]:
+                            - row "31 31 go test ./..." [ref=e412]:
+                              - cell "31" [ref=e413] [cursor=pointer]
+                              - cell "31" [ref=e414] [cursor=pointer]
+                              - cell "go test ./..." [ref=e415]:
+                                - generic [ref=e416]: go test ./...
+                            - row "32 32" [ref=e417]:
+                              - cell "32" [ref=e418] [cursor=pointer]
+                              - cell "32" [ref=e419] [cursor=pointer]
+                              - cell [ref=e420]
+                            - row "33 - build:" [ref=e421]:
+                              - cell "33" [ref=e422] [cursor=pointer]
+                              - cell [ref=e423] [cursor=pointer]
+                              - cell "- build:" [ref=e424]:
+                                - generic [ref=e425]: "- build:"
+                            - 'row "33 + build: frontend" [ref=e426]':
+                              - cell [ref=e427] [cursor=pointer]
+                              - cell "33" [ref=e428] [cursor=pointer]
+                              - 'cell "+ build: frontend" [ref=e429]':
+                                - generic [ref=e430]: "+ build: frontend"
+                        - generic [ref=e434]:
+                          - generic [ref=e435]:
+                            - group [ref=e438]:
+                              - button "Show options" [ref=e439] [cursor=pointer]:
+                                - img "Show options" [ref=e442]
+                            - heading "@chatgpt-codex-connector chatgpt-codex-connector bot Apr 8, 20264 minutes ago" [level=3] [ref=e444]:
+                              - generic [ref=e445]:
+                                - img "@chatgpt-codex-connector" [ref=e447]
+                                - strong [ref=e448]:
+                                  - link "chatgpt-codex-connector" [ref=e449] [cursor=pointer]:
+                                    - /url: /apps/chatgpt-codex-connector
+                                  - generic [ref=e450]: bot
+                                - link "Apr 8, 20264 minutes ago" [ref=e451] [cursor=pointer]:
+                                  - /url: "#discussion_r3048644411"
+                          - generic [ref=e455]:
+                            - paragraph [ref=e456]:
+                              - strong [ref=e457]:
+                                - subscript [ref=e458]:
+                                  - subscript [ref=e459]:
+                                    - link "P1 Badge" [ref=e460] [cursor=pointer]:
+                                      - /url: https://camo.githubusercontent.com/c595229c0ecb6ee85b9c7804144d495f131a495ec87091fea2b262d954c9a92d/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50312d6f72616e67653f7374796c653d666c6174
+                                      - img "P1 Badge" [ref=e461]
+                                - text: Build frontend assets for every binary build path
+                            - paragraph [ref=e462]:
+                              - text: After this change, the repository no longer tracks
+                              - code [ref=e463]: cmd/go-minitrace/cmds/serve/frontend
+                              - text: assets, so a clean checkout only contains
+                              - code [ref=e464]: .gitkeep
+                              - text: ; however only
+                              - code [ref=e465]: make build
+                              - text: now depends on
+                              - code [ref=e466]: frontend
+                              - text: . Other shipping paths like
+                              - code [ref=e467]: build-bin
+                              - text: and the current
+                              - code [ref=e468]: .goreleaser.yaml
+                              - text: hooks still run
+                              - code [ref=e469]: go build
+                              - text: without populating that directory, which produces binaries that return
+                              - code [ref=e470]: frontend index.html not found
+                              - text: at runtime. Please ensure all packaging/release build paths run the frontend build/copy step before compiling.
+                            - paragraph [ref=e471]: Useful? React with 👍 / 👎.
+                    - group [ref=e475]:
+                      - button "Collapse comment thread" [expanded] [ref=e476] [cursor=pointer]:
+                        - link "web/src/components/TranscriptViewer/ToolCallRow.tsx" [ref=e479]:
+                          - /url: /go-go-golems/go-minitrace/pull/3/files/5e5b7b38813524e2436240384d1f30ab3d11ba7d#diff-0bcf74d797e71bfb7cd1e283873a91f202b7b7ded377e0babde1aebadc0f86ed
+                      - generic [ref=e480]:
+                        - generic [ref=e482]: Comment on lines +150 to +151
+                        - table [ref=e485]:
+                          - rowgroup [ref=e486]:
+                            - 'row "150 + if (tc.tool_name === \"bash\") {" [ref=e487]':
+                              - cell [ref=e488] [cursor=pointer]
+                              - cell "150" [ref=e489] [cursor=pointer]
+                              - 'cell "+ if (tc.tool_name === \"bash\") {" [ref=e490]':
+                                - generic [ref=e491]: "+ if (tc.tool_name === \"bash\") {"
+                            - row "151 + return (" [ref=e492]:
+                              - cell [ref=e493] [cursor=pointer]
+                              - cell "151" [ref=e494] [cursor=pointer]
+                              - cell "+ return (" [ref=e495]:
+                                - generic [ref=e496]: + return (
+                        - generic [ref=e500]:
+                          - generic [ref=e501]:
+                            - group [ref=e504]:
+                              - button "Show options" [ref=e505] [cursor=pointer]:
+                                - img "Show options" [ref=e508]
+                            - heading "@chatgpt-codex-connector chatgpt-codex-connector bot Apr 8, 20264 minutes ago" [level=3] [ref=e510]:
+                              - generic [ref=e511]:
+                                - img "@chatgpt-codex-connector" [ref=e513]
+                                - strong [ref=e514]:
+                                  - link "chatgpt-codex-connector" [ref=e515] [cursor=pointer]:
+                                    - /url: /apps/chatgpt-codex-connector
+                                  - generic [ref=e516]: bot
+                                - link "Apr 8, 20264 minutes ago" [ref=e517] [cursor=pointer]:
+                                  - /url: "#discussion_r3048644412"
+                          - generic [ref=e521]:
+                            - paragraph [ref=e522]:
+                              - strong [ref=e523]:
+                                - subscript [ref=e524]:
+                                  - subscript [ref=e525]:
+                                    - link "P2 Badge" [ref=e526] [cursor=pointer]:
+                                      - /url: https://camo.githubusercontent.com/f2c1aacb361ddd3a0e9f9cacdb84fab050de434017f6747bb916e31e29bdf03d/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50322d79656c6c6f773f7374796c653d666c6174
+                                      - img "P2 Badge" [ref=e527]
+                                - text: Show bash tool errors in expanded detail view
+                            - paragraph [ref=e528]:
+                              - text: The specialized
+                              - code [ref=e529]: bash
+                              - text: branch returns without rendering
+                              - code [ref=e530]: tc.output.error
+                              - text: ", so failed bash calls lose their error text in the UI even though the old generic renderer showed it. This makes debugging much harder for sessions where shell commands fail, because users only see the command/output block and not the failure message."
+                            - paragraph [ref=e531]: Useful? React with 👍 / 👎.
+            - generic [ref=e535]:
+              - link "Sign up for free" [ref=e536] [cursor=pointer]:
+                - /url: /join?source=comment-repo
+              - strong [ref=e537]: to join this conversation on GitHub
+              - text: . Already have an account?
+              - link "Sign in to comment" [ref=e538] [cursor=pointer]:
+                - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fgo-go-golems%2Fgo-minitrace%2Fpull%2F3
+        - generic [ref=e542]:
+          - form "Select reviewers" [ref=e544]:
+            - heading "Reviewers" [level=3] [ref=e545]
+            - paragraph [ref=e547]:
+              - generic [ref=e548]:
+                - link "@chatgpt-codex-connector" [ref=e549] [cursor=pointer]:
+                  - /url: /apps/chatgpt-codex-connector
+                  - img "@chatgpt-codex-connector" [ref=e550]
+                - link "chatgpt-codex-connector[bot]" [ref=e551] [cursor=pointer]:
+                  - /url: /apps/chatgpt-codex-connector
+              - link "chatgpt-codex-connector[bot] left review comments" [ref=e552] [cursor=pointer]:
+                - /url: /go-go-golems/go-minitrace/pull/3/files/5e5b7b38813524e2436240384d1f30ab3d11ba7d
+                - img [ref=e554]
+          - form "Select assignees" [ref=e557]:
+            - heading "Assignees" [level=3] [ref=e558]
+            - text: No one assigned
+          - generic [ref=e559]:
+            - heading "Labels" [level=3] [ref=e560]
+            - generic [ref=e561]: None yet
+          - form "Select projects" [ref=e563]:
+            - heading "Projects" [level=3] [ref=e564]
+            - text: None yet
+          - form "Select milestones" [ref=e566]:
+            - heading "Milestone" [level=3] [ref=e567]
+            - text: No milestone
+          - form "Link issues" [ref=e573]:
+            - heading "Development" [level=3] [ref=e574]
+            - paragraph [ref=e575]: Successfully merging this pull request may close these issues.
+            - paragraph [ref=e577]: None yet
+          - generic [ref=e579]:
+            - heading "1 participant" [level=3] [ref=e580]
+            - link "@wesen" [ref=e582] [cursor=pointer]:
+              - /url: /wesen
+              - img "@wesen" [ref=e583]
+  - contentinfo [ref=e584]:
+    - heading "Footer" [level=2] [ref=e585]
+    - generic [ref=e586]:
+      - generic [ref=e587]:
+        - link "GitHub Homepage" [ref=e588] [cursor=pointer]:
+          - /url: https://github.com
+          - img [ref=e589]
+        - generic [ref=e591]: © 2026 GitHub, Inc.
+      - navigation "Footer" [ref=e592]:
+        - heading "Footer navigation" [level=3] [ref=e593]
+        - list "Footer navigation" [ref=e594]:
+          - listitem [ref=e595]:
+            - link "Terms" [ref=e596] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+          - listitem [ref=e597]:
+            - link "Privacy" [ref=e598] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+          - listitem [ref=e599]:
+            - link "Security" [ref=e600] [cursor=pointer]:
+              - /url: https://github.com/security
+          - listitem [ref=e601]:
+            - link "Status" [ref=e602] [cursor=pointer]:
+              - /url: https://www.githubstatus.com/
+          - listitem [ref=e603]:
+            - link "Community" [ref=e604] [cursor=pointer]:
+              - /url: https://github.community/
+          - listitem [ref=e605]:
+            - link "Docs" [ref=e606] [cursor=pointer]:
+              - /url: https://docs.github.com/
+          - listitem [ref=e607]:
+            - link "Contact" [ref=e608] [cursor=pointer]:
+              - /url: https://support.github.com?tags=dotcom-footer
+          - listitem [ref=e609]:
+            - button "Manage cookies" [ref=e611] [cursor=pointer]
+          - listitem [ref=e612]:
+            - button "Do not share my personal information" [ref=e614] [cursor=pointer]

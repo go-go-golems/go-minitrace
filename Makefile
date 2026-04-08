@@ -39,7 +39,7 @@ frontend:
 	rm -rf cmd/go-minitrace/cmds/serve/frontend
 	cp -r web/dist cmd/go-minitrace/cmds/serve/frontend
 
-build-bin:
+build-bin: frontend
 	mkdir -p ./dist
 	go build -o ./dist/$(BINARY) $(CMD_DIR)
 

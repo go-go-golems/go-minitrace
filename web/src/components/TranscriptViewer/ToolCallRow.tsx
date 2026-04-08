@@ -182,6 +182,23 @@ function ToolCallDetail({ tc, cmd }: { tc: ToolCall; cmd: string }) {
             </Box>
           </>
         )}
+        {tc.output.error && (
+          <>
+            <Typography variant="overline" color="error.main">Error</Typography>
+            <Box
+              component="pre"
+              sx={{
+                m: 0, p: 1,
+                bgcolor: "#0d1117", borderRadius: 1,
+                overflow: "auto", maxHeight: 300,
+                whiteSpace: "pre-wrap", wordBreak: "break-all",
+                fontSize: "0.7rem", color: "error.light",
+              }}
+            >
+              {tc.output.error}
+            </Box>
+          </>
+        )}
       </>
     );
   }
