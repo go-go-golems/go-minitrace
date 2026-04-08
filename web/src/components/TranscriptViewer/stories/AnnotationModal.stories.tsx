@@ -24,6 +24,7 @@ export const SessionAnnotation: Story = {
   args: {
     sessionId: "demo-session-123",
     target: { scopeType: "session", targetId: "demo-session-123" } as AnnotationDraftTarget,
+    onClose: () => {},
   },
 };
 
@@ -31,6 +32,7 @@ export const TurnAnnotation: Story = {
   args: {
     sessionId: "demo-session-123",
     target: { scopeType: "turn", targetId: "42" } as AnnotationDraftTarget,
+    onClose: () => {},
   },
 };
 
@@ -38,6 +40,7 @@ export const ToolCallAnnotation: Story = {
   args: {
     sessionId: "demo-session-123",
     target: { scopeType: "tool_call", targetId: "call_abc123" } as AnnotationDraftTarget,
+    onClose: () => {},
   },
 };
 
@@ -45,5 +48,6 @@ export const Closed: Story = {
   args: {
     sessionId: "demo-session-123",
     target: null,
+    onClose: () => {},
   },
 };
