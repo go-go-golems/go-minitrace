@@ -33,6 +33,7 @@ linters:
     paths:
       - ttmp/.*\\.go
       - test_.*\\.go
+      - web/node_modules/
   settings:
     errcheck:
       exclude-functions:
