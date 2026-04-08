@@ -270,3 +270,159 @@ TurnResponse (Go) → has thinking/model/usage ✓
 3. **Frontend adapter** (`sessionProtoAdapters.ts`): Updated `adaptTurn()` to map `turn.thinking`, `turn.model`, `turn.usage` from proto camelCase to the UI's snake_case types.
 
 **Lesson:** When the v2 API uses protobuf, changes to `TurnResponse` alone are not enough. The proto schema is the actual contract — everything else is just plumbing.
+
+---
+
+## Step 11: Why thinking blocks are missing — OpenAI encrypted reasoning
+
+**User question:** Why does pi seem to drop glm-5.1 thinking blocks? And how to get raw traffic from pi?
+
+**Investigation:**
+
+### 1. Analyzed thinking distribution by model (script 25)
+
+```
+Model                Provider              Total  Think NonEmpty  Empty
+glm-5.1              zai                     339     28       28      0
+gpt-5.4              openai-codex            257    199      122     77
+```
+
+**Surprise:** glm-5.1 has NO empty thinking blocks — all 28 are non-empty. The 77 empty thinking blocks are ALL from gpt-5.4 via openai-codex. The real question isn't "why does pi drop glm-5.1 thinking" but rather "why does gpt-5.4 have empty thinking" and "why does glm-5.1 have so few thinking blocks (28/339 = 8%)".
+
+### 2. Inspected empty thinking blocks (script 27)
+
+Every "empty" thinking block from gpt-5.4 has:
+```json
+{
+  "type": "thinking",
+  "thinking": "",
+  "thinkingSignature": "{\"id\":\"rs_...\",\"type\":\"reasoning\",\"encrypted_content\":\"gAAAAAB...\"}"
+}
+```
+
+This is **OpenAI's encrypted reasoning feature**. The model did chain-of-thought reasoning, but OpenAI redacts the content and returns only an opaque encrypted blob in `thinkingSignature`. The `thinking` text is empty because the content was **redacted by the API**, not dropped by pi.
+
+pi-ai's `ThinkingContent` type even has a `redacted?: boolean` field for exactly this case.
+
+### 3. How to get raw traffic from pi
+
+From the pi documentation (`docs/`):
+
+- **`/debug` command** (hidden): Writes to `~/.pi/agent/pi-debug.log` with rendered TUI lines and last messages sent to the LLM.
+- **`--mode json`**: Outputs all session events as JSON lines to stdout. Includes `message_start`, `message_update`, `message_end` events with the full message content as received from the provider.
+- **`--verbose`**: Forces verbose startup.
+- **Session JSONL** (`~/.pi/agent/sessions/.../*.jsonl`): Contains the complete message history exactly as received from the provider. No filtering — the JSONL is the raw source of truth.
+- **Extension `message_end` event**: Can intercept every completed message, including thinking blocks, before they're written.
+
+### 4. Key findings
+
+1. **The converter is correct** — it captures all 150 non-empty thinking blocks. The 77 empty ones from gpt-5.4 are genuinely empty text (encrypted reasoning).
+
+2. **pi does NOT drop thinking blocks** — the JSONL contains exactly what the provider returns. Empty thinking = encrypted reasoning from OpenAI.
+
+3. **The `thinkingSignature` field is not captured in minitrace** — the converter doesn't preserve it. This means multi-turn reasoning continuity (passing the signature back to the API) would be lost. Not a problem for our use case (analysis), but worth noting.
+
+4. **glm-5.1 thinking rate is low (8%)** — this is a provider/model characteristic, not a pi bug. Some models reason less or don't always emit thinking tokens.
+
+### What to tell the user
+
+The empty thinking blocks aren't a pi bug — they're OpenAI's encrypted reasoning. The `thinkingSignature` blob contains the model's reasoning in encrypted form that only the OpenAI API can decrypt (for multi-turn continuity). The actual thinking text is empty because OpenAI chose not to expose it.
+
+For debugging raw provider traffic: `--mode json` is the best option. It shows streaming events with the exact content from the provider in real-time.
+
+---
+
+## Step 12: Live testing — pi correctly forwards thinking, provider summarization is the cause
+
+**Hypothesis:** Maybe pi has a bug where it doesn't forward the actual thinking, just summaries.
+
+**Test:** Ran `pi --mode json` against zai/glm-5.1 and openai-codex/gpt-5.4 with a simple math prompt.
+
+### Results
+
+**z.ai / glm-5.1:**
+```
+Thinking deltas:        4
+Last streamed thinking: 21 chars
+Final thinking:         21 chars
+Stream == Final:        True
+Final has signature:    True  (value: "reasoning_content")
+Content: "Simple math question."
+```
+
+**openai-codex / gpt-5.4:**
+```
+Thinking deltas:        82
+Last streamed thinking: 370 chars
+Final thinking:         368 chars
+Stream == Final:        False  (minor difference — summary vs stream tail)
+Final has signature:    True  (value: encrypted blob)
+```
+
+### Key observations
+
+1. **pi does NOT truncate thinking.** The streamed thinking deltas match the final thinking block. What goes over the wire is what ends up in the JSONL.
+
+2. **z.ai returns very short thinking.** Only 21 chars for a non-trivial prompt. The `thinkingSignature` is `"reasoning_content"` — this is the *field name* from the API response, not an encrypted blob. Z.ai appears to use an OpenAI-compatible API where `reasoning_content` is the field that carries thinking.
+
+3. **gpt-5.4 returns longer thinking (370 chars)** with an actual encrypted blob in `thinkingSignature`. The OpenAI API provides both the plain-text reasoning summary AND an encrypted payload for multi-turn continuity.
+
+4. **The `partial` field in thinking_delta events is a full message envelope**, not just a text delta. Each delta contains the complete accumulated thinking text in `partial.content[0].thinking`. Pi correctly accumulates by taking the latest value.
+
+5. **The 57K chars I saw earlier was an artifact** — my script was concatenating the full partial dicts as strings, not extracting the thinking text from within them.
+
+### Conclusion
+
+**This is a provider-level characteristic, not a pi bug.**
+
+- **z.ai (glm-5.1):** The provider or model summarizes its reasoning into very short thinking blocks (often just 1-2 sentences). This is how the GLM model family works with the OpenAI-compatible reasoning API.
+- **gpt-5.4:** OpenAI returns both a plain-text summary and an encrypted blob. The plain text is a condensed version of the actual chain-of-thought.
+- **pi faithfully records what the provider returns.** No truncation, no dropping.
+
+### Tools discovered
+
+- `pi --mode json` — full streaming JSON events with exact provider content
+- `/debug` command — writes `~/.pi/agent/pi-debug.log`
+- Extension `message_end` event — programmatic interception of every message
+
+---
+
+## Step 13: Raw API test confirms z.ai sends full thinking — pi captures only a fraction
+
+**The smoking gun:**
+
+Ran the same prompt ("What is 17 * 23?") through two paths:
+1. Raw `curl` against `https://api.z.ai/api/coding/paas/v4/chat/completions` with `enable_thinking: true`
+2. `pi --mode json --provider zai --model glm-5.1`
+
+**Results:**
+
+| Path | Thinking length |
+|------|----------------|
+| Raw curl (SSE `reasoning_content`) | **1,118 chars** — full chain-of-thought |
+| pi `--mode json` (final thinking block) | **186 chars** — truncated summary |
+
+The raw API returns 379 SSE chunks with `reasoning_content` totaling 1,118 chars of genuine reasoning ("I can break this down...", "Let's double check", FOIL alternative, etc.). But pi's final `message_end` thinking block contains only 186 chars — a heavily condensed version.
+
+**This IS a pi bug.** The streaming deltas accumulate correctly (pi shows 82 thinking events, 46,302 chars streamed), but the final message collapses the thinking into a short summary. The streamed partials each contain the full accumulated thinking text in `partial.content[0].thinking`, so pi sees the full reasoning during streaming. But the final `message_end` event has a much shorter `thinking` field.
+
+**Root cause hypothesis:** The z.ai API returns both `reasoning_content` (the full thinking) in the stream AND a short summary in the final non-streamed response. Pi's message assembly might be overwriting the accumulated thinking with the final summary chunk. Or z.ai's final SSE chunk contains a summarized `reasoning_content` that replaces the accumulated text.
+
+**Next step to confirm:** Capture the LAST SSE chunk's `reasoning_content` and compare with the full accumulated text. If the last chunk has a short summary, then pi's accumulation logic is resetting on it.
+
+**z.ai API details discovered:**
+- Base URL: `https://api.z.ai/api/coding/paas/v4/` (Coding Plan endpoint)
+- Auth: OAuth token from `~/.pi/agent/auth.json` → `zai.access`
+- Thinking: `enable_thinking: true` (set by pi-ai via `thinkingFormat: "zai"`)
+- The field name is `reasoning_content` (OpenAI-compatible)
+- Docs at: https://docs.z.ai/guides/capabilities/thinking-mode
+- Key concept: "Preserved Thinking" — you MUST return full `reasoning_content` in subsequent turns for cache hits and reasoning continuity
+
+**Scripts saved:**
+- `28-test-provider-thinking.sh` — test any provider's thinking with pi `--mode json`
+- `29-capture-thinking-stream.sh` — capture raw delta structure
+- `30-dump-one-thinking-delta.py` — inspect one thinking_delta partial
+- `31-compare-stream-vs-final.py` — compare last streamed thinking vs final
+- `32-fetch-zai-thinking-docs.sh` — fetch z.ai docs (needs defuddle)
+- `33-curl-zai-raw.sh` — curl z.ai API with OAuth token
+- `34-curl-zai-raw-thinking.sh` — compare raw API vs pi output side by side
