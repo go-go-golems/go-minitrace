@@ -23,10 +23,7 @@ import { useVirtualList } from "../shared/useVirtualList";
 import { ActiveBadge, FormatWallActive } from "../shared";
 import { BlockCard } from "./BlockCard";
 import { AnnotationPanel } from "./AnnotationPanel";
-import {
-  AnnotationComposer,
-  type AnnotationDraftTarget,
-} from "./AnnotationComposer";
+import { AnnotationModal } from "./AnnotationModal";
 import type { FocusedTranscriptTarget } from "./types";
 
 interface TranscriptViewerProps {
@@ -43,6 +40,10 @@ export function TranscriptViewer({
   const [searchParams, setSearchParams] = useSearchParams();
   const [focusedTarget, setFocusedTarget] = useState<FocusedTranscriptTarget | null>(null);
   const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>({});
+  const [annotationTarget, setAnnotationTarget] = useState<{
+    scopeType: "session" | "turn" | "tool_call";
+    targetId: string;
+  } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -64,8 +65,6 @@ export function TranscriptViewer({
   const selectedAnnotationId = searchParams.get("annotation");
   const focusTypeParam = searchParams.get("focusType");
   const focusIdParam = searchParams.get("focusId");
-  const composeTypeParam = searchParams.get("composeType");
-  const composeTargetParam = searchParams.get("composeTarget");
 
   const urlFocusedTarget = useMemo(
     () =>
@@ -77,17 +76,6 @@ export function TranscriptViewer({
           } satisfies FocusedTranscriptTarget)
         : null,
     [focusIdParam, focusTypeParam],
-  );
-
-  const draftTarget = useMemo(
-    () =>
-      composeTypeParam && composeTargetParam
-        ? ({
-            scopeType: composeTypeParam as "session" | "turn" | "tool_call",
-            targetId: composeTargetParam,
-          } satisfies AnnotationDraftTarget)
-        : null,
-    [composeTargetParam, composeTypeParam],
   );
 
   const activePct =
@@ -236,8 +224,6 @@ export function TranscriptViewer({
       focusType: annotation.scope.type,
       focusId: annotation.scope.target_id || session.id,
       annotation: null,
-      composeType: null,
-      composeTarget: null,
     });
   }, [session.id, setUrlState]);
 
@@ -247,8 +233,6 @@ export function TranscriptViewer({
       annotation: annotation.id,
       focusType: null,
       focusId: null,
-      composeType: null,
-      composeTarget: null,
     });
   }, [setUrlState]);
 
@@ -256,15 +240,8 @@ export function TranscriptViewer({
     scopeType: "session" | "turn" | "tool_call",
     targetId: string,
   ) => {
-    setUrlState({
-      tab: "transcript",
-      focusType: scopeType,
-      focusId: targetId,
-      annotation: null,
-      composeType: scopeType,
-      composeTarget: targetId,
-    });
-  }, [setUrlState]);
+    setAnnotationTarget({ scopeType, targetId });
+  }, []);
 
   const handleToggleBlock = useCallback((blockNum: number) => {
     setExpandedBlocks((current) => ({
@@ -303,6 +280,15 @@ export function TranscriptViewer({
           variant="outlined"
         >
           Query
+        </Button>
+        <Button
+          startIcon={<CommentIcon />}
+          onClick={() => handleCreateScopedAnnotation("session", session.id)}
+          size="small"
+          variant="outlined"
+          color="primary"
+        >
+          Annotate
         </Button>
       </Box>
 
@@ -383,8 +369,6 @@ export function TranscriptViewer({
             setUrlState({
               tab: v,
               annotation: v === "annotations" ? selectedAnnotationId : null,
-              composeType: null,
-              composeTarget: null,
             })}
           sx={{ minHeight: 36 }}
         >
@@ -408,28 +392,10 @@ export function TranscriptViewer({
           sx={{ display: view === "transcript" ? "block" : "none" }}
           aria-hidden={view !== "transcript"}
         >
-          {draftTarget && (
-            <AnnotationComposer
-              sessionId={session.id}
-              target={draftTarget}
-              title={`Add ${draftTarget.scopeType} annotation`}
-              compact
-              onCancel={() =>
-                setUrlState({
-                  composeType: null,
-                  composeTarget: null,
-                })}
-              onCreated={() =>
-                setUrlState({
-                  composeType: null,
-                  composeTarget: null,
-                })}
-            />
-          )}
           <Typography
             variant="overline"
             color="text.secondary"
-            sx={{ mb: 1, display: "block", mt: draftTarget ? 1 : 0 }}
+            sx={{ mb: 1, display: "block" }}
           >
             {session.blocks.length} blocks
           </Typography>
@@ -466,6 +432,13 @@ export function TranscriptViewer({
           />
         </Box>
       </Box>
+
+      {/* Annotation modal popup */}
+      <AnnotationModal
+        sessionId={session.id}
+        target={annotationTarget}
+        onClose={() => setAnnotationTarget(null)}
+      />
     </Box>
   );
 }
