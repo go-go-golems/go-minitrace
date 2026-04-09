@@ -10,6 +10,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { QueryCommand, QueryCommandParam } from "../../types";
+import { SqlCodeViewer } from "./SqlCodeViewer";
 
 interface QueryCommandFormProps {
   command: QueryCommand;
@@ -224,22 +225,7 @@ function SqlDebugAccordion({
       </AccordionSummary>
       <AccordionDetails>
         {sql.trim() ? (
-          <Box
-            component="pre"
-            sx={{
-              m: 0,
-              p: 1.5,
-              borderRadius: 1,
-              bgcolor: "background.paper",
-              fontFamily: "monospace",
-              fontSize: "0.8rem",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              overflowX: "auto",
-            }}
-          >
-            {sql}
-          </Box>
+          <SqlCodeViewer value={sql} minHeight={140} />
         ) : (
           <Typography variant="body2" color="text.secondary">
             {emptyMessage}

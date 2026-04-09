@@ -176,3 +176,13 @@ Added a follow-up SQL-debugging refinement for structured query commands: the AP
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryCommandForm.tsx — UI debug-helper accordions added for raw and rendered SQL
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/pages/QueryEditorPage.tsx — Page now stores last rendered command SQL for debug display
 
+
+## 2026-04-09
+
+Added SQL syntax highlighting to the raw/rendered query-command debug helper panels by introducing a read-only CodeMirror SQL viewer and wiring the command-form accordions over to it.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryCommandForm.tsx — Raw/rendered SQL accordions now use syntax-highlighted rendering
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/SqlCodeViewer.tsx — New read-only syntax-highlighted SQL viewer for debug helper panels
+

@@ -39,3 +39,4 @@
 - [x] Expose raw sqleton SQL template metadata for query commands in the v2 API/frontend types
 - [x] Add web UI debug helpers to show raw command SQL and last rendered SQL for structured query commands
 - [x] Validate the new SQL debug-helper flow, then refresh diary/changelog notes for the ticket follow-up
+- [x] Add SQL syntax highlighting to the raw/rendered query-command debug helper panels

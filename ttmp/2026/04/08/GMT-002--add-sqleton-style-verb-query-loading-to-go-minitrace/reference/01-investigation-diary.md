@@ -83,10 +83,13 @@ RelatedFiles:
       Note: |-
         Structured query-command form renderer added (commit 122c0dc)
         Raw and rendered SQL debug helper accordions added to the structured command form (commit 4076a50)
+        Debug helper panels upgraded from plain text to syntax-highlighted SQL rendering
     - Path: web/src/components/QueryEditor/QuerySidebar.tsx
       Note: |-
         Frontend evidence for the current sidebar model captured in the diary
         Commands section added to the sidebar (commit 122c0dc)
+    - Path: web/src/components/QueryEditor/SqlCodeViewer.tsx
+      Note: Read-only syntax-highlighted SQL viewer added for debug helper panels
     - Path: web/src/pages/QueryEditorPage.tsx
       Note: |-
         Page-level command selection and execution flow added (commit 122c0dc)
@@ -97,6 +100,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -1950,3 +1954,87 @@ I treated this as a focused additive refinement rather than a redesign. The comm
   - `http://127.0.0.1:18080/query`
 - Follow-up commit:
   - `4076a503c6a573abd898284f21f6f6314d23675d`
+
+## Step 22: Add SQL syntax highlighting to the raw/rendered debug panels
+
+The first version of the SQL debug helpers worked functionally, but the content still rendered as plain text blocks. The user immediately asked for syntax highlighting, which makes sense because these panels are only useful as developer aids if they are actually readable at a glance.
+
+Instead of introducing another highlighting library, I reused the existing CodeMirror SQL stack that the raw query editor already uses. I added a small read-only `SqlCodeViewer` component and swapped the debug accordions over from plain `<pre>` rendering to the same SQL language mode and dark theme used elsewhere in the query UI.
+
+### Prompt Context
+
+**User prompt (verbatim):** "add syntax highlighting?"
+
+**Assistant interpretation:** Upgrade the new SQL debug-helper panels so they are visually useful, not just technically present.
+
+**Inferred user intent:** Make raw/rendered SQL inspection pleasant and legible in the browser.
+
+**Commit (code):** Pending at the time of writing this diary step.
+
+### What I did
+- Added a new read-only CodeMirror-based component:
+  - `web/src/components/QueryEditor/SqlCodeViewer.tsx`
+- Reused the existing frontend SQL editor stack:
+  - `@codemirror/lang-sql`
+  - `@codemirror/view`
+  - `@codemirror/state`
+  - `@codemirror/theme-one-dark`
+- Configured the viewer to be:
+  - read-only
+  - non-editable
+  - line-wrapped
+  - line-numbered
+  - visually aligned with the existing SQL editor styling
+- Exported the new viewer from:
+  - `web/src/components/QueryEditor/index.ts`
+- Updated:
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+  so the `Raw command SQL` and `Rendered SQL` accordions now render highlighted SQL instead of plain text blocks.
+- Added a follow-up checked task in `tasks.md` for the syntax-highlighting refinement.
+- Ran validation:
+  - `cd go-minitrace/web && npx eslint src/components/QueryEditor/SqlCodeViewer.tsx src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/index.ts`
+  - `cd go-minitrace/web && npm run build`
+
+### Why
+- The debug helper panels are there for humans, so readability matters.
+- Reusing CodeMirror avoids adding another syntax-highlighting dependency or divergent visual style.
+
+### What worked
+- The existing CodeMirror SQL setup was easy to reuse for a read-only viewer.
+- A dedicated `SqlCodeViewer` keeps the command-form component simpler and gives us a reusable primitive if we want more read-only SQL panels later.
+- The build passed cleanly after the refactor.
+
+### What didn't work
+- My first version of the viewer initialized CodeMirror with `doc: value` in the creation effect, which triggered an ESLint `react-hooks/exhaustive-deps` warning because `value` was referenced without being a dependency.
+- I fixed that by initializing with an empty document and relying on the sync effect to push in the current value.
+- I also briefly removed the `Box` import from `QueryCommandForm.tsx` while replacing the `<pre>` block, which caused a TypeScript build failure because the component still uses `Box` near the top of the form. Restoring that import fixed the build.
+
+### What I learned
+- A read-only CodeMirror viewer is lightweight enough to reuse for debug surfaces without much ceremony.
+- Even for a tiny UI polish step, extracting a dedicated component is cleaner than embedding a second CodeMirror setup inline inside the form component.
+
+### What was tricky to build
+- The only real subtlety was keeping the read-only viewer synchronized with changing SQL content without rebuilding the editor instance on every change. Using the same “create once, then sync document text in a separate effect” pattern as the editable SQL editor kept that behavior predictable.
+
+### What warrants a second pair of eyes
+- Whether the dark themed SQL viewer still looks right in all story/theme combinations.
+- Whether we eventually want a small copy button in the viewer header in addition to syntax highlighting.
+
+### What should be done in the future
+- If more SQL debug surfaces are added, reuse `SqlCodeViewer` instead of introducing more ad hoc `<pre>` blocks.
+- Consider unifying some shared CodeMirror styling between `SqlEditor` and `SqlCodeViewer` later.
+
+### Code review instructions
+- Start with:
+  - `web/src/components/QueryEditor/SqlCodeViewer.tsx`
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+- Validate with:
+  - `cd go-minitrace/web && npx eslint src/components/QueryEditor/SqlCodeViewer.tsx src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/index.ts`
+  - `cd go-minitrace/web && npm run build`
+
+### Technical details
+- New file:
+  - `web/src/components/QueryEditor/SqlCodeViewer.tsx`
+- Updated files:
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+  - `web/src/components/QueryEditor/index.ts`
