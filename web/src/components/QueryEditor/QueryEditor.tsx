@@ -30,6 +30,7 @@ interface QueryEditorProps {
   onCommandValueChange?: (name: string, value: unknown) => void;
   onExecute: (sql: string) => void;
   onExecuteCommand?: () => void;
+  onPreviewCommand?: () => void;
   onSave?: (sql: string) => void;
   onSelectQuery: (query: SavedQuery, kind: "preset" | "saved") => void;
   onSelectCommand?: (command: QueryCommand) => void;
@@ -41,6 +42,7 @@ interface QueryEditorProps {
   result: QueryResult | null;
   error: QueryError | null;
   isLoading: boolean;
+  isPreviewingCommand?: boolean;
   sourceStatus?: QuerySourceStatus | null;
 }
 
@@ -53,6 +55,7 @@ export function QueryEditor({
   onCommandValueChange,
   onExecute,
   onExecuteCommand,
+  onPreviewCommand,
   onSave,
   onSelectQuery,
   onSelectCommand,
@@ -64,6 +67,7 @@ export function QueryEditor({
   result,
   error,
   isLoading,
+  isPreviewingCommand = false,
   sourceStatus,
 }: QueryEditorProps) {
   const [savedFlash, setSavedFlash] = useState(false);
@@ -75,6 +79,7 @@ export function QueryEditor({
   };
 
   const isCommandMode = Boolean(activeCommand);
+  const isCommandBusy = isCommandMode && (isLoading || isPreviewingCommand);
 
   return (
     <Box
@@ -154,13 +159,24 @@ export function QueryEditor({
             )}
           </Box>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+            {isCommandMode && (
+              <Button
+                variant="outlined"
+                onClick={onPreviewCommand}
+                disabled={isCommandBusy}
+                size="small"
+                startIcon={isPreviewingCommand ? <CircularProgress size={14} color="inherit" /> : undefined}
+              >
+                Preview SQL
+              </Button>
+            )}
             <Button
               variant="contained"
               startIcon={
                 isLoading ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon />
               }
               onClick={() => (isCommandMode ? onExecuteCommand?.() : onExecute(sql))}
-              disabled={isLoading}
+              disabled={isCommandMode ? isCommandBusy : isLoading}
               size="small"
             >
               {isCommandMode ? "Run command" : "Run"}

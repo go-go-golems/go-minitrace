@@ -21,6 +21,7 @@ const meta = {
     onSqlChange: fn(),
     onExecute: fn(),
     onExecuteCommand: fn(),
+    onPreviewCommand: fn(),
     onSave: fn(),
     onSelectQuery: fn(),
     onSelectCommand: fn(),

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -213,6 +215,19 @@ function SqlDebugAccordion({
   emptyMessage: string;
   defaultExpanded?: boolean;
 }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(sql);
+      setCopyStatus("copied");
+      window.setTimeout(() => setCopyStatus("idle"), 2000);
+    } catch {
+      setCopyStatus("failed");
+      window.setTimeout(() => setCopyStatus("idle"), 2000);
+    }
+  };
+
   return (
     <Accordion disableGutters defaultExpanded={defaultExpanded}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -225,7 +240,24 @@ function SqlDebugAccordion({
       </AccordionSummary>
       <AccordionDetails>
         {sql.trim() ? (
-          <SqlCodeViewer value={sql} minHeight={140} />
+          <Stack spacing={1}>
+            <Stack direction="row" justifyContent="flex-end" alignItems="center" spacing={1}>
+              {copyStatus === "copied" && (
+                <Typography variant="caption" color="success.main">
+                  Copied
+                </Typography>
+              )}
+              {copyStatus === "failed" && (
+                <Typography variant="caption" color="error.main">
+                  Copy failed
+                </Typography>
+              )}
+              <Button size="small" variant="outlined" onClick={handleCopy}>
+                Copy SQL
+              </Button>
+            </Stack>
+            <SqlCodeViewer value={sql} minHeight={140} />
+          </Stack>
         ) : (
           <Typography variant="body2" color="text.secondary">
             {emptyMessage}

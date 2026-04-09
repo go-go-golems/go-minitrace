@@ -33,6 +33,7 @@ export function QueryEditorPage() {
   const [executionMode, setExecutionMode] = useState<ExecutionMode>(null);
   const [lastLoadedSql, setLastLoadedSql] = useState<string | null>(null);
   const [lastRenderedCommandSql, setLastRenderedCommandSql] = useState<string | null>(null);
+  const [commandDebugError, setCommandDebugError] = useState<{ message: string } | null>(null);
   const [externalUpdateAvailable, setExternalUpdateAvailable] = useState(false);
 
   const presetPollingInterval = activeSource?.kind === "preset" ? 3000 : 15000;
@@ -53,6 +54,7 @@ export function QueryEditorPage() {
   const { data: queryCommands = [] } = useGetQueryCommandsQuery();
   const [executeQuery, sqlExecution] = useExecuteQueryMutation();
   const [executeQueryCommand, commandExecution] = useExecuteQueryCommandMutation();
+  const [previewQueryCommand, previewExecution] = useExecuteQueryCommandMutation();
   const [saveQuery] = useSaveQueryMutation();
 
   const activeSourceQuery = useMemo(() => {
@@ -80,6 +82,7 @@ export function QueryEditorPage() {
         setExecutionMode(null);
         setLastLoadedSql(null);
         setLastRenderedCommandSql(null);
+        setCommandDebugError(null);
         setExternalUpdateAvailable(false);
       });
       dispatch(openQueryForSession(sessionId));
@@ -128,6 +131,7 @@ export function QueryEditorPage() {
     setActiveCommandValues({});
     setLastLoadedSql(query.sql);
     setLastRenderedCommandSql(null);
+    setCommandDebugError(null);
     setExternalUpdateAvailable(false);
     dispatch(setQuerySql(query.sql));
   };
@@ -137,6 +141,7 @@ export function QueryEditorPage() {
     setActiveCommandValues(buildInitialCommandValues(command));
     setLastLoadedSql(null);
     setLastRenderedCommandSql(null);
+    setCommandDebugError(null);
     setExternalUpdateAvailable(false);
   };
 
@@ -170,6 +175,7 @@ export function QueryEditorPage() {
     }
 
     setExecutionMode("command");
+    setCommandDebugError(null);
     try {
       const result = await executeQueryCommand({
         path: activeCommand.path,
@@ -184,12 +190,32 @@ export function QueryEditorPage() {
     }
   };
 
+  const handlePreviewCommand = async () => {
+    if (!activeCommand) {
+      return;
+    }
+
+    setCommandDebugError(null);
+    try {
+      const result = await previewQueryCommand({
+        path: activeCommand.path,
+        values: activeCommandValues,
+        renderOnly: true,
+      }).unwrap();
+      setLastRenderedCommandSql(result.rendered_sql ?? null);
+    } catch (error) {
+      setCommandDebugError(extractQueryError(error) ?? { message: "Failed to preview rendered SQL." });
+    }
+  };
+
   const displayedResult = executionMode === "command"
     ? commandExecution.data ?? null
     : sqlExecution.data ?? null;
   const displayedError = executionMode === "command"
-    ? extractQueryError(commandExecution.error)
-    : extractQueryError(sqlExecution.error);
+    ? extractQueryError(commandExecution.error) ?? commandDebugError
+    : activeCommand
+      ? commandDebugError
+      : extractQueryError(sqlExecution.error);
   const isLoading = executionMode === "command"
     ? commandExecution.isLoading
     : sqlExecution.isLoading;
@@ -204,6 +230,7 @@ export function QueryEditorPage() {
       onCommandValueChange={(name, value) => setActiveCommandValues((prev) => ({ ...prev, [name]: value }))}
       onExecute={handleExecuteSql}
       onExecuteCommand={handleExecuteCommand}
+      onPreviewCommand={handlePreviewCommand}
       onSave={(s) =>
         saveQuery({
           name: `query-${Date.now()}`,
@@ -222,6 +249,7 @@ export function QueryEditorPage() {
       result={displayedResult}
       error={displayedError}
       isLoading={isLoading}
+      isPreviewingCommand={previewExecution.isLoading}
       sourceStatus={
         activeSource
           ? {
