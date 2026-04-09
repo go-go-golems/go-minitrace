@@ -16,7 +16,12 @@ either named presets or ad hoc SQL.`,
 	if err != nil {
 		return nil, err
 	}
+	commandsCmd, err := NewCommandsCommand()
+	if err != nil {
+		return nil, err
+	}
 
 	root.AddCommand(duckDBCmd)
+	root.AddCommand(commandsCmd)
 	return root, nil
 }
