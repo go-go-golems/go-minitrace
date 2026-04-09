@@ -1,7 +1,7 @@
 ---
 Title: Add sqleton-style query repository config and flag support to go-minitrace
 Ticket: GMT-003
-Status: active
+Status: complete
 Topics:
     - backend
     - configuration
@@ -13,10 +13,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: Follow-up ticket for loading sqleton-style query-command repositories from app config, environment variables, and repeated CLI flags in both serve and query-command surfaces.
-LastUpdated: 2026-04-09T17:25:00-04:00
+LastUpdated: 2026-04-09T17:26:41.085522421-04:00
 WhatFor: Track the design and implementation work needed to move from an embedded-only command catalog to embedded plus configurable external query-command repositories.
 WhenToUse: Read this ticket when implementing repository config/env/flag support, source-root precedence, or external command-repository overrides for MinitraceCommand catalogs.
 ---
+
 
 # Add sqleton-style query repository config and flag support to go-minitrace
 

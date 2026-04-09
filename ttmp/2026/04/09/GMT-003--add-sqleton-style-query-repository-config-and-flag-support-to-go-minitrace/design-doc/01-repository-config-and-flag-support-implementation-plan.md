@@ -23,20 +23,29 @@ RelatedFiles:
       Note: |-
         Current query command loader only mounts the embedded catalog
         Current CLI command loader is embedded-only and must switch to resolved source roots
+        CLI query commands root now loads configured catalogs and advertises query-repository sources (commit e1c9101)
+    - Path: cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go
+      Note: Query-command handlers now load from resolved source roots instead of embedded-only catalog (commit e1c9101)
     - Path: cmd/go-minitrace/cmds/serve/serve.go
       Note: |-
         Current serve command settings that need repository flags added
         Serve settings and flags will need repeated query-repository inputs
+        Serve settings now accept repeated query-repository flags and resolve structured command roots (commit e1c9101)
+    - Path: cmd/go-minitrace/main.go
+      Note: Pre-bootstrap query-repository flag extraction added before building dynamic command tree (commit e1c9101)
     - Path: pkg/minitracecmd/assets.go
       Note: |-
         Current embedded catalog entry point that should become one root among several
         Current embedded source root entry point becomes one source root among many
+    - Path: pkg/minitracecmd/repositories.go
+      Note: Shared query-repository config/env/flag resolution and source-root composition implementation (commit e1c9101)
 ExternalSources: []
 Summary: Detailed plan for adding config/env/flag-driven sqleton-style query repository discovery to go-minitrace while preserving the existing go-minitrace-native MinitraceCommand catalog model.
 LastUpdated: 2026-04-09T17:25:00-04:00
 WhatFor: Provide a concrete implementation plan for loading additional query-command repositories from app config, environment variables, and repeated CLI flags in both serve and query command surfaces.
 WhenToUse: Read this before implementing repository config resolution, query-repository CLI flags, multi-root catalog composition, or override-precedence tests for MinitraceCommand catalogs.
 ---
+
 
 
 # Repository config and flag support implementation plan
