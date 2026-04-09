@@ -197,3 +197,13 @@ Added a render-only Preview SQL action for structured query commands and copy bu
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryEditor.tsx — Command toolbar now includes a Preview SQL action
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/pages/QueryEditorPage.tsx — Preview SQL now uses a separate render-only mutation and debug-error state
 
+
+## 2026-04-09
+
+Extended QueryCommandForm to support the remaining practical glazed field types requested for the initial UI pass: float, date, floatList, and choiceList, and added a Storybook scenario that exercises those richer widgets (commit 84450b0).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryCommandForm.tsx — Added float/date/floatList/choiceList command-form field rendering
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/stories/QueryCommandForm.stories.tsx — Added story coverage for the newly supported field types
+

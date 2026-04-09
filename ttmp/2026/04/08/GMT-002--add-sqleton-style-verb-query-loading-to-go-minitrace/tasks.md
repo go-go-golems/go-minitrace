@@ -42,3 +42,7 @@
 - [x] Add SQL syntax highlighting to the raw/rendered query-command debug helper panels
 - [x] Add a render-only Preview SQL action for structured query commands without replacing results
 - [x] Add copy buttons for the raw/rendered SQL debug helper panels
+- [x] Add float field rendering support to QueryCommandForm
+- [x] Add date field rendering support to QueryCommandForm
+- [x] Add floatList field rendering support to QueryCommandForm
+- [x] Add choiceList field rendering support to QueryCommandForm

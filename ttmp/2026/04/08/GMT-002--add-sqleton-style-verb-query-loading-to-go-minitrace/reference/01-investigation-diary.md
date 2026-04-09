@@ -2130,3 +2130,90 @@ I implemented the preview path by reusing the existing `renderOnly` backend beha
   - `4efe624b6685edf5650be322120e9c7b9ca26eac`
 - Manual smoke-test path revalidated on:
   - `http://127.0.0.1:18080/query`
+
+## Step 24: Add the remaining practical field widgets for the structured command form
+
+After reviewing the broader sqleton-integration roadmap, the user narrowed the remaining “richer field support” scope to four specific glazed field types that are practical for the current query-command UI: `float`, `date`, `floatList`, and `choiceList`. That was a nice refinement because it kept the work focused on genuinely useful query parameters instead of trying to achieve total glazed parity all at once.
+
+I implemented those four types directly in `QueryCommandForm` and added a dedicated Storybook scenario that exercises all of them together. This keeps the structured command form moving toward a more complete glazed-backed UI without dragging in the more exotic file/object field types yet.
+
+### Prompt Context
+
+**User prompt (verbatim):** "for 2. :  - float                                                                                                                                                    
+ - date                                                                                                                                                     
+ - floatList                                                                                                                                                 
+ - choiceList
+
+---
+
+add the new field types as tasks for this ticket. 
+
+Then implement it. 
+
+Then create a new ticket for the repository config/flag support and add a detailed implementation plan + tasks for it. then stop"
+
+**Assistant interpretation:** Track and implement the concrete missing field widgets now, then use a separate follow-up ticket for repository config/flag work.
+
+**Inferred user intent:** Finish the realistic near-term UI parity work in the current ticket, but move the larger repository-discovery/configuration milestone into its own properly planned ticket.
+
+**Commit (code):** `84450b03da85af068bd88c40f5fce7bf164aeb14` — "Add more query command field widgets"
+
+### What I did
+- Added new ticket tasks to `GMT-002` for:
+  - float field support
+  - date field support
+  - floatList field support
+  - choiceList field support
+- Updated `web/src/components/QueryEditor/QueryCommandForm.tsx` to render:
+  - `float` as a numeric text field with `step="any"`
+  - `date` as a date input with a shrinking label
+  - `floatList` as a comma-separated list of numbers
+  - `choiceList` as a multi-select choice field
+- Added a Storybook scenario in:
+  - `web/src/components/QueryEditor/stories/QueryCommandForm.stories.tsx`
+  that exercises all four new field types in one command definition.
+- Ran validation:
+  - `cd go-minitrace/web && npx eslint src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/stories/QueryCommandForm.stories.tsx`
+  - `cd go-minitrace/web && npm run build`
+- Checked off tasks `41`–`44` with:
+  - `cd go-minitrace && docmgr task check --ticket GMT-002 --id 41,42,43,44`
+
+### Why
+- These are the next most practical glazed field types for query forms.
+- Supporting them now improves real query-command ergonomics without requiring the more complicated file/object field workflows.
+
+### What worked
+- The existing `QueryCommandForm` switch-based renderer made the new cases easy to add cleanly.
+- A story-local command definition was a good way to validate the new widget shapes without changing the main mock catalog unnecessarily.
+- The build and lint checks passed after the additions.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The remaining practical gap between the current query-command UI and the glazed parameter surface is now much smaller.
+- `choiceList` is the first case where the form really benefits from using a richer widget than a plain text input, which is a good sign that future layout/widget improvements will pay off.
+
+### What was tricky to build
+- The only subtle widget was `choiceList`, because it needs to behave like a true multi-select while still fitting inside the existing generic parameter-rendering switch. MUI’s select support handled it fine once the value was treated consistently as a string array.
+
+### What warrants a second pair of eyes
+- Whether the current `choiceList` UX is good enough visually, or whether it should eventually move to chips/checklists.
+- Whether `date` should remain a plain date string in the UI contract or later gain explicit formatting/normalization rules.
+
+### What should be done in the future
+- Leave the more advanced glazed types (file/object/keyValue variants) for a separate deliberate follow-up, not as incidental UI creep inside this ticket.
+
+### Code review instructions
+- Start with:
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+  - `web/src/components/QueryEditor/stories/QueryCommandForm.stories.tsx`
+- Validate with:
+  - `cd go-minitrace/web && npx eslint src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/stories/QueryCommandForm.stories.tsx`
+  - `cd go-minitrace/web && npm run build`
+
+### Technical details
+- Checked tasks:
+  - `GMT-002` tasks `41`, `42`, `43`, and `44`
+- Follow-up commit:
+  - `84450b03da85af068bd88c40f5fce7bf164aeb14`
