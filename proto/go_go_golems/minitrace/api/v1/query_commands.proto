@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package go_go_golems.minitrace.api.v1;
+
+import "google/protobuf/struct.proto";
+import "proto/go_go_golems/minitrace/api/v1/common.proto";
+
+option go_package = "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1;apiv1";
+
+enum QueryCommandKind {
+  QUERY_COMMAND_KIND_UNSPECIFIED = 0;
+  QUERY_COMMAND_KIND_VERB = 1;
+  QUERY_COMMAND_KIND_ALIAS = 2;
+}
+
+message QueryCommandParam {
+  string name = 1;
+  string type = 2;
+  string help = 3;
+  bool required = 4;
+  string default_json = 5;
+  repeated string choices = 6;
+  bool positional = 7;
+  string short_flag = 8;
+}
+
+message QueryCommand {
+  string name = 1;
+  string folder = 2;
+  string path = 3;
+  string short_description = 4;
+  string long_description = 5;
+  repeated QueryCommandParam flags = 6;
+  repeated QueryCommandParam arguments = 7;
+  repeated string tags = 8;
+  bool readonly = 9;
+  QueryCommandKind kind = 10;
+  string alias_for = 11;
+}
+
+message ListQueryCommandsResponse {
+  ApiMeta meta = 1;
+  repeated QueryCommand commands = 2;
+}
+
+message ExecuteQueryCommandRequest {
+  map<string, google.protobuf.Value> values = 1;
+  bool render_only = 2;
+}
+
+message ExecuteQueryCommandResponse {
+  ApiMeta meta = 1;
+  string rendered_sql = 2;
+  repeated string columns = 3;
+  repeated google.protobuf.Struct rows = 4;
+  int64 duration_ms = 5;
+  int32 row_count = 6;
+}
