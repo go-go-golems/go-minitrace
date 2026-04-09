@@ -17,6 +17,10 @@ RelatedFiles:
       Note: Main go-minitrace raw query-library reference used during investigation
     - Path: pkg/minitracecmd/errors.go
       Note: Added initial sentinel errors for MinitraceCommand parsing and validation (commit b8f3229)
+    - Path: pkg/minitracecmd/parse_sql.go
+      Note: Added sqleton-style SQL preamble parsing and lightweight command detection (commit 5acc6c5)
+    - Path: pkg/minitracecmd/parse_sql_test.go
+      Note: Added parser coverage for valid metadata and common preamble failures (commit 5acc6c5)
     - Path: pkg/minitracecmd/source_kind.go
       Note: Added sqleton-style source kind detection for .sql and .alias.yaml files (commit b8f3229)
     - Path: pkg/minitracecmd/types.go
@@ -31,6 +35,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -698,3 +703,86 @@ That made this a good “anchor commit” for the rest of the work. Once `Minitr
   - `go-minitrace/pkg/minitracecmd/types_test.go`
 - Checked task:
   - `GMT-002` task `13`
+
+## Step 9: Implement sqleton-style SQL preamble parsing for `MinitraceCommandSpec`
+
+With the base package in place, the next step was to make the package able to understand actual sqleton-style `.sql` files. This is the first point where the design started paying off: the parser could decode directly into `MinitraceCommandSpec` and reuse the Glazed field definitions without needing another translation layer.
+
+I kept this step narrowly scoped to parsing and detection. It does not try to compile commands, load repositories, or execute anything yet. That separation keeps failures local: if a future catalog load breaks, I will know whether the problem is in the parser or in the loader/compiler layer above it.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue the task-by-task implementation sequence, with small commits and frequent diary updates.
+
+**Inferred user intent:** Build the feature incrementally so each architectural layer is reviewed and validated on its own.
+
+**Commit (code):** `5acc6c5e3559747351bd06b428c3a93075ce9da2` — "Parse sqleton SQL command specs"
+
+### What I did
+- Added `pkg/minitracecmd/parse_sql.go`.
+- Implemented:
+  - `ParseSQLCommandSpec(...)`
+  - `ParseSQLCommandSpecFromReader(...)`
+  - `splitSqletonSQLPreamble(...)`
+  - `LooksLikeSqletonSQLCommand(...)`
+- Reused `yaml.Decoder` to decode sqleton preamble metadata directly into:
+  - `MinitraceCommandSpec`
+  - `fields.Definition`
+- Added `pkg/minitracecmd/parse_sql_test.go` with focused coverage for:
+  - valid command parsing
+  - missing preamble
+  - unterminated preamble
+  - invalid marker
+  - missing `short`
+  - missing query body
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/*.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Verified the pre-commit hook also ran successfully:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+- SQL preamble parsing is the first real data-ingest seam in the new design.
+- It validates the key architectural choice that `MinitraceCommandSpec` can reuse glazed field definitions directly.
+- It also gives the future catalog loader a clean way to distinguish “plain SQL file, ignore it” from “sqleton-style command, parse it”.
+
+### What worked
+- YAML decoding into Glazed field definitions worked cleanly for the tested flag shapes.
+- Wrapping the sentinel errors still preserved `errors.Is(...)` behavior in tests.
+- Keeping `LooksLikeSqletonSQLCommand(...)` lighter than full parsing lets future repository scans skip non-command `.sql` files without swallowing real parse errors from malformed sqleton files.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The sqleton source format ports over very naturally when the parser target is a local spec type instead of a sqleton runtime command.
+- There is an important distinction between “looks like a sqleton file” and “is a valid sqleton file”; keeping those as two different helpers is the right call for repository scanning.
+
+### What was tricky to build
+- The subtle part was deciding how strict `LooksLikeSqletonSQLCommand(...)` should be. If it reused full parse success as the detection rule, malformed sqleton files could be silently skipped during catalog loading. I therefore made it intentionally narrower: it only checks for the sqleton preamble marker shape, while `ParseSQLCommandSpec(...)` remains responsible for full validation.
+
+### What warrants a second pair of eyes
+- Whether the parser should reject more metadata combinations in v1, such as unsupported future keys, or whether leaving YAML decoding permissive is the better developer experience initially.
+- Whether query-body validation should eventually become stricter than “non-empty”, for example to reject obviously non-read-only templates earlier.
+
+### What should be done in the future
+- Implement alias parsing next so the future catalog loader can support both sqleton source kinds.
+- Keep parser tests independent from future catalog tests so parse failures remain easy to diagnose.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/parse_sql.go`
+- Then read:
+  - `pkg/minitracecmd/parse_sql_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+
+### Technical details
+- New files:
+  - `go-minitrace/pkg/minitracecmd/parse_sql.go`
+  - `go-minitrace/pkg/minitracecmd/parse_sql_test.go`
+- Checked task:
+  - `GMT-002` task `14`

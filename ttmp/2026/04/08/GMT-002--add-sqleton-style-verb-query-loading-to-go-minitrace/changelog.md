@@ -68,3 +68,13 @@ Started implementation by adding the pkg/minitracecmd package core: sentinel err
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/source_kind.go — Source-kind detection added for repository scanning
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/types.go — Core MinitraceCommand model added
 
+
+## 2026-04-08
+
+Implemented sqleton-style SQL command parsing for MinitraceCommand specs, including preamble splitting, YAML decoding into glazed-backed fields, and focused parser tests (commit 5acc6c5).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_sql.go — SQL parser and detection helpers added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_sql_test.go — Parser regression coverage added
+
