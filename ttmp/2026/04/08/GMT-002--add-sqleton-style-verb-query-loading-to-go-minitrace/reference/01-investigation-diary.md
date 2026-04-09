@@ -15,6 +15,10 @@ RelatedFiles:
       Note: Main sqleton parsing reference used during investigation
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
+    - Path: pkg/minitracecmd/catalog.go
+      Note: Added repository-backed catalog loading
+    - Path: pkg/minitracecmd/catalog_test.go
+      Note: Added fstest-based coverage for catalog loading
     - Path: pkg/minitracecmd/compiler.go
       Note: Added MinitraceCommand compilation and optional bool flag normalization (commit 00830a7)
     - Path: pkg/minitracecmd/compiler_test.go
@@ -43,6 +47,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -955,3 +960,97 @@ I also used this step to port one of sqleton’s more practical details: optiona
   - `go-minitrace/pkg/minitracecmd/compiler_test.go`
 - Checked task:
   - `GMT-002` task `16`
+
+## Step 12: Load repository-backed catalogs and validate alias targets
+
+With parsing and compilation in place, I could finally wire the first end-to-end layer inside `pkg/minitracecmd`: repository scanning into a catalog of canonical commands. This is the first step that exercises the whole local design rather than just one isolated piece, because it walks an `fs.FS`, detects supported sources, parses them, compiles them, merges roots, and validates alias targets.
+
+This step also exposed the first implementation hiccup of the coding phase: the catalog logic was correct on the first go, but the repository’s `exhaustive` linter rejected a switch that did not explicitly handle `SourceUnknown`. That was easy to fix, but worth recording because it is exactly the kind of small tooling constraint that can surprise someone following the design doc later.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue implementing the feature in small commit-sized slices and keep the ticket diary current with both successes and failures.
+
+**Inferred user intent:** Get a real implementation underway while preserving a trustworthy implementation narrative for later review.
+
+**Commit (code):** `16fc1a6118ce0b8374b6a3b490ec5f4e7944c6c4` — "Load MinitraceCommand catalogs"
+
+### What I did
+- Added `pkg/minitracecmd/catalog.go`.
+- Implemented:
+  - `SourceRoot`
+  - `Catalog`
+  - `LoadCatalog(...)`
+  - `resolveAliases(...)`
+- Catalog behavior now covers:
+  - walking one or more roots with `fs.WalkDir`
+  - skipping unsupported files
+  - ignoring plain `.sql` files that are not sqleton commands
+  - parsing both sqleton SQL and alias YAML
+  - compiling parsed specs into canonical commands
+  - deriving logical folder/path relative to the root directory
+  - first-root-wins precedence for duplicate logical paths
+  - alias-target validation after load
+- Added `pkg/minitracecmd/catalog_test.go` with `fstest.MapFS` coverage for:
+  - loading one SQL command plus one alias
+  - first-root-wins duplicate-path behavior
+  - alias target validation failure
+  - folder/path/source-path derivation
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/catalog.go pkg/minitracecmd/catalog_test.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Attempted to commit once and hit a linter failure, then fixed it and recommitted successfully.
+
+### Why
+- The catalog is the first structure that the later CLI, server, and UI layers will all depend on.
+- Implementing it now proves that the local package boundaries are viable without needing any runtime integration yet.
+- Using `fstest.MapFS` keeps the tests fast and deterministic while still exercising the real repository-walk logic.
+
+### What worked
+- The parser/compiler/catalog layering fit together cleanly; no package redesign was needed.
+- `fstest.MapFS` was enough to test both nested paths and duplicate-root precedence.
+- The loader can now ignore non-sqleton `.sql` files without treating them as errors, which matches the intended repository behavior.
+
+### What didn't work
+- My first commit attempt failed in the pre-commit lint step because `exhaustive` wanted an explicit `SourceUnknown` branch in the catalog switch.
+- Exact failure:
+  - `pkg/minitracecmd/catalog.go:58:4: missing cases in switch of type minitracecmd.SourceKind: minitracecmd.SourceUnknown (exhaustive)`
+- I fixed that by changing the switch in `catalog.go` to include:
+  - `case SourceUnknown: return nil`
+- After that, the commit passed with:
+  - `go test ./...`
+  - `golangci-lint run -v`
+
+### What I learned
+- The repo’s lint setup is strict enough that even “logically unreachable” enum branches should be spelled out if the type is exhaustively checked.
+- The local `pkg/minitracecmd` design is now strong enough to load realistic command repositories without importing sqleton runtime code.
+
+### What was tricky to build
+- The subtle part was deciding where duplicate handling belongs. I kept the policy in the catalog layer: parse and compile every candidate, but only retain the first command for a logical path. That makes precedence a repository concern rather than a parser concern, and it keeps the semantics testable with multi-root fixtures.
+
+### What warrants a second pair of eyes
+- Whether `ByName` should stay verb-only or eventually include aliases too, depending on how later CLI/API lookup wants to behave.
+- Whether duplicate logical names across different paths should remain “first verb wins” silently or eventually become a validation warning.
+
+### What should be done in the future
+- Add built-in embedded command assets next so the catalog can load something real from the application tree rather than only from tests.
+- After that, move on to rendering so the loaded commands can produce executable SQL.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/catalog.go`
+- Then read:
+  - `pkg/minitracecmd/catalog_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- For the linter-sensitive bit, also run:
+  - `cd go-minitrace && golangci-lint run -v`
+
+### Technical details
+- New files:
+  - `go-minitrace/pkg/minitracecmd/catalog.go`
+  - `go-minitrace/pkg/minitracecmd/catalog_test.go`
+- Checked task:
+  - `GMT-002` task `17`

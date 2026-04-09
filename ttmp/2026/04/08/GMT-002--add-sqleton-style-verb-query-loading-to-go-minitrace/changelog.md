@@ -98,3 +98,13 @@ Implemented MinitraceCommand compilation from parsed specs, including path/sourc
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/compiler.go — Compiler added
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/compiler_test.go — Compiler regression coverage added
 
+
+## 2026-04-08
+
+Implemented repository-backed MinitraceCommand catalog loading with fstest-backed coverage for SQL commands, aliases, duplicate path precedence, and alias-target validation (commit 16fc1a6).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/catalog.go — Catalog loader added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/catalog_test.go — Catalog tests added
+
