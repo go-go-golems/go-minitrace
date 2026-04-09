@@ -23,6 +23,7 @@ const meta = {
       title_like: "wesen",
       limit: 50,
     },
+    renderedSql: "SELECT id, title FROM sessions_base WHERE LOWER(title) LIKE LOWER('%wesen%') LIMIT 50;",
     onChange: fn(),
   },
 } satisfies Meta<typeof QueryCommandForm>;

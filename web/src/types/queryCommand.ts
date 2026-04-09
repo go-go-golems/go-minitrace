@@ -23,4 +23,6 @@ export interface QueryCommand {
   readonly: boolean;
   kind: QueryCommandKind;
   aliasFor: string;
+  rawSqlPath: string;
+  rawSql: string;
 }

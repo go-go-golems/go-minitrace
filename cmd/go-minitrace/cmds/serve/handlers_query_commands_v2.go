@@ -165,6 +165,8 @@ func protoQueryCommand(catalog *minitracecmd.Catalog, command *minitracecmd.Mini
 		Readonly:         command.Readonly,
 		Kind:             protoQueryCommandKind(command.Kind),
 		AliasFor:         command.AliasFor,
+		RawSqlPath:       displayCommand.Path,
+		RawSql:           displayCommand.Query,
 	}
 }
 

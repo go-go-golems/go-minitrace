@@ -32,6 +32,7 @@ export function QueryEditorPage() {
   const [activeCommandValues, setActiveCommandValues] = useState<Record<string, unknown>>({});
   const [executionMode, setExecutionMode] = useState<ExecutionMode>(null);
   const [lastLoadedSql, setLastLoadedSql] = useState<string | null>(null);
+  const [lastRenderedCommandSql, setLastRenderedCommandSql] = useState<string | null>(null);
   const [externalUpdateAvailable, setExternalUpdateAvailable] = useState(false);
 
   const presetPollingInterval = activeSource?.kind === "preset" ? 3000 : 15000;
@@ -78,6 +79,7 @@ export function QueryEditorPage() {
         setActiveCommandValues({});
         setExecutionMode(null);
         setLastLoadedSql(null);
+        setLastRenderedCommandSql(null);
         setExternalUpdateAvailable(false);
       });
       dispatch(openQueryForSession(sessionId));
@@ -125,6 +127,7 @@ export function QueryEditorPage() {
     setActiveSource({ kind, path: query.path });
     setActiveCommandValues({});
     setLastLoadedSql(query.sql);
+    setLastRenderedCommandSql(null);
     setExternalUpdateAvailable(false);
     dispatch(setQuerySql(query.sql));
   };
@@ -133,6 +136,7 @@ export function QueryEditorPage() {
     setActiveSource({ kind: "command", path: command.path });
     setActiveCommandValues(buildInitialCommandValues(command));
     setLastLoadedSql(null);
+    setLastRenderedCommandSql(null);
     setExternalUpdateAvailable(false);
   };
 
@@ -171,6 +175,7 @@ export function QueryEditorPage() {
         path: activeCommand.path,
         values: activeCommandValues,
       }).unwrap();
+      setLastRenderedCommandSql(result.rendered_sql ?? null);
       if (result.rendered_sql) {
         dispatch(setQuerySql(result.rendered_sql));
       }
@@ -194,6 +199,7 @@ export function QueryEditorPage() {
       sql={queryEditorSql}
       activeCommand={activeCommand}
       commandValues={activeCommandValues}
+      commandRenderedSql={activeCommand ? lastRenderedCommandSql : null}
       onSqlChange={handleSqlChange}
       onCommandValueChange={(name, value) => setActiveCommandValues((prev) => ({ ...prev, [name]: value }))}
       onExecute={handleExecuteSql}

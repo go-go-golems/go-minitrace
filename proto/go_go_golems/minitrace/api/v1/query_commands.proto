@@ -36,6 +36,8 @@ message QueryCommand {
   bool readonly = 9;
   QueryCommandKind kind = 10;
   string alias_for = 11;
+  string raw_sql_path = 12;
+  string raw_sql = 13;
 }
 
 message ListQueryCommandsResponse {

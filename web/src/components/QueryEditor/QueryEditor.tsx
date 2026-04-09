@@ -25,6 +25,7 @@ interface QueryEditorProps {
   sql: string;
   activeCommand?: QueryCommand | null;
   commandValues?: Record<string, unknown>;
+  commandRenderedSql?: string | null;
   onSqlChange: (sql: string) => void;
   onCommandValueChange?: (name: string, value: unknown) => void;
   onExecute: (sql: string) => void;
@@ -47,6 +48,7 @@ export function QueryEditor({
   sql,
   activeCommand,
   commandValues = {},
+  commandRenderedSql = null,
   onSqlChange,
   onCommandValueChange,
   onExecute,
@@ -140,6 +142,7 @@ export function QueryEditor({
               <QueryCommandForm
                 command={activeCommand}
                 values={commandValues}
+                renderedSql={commandRenderedSql}
                 onChange={(name, value) => onCommandValueChange?.(name, value)}
               />
             ) : (

@@ -521,6 +521,8 @@ export const mockQueryCommands: QueryCommand[] = [
     readonly: true,
     kind: "verb",
     aliasFor: "",
+    rawSqlPath: "session-list.sql",
+    rawSql: "SELECT\n  id,\n  environment->>'agent_framework' AS framework,\n  environment->>'model' AS model,\n  title,\n  CAST(metrics->>'turn_count' AS INT) AS turns,\n  CAST(metrics->>'tool_call_count' AS INT) AS tools,\n  ROUND(CAST(timing->>'duration_seconds' AS DOUBLE), 1) AS duration_s,\n  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,\n  timing->>'started_at' AS started_at,\n  provenance->>'source_format' AS source_format\nFROM {{ .TableName }}\nWHERE 1=1\n{{- with .Values.framework }}\nAND (environment->>'agent_framework') IN ({{ sqlStringIn . }})\n{{- end }}\n{{- with .Values.title_like }}\nAND LOWER(title) LIKE LOWER({{ sqlLike . }})\n{{- end }}\nORDER BY timing->>'started_at' DESC\nLIMIT {{ or .Values.limit 100 }};",
   },
   {
     name: "codex-framework-summary",
@@ -545,6 +547,8 @@ export const mockQueryCommands: QueryCommand[] = [
     readonly: true,
     kind: "alias",
     aliasFor: "framework-summary",
+    rawSqlPath: "framework-summary.sql",
+    rawSql: "SELECT\n  environment->>'agent_framework' AS framework,\n  COUNT(*) AS sessions,\n  ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools,\n  ROUND(AVG(CAST(metrics->>'turn_count' AS INT)), 1) AS avg_turns,\n  ROUND(AVG(CAST(metrics->>'read_ratio' AS DOUBLE)), 2) AS avg_read_ratio,\n  ROUND(AVG(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS avg_duration_s,\n  ROUND(AVG(CAST(metrics->>'time_to_first_action' AS DOUBLE)), 1) AS avg_ttfa_s\nFROM {{ .TableName }}\nWHERE 1=1\n{{- with .Values.framework }}\nAND (environment->>'agent_framework') IN ({{ sqlStringIn . }})\n{{- end }}\nGROUP BY framework\nORDER BY sessions DESC;",
   },
 ];
 

@@ -1,3 +1,6 @@
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
 import Box from "@mui/material/Box";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -5,15 +8,17 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { QueryCommand, QueryCommandParam } from "../../types";
 
 interface QueryCommandFormProps {
   command: QueryCommand;
   values: Record<string, unknown>;
+  renderedSql?: string | null;
   onChange: (name: string, value: unknown) => void;
 }
 
-export function QueryCommandForm({ command, values, onChange }: QueryCommandFormProps) {
+export function QueryCommandForm({ command, values, renderedSql = null, onChange }: QueryCommandFormProps) {
   return (
     <Stack spacing={2} sx={{ height: "100%", overflow: "auto", pr: 1 }}>
       <Box>
@@ -40,6 +45,23 @@ export function QueryCommandForm({ command, values, onChange }: QueryCommandForm
           onChange={onChange}
         />
       )}
+
+      <Stack spacing={1}>
+        <Typography variant="overline">Debug helpers</Typography>
+        <SqlDebugAccordion
+          title="Raw command SQL"
+          subtitle={buildRawSqlSubtitle(command)}
+          sql={command.rawSql}
+          defaultExpanded
+          emptyMessage="This command does not expose a raw SQL template."
+        />
+        <SqlDebugAccordion
+          title="Rendered SQL"
+          subtitle="Last rendered SQL from a successful command run."
+          sql={renderedSql ?? ""}
+          emptyMessage="Run the command to populate the rendered SQL preview."
+        />
+      </Stack>
     </Stack>
   );
 }
@@ -165,6 +187,67 @@ function ParameterField({
         />
       );
   }
+}
+
+function buildRawSqlSubtitle(command: QueryCommand): string {
+  if (command.kind === "alias" && command.rawSqlPath && command.rawSqlPath !== command.path) {
+    return `Alias for ${command.aliasFor || "target command"}. Showing template from ${command.rawSqlPath}.`;
+  }
+  if (command.rawSqlPath) {
+    return `Source template: ${command.rawSqlPath}`;
+  }
+  return "Underlying sqleton SQL template.";
+}
+
+function SqlDebugAccordion({
+  title,
+  subtitle,
+  sql,
+  emptyMessage,
+  defaultExpanded = false,
+}: {
+  title: string;
+  subtitle: string;
+  sql: string;
+  emptyMessage: string;
+  defaultExpanded?: boolean;
+}) {
+  return (
+    <Accordion disableGutters defaultExpanded={defaultExpanded}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Stack spacing={0.25}>
+          <Typography variant="subtitle2">{title}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {subtitle}
+          </Typography>
+        </Stack>
+      </AccordionSummary>
+      <AccordionDetails>
+        {sql.trim() ? (
+          <Box
+            component="pre"
+            sx={{
+              m: 0,
+              p: 1.5,
+              borderRadius: 1,
+              bgcolor: "background.paper",
+              fontFamily: "monospace",
+              fontSize: "0.8rem",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowX: "auto",
+            }}
+          >
+            {sql}
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            {emptyMessage}
+          </Typography>
+        )}
+      </AccordionDetails>
+    </Accordion>
+  );
 }
 
 function parseStringList(value: string): string[] {

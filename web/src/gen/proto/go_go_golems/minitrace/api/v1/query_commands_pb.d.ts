@@ -121,6 +121,16 @@ export declare type QueryCommand = Message<"go_go_golems.minitrace.api.v1.QueryC
    * @generated from field: string alias_for = 11;
    */
   aliasFor: string;
+
+  /**
+   * @generated from field: string raw_sql_path = 12;
+   */
+  rawSqlPath: string;
+
+  /**
+   * @generated from field: string raw_sql = 13;
+   */
+  rawSql: string;
 };
 
 /**

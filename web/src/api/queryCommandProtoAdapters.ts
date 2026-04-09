@@ -44,6 +44,8 @@ function adaptQueryCommand(command: PbQueryCommand): QueryCommand {
     readonly: command.readonly,
     kind: adaptQueryCommandKind(command.kind),
     aliasFor: command.aliasFor,
+    rawSqlPath: command.rawSqlPath,
+    rawSql: command.rawSql,
   };
 }
 

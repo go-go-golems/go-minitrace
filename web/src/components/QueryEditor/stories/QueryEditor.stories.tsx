@@ -113,6 +113,7 @@ export const CommandMode: Story = {
       title_like: "wesen",
       limit: 25,
     },
+    commandRenderedSql: "SELECT id, title FROM sessions_base LIMIT 25;",
     sourceStatus: {
       label: "Query command",
       path: mockQueryCommands[0].path,

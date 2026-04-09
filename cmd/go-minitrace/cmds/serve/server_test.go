@@ -1128,6 +1128,12 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			if len(command.GetFlags()) == 0 {
 				t.Fatalf("session-list should expose flags")
 			}
+			if !strings.Contains(command.GetRawSql(), "FROM {{TABLE_NAME}}") {
+				t.Fatalf("session-list raw_sql missing template body: %q", command.GetRawSql())
+			}
+			if command.GetRawSqlPath() != "session-list.sql" {
+				t.Fatalf("session-list raw_sql_path = %q, want session-list.sql", command.GetRawSqlPath())
+			}
 		}
 		if command.GetPath() == "aliases/codex-framework-summary.alias.yaml" {
 			foundAlias = true
@@ -1139,6 +1145,12 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			}
 			if len(command.GetFlags()) == 0 {
 				t.Fatalf("alias should expose target flags for form rendering")
+			}
+			if command.GetRawSqlPath() != "framework-summary.sql" {
+				t.Fatalf("alias raw_sql_path = %q, want framework-summary.sql", command.GetRawSqlPath())
+			}
+			if !strings.Contains(command.GetRawSql(), "GROUP BY framework") {
+				t.Fatalf("alias raw_sql should expose target template body: %q", command.GetRawSql())
 			}
 		}
 	}

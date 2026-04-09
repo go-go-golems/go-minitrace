@@ -58,6 +58,8 @@ export const ManyQueries: Story = {
         readonly: true,
         kind: "verb" as const,
         aliasFor: "",
+        rawSqlPath: `${i < 3 ? "core" : "analysis"}/command-${i + 3}.sql`,
+        rawSql: `SELECT ${i + 3} AS generated_command_${i + 3};`,
       })),
     ],
     presets: [

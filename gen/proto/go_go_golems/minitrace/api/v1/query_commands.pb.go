@@ -184,6 +184,8 @@ type QueryCommand struct {
 	Readonly         bool                   `protobuf:"varint,9,opt,name=readonly,proto3" json:"readonly,omitempty"`
 	Kind             QueryCommandKind       `protobuf:"varint,10,opt,name=kind,proto3,enum=go_go_golems.minitrace.api.v1.QueryCommandKind" json:"kind,omitempty"`
 	AliasFor         string                 `protobuf:"bytes,11,opt,name=alias_for,json=aliasFor,proto3" json:"alias_for,omitempty"`
+	RawSqlPath       string                 `protobuf:"bytes,12,opt,name=raw_sql_path,json=rawSqlPath,proto3" json:"raw_sql_path,omitempty"`
+	RawSql           string                 `protobuf:"bytes,13,opt,name=raw_sql,json=rawSql,proto3" json:"raw_sql,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -291,6 +293,20 @@ func (x *QueryCommand) GetKind() QueryCommandKind {
 func (x *QueryCommand) GetAliasFor() string {
 	if x != nil {
 		return x.AliasFor
+	}
+	return ""
+}
+
+func (x *QueryCommand) GetRawSqlPath() string {
+	if x != nil {
+		return x.RawSqlPath
+	}
+	return ""
+}
+
+func (x *QueryCommand) GetRawSql() string {
+	if x != nil {
+		return x.RawSql
 	}
 	return ""
 }
@@ -499,7 +515,7 @@ const file_proto_go_go_golems_minitrace_api_v1_query_commands_proto_rawDesc = ""
 	"positional\x18\a \x01(\bR\n" +
 	"positional\x12\x1d\n" +
 	"\n" +
-	"short_flag\x18\b \x01(\tR\tshortFlag\"\xd0\x03\n" +
+	"short_flag\x18\b \x01(\tR\tshortFlag\"\x8b\x04\n" +
 	"\fQueryCommand\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06folder\x18\x02 \x01(\tR\x06folder\x12\x12\n" +
@@ -512,7 +528,10 @@ const file_proto_go_go_golems_minitrace_api_v1_query_commands_proto_rawDesc = ""
 	"\breadonly\x18\t \x01(\bR\breadonly\x12C\n" +
 	"\x04kind\x18\n" +
 	" \x01(\x0e2/.go_go_golems.minitrace.api.v1.QueryCommandKindR\x04kind\x12\x1b\n" +
-	"\talias_for\x18\v \x01(\tR\baliasFor\"\xa0\x01\n" +
+	"\talias_for\x18\v \x01(\tR\baliasFor\x12 \n" +
+	"\fraw_sql_path\x18\f \x01(\tR\n" +
+	"rawSqlPath\x12\x17\n" +
+	"\araw_sql\x18\r \x01(\tR\x06rawSql\"\xa0\x01\n" +
 	"\x19ListQueryCommandsResponse\x12:\n" +
 	"\x04meta\x18\x01 \x01(\v2&.go_go_golems.minitrace.api.v1.ApiMetaR\x04meta\x12G\n" +
 	"\bcommands\x18\x02 \x03(\v2+.go_go_golems.minitrace.api.v1.QueryCommandR\bcommands\"\xef\x01\n" +
