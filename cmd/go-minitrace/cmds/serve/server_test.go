@@ -15,6 +15,7 @@ import (
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -1156,6 +1157,47 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 	}
 	if !foundSessionList || !foundAlias {
 		t.Fatalf("expected embedded verb and alias commands, got %#v", payload.GetCommands())
+	}
+}
+
+func TestHandleGetQueryCommandsV2UsesConfiguredSourceRoots(t *testing.T) {
+	repo := t.TempDir()
+	content := `/* sqleton
+name: session-list
+short: Override session list from external repository
+*/
+SELECT 99 AS answer FROM {{TABLE_NAME}};`
+	if err := os.WriteFile(filepath.Join(repo, "session-list.sql"), []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repo})
+	request := httptest.NewRequest(http.MethodGet, "/api/v2/query-commands", nil)
+	response := httptest.NewRecorder()
+
+	server.handleGetQueryCommandsV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ListQueryCommandsResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal query commands v2: %v", err)
+	}
+
+	foundOverride := false
+	for _, command := range payload.GetCommands() {
+		if command.GetPath() == "session-list.sql" {
+			foundOverride = true
+			if command.GetShortDescription() != "Override session list from external repository" {
+				t.Fatalf("shortDescription = %q, want override description", command.GetShortDescription())
+			}
+		}
+	}
+	if !foundOverride {
+		t.Fatalf("expected overridden session-list in %#v", payload.GetCommands())
 	}
 }
 

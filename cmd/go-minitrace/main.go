@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/go-go-golems/glazed/pkg/cmds/logging"
 	"github.com/go-go-golems/glazed/pkg/help"
 	helpcmd "github.com/go-go-golems/glazed/pkg/help/cmd"
@@ -11,6 +13,7 @@ import (
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve"
 	validatecmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate"
 	"github.com/go-go-golems/go-minitrace/pkg/doc"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +39,8 @@ func main() {
 	cobra.CheckErr(err)
 	convertCmd, err := convert.NewCommand()
 	cobra.CheckErr(err)
-	queryCmd, err := query.NewCommand()
+	queryRepositoryFlags := minitracecmd.ExtractRepositoryFlagValuesFromArgs(os.Args[1:])
+	queryCmd, err := query.NewCommand(queryRepositoryFlags)
 	cobra.CheckErr(err)
 	serveCmd, err := serve.NewCommand()
 	cobra.CheckErr(err)

@@ -17,7 +17,7 @@ import (
 )
 
 func (s *Server) handleGetQueryCommandsV2(w http.ResponseWriter, _ *http.Request) {
-	catalog, err := minitracecmd.LoadEmbeddedCatalog()
+	catalog, err := s.queryCommandCatalog()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -31,7 +31,7 @@ func (s *Server) handleGetQueryCommandsV2(w http.ResponseWriter, _ *http.Request
 }
 
 func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Request) {
-	catalog, err := minitracecmd.LoadEmbeddedCatalog()
+	catalog, err := s.queryCommandCatalog()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

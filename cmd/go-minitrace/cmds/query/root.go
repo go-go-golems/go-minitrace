@@ -2,7 +2,7 @@ package query
 
 import "github.com/spf13/cobra"
 
-func NewCommand() (*cobra.Command, error) {
+func NewCommand(flagPaths []string) (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:   "query",
 		Short: "Query converted minitrace archives",
@@ -16,7 +16,7 @@ either named presets or ad hoc SQL.`,
 	if err != nil {
 		return nil, err
 	}
-	commandsCmd, err := NewCommandsCommand()
+	commandsCmd, err := NewCommandsCommand(flagPaths)
 	if err != nil {
 		return nil, err
 	}

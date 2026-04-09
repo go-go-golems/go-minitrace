@@ -16,6 +16,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/settings"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -27,13 +28,14 @@ type ServeCommand struct {
 }
 
 type ServeSettings struct {
-	ArchiveGlob []string `glazed:"archive-glob"`
-	PresetDir   []string `glazed:"preset-dir"`
-	QueryDir    []string `glazed:"query-dir"`
-	Port        int      `glazed:"port"`
-	DBPath      string   `glazed:"db-path"`
-	TableName   string   `glazed:"table-name"`
-	DevMode     bool     `glazed:"dev"`
+	ArchiveGlob     []string `glazed:"archive-glob"`
+	PresetDir       []string `glazed:"preset-dir"`
+	QueryDir        []string `glazed:"query-dir"`
+	QueryRepository []string `glazed:"query-repository"`
+	Port            int      `glazed:"port"`
+	DBPath          string   `glazed:"db-path"`
+	TableName       string   `glazed:"table-name"`
+	DevMode         bool     `glazed:"dev"`
 }
 
 func NewGlazeCommand() (*ServeCommand, error) {
@@ -65,11 +67,14 @@ Examples:
   go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' \
     --preset-dir ./presets/team --preset-dir ./presets/project \
     --query-dir ./queries/shared --query-dir ./queries/private
+  go-minitrace serve --archive-glob './output/active/*/*.minitrace.json' \
+    --query-repository ./query-commands/team --query-repository ./query-commands/private
 `),
 		cmds.WithFlags(
 			fields.New("archive-glob", fields.TypeStringList, fields.WithDefault([]string{"./output/active/*/*.minitrace.json"}), fields.WithHelp("Repeatable glob flag for converted minitrace session files to load")),
 			fields.New("preset-dir", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Repeatable directory flag for additional read-only SQL preset roots")),
 			fields.New("query-dir", fields.TypeStringList, fields.WithDefault([]string{"./queries"}), fields.WithHelp("Repeatable directory flag for user-saved SQL query roots; new queries are created in the first root")),
+			fields.New("query-repository", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Repeatable directory flag for additional structured query-command repository roots")),
 			fields.New("port", fields.TypeInteger, fields.WithDefault(8080), fields.WithHelp("HTTP listen port")),
 			fields.New("db-path", fields.TypeString, fields.WithDefault(":memory:"), fields.WithHelp("DuckDB database path; :memory: keeps the server ephemeral")),
 			fields.New("table-name", fields.TypeString, fields.WithDefault("sessions_base"), fields.WithHelp("DuckDB table name to create from the loaded archive")),
@@ -144,7 +149,13 @@ func (c *ServeCommand) Run(ctx context.Context, vals *values.Values) error {
 		Bool("dev_mode", settings_.DevMode).
 		Msg("loaded minitrace archive for serve")
 
+	commandSourceRoots, err := minitracecmd.CommandSourceRoots("go-minitrace", settings_.QueryRepository)
+	if err != nil {
+		return err
+	}
+
 	server := NewServer(conn, settings_, sessionIndex, annoStore, sessionIndex)
+	server.commandSourceRoots = commandSourceRoots
 	if err := server.ListenAndServe(signalCtx, settings_.Port); err != nil {
 		if stderrors.Is(err, context.Canceled) {
 			return nil

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -22,15 +23,16 @@ import (
 )
 
 type Server struct {
-	conn         *sql.Conn
-	tableName    string
-	presetDirs   []string
-	queryDirs    []string
-	sessionIndex map[string]string
-	annoStore    *annotate.Store
-	annoIndex    map[string]string
-	devMode      bool
-	mux          *http.ServeMux
+	conn               *sql.Conn
+	tableName          string
+	presetDirs         []string
+	queryDirs          []string
+	sessionIndex       map[string]string
+	annoStore          *annotate.Store
+	annoIndex          map[string]string
+	devMode            bool
+	commandSourceRoots []minitracecmd.SourceRoot
+	mux                *http.ServeMux
 }
 
 type QueryRequest struct {
@@ -73,6 +75,13 @@ func NewServer(
 	s.mux = http.NewServeMux()
 	s.routes()
 	return s
+}
+
+func (s *Server) queryCommandCatalog() (*minitracecmd.Catalog, error) {
+	if len(s.commandSourceRoots) == 0 {
+		return minitracecmd.LoadEmbeddedCatalog()
+	}
+	return minitracecmd.LoadCatalog(s.commandSourceRoots)
 }
 
 func (s *Server) routes() {

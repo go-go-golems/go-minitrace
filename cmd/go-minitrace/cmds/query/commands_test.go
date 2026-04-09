@@ -1,9 +1,14 @@
 package query
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestNewCommandsCommand_IncludesEmbeddedCommands(t *testing.T) {
-	cmd, err := NewCommandsCommand()
+	setIsolatedConfigHome(t)
+	cmd, err := NewCommandsCommand(nil)
 	if err != nil {
 		t.Fatalf("NewCommandsCommand returned error: %v", err)
 	}
@@ -27,7 +32,8 @@ func TestNewCommandsCommand_IncludesEmbeddedCommands(t *testing.T) {
 }
 
 func TestNewCommand_AddsCommandsSubgroup(t *testing.T) {
-	root, err := NewCommand()
+	setIsolatedConfigHome(t)
+	root, err := NewCommand(nil)
 	if err != nil {
 		t.Fatalf("NewCommand returned error: %v", err)
 	}
@@ -43,4 +49,47 @@ func TestNewCommand_AddsCommandsSubgroup(t *testing.T) {
 	if root.CommandPath() != "query" {
 		t.Fatalf("root.CommandPath() = %q, want query", root.CommandPath())
 	}
+}
+
+func TestNewCommandsCommand_LoadsConfiguredRepositoryOverrides(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	content := `/* sqleton
+name: session-list
+short: Override session list
+*/
+SELECT 42 AS answer FROM {{TABLE_NAME}};`
+	if err := os.WriteFile(filepath.Join(repo, "session-list.sql"), []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	found := false
+	for _, sub := range cmd.Commands() {
+		if sub.Name() == "session-list" {
+			found = true
+			if sub.Short != "Override session list" {
+				t.Fatalf("sub.Short = %q, want override short description", sub.Short)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected overridden session-list command in %#v", cmd.Commands())
+	}
+
+	flag := cmd.PersistentFlags().Lookup("query-repository")
+	if flag == nil {
+		t.Fatalf("commands root missing query-repository flag")
+	}
+}
+
+func setIsolatedConfigHome(t *testing.T) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 }
