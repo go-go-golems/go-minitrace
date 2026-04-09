@@ -34,7 +34,7 @@ Examples:
 		if err != nil {
 			return nil, err
 		}
-		cobraCommand, err := common.BuildCobraCommand(glazeCommand)
+		cobraCommand, err := common.BuildCobraCommandWithShortHelpSections(glazeCommand, "default", QueryRuntimeSectionSlug)
 		if err != nil {
 			return nil, err
 		}
