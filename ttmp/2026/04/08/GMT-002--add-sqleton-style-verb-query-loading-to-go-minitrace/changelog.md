@@ -58,3 +58,13 @@ Refined the MinitraceCommand guide with literal first-PR starter stubs and uploa
 
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/design-doc/02-minitracecommand-implementation-plan-with-glazed-parameter-definition-reuse.md — Guide expanded with exact first-PR checklist and starter stubs
 
+
+## 2026-04-08
+
+Started implementation by adding the pkg/minitracecmd package core: sentinel errors, the MinitraceCommand/MinitraceCommandSpec types, validation rules, source-kind detection, and initial tests (commit b8f3229).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/source_kind.go — Source-kind detection added for repository scanning
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/types.go — Core MinitraceCommand model added
+

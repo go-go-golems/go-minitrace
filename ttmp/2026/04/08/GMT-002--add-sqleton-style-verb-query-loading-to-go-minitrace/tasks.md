@@ -14,3 +14,14 @@
 - [x] Run `docmgr doctor --ticket GMT-002 --stale-after 30`
 - [x] Upload the ticket bundle to reMarkable with dry-run first
 - [x] Verify the uploaded bundle in the remote folder listing
+- [x] Implement pkg/minitracecmd core types, errors, and source-kind detection
+- [ ] Implement sqleton-style SQL preamble parsing with focused parser tests
+- [ ] Implement alias YAML parsing with focused parser tests
+- [ ] Implement MinitraceCommand compilation and bool-flag normalization with tests
+- [ ] Implement repository-backed catalog loading, precedence rules, and alias validation with tests
+- [ ] Add built-in MinitraceCommand repository assets for initial read-only commands
+- [ ] Implement SQL rendering helpers and MinitraceCommand rendering with tests
+- [ ] Add CLI query commands subgroup and runtime execution adapter
+- [ ] Add query-command API transport and serve handlers
+- [ ] Add frontend query-command types, sidebar integration, and form execution flow
+- [ ] Refresh diary, changelog, validation, and reMarkable bundle after implementation

@@ -15,6 +15,14 @@ RelatedFiles:
       Note: Main sqleton parsing reference used during investigation
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
+    - Path: pkg/minitracecmd/errors.go
+      Note: Added initial sentinel errors for MinitraceCommand parsing and validation (commit b8f3229)
+    - Path: pkg/minitracecmd/source_kind.go
+      Note: Added sqleton-style source kind detection for .sql and .alias.yaml files (commit b8f3229)
+    - Path: pkg/minitracecmd/types.go
+      Note: Introduced MinitraceCommand and MinitraceCommandSpec with validation rules (commit b8f3229)
+    - Path: pkg/minitracecmd/types_test.go
+      Note: Added initial validation and source-kind coverage for the new package (commit b8f3229)
     - Path: web/src/components/QueryEditor/QuerySidebar.tsx
       Note: Frontend evidence for the current sidebar model captured in the diary
 ExternalSources: []
@@ -23,6 +31,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 # Diary
@@ -603,3 +612,89 @@ This update intentionally moves one step closer to code without actually modifyi
   - `go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/design-doc/02-minitracecommand-implementation-plan-with-glazed-parameter-definition-reuse.md`
 - Updated upload bundle name remained:
   - `GMT-002 MinitraceCommand implementation plan`
+
+## Step 8: Start implementation with the core `pkg/minitracecmd` types and validation rules
+
+The first implementation task was intentionally small and self-contained: create the new package, define the key types, and make the basic invariants executable in code. I wanted the first commit to establish the vocabulary the rest of the feature will build on without dragging in parsing, rendering, or CLI behavior yet.
+
+That made this a good “anchor commit” for the rest of the work. Once `MinitraceCommand`, `MinitraceCommandSpec`, source-kind detection, and the initial sentinel errors exist in the repository, future steps can layer on parsers and compilers without reopening naming or package-layout decisions.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add detailed tasks to the ticket, then work on them one by one, committing as you go. Keep a frequent diary."
+
+**Assistant interpretation:** Turn the design document into an executable ticket plan, then start implementing the feature in small reviewed commits while updating the ticket diary continuously.
+
+**Inferred user intent:** Make the ticket actionable and create a clear, auditable implementation trail rather than doing one large undocumented coding pass.
+
+**Commit (code):** `b8f32295d1eb7c63453ea4bf6a14da62eff146f1` — "Add MinitraceCommand core types"
+
+### What I did
+- Added detailed implementation tasks to `GMT-002` for the full rollout sequence.
+- Created `pkg/minitracecmd/` and added:
+  - `errors.go`
+  - `types.go`
+  - `source_kind.go`
+  - `types_test.go`
+- Introduced:
+  - `MinitraceCommandKind`
+  - `MinitraceCommandSpec`
+  - `MinitraceCommand`
+  - `DetectSourceKind(...)`
+  - validation logic on `MinitraceCommandSpec`
+  - initial sentinel errors for missing/invalid spec fields and preamble states
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/*.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Committed the code, which also triggered the repo pre-commit hook:
+  - `go test ./...`
+  - `golangci-lint run -v`
+
+### Why
+- The package/types step is the cleanest first slice because it establishes the core naming and data model with minimal risk.
+- Writing validation rules early prevents the later parsers from spreading implicit assumptions across multiple files.
+- Starting with source-kind detection keeps the later catalog-loader work simple.
+
+### What worked
+- The new package compiled cleanly on the first pass.
+- Focused tests around validation and source-kind detection passed.
+- The pre-commit hook’s repo-wide `go test ./...` and `golangci-lint run -v` both passed, so the initial package shape did not introduce broader regressions.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Splitting sentinel errors into `errors.go` immediately made the validation code much easier to read than stuffing everything into `types.go`.
+- Even this small first step benefits from a dedicated package instead of trying to wedge the catalog model into `pkg/query` prematurely.
+
+### What was tricky to build
+- The main subtlety was deciding how much trimming and normalization `Validate()` should do versus leaving that responsibility to the future parsers. I kept `Validate()` strict but lightweight: it trims when checking emptiness, but it does not mutate fields in place. That keeps it reusable for both parser output and future hand-built specs in tests.
+
+### What warrants a second pair of eyes
+- Whether the current sentinel error list is the right long-term split, especially the choice to define both parsing-oriented and validation-oriented errors up front.
+- Whether `AliasFlags` should stay a generic `map[string]any` in the canonical spec, or whether later steps should narrow it once real alias use cases are implemented.
+
+### What should be done in the future
+- Implement SQL preamble parsing next, using these validation rules as the contract.
+- Keep the next commit limited to parser behavior and tests, without mixing in CLI or serve integration.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/types.go`
+  - `pkg/minitracecmd/errors.go`
+  - `pkg/minitracecmd/source_kind.go`
+- Then read:
+  - `pkg/minitracecmd/types_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+
+### Technical details
+- New package path:
+  - `go-minitrace/pkg/minitracecmd`
+- Files added:
+  - `go-minitrace/pkg/minitracecmd/errors.go`
+  - `go-minitrace/pkg/minitracecmd/types.go`
+  - `go-minitrace/pkg/minitracecmd/source_kind.go`
+  - `go-minitrace/pkg/minitracecmd/types_test.go`
+- Checked task:
+  - `GMT-002` task `13`
