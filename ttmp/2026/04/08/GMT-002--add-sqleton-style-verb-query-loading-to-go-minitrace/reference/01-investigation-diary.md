@@ -17,6 +17,10 @@ RelatedFiles:
       Note: Main go-minitrace raw query-library reference used during investigation
     - Path: pkg/minitracecmd/errors.go
       Note: Added initial sentinel errors for MinitraceCommand parsing and validation (commit b8f3229)
+    - Path: pkg/minitracecmd/parse_alias.go
+      Note: Added alias YAML parsing into local MinitraceCommand specs (commit 50f4d10)
+    - Path: pkg/minitracecmd/parse_alias_test.go
+      Note: Added alias parser coverage for valid aliases and missing required fields (commit 50f4d10)
     - Path: pkg/minitracecmd/parse_sql.go
       Note: Added sqleton-style SQL preamble parsing and lightweight command detection (commit 5acc6c5)
     - Path: pkg/minitracecmd/parse_sql_test.go
@@ -35,6 +39,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -786,3 +791,79 @@ I kept this step narrowly scoped to parsing and detection. It does not try to co
   - `go-minitrace/pkg/minitracecmd/parse_sql_test.go`
 - Checked task:
   - `GMT-002` task `14`
+
+## Step 10: Add alias YAML parsing so both sqleton source kinds are covered
+
+After SQL parsing, the missing half of the repository format was alias YAML. I implemented that next because the future catalog loader should not need to care whether a source file came from a `.sql` command or a `.alias.yaml`; it should just receive validated `MinitraceCommandSpec` values.
+
+This was also a good point to confirm that the local spec model is flexible enough for aliases without smuggling in sqleton runtime types. The result is deliberately simple: parse the YAML into a tiny helper struct, then compile it into the local spec shape with `AliasFor` and `AliasFlags` populated.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue the ticket’s implementation tasks in order, with each architectural slice landing in its own commit and diary update.
+
+**Inferred user intent:** Ensure the implementation remains incremental, auditable, and easy to review by layer.
+
+**Commit (code):** `50f4d103d4c998f19fb2c49ac9cb2188921d19d9` — "Parse MinitraceCommand aliases"
+
+### What I did
+- Added `pkg/minitracecmd/parse_alias.go`.
+- Introduced a small YAML-only helper struct:
+  - `aliasYAML`
+- Implemented:
+  - `ParseAliasSpec(...)`
+  - `ParseAliasSpecFromReader(...)`
+- Added `pkg/minitracecmd/parse_alias_test.go` with focused coverage for:
+  - valid alias parsing
+  - missing `aliasFor`
+  - missing `name`
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/*.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Verified the commit via the repo pre-commit hook:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+- The catalog layer will eventually need to load both sqleton source kinds, so supporting aliases early prevents the loader from being designed around only SQL files.
+- Keeping alias parsing separate from alias resolution makes the upcoming catalog step simpler and easier to test.
+
+### What worked
+- A tiny YAML helper struct was enough; there was no need to complicate the canonical spec with alias-specific YAML tags.
+- The local `AliasFlags map[string]any` shape handled mixed scalar/list alias defaults cleanly in tests.
+- The new alias parser fit naturally alongside the SQL parser without requiring any package reorganization.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- It is cleaner to have a parser-specific alias payload struct than to force `MinitraceCommandSpec` itself to mirror every YAML nuance directly.
+- The local spec model is already proving useful: both source kinds now normalize into one shared internal representation.
+
+### What was tricky to build
+- The main subtlety was deciding how much alias-specific metadata belongs in the canonical spec. I kept it minimal: `AliasFor` and `AliasFlags` are enough for now, and anything richer can be added later if real command repos demand it. That keeps the canonical model focused on the execution/catalog shape rather than on file-format trivia.
+
+### What warrants a second pair of eyes
+- Whether aliases should eventually require a short description even though the current model allows it to be optional.
+- Whether `AliasFlags` should stay fully dynamic or eventually be validated against the target command’s parameter definitions during catalog resolution.
+
+### What should be done in the future
+- Implement the compiler next so both parsed verbs and parsed aliases can become canonical `MinitraceCommand` values.
+- Delay alias-target validation until the catalog loader, where all commands are visible together.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/parse_alias.go`
+- Then read:
+  - `pkg/minitracecmd/parse_alias_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+
+### Technical details
+- New files:
+  - `go-minitrace/pkg/minitracecmd/parse_alias.go`
+  - `go-minitrace/pkg/minitracecmd/parse_alias_test.go`
+- Checked task:
+  - `GMT-002` task `15`

@@ -16,7 +16,7 @@
 - [x] Verify the uploaded bundle in the remote folder listing
 - [x] Implement pkg/minitracecmd core types, errors, and source-kind detection
 - [x] Implement sqleton-style SQL preamble parsing with focused parser tests
-- [ ] Implement alias YAML parsing with focused parser tests
+- [x] Implement alias YAML parsing with focused parser tests
 - [ ] Implement MinitraceCommand compilation and bool-flag normalization with tests
 - [ ] Implement repository-backed catalog loading, precedence rules, and alias validation with tests
 - [ ] Add built-in MinitraceCommand repository assets for initial read-only commands

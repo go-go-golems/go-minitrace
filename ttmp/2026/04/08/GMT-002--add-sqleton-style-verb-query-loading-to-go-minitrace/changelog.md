@@ -78,3 +78,13 @@ Implemented sqleton-style SQL command parsing for MinitraceCommand specs, includ
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_sql.go — SQL parser and detection helpers added
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_sql_test.go — Parser regression coverage added
 
+
+## 2026-04-08
+
+Implemented alias YAML parsing for MinitraceCommand specs, including direct capture of alias defaults and focused validation tests (commit 50f4d10).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_alias.go — Alias parser added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_alias_test.go — Alias parser tests added
+
