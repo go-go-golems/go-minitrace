@@ -153,6 +153,34 @@ function ParameterField({
         />
       );
 
+    case "float":
+      return (
+        <TextField
+          fullWidth
+          size="small"
+          type="number"
+          label={label}
+          helperText={helperText}
+          value={typeof value === "number" ? value : ""}
+          inputProps={{ step: "any" }}
+          onChange={(event) => onChange(event.target.value === "" ? "" : Number(event.target.value))}
+        />
+      );
+
+    case "date":
+      return (
+        <TextField
+          fullWidth
+          size="small"
+          type="date"
+          label={label}
+          helperText={helperText}
+          value={typeof value === "string" ? value : ""}
+          InputLabelProps={{ shrink: true }}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      );
+
     case "stringList":
       return (
         <TextField
@@ -175,6 +203,44 @@ function ParameterField({
           value={Array.isArray(value) ? value.join(", ") : ""}
           onChange={(event) => onChange(parseIntList(event.target.value))}
         />
+      );
+
+    case "floatList":
+      return (
+        <TextField
+          fullWidth
+          size="small"
+          label={label}
+          helperText={`${helperText} Use commas to separate multiple values.`}
+          value={Array.isArray(value) ? value.join(", ") : ""}
+          onChange={(event) => onChange(parseFloatList(event.target.value))}
+        />
+      );
+
+    case "choiceList":
+      return (
+        <TextField
+          select
+          fullWidth
+          size="small"
+          label={label}
+          helperText={helperText}
+          value={Array.isArray(value) ? value : []}
+          SelectProps={{
+            multiple: true,
+            renderValue: (selected) => Array.isArray(selected) ? selected.join(", ") : "",
+          }}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            onChange(Array.isArray(nextValue) ? nextValue : [String(nextValue)]);
+          }}
+        >
+          {param.choices.map((choice) => (
+            <MenuItem key={choice} value={choice}>
+              {choice}
+            </MenuItem>
+          ))}
+        </TextField>
       );
 
     case "string":
@@ -276,6 +342,15 @@ function parseStringList(value: string): string[] {
 }
 
 function parseIntList(value: string): number[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => Number(item))
+    .filter((item) => !Number.isNaN(item));
+}
+
+function parseFloatList(value: string): number[] {
   return value
     .split(",")
     .map((item) => item.trim())
