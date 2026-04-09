@@ -7,7 +7,6 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/fields"
 	"github.com/go-go-golems/glazed/pkg/cmds/layout"
-	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	glazedvalues "github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
 	"github.com/go-go-golems/glazed/pkg/settings"
@@ -40,23 +39,19 @@ func NewMinitraceCatalogGlazeCommand(command *minitracecmd.MinitraceCommand, cat
 	if err != nil {
 		return nil, err
 	}
-
-	flags := []*fields.Definition{
-		fields.New("archive-glob", fields.TypeStringList, fields.WithDefault([]string{"./output/active/*/*.minitrace.json"}), fields.WithHelp("Repeatable glob flag for minitrace session JSON files to load")),
-		fields.New("db-path", fields.TypeString, fields.WithDefault(":memory:"), fields.WithHelp("DuckDB database path to use; :memory: keeps the query session ephemeral")),
-		fields.New("table-name", fields.TypeString, fields.WithDefault("sessions_base"), fields.WithHelp("Table name to create from the loaded archive")),
-		fields.New("persist-loaded", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Request a persistent loaded table rather than a temp table")),
+	queryRuntimeSection, err := NewQueryRuntimeSection()
+	if err != nil {
+		return nil, err
 	}
-	flags = append(flags, command.Flags...)
 
 	options := []cmds.CommandDescriptionOption{
 		cmds.WithShort(command.Short),
 		cmds.WithLong(command.Long),
-		cmds.WithFlags(flags...),
+		cmds.WithFlags(command.Flags...),
 		cmds.WithArguments(command.Arguments...),
 		cmds.WithTags(command.Tags...),
 		cmds.WithMetadata(command.Metadata),
-		cmds.WithSections(glazedSection, commandSettingsSection),
+		cmds.WithSections(glazedSection, commandSettingsSection, queryRuntimeSection),
 	}
 	if len(command.Layout) > 0 {
 		options = append(options, cmds.WithLayout(&layout.Layout{Sections: command.Layout}))
@@ -72,7 +67,7 @@ func NewMinitraceCatalogGlazeCommand(command *minitracecmd.MinitraceCommand, cat
 
 func (c *MinitraceCatalogGlazeCommand) RunIntoGlazeProcessor(ctx context.Context, vals *glazedvalues.Values, gp middlewares.Processor) error {
 	runtimeSettings := &MinitraceQueryRuntimeSettings{}
-	if err := vals.DecodeSectionInto(schema.DefaultSlug, runtimeSettings); err != nil {
+	if err := vals.DecodeSectionInto(QueryRuntimeSectionSlug, runtimeSettings); err != nil {
 		return err
 	}
 	if len(runtimeSettings.ArchiveGlob) == 0 {
