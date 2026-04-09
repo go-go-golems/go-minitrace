@@ -3,6 +3,7 @@ import {
   mockSessions,
   mockSessionDetail,
   mockPresets,
+  mockQueryCommands,
   mockSavedQueries,
   mockQueryResult,
 } from "./data";
@@ -73,6 +74,29 @@ export const handlers = [
 
   http.get("/api/v2/queries", () => {
     return HttpResponse.json({ meta: { schemaVersion: 1 }, queries: mockSavedQueries });
+  }),
+
+  http.get("/api/v2/query-commands", () => {
+    return HttpResponse.json({ meta: { schemaVersion: 1 }, commands: mockQueryCommands });
+  }),
+
+  http.post(/\/api\/v2\/query-commands\/(.+)\/execute$/, async ({ request }) => {
+    const body = (await request.json()) as { values?: Record<string, unknown>; renderOnly?: boolean };
+    const pathname = new URL(request.url).pathname;
+    const path = pathname.replace(/^\/api\/v2\/query-commands\//, "").replace(/\/execute$/, "");
+    const selected = mockQueryCommands.find((command) => command.path === path);
+    const renderedSql = selected?.path === "aliases/codex-framework-summary.alias.yaml"
+      ? "SELECT framework, COUNT(*) AS sessions FROM sessions_base WHERE (environment->>'agent_framework') IN ('codex') GROUP BY framework ORDER BY sessions DESC;"
+      : "SELECT id, title FROM sessions_base LIMIT 100;";
+
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      renderedSql,
+      columns: body.renderOnly ? [] : mockQueryResult.columns,
+      rows: body.renderOnly ? [] : mockQueryResult.rows,
+      durationMs: body.renderOnly ? 0 : 12,
+      rowCount: body.renderOnly ? 0 : mockQueryResult.row_count,
+    });
   }),
 
   http.post("/api/queries", async ({ request }) => {

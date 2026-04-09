@@ -8,10 +8,11 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SaveIcon from "@mui/icons-material/Save";
-import type { SavedQuery, QueryResult, QueryError } from "../../types";
+import type { QueryCommand, SavedQuery, QueryResult, QueryError } from "../../types";
 import { SqlEditor } from "./SqlEditor";
 import { QuerySidebar } from "./QuerySidebar";
 import { ResultsTable } from "./ResultsTable";
+import { QueryCommandForm } from "./QueryCommandForm";
 
 interface QuerySourceStatus {
   label: string;
@@ -22,14 +23,20 @@ interface QuerySourceStatus {
 
 interface QueryEditorProps {
   sql: string;
+  activeCommand?: QueryCommand | null;
+  commandValues?: Record<string, unknown>;
   onSqlChange: (sql: string) => void;
+  onCommandValueChange?: (name: string, value: unknown) => void;
   onExecute: (sql: string) => void;
+  onExecuteCommand?: () => void;
   onSave?: (sql: string) => void;
   onSelectQuery: (query: SavedQuery, kind: "preset" | "saved") => void;
+  onSelectCommand?: (command: QueryCommand) => void;
   onReloadSource?: () => void;
   onClickSessionId?: (id: string) => void;
   presets: SavedQuery[];
   savedQueries: SavedQuery[];
+  commands: QueryCommand[];
   result: QueryResult | null;
   error: QueryError | null;
   isLoading: boolean;
@@ -38,14 +45,20 @@ interface QueryEditorProps {
 
 export function QueryEditor({
   sql,
+  activeCommand,
+  commandValues = {},
   onSqlChange,
+  onCommandValueChange,
   onExecute,
+  onExecuteCommand,
   onSave,
   onSelectQuery,
+  onSelectCommand,
   onReloadSource,
   onClickSessionId,
   presets,
   savedQueries,
+  commands,
   result,
   error,
   isLoading,
@@ -59,21 +72,22 @@ export function QueryEditor({
     setTimeout(() => setSavedFlash(false), 2000);
   };
 
+  const isCommandMode = Boolean(activeCommand);
+
   return (
     <Box
       data-widget="query-editor"
       sx={{ height: "100%", display: "flex" }}
     >
-      {/* Sidebar */}
       <QuerySidebar
         presets={presets}
         savedQueries={savedQueries}
+        commands={commands}
         onSelect={onSelectQuery}
+        onSelectCommand={onSelectCommand}
       />
 
-      {/* Main pane — vertical split: editor top, results bottom */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Editor section */}
         <Box
           sx={{
             flex: "0 0 auto",
@@ -121,12 +135,20 @@ export function QueryEditor({
               </Stack>
             </Alert>
           )}
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            <SqlEditor
-              value={sql}
-              onChange={onSqlChange}
-              onExecute={() => onExecute(sql)}
-            />
+          <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            {activeCommand ? (
+              <QueryCommandForm
+                command={activeCommand}
+                values={commandValues}
+                onChange={(name, value) => onCommandValueChange?.(name, value)}
+              />
+            ) : (
+              <SqlEditor
+                value={sql}
+                onChange={onSqlChange}
+                onExecute={() => onExecute(sql)}
+              />
+            )}
           </Box>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
             <Button
@@ -134,13 +156,13 @@ export function QueryEditor({
               startIcon={
                 isLoading ? <CircularProgress size={14} color="inherit" /> : <PlayArrowIcon />
               }
-              onClick={() => onExecute(sql)}
+              onClick={() => (isCommandMode ? onExecuteCommand?.() : onExecute(sql))}
               disabled={isLoading}
               size="small"
             >
-              Run
+              {isCommandMode ? "Run command" : "Run"}
             </Button>
-            {onSave && (
+            {onSave && !isCommandMode && (
               <Button
                 variant="outlined"
                 startIcon={<SaveIcon />}
@@ -157,7 +179,7 @@ export function QueryEditor({
             >
               Ctrl+Enter to run
             </Typography>
-            {savedFlash && (
+            {savedFlash && !isCommandMode && (
               <Typography variant="caption" color="success.main">
                 ✓ Saved
               </Typography>
@@ -167,7 +189,6 @@ export function QueryEditor({
 
         <Divider />
 
-        {/* Results section */}
         <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1 }}>
           {error && (
             <Alert

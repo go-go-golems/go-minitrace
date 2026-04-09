@@ -14,6 +14,7 @@ export interface QueryResult {
   rows: Record<string, unknown>[];
   duration_ms: number;
   row_count: number;
+  rendered_sql?: string;
 }
 
 export interface QueryError {

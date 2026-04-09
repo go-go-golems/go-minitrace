@@ -9,16 +9,19 @@ import Tooltip from "@mui/material/Tooltip";
 import FolderIcon from "@mui/icons-material/Folder";
 import DescriptionIcon from "@mui/icons-material/Description";
 import StarIcon from "@mui/icons-material/Star";
-import type { SavedQuery } from "../../types";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import type { QueryCommand, SavedQuery } from "../../types";
 
 interface QuerySidebarProps {
   presets: SavedQuery[];
   savedQueries: SavedQuery[];
+  commands: QueryCommand[];
   onSelect: (query: SavedQuery, kind: "preset" | "saved") => void;
+  onSelectCommand?: (command: QueryCommand) => void;
 }
 
-function groupByFolder(queries: SavedQuery[]) {
-  const groups: Record<string, SavedQuery[]> = {};
+function groupByFolder<T extends { folder: string }>(queries: T[]) {
+  const groups: Record<string, T[]> = {};
   for (const q of queries) {
     const folder = q.folder || "ungrouped";
     if (!groups[folder]) groups[folder] = [];
@@ -30,8 +33,11 @@ function groupByFolder(queries: SavedQuery[]) {
 export function QuerySidebar({
   presets,
   savedQueries,
+  commands,
   onSelect,
+  onSelectCommand,
 }: QuerySidebarProps) {
+  const commandGroups = groupByFolder(commands);
   const presetGroups = groupByFolder(presets);
   const savedGroups = groupByFolder(savedQueries);
 
@@ -46,6 +52,60 @@ export function QuerySidebar({
         bgcolor: "background.default",
       }}
     >
+      <Typography variant="overline" sx={{ px: 2, pt: 2, display: "block" }}>
+        Commands
+      </Typography>
+      {Object.entries(commandGroups).map(([folder, groupedCommands]) => (
+        <List
+          key={`commands-${folder}`}
+          dense
+          subheader={
+            <ListSubheader
+              sx={{
+                bgcolor: "transparent",
+                lineHeight: "28px",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+              }}
+            >
+              <FolderIcon sx={{ fontSize: 14 }} />
+              {folder}
+            </ListSubheader>
+          }
+        >
+          {groupedCommands.map((command) => (
+            <Tooltip
+              key={command.path}
+              title={command.shortDescription || command.longDescription}
+              placement="right"
+              arrow
+            >
+              <ListItemButton
+                onClick={() => onSelectCommand?.(command)}
+                sx={{ py: 0.25, pl: 4 }}
+              >
+                <ListItemIcon sx={{ minWidth: 28 }}>
+                  <PlayArrowIcon sx={{ fontSize: 14, color: "secondary.main" }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={command.name}
+                  secondary={command.kind === "alias" ? `alias for ${command.aliasFor}` : undefined}
+                  primaryTypographyProps={{
+                    variant: "body2",
+                    sx: { fontFamily: "monospace", fontSize: "0.75rem" },
+                  }}
+                  secondaryTypographyProps={{
+                    variant: "caption",
+                    sx: { fontFamily: "monospace", fontSize: "0.65rem" },
+                  }}
+                />
+              </ListItemButton>
+            </Tooltip>
+          ))}
+        </List>
+      ))}
+
       <Typography variant="overline" sx={{ px: 2, pt: 2, display: "block" }}>
         Presets
       </Typography>

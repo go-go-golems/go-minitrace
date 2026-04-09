@@ -3,6 +3,7 @@ import type {
   SessionDetail,
   Turn,
   ToolCall,
+  QueryCommand,
   SavedQuery,
 } from "../types";
 
@@ -473,6 +474,77 @@ export const mockPresets: SavedQuery[] = [
     description: "Tool call breakdown by tool name",
     sql: "SELECT\n  REPLACE(CAST(tc->>'tool_name' AS VARCHAR), '\"', '') AS tool,\n  COUNT(*) AS calls\nFROM sessions_base\nCROSS JOIN UNNEST(tool_calls) AS t(tc)\nGROUP BY tool\nORDER BY calls DESC;",
     readonly: true,
+  },
+];
+
+export const mockQueryCommands: QueryCommand[] = [
+  {
+    name: "session-list",
+    folder: "core",
+    path: "session-list.sql",
+    shortDescription: "List minitrace sessions",
+    longDescription: "List sessions with optional framework and title filters.",
+    flags: [
+      {
+        name: "framework",
+        type: "stringList",
+        help: "Filter by agent framework",
+        required: false,
+        defaultJson: "[]",
+        choices: [],
+        positional: false,
+        shortFlag: "",
+      },
+      {
+        name: "title_like",
+        type: "string",
+        help: "Filter titles with LIKE",
+        required: false,
+        defaultJson: "",
+        choices: [],
+        positional: false,
+        shortFlag: "",
+      },
+      {
+        name: "limit",
+        type: "int",
+        help: "Limit the number of rows returned",
+        required: false,
+        defaultJson: "100",
+        choices: [],
+        positional: false,
+        shortFlag: "",
+      },
+    ],
+    arguments: [],
+    tags: ["analysis"],
+    readonly: true,
+    kind: "verb",
+    aliasFor: "",
+  },
+  {
+    name: "codex-framework-summary",
+    folder: "aliases",
+    path: "aliases/codex-framework-summary.alias.yaml",
+    shortDescription: "Summarize only codex sessions",
+    longDescription: "Alias for framework-summary with framework preset to codex.",
+    flags: [
+      {
+        name: "framework",
+        type: "stringList",
+        help: "Restrict the summary to selected frameworks",
+        required: false,
+        defaultJson: '["codex"]',
+        choices: [],
+        positional: false,
+        shortFlag: "",
+      },
+    ],
+    arguments: [],
+    tags: ["analysis"],
+    readonly: true,
+    kind: "alias",
+    aliasFor: "framework-summary",
   },
 ];
 

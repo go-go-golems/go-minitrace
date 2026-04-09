@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import Box from "@mui/material/Box";
 import { QuerySidebar } from "../QuerySidebar";
 import { withTheme } from "../../../test-utils/storybook-decorators";
-import { mockPresets, mockSavedQueries } from "../../../mocks/data";
+import { mockPresets, mockQueryCommands, mockSavedQueries } from "../../../mocks/data";
 
 const meta = {
   title: "QueryEditor/QuerySidebar",
@@ -19,7 +19,9 @@ const meta = {
   args: {
     presets: mockPresets,
     savedQueries: mockSavedQueries,
+    commands: mockQueryCommands,
     onSelect: fn<(query: unknown, kind: "preset" | "saved") => void>(),
+    onSelectCommand: fn<(command: unknown) => void>(),
   },
 } satisfies Meta<typeof QuerySidebar>;
 
@@ -27,6 +29,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const EmptyCommands: Story = {
+  args: { commands: [] },
+};
 
 export const EmptyPresets: Story = {
   args: { presets: [] },
@@ -38,6 +44,22 @@ export const EmptySaved: Story = {
 
 export const ManyQueries: Story = {
   args: {
+    commands: [
+      ...mockQueryCommands,
+      ...Array.from({ length: 6 }, (_, i) => ({
+        name: `command-${i + 3}`,
+        folder: i < 3 ? "core" : "analysis",
+        path: `${i < 3 ? "core" : "analysis"}/command-${i + 3}.sql`,
+        shortDescription: `Generated command ${i + 3}`,
+        longDescription: "",
+        flags: [],
+        arguments: [],
+        tags: [],
+        readonly: true,
+        kind: "verb" as const,
+        aliasFor: "",
+      })),
+    ],
     presets: [
       ...mockPresets,
       ...Array.from({ length: 10 }, (_, i) => ({

@@ -134,7 +134,9 @@ func protoQueryCommand(catalog *minitracecmd.Catalog, command *minitracecmd.Mini
 	displayCommand := command
 	flags := command.Flags
 	arguments := command.Arguments
+	aliasDefaults := map[string]any{}
 	if command.Kind == minitracecmd.MinitraceCommandAlias {
+		aliasDefaults = command.AliasFlags
 		if target, ok := catalog.ByName[command.AliasFor]; ok && target != nil {
 			displayCommand = target
 			flags = target.Flags
@@ -157,8 +159,8 @@ func protoQueryCommand(catalog *minitracecmd.Catalog, command *minitracecmd.Mini
 		Path:             command.Path,
 		ShortDescription: shortDescription,
 		LongDescription:  longDescription,
-		Flags:            protoQueryCommandParams(flags, false),
-		Arguments:        protoQueryCommandParams(arguments, true),
+		Flags:            protoQueryCommandParams(flags, false, aliasDefaults),
+		Arguments:        protoQueryCommandParams(arguments, true, aliasDefaults),
 		Tags:             append([]string(nil), displayCommand.Tags...),
 		Readonly:         command.Readonly,
 		Kind:             protoQueryCommandKind(command.Kind),
@@ -166,20 +168,25 @@ func protoQueryCommand(catalog *minitracecmd.Catalog, command *minitracecmd.Mini
 	}
 }
 
-func protoQueryCommandParams(definitions []*fields.Definition, positional bool) []*apiv1.QueryCommandParam {
+func protoQueryCommandParams(definitions []*fields.Definition, positional bool, aliasDefaults map[string]any) []*apiv1.QueryCommandParam {
 	ret := make([]*apiv1.QueryCommandParam, 0, len(definitions))
 	for _, definition := range definitions {
 		if definition == nil {
 			continue
 		}
-		ret = append(ret, protoQueryCommandParam(definition, positional))
+		ret = append(ret, protoQueryCommandParam(definition, positional, aliasDefaults[definition.Name]))
 	}
 	return ret
 }
 
-func protoQueryCommandParam(definition *fields.Definition, positional bool) *apiv1.QueryCommandParam {
+func protoQueryCommandParam(definition *fields.Definition, positional bool, defaultOverride any) *apiv1.QueryCommandParam {
 	defaultJSON := ""
-	if definition.Default != nil {
+	switch {
+	case defaultOverride != nil:
+		if payload, err := json.Marshal(defaultOverride); err == nil {
+			defaultJSON = string(payload)
+		}
+	case definition.Default != nil:
 		if payload, err := json.Marshal(*definition.Default); err == nil {
 			defaultJSON = string(payload)
 		}
