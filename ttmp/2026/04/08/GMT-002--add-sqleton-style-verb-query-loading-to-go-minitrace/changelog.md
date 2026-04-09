@@ -118,3 +118,13 @@ Added an embedded built-in MinitraceCommand repository with initial read-only co
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/assets.go — Embedded source-root helper added
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/core/framework-summary.sql — Built-in command asset added
 
+
+## 2026-04-08
+
+Implemented MinitraceCommand SQL rendering helpers and rendering tests, then wired an additive query commands CLI subgroup that loads the embedded catalog, reuses shared read-only validation, resolves aliases, renders SQL, and executes via DuckDB (commits afeb0a4, b218017).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/cmd/go-minitrace/cmds/query/command_runtime.go — CLI runtime added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/render.go — Renderer added
+

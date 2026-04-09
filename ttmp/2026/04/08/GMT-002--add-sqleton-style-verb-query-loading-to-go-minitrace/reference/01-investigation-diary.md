@@ -13,6 +13,12 @@ Owners: []
 RelatedFiles:
     - Path: ../../../../../../../sqleton/pkg/cmds/spec.go
       Note: Main sqleton parsing reference used during investigation
+    - Path: cmd/go-minitrace/cmds/query/command_runtime.go
+      Note: Added CLI runtime adapter for loading archives
+    - Path: cmd/go-minitrace/cmds/query/commands.go
+      Note: Added query commands subgroup that mounts embedded MinitraceCommands (commit b218017)
+    - Path: cmd/go-minitrace/cmds/query/commands_test.go
+      Note: Added CLI subtree smoke coverage for embedded command registration (commit b218017)
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
     - Path: pkg/minitracecmd/assets.go
@@ -45,12 +51,20 @@ RelatedFiles:
       Note: Added sqleton-style SQL preamble parsing and lightweight command detection (commit 5acc6c5)
     - Path: pkg/minitracecmd/parse_sql_test.go
       Note: Added parser coverage for valid metadata and common preamble failures (commit 5acc6c5)
+    - Path: pkg/minitracecmd/render.go
+      Note: Added SQL rendering for MinitraceCommand plus alias resolution helpers (commit afeb0a4)
+    - Path: pkg/minitracecmd/render_helpers.go
+      Note: Added local SQL template helper functions such as sqlStringIn and sqlLike (commit afeb0a4)
+    - Path: pkg/minitracecmd/render_test.go
+      Note: Added rendering coverage for helper escaping
     - Path: pkg/minitracecmd/source_kind.go
       Note: Added sqleton-style source kind detection for .sql and .alias.yaml files (commit b8f3229)
     - Path: pkg/minitracecmd/types.go
       Note: Introduced MinitraceCommand and MinitraceCommandSpec with validation rules (commit b8f3229)
     - Path: pkg/minitracecmd/types_test.go
       Note: Added initial validation and source-kind coverage for the new package (commit b8f3229)
+    - Path: pkg/query/validation.go
+      Note: Extracted shared read-only SQL validation for serve and CLI command execution (commit b218017)
     - Path: web/src/components/QueryEditor/QuerySidebar.tsx
       Note: Frontend evidence for the current sidebar model captured in the diary
 ExternalSources: []
@@ -59,6 +73,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -1152,3 +1167,206 @@ I also chose to make these built-in commands slightly more ambitious than the ex
   - `go-minitrace/pkg/minitracecmd/core/aliases/codex-framework-summary.alias.yaml`
 - Checked task:
   - `GMT-002` task `18`
+
+## Step 14: Render embedded commands into concrete SQL and resolve aliases locally
+
+With real embedded assets available, the next critical step was rendering. Up to this point the package could load specs and catalogs, but it still could not turn a selected command plus parameter values into executable SQL. I implemented that renderer locally in `pkg/minitracecmd`, along with a small helper surface that mirrors the sqleton/sql-template helpers we actually need first.
+
+This step also made alias behavior concrete instead of theoretical. Rather than trying to render aliases directly, I added an explicit alias-resolution helper that returns the target command plus merged values. That keeps rendering focused on verb commands while still making alias default-merging testable and reusable for later CLI and API execution paths.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Keep implementing the next planned layer and continue recording both successful progress and tooling failures as they occur.
+
+**Inferred user intent:** Move from static catalog infrastructure to something that can actually produce executable SQL while preserving the audit trail.
+
+**Commit (code):** `afeb0a4cdadad0520a63a5bd2e361e1c44f2dbe5` — "Render MinitraceCommand SQL"
+
+### What I did
+- Added `pkg/minitracecmd/render_helpers.go`.
+- Added local helper functions for template rendering:
+  - `sqlString`
+  - `sqlStringIn`
+  - `sqlIntIn`
+  - `sqlLike`
+- Added `pkg/minitracecmd/render.go`.
+- Implemented:
+  - `RenderContext`
+  - `RenderCommand(...)`
+  - `ResolveAliasCommand(...)`
+  - internal value-copy / value-merge helpers
+- Added new sentinel errors for:
+  - nil commands
+  - direct alias rendering
+  - invalid render table names
+- Added `pkg/minitracecmd/render_test.go` with coverage for:
+  - framework filtering render output
+  - string escaping through `sqlLike`
+  - alias default merging
+  - override precedence over alias defaults
+  - alias render rejection
+  - invalid table-name rejection
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/*.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Attempted the commit once, hit an `exhaustive` linter complaint in the helper code, fixed it, then recommitted successfully.
+
+### Why
+- Rendering is the first point where the new command system becomes executable instead of purely descriptive.
+- Keeping helper functions local avoids coupling go-minitrace runtime execution back to sqleton or clay templating runtime objects.
+- Separating alias resolution from render execution makes later runtime code easier to reason about.
+
+### What worked
+- The embedded command assets were expressive enough to validate the helper surface immediately.
+- Local helper functions covered the initial built-in command set without requiring any external templating package wrappers.
+- Alias default merging plus override precedence worked cleanly in tests.
+
+### What didn't work
+- My first commit attempt failed in the pre-commit lint step because the `reflect.Kind` switch inside `toInt64Slice(...)` triggered the `exhaustive` linter.
+- Exact failure:
+  - `pkg/minitracecmd/render_helpers.go:104:3: missing cases in switch of type reflect.Kind: reflect.Invalid, reflect.Bool, reflect.Uintptr, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer|reflect.Ptr, reflect.Slice, reflect.String, reflect.Struct, reflect.UnsafePointer (exhaustive)`
+- I fixed that by marking the `reflect.Kind` switch with:
+  - `//exhaustive:ignore`
+- After that, the commit passed with:
+  - `go test ./...`
+  - `golangci-lint run -v`
+
+### What I learned
+- The local renderer does not need much machinery to be useful; a small helper set plus `text/template` is enough for the initial built-in commands.
+- Alias handling is much easier to reason about when “resolve alias” and “render command” are separate operations.
+
+### What was tricky to build
+- The subtle part was deciding whether aliases should render directly. Letting `RenderCommand(...)` magically chase aliases would hide an important control-flow step and make later runtime debugging harder, especially if alias default-merging and command lookup fail for different reasons. By rejecting direct alias rendering and forcing explicit resolution, the control flow stays obvious and testable.
+
+### What warrants a second pair of eyes
+- Whether the helper surface should stay intentionally small for now or whether adding `sqlDate` in the next pass would reduce future churn.
+- Whether later runtime layers will want stricter validation that rendered SQL remains single-statement before handing it to read-only validation.
+
+### What should be done in the future
+- Use the new renderer and alias-resolution helper in the CLI runtime adapter next.
+- Add more helpers only when the embedded command repo or real user command repos justify them.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/render.go`
+  - `pkg/minitracecmd/render_helpers.go`
+- Then read:
+  - `pkg/minitracecmd/render_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+  - `cd go-minitrace && golangci-lint run -v`
+
+### Technical details
+- New files:
+  - `go-minitrace/pkg/minitracecmd/render.go`
+  - `go-minitrace/pkg/minitracecmd/render_helpers.go`
+  - `go-minitrace/pkg/minitracecmd/render_test.go`
+- Updated files:
+  - `go-minitrace/pkg/minitracecmd/errors.go`
+- Checked task:
+  - `GMT-002` task `19`
+
+## Step 15: Add the `query commands` CLI subgroup and share read-only validation
+
+By this point the package work was already well beyond the parser-only “phase 1” slice; the next logical move was runtime integration. The user explicitly nudged me to keep going, so I wired an additive CLI subgroup under `go-minitrace query commands ...` that loads the embedded catalog, exposes the commands as Glazed/Cobra commands, resolves aliases, renders SQL, validates the final query as read-only, loads the archive into DuckDB, and executes it.
+
+I also took this opportunity to extract the read-only SQL validation logic out of the serve package and into `pkg/query`, because the CLI runtime and the HTTP server should not carry duplicated policy code. That small refactor keeps the new CLI path and the existing server path aligned on what counts as safe read-only SQL.
+
+### Prompt Context
+
+**User prompt (verbatim):** "are you still on phase 1? then continue"
+
+**Assistant interpretation:** Clarify that the implementation has moved past the earliest parser-only slice and continue into the next runtime integration phase rather than stopping for a status check.
+
+**Inferred user intent:** Keep momentum and land the next practical feature slice instead of pausing at the design/package stage.
+
+**Commit (code):** `b2180175c5c8fd2ff53fdc19cd127dcdc7327246` — "Add query commands CLI subgroup"
+
+### What I did
+- Added `cmd/go-minitrace/cmds/query/commands.go`.
+- Added `cmd/go-minitrace/cmds/query/command_runtime.go`.
+- Implemented a new additive CLI subgroup:
+  - `go-minitrace query commands ...`
+- Added dynamic Glazed/Cobra command mounting for the embedded `MinitraceCommand` catalog.
+- Added runtime behavior to:
+  - decode archive/runtime settings
+  - collect command-specific values from the default Glazed section
+  - resolve aliases through the catalog
+  - render SQL via `pkg/minitracecmd`
+  - validate the rendered SQL as read-only
+  - open DuckDB and load the archive
+  - execute the query through the existing processor path
+- Updated `cmd/go-minitrace/cmds/query/root.go` to mount the new subgroup while keeping `duckdb` intact.
+- Extracted shared read-only validation into:
+  - `pkg/query/validation.go`
+  - `pkg/query/validation_test.go`
+- Updated `cmd/go-minitrace/cmds/serve/server.go` to reuse `queryengine.ValidateReadOnlyQuery(...)` instead of keeping its own local copy.
+- Added CLI smoke coverage in:
+  - `cmd/go-minitrace/cmds/query/commands_test.go`
+- Ran:
+  - `cd go-minitrace && gofmt -w cmd/go-minitrace/cmds/query/*.go pkg/query/*.go`
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/query ./pkg/query -count=1`
+- Verified the final commit through pre-commit:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+- The CLI subgroup is the first real end-user surface for the new command system.
+- Making it additive under `query commands` keeps rollout risk low and avoids collisions with the existing `query duckdb` command.
+- Extracting read-only validation into `pkg/query` prevents policy drift between serve and CLI execution paths.
+
+### What worked
+- The embedded catalog could be mounted dynamically without changing the existing query root shape too much.
+- Reusing Glazed command descriptions with the parsed command metadata kept the dynamic CLI wiring relatively small.
+- The shared validation refactor cleanly reduced duplication between serve and CLI paths.
+
+### What didn't work
+- A first version of `commands_test.go` used a brittle positional assertion about the order of query subcommands and failed.
+- Exact failure:
+  - `--- FAIL: TestNewCommand_AddsCommandsSubgroup (0.01s)`
+  - `commands_test.go:36: query root subcommands = []*cobra.Command{(*cobra.Command)(0xc0006d4008), (*cobra.Command)(0xc00023ef08)}`
+- I fixed that by changing the test to assert by subcommand name presence rather than array position.
+
+### What I learned
+- The dynamic CLI surface is already practical enough to expose even before the API/UI work is done.
+- Small shared-runtime refactors, like extracting read-only validation, are worth doing during integration instead of papering over them with duplication.
+
+### What was tricky to build
+- The main subtlety was deciding how to collect just the command-relevant values from Glazed without accidentally entangling output/config sections. I solved that by looking only at the default section and filtering it through the command’s own flag and argument definitions. That keeps the rendering context explicit and avoids surprising template variables leaking in from unrelated sections.
+
+### What warrants a second pair of eyes
+- Whether the new CLI runtime should eventually expose an explicit `--render-only` flag for debugging rendered SQL.
+- Whether some of the shared DuckDB runtime settings should be factored further so `query duckdb` and `query commands` derive from a common helper.
+
+### What should be done in the future
+- Next, add the API transport and serve handlers for listing/executing query commands.
+- After that, add the frontend command list and form-driven execution path.
+
+### Code review instructions
+- Start with:
+  - `cmd/go-minitrace/cmds/query/commands.go`
+  - `cmd/go-minitrace/cmds/query/command_runtime.go`
+- Then inspect the shared validation move:
+  - `pkg/query/validation.go`
+  - `cmd/go-minitrace/cmds/serve/server.go`
+- Finally read the smoke tests:
+  - `cmd/go-minitrace/cmds/query/commands_test.go`
+  - `pkg/query/validation_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/query ./pkg/query -count=1`
+  - `cd go-minitrace && go test ./... -count=1`
+
+### Technical details
+- New files:
+  - `go-minitrace/cmd/go-minitrace/cmds/query/commands.go`
+  - `go-minitrace/cmd/go-minitrace/cmds/query/command_runtime.go`
+  - `go-minitrace/cmd/go-minitrace/cmds/query/commands_test.go`
+  - `go-minitrace/pkg/query/validation.go`
+  - `go-minitrace/pkg/query/validation_test.go`
+- Updated files:
+  - `go-minitrace/cmd/go-minitrace/cmds/query/root.go`
+  - `go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
+- Checked task:
+  - `GMT-002` tasks `19` and `20`
