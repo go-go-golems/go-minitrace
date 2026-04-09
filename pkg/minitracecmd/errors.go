@@ -11,7 +11,10 @@ var (
 	ErrVerbCannotSetAliasFor = errors.New("minitrace command verb cannot set aliasFor")
 	ErrAliasCannotSetQuery   = errors.New("minitrace command alias cannot set query")
 	ErrNilSpec               = errors.New("minitrace command spec is nil")
+	ErrNilCommand            = errors.New("minitrace command is nil")
 	ErrAliasTargetNotFound   = errors.New("minitrace alias target not found")
+	ErrCannotRenderAlias     = errors.New("minitrace alias command cannot be rendered directly")
+	ErrInvalidTableName      = errors.New("invalid minitrace render table name")
 
 	ErrMissingPreamble       = errors.New("missing sqleton sql preamble")
 	ErrUnterminatedPreamble  = errors.New("unterminated sqleton sql preamble")
