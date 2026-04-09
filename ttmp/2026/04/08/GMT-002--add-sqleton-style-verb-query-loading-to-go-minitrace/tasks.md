@@ -40,3 +40,5 @@
 - [x] Add web UI debug helpers to show raw command SQL and last rendered SQL for structured query commands
 - [x] Validate the new SQL debug-helper flow, then refresh diary/changelog notes for the ticket follow-up
 - [x] Add SQL syntax highlighting to the raw/rendered query-command debug helper panels
+- [x] Add a render-only Preview SQL action for structured query commands without replacing results
+- [x] Add copy buttons for the raw/rendered SQL debug helper panels

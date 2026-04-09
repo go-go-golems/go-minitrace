@@ -186,3 +186,14 @@ Added SQL syntax highlighting to the raw/rendered query-command debug helper pan
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryCommandForm.tsx — Raw/rendered SQL accordions now use syntax-highlighted rendering
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/SqlCodeViewer.tsx — New read-only syntax-highlighted SQL viewer for debug helper panels
 
+
+## 2026-04-09
+
+Added a render-only Preview SQL action for structured query commands and copy buttons in the raw/rendered SQL debug panels, reusing the existing renderOnly API path while keeping preview separate from result execution state (commit 4efe624).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryCommandForm.tsx — Raw/rendered SQL debug panels now expose Copy SQL actions
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryEditor.tsx — Command toolbar now includes a Preview SQL action
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/pages/QueryEditorPage.tsx — Preview SQL now uses a separate render-only mutation and debug-error state
+

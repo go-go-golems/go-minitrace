@@ -84,6 +84,9 @@ RelatedFiles:
         Structured query-command form renderer added (commit 122c0dc)
         Raw and rendered SQL debug helper accordions added to the structured command form (commit 4076a50)
         Debug helper panels upgraded from plain text to syntax-highlighted SQL rendering
+        Copy SQL actions added to raw/rendered debug panels (commit 4efe624)
+    - Path: web/src/components/QueryEditor/QueryEditor.tsx
+      Note: Command toolbar extended with Preview SQL button (commit 4efe624)
     - Path: web/src/components/QueryEditor/QuerySidebar.tsx
       Note: |-
         Frontend evidence for the current sidebar model captured in the diary
@@ -94,12 +97,14 @@ RelatedFiles:
       Note: |-
         Page-level command selection and execution flow added (commit 122c0dc)
         Page state now tracks the last rendered command SQL for the debug helper UI (commit 4076a50)
+        Preview SQL follow-up uses a separate render-only mutation and preserves current results (commit 4efe624)
 ExternalSources: []
 Summary: Chronological diary of the research and documentation work for sqleton-style verb query loading in go-minitrace.
 LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -2038,3 +2043,90 @@ Instead of introducing another highlighting library, I reused the existing CodeM
 - Updated files:
   - `web/src/components/QueryEditor/QueryCommandForm.tsx`
   - `web/src/components/QueryEditor/index.ts`
+
+## Step 23: Add render-only preview and copy actions for command SQL debugging
+
+The syntax-highlighted panels were a nice readability improvement, but the user wanted the two most practical debugging affordances next: preview the rendered SQL without executing it, and copy either the raw or rendered SQL quickly. Both of those make the feature feel much more complete in day-to-day use.
+
+I implemented the preview path by reusing the existing `renderOnly` backend behavior rather than inventing another endpoint. On the frontend side, I kept preview separate from real execution so that previewing SQL does not wipe out or replace the current result table. I also added lightweight copy actions directly inside each debug accordion so the viewed SQL can be pasted elsewhere without manual selection.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, do 1 - 2."
+
+**Assistant interpretation:** Implement the next two UX improvements: render-only preview and copy actions.
+
+**Inferred user intent:** Finish the structured command debugging workflow so it is genuinely useful in practice.
+
+**Commit (code):** `4efe624b6685edf5650be322120e9c7b9ca26eac` — "Add query command preview and copy actions"
+
+### What I did
+- Added follow-up checklist items to `tasks.md` for:
+  - render-only preview,
+  - copy buttons in the SQL debug panels.
+- Updated `QueryEditor.tsx` to add a command-only toolbar button:
+  - `Preview SQL`
+- Added a separate preview mutation path in `QueryEditorPage.tsx` by using a second `useExecuteQueryCommandMutation()` hook for render-only requests.
+- Implemented `handlePreviewCommand()` to:
+  - call the existing query-command execute endpoint with `renderOnly: true`,
+  - update `lastRenderedCommandSql`,
+  - avoid replacing the current results table,
+  - surface preview failures through command-mode error handling.
+- Added lightweight command-debug error state in `QueryEditorPage.tsx` so preview failures can be shown without confusing them with raw SQL execution errors.
+- Updated `QueryCommandForm.tsx` so both debug accordions now expose:
+  - `Copy SQL`
+  buttons with temporary `Copied` / `Copy failed` feedback.
+- Kept the copy action local to each accordion so the form component remains self-contained.
+- Updated the QueryEditor story args to include the new preview callback.
+- Ran validation:
+  - `cd go-minitrace/web && npx eslint src/components/QueryEditor/QueryEditor.tsx src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/stories/QueryEditor.stories.tsx src/pages/QueryEditorPage.tsx`
+  - `cd go-minitrace/web && npm run build`
+- Rebuilt the embedded frontend and manually smoke-tested the flow in a local serve instance on port `18080`, confirming:
+  - the new `Preview SQL` button appears in command mode,
+  - preview populates the rendered SQL accordion without executing the query,
+  - copy buttons are present in both raw and rendered SQL accordions.
+
+### Why
+- Previewing rendered SQL is the most natural next step after exposing the raw template and the last rendered SQL.
+- Copy actions remove the friction from using these panels as debugging tools.
+
+### What worked
+- The backend already had the exact `renderOnly` behavior needed, so the follow-up was frontend-only.
+- Using a second RTK Query mutation hook cleanly separated preview activity from real command execution.
+- The preview flow updated the rendered SQL panel without disturbing the current results, which is the right UX for a debug helper.
+
+### What didn't work
+- Rebuilding the embedded frontend with `make frontend` again removed:
+  - `cmd/go-minitrace/cmds/serve/frontend/.gitkeep`
+  because the target replaces the embedded frontend directory with the built assets. I restored the placeholder afterward to avoid committing an accidental deletion.
+- The clipboard success feedback was harder to observe in the accessibility snapshot than the button itself, but the copy button wiring and local feedback state were in place during manual testing.
+
+### What I learned
+- Separating preview from execution at the mutation level is cleaner than trying to overload one piece of command execution state with both concerns.
+- The current command debug flow is now meaningfully usable: inspect raw template, preview rendered SQL, copy either, then run for results only when desired.
+
+### What was tricky to build
+- The subtle part was preserving the current result table while previewing. If preview had reused the main command execution state, it would have replaced the current result payload with an empty render-only response. Using a second mutation hook avoided that regression cleanly.
+
+### What warrants a second pair of eyes
+- Whether the `Preview SQL` button should eventually also auto-expand the rendered SQL accordion after a successful preview.
+- Whether the copy button feedback should be upgraded from temporary text to a Snackbar if we keep adding similar actions elsewhere.
+
+### What should be done in the future
+- Consider auto-expanding the rendered SQL accordion after a successful preview.
+- If browser-level regression tests are added later, this preview/copy flow is now a strong candidate to cover.
+
+### Code review instructions
+- Start with:
+  - `web/src/pages/QueryEditorPage.tsx`
+  - `web/src/components/QueryEditor/QueryEditor.tsx`
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+- Validate with:
+  - `cd go-minitrace/web && npx eslint src/components/QueryEditor/QueryEditor.tsx src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/stories/QueryEditor.stories.tsx src/pages/QueryEditorPage.tsx`
+  - `cd go-minitrace/web && npm run build`
+
+### Technical details
+- Follow-up commit:
+  - `4efe624b6685edf5650be322120e9c7b9ca26eac`
+- Manual smoke-test path revalidated on:
+  - `http://127.0.0.1:18080/query`
