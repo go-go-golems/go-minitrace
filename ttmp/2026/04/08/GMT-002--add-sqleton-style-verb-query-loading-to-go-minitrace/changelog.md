@@ -88,3 +88,13 @@ Implemented alias YAML parsing for MinitraceCommand specs, including direct capt
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_alias.go — Alias parser added
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/parse_alias_test.go — Alias parser tests added
 
+
+## 2026-04-08
+
+Implemented MinitraceCommand compilation from parsed specs, including path/source metadata propagation and optional bool flag normalization with regression tests (commit 00830a7).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/compiler.go — Compiler added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/compiler_test.go — Compiler regression coverage added
+

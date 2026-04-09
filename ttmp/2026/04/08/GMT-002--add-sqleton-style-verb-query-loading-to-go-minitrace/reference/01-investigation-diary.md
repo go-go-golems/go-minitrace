@@ -15,6 +15,10 @@ RelatedFiles:
       Note: Main sqleton parsing reference used during investigation
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
+    - Path: pkg/minitracecmd/compiler.go
+      Note: Added MinitraceCommand compilation and optional bool flag normalization (commit 00830a7)
+    - Path: pkg/minitracecmd/compiler_test.go
+      Note: Added compiler coverage for verbs
     - Path: pkg/minitracecmd/errors.go
       Note: Added initial sentinel errors for MinitraceCommand parsing and validation (commit b8f3229)
     - Path: pkg/minitracecmd/parse_alias.go
@@ -39,6 +43,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -867,3 +872,86 @@ This was also a good point to confirm that the local spec model is flexible enou
   - `go-minitrace/pkg/minitracecmd/parse_alias_test.go`
 - Checked task:
   - `GMT-002` task `15`
+
+## Step 11: Compile parsed specs into canonical `MinitraceCommand` values
+
+Once both source kinds could be parsed into `MinitraceCommandSpec`, the next layer was straightforward but important: compilation into the canonical runtime/catalog object. This is the seam that separates file-format concerns from the app’s internal command model, and it is where metadata like source path, logical path, folder, and read-only status gets attached.
+
+I also used this step to port one of sqleton’s more practical details: optional bool flags with no explicit default should behave as if their default is `false`. Encoding that once in the compiler is much cleaner than making every downstream consumer remember to special-case bool fields.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Keep moving through the planned implementation slices and land each one in its own reviewed commit.
+
+**Inferred user intent:** Build the command system in layers that are small enough to validate independently.
+
+**Commit (code):** `00830a79cfdcfa99ebd668127711d8e863845bd8` — "Compile MinitraceCommand specs"
+
+### What I did
+- Added `pkg/minitracecmd/compiler.go`.
+- Implemented:
+  - `CompileOptions`
+  - `Compiler`
+  - `(*Compiler).Compile(...)`
+  - `normalizeOptionalBoolFlags(...)`
+- Ensured compiled commands carry:
+  - logical folder/path
+  - source root / source path
+  - readonly marker
+  - parsed tags/metadata/query/alias data
+- Added `pkg/minitracecmd/compiler_test.go` with focused coverage for:
+  - compiling a verb
+  - compiling an alias
+  - normalizing optional bool flags to `false`
+  - keeping the original `fields.Definition` unmutated
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/*.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Verified the pre-commit hook passed:
+  - `go test ./...`
+  - `golangci-lint run -v`
+
+### Why
+- The compiler is the boundary that turns parsed source files into a stable app-owned command model.
+- Centralizing bool-default normalization here avoids repeating that subtle behavior in CLI, API, and UI adapters later.
+- It also gives the upcoming catalog loader a single place to attach root/path metadata consistently.
+
+### What worked
+- The compiler layer stayed very small because the spec types were already shaped correctly.
+- Optional bool normalization cloned the flag definitions instead of mutating the parser-owned originals, which kept the tests and invariants clear.
+- Alias specs compiled cleanly into canonical commands without needing a second runtime type.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The design’s “parsed spec -> compiled command” seam is paying off exactly as intended: each step is small and focused.
+- Keeping folder/path/source metadata outside the parser was the right choice; it belongs to repository context, not to the file format itself.
+
+### What was tricky to build
+- The subtle part was making sure bool normalization did not mutate the original `fields.Definition` pointers produced by parsing. Because downstream layers may eventually want to inspect the uncompiled spec or reuse tests across parse and compile paths, mutating parser-owned flags in place would create confusing behavior. Cloning in the compiler keeps the ownership model simple.
+
+### What warrants a second pair of eyes
+- Whether arguments should eventually get their own normalization pass too, depending on how Glazed treats optional positional bools or other edge cases.
+- Whether metadata/layout should also be defensively cloned in a later hardening pass if downstream code starts mutating them.
+
+### What should be done in the future
+- Implement catalog loading next, now that both source kinds can be parsed and compiled.
+- Keep alias-target validation in the catalog layer, where all compiled commands are visible together.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/compiler.go`
+- Then read:
+  - `pkg/minitracecmd/compiler_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+
+### Technical details
+- New files:
+  - `go-minitrace/pkg/minitracecmd/compiler.go`
+  - `go-minitrace/pkg/minitracecmd/compiler_test.go`
+- Checked task:
+  - `GMT-002` task `16`
