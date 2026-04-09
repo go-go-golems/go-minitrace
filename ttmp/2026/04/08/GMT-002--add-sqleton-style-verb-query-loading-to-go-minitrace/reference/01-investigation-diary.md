@@ -21,6 +21,10 @@ RelatedFiles:
       Note: Added CLI subtree smoke coverage for embedded command registration (commit b218017)
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
+    - Path: cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go
+      Note: Backend query-command DTO conversion and v2 handlers added (commit b47f81c)
+    - Path: cmd/go-minitrace/cmds/serve/server_test.go
+      Note: Server coverage added for query-command listing and execution (commit b47f81c)
     - Path: pkg/minitracecmd/assets.go
       Note: Embedded the built-in MinitraceCommand repository and exposed a loader helper (commit 7cc5370)
     - Path: pkg/minitracecmd/assets_test.go
@@ -65,14 +69,27 @@ RelatedFiles:
       Note: Added initial validation and source-kind coverage for the new package (commit b8f3229)
     - Path: pkg/query/validation.go
       Note: Extracted shared read-only SQL validation for serve and CLI command execution (commit b218017)
+    - Path: proto/go_go_golems/minitrace/api/v1/query_commands.proto
+      Note: New protobuf transport for listing and executing query commands (commit 6b78de0)
+    - Path: web/src/api/minitrace.ts
+      Note: RTK Query endpoints added for listing and executing query commands (commit 122c0dc)
+    - Path: web/src/api/queryCommandProtoAdapters.ts
+      Note: Frontend adapter layer added for generated query-command protobuf types (commit 122c0dc)
+    - Path: web/src/components/QueryEditor/QueryCommandForm.tsx
+      Note: Structured query-command form renderer added (commit 122c0dc)
     - Path: web/src/components/QueryEditor/QuerySidebar.tsx
-      Note: Frontend evidence for the current sidebar model captured in the diary
+      Note: |-
+        Frontend evidence for the current sidebar model captured in the diary
+        Commands section added to the sidebar (commit 122c0dc)
+    - Path: web/src/pages/QueryEditorPage.tsx
+      Note: Page-level command selection and execution flow added (commit 122c0dc)
 ExternalSources: []
 Summary: Chronological diary of the research and documentation work for sqleton-style verb query loading in go-minitrace.
 LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -1370,3 +1387,365 @@ I also took this opportunity to extract the read-only SQL validation logic out o
   - `go-minitrace/cmd/go-minitrace/cmds/serve/server.go`
 - Checked task:
   - `GMT-002` tasks `19` and `20`
+
+## Step 16: Break the API and frontend work into detailed ticket tasks, then add the protobuf transport
+
+Before implementing the server and UI layers, I refined the ticket so the remaining work would no longer be hidden behind two giant umbrella checkboxes. That paid off immediately because it let me land the transport work as its own small, auditable step rather than bundling it together with handlers, adapters, and React code.
+
+The first concrete backend step was to define the `query_commands.proto` transport. I kept it explicit and UI-friendly: list responses carry narrowed command/parameter metadata, while execution requests carry a generic `map<string, google.protobuf.Value>` and successful responses return rendered SQL plus result rows encoded as `google.protobuf.Struct` so the browser can still handle arbitrary query shapes.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, add detailed tasks for the API / frontend parts, they deserve more than just one task checkoff, right?"
+
+**Assistant interpretation:** Expand the remaining work into concrete backend/frontend subtasks before continuing implementation.
+
+**Inferred user intent:** Make the remaining ticket work properly granular so the last implementation stretch is reviewable and progress is easy to track.
+
+**Commit (code):** `6b78de068da40c109eac04f61a33a96ec9914a67` — "Add query command protobuf schema"
+
+### What I did
+- Added detailed API/frontend tasks to `tasks.md` so the remaining work is split into transport, backend, frontend, and validation slices.
+- Added:
+  - `proto/go_go_golems/minitrace/api/v1/query_commands.proto`
+- Defined protobuf messages for:
+  - `QueryCommandParam`
+  - `QueryCommand`
+  - `ListQueryCommandsResponse`
+  - `ExecuteQueryCommandRequest`
+  - `ExecuteQueryCommandResponse`
+  - `QueryCommandKind`
+- Chose `google.protobuf.Struct` for result rows and `google.protobuf.Value` for request values so arbitrary query shapes remain supported without inventing another ad hoc JSON envelope.
+- Ran:
+  - `cd go-minitrace && buf generate`
+- Generated code for both consumers:
+  - `gen/proto/go_go_golems/minitrace/api/v1/query_commands.pb.go`
+  - `web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.js`
+  - `web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.d.ts`
+- Verified the commit through the repo pre-commit hook:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+- The transport contract needed to exist before backend handlers and frontend adapters could be implemented cleanly.
+- A typed protobuf schema is also the right place to lock in the distinction between canonical Go runtime types and narrower wire-level DTOs.
+
+### What worked
+- The existing Buf setup generated both Go and web artifacts cleanly with no config changes.
+- `Struct`/`Value` turned out to be a practical fit for the arbitrary query-result problem.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The current Buf setup is already flexible enough for this kind of additive API surface; no generation plumbing changes were needed.
+- Using a dedicated transport schema makes the later frontend work much simpler because the adapter layer has something stable to target.
+
+### What was tricky to build
+- The main design tension was between a fully typed row schema and the reality that query-command execution can return arbitrary columns. `google.protobuf.Struct` is not as strict as a bespoke row type, but it preserves flexibility while still keeping the rest of the envelope typed and versioned.
+
+### What warrants a second pair of eyes
+- Whether `default_json` is the right long-term transport for parameter defaults, or whether a later schema revision should move defaults to typed `Value` fields too.
+- Whether the execution response should eventually include a structured error envelope instead of continuing to rely on HTTP error responses.
+
+### What should be done in the future
+- Implement the backend DTO conversion helpers and handlers next.
+- Then wire the new generated web schema into frontend adapters instead of hand-rolled JSON parsing.
+
+### Code review instructions
+- Read:
+  - `proto/go_go_golems/minitrace/api/v1/query_commands.proto`
+- Then inspect the generated artifacts:
+  - `gen/proto/go_go_golems/minitrace/api/v1/query_commands.pb.go`
+  - `web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.js`
+  - `web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.d.ts`
+- Validate with:
+  - `cd go-minitrace && buf generate`
+  - `cd go-minitrace && go test ./... -count=1`
+
+### Technical details
+- Checked tasks:
+  - `GMT-002` task `24`
+  - plus the detailed task expansion itself in `tasks.md`
+
+## Step 17: Add backend query-command DTO conversion and `/api/v2/query-commands` handlers
+
+Once the schema existed, I implemented the backend surface in two pieces: first, conversion from `MinitraceCommand` catalog entries into protobuf DTOs that the UI can actually render, and second, the list/execute handlers themselves. The important design decision here was to make alias commands UI-friendly by exposing the target command’s parameters while still keeping `kind=alias` and `alias_for` in the transport.
+
+This step also flushed out a subtle SQL issue in the embedded command assets. The new execution test hit a DuckDB conversion error because JSON extraction with `->>` inside an `IN (...)` predicate needed parentheses in the generated SQL. That bug would have been easy to miss if I had only tested render-only mode, so I’m glad the backend tests exercised actual execution against a loaded archive.
+
+### Prompt Context
+
+**User prompt (verbatim):** "yesh, go ahead. build them all"
+
+**Assistant interpretation:** Proceed through the remaining backend and frontend tasks instead of stopping after task expansion.
+
+**Inferred user intent:** Finish the full implementation, not just the planning or infrastructure layers.
+
+**Commit (code):** `b47f81c9e54255a5483188eebf2d0111ddf1d52b` — "Add query command API handlers"
+
+### What I did
+- Added:
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+- Implemented backend helpers for:
+  - catalog-to-protobuf conversion
+  - parameter DTO conversion
+  - alias-aware parameter/default exposure
+  - request `Value` map decoding into plain Go values
+  - query execution into protobuf `Struct` rows
+- Added server handlers:
+  - `GET /api/v2/query-commands`
+  - `POST /api/v2/query-commands/{path...}/execute`
+- Updated `cmd/go-minitrace/cmds/serve/server.go` routes to mount the new endpoints.
+- Added server tests covering:
+  - listing embedded commands and aliases
+  - render-only execution
+  - alias-backed execution against a loaded archive
+  - not-found handling for unknown commands
+- Fixed the embedded command SQL filters in:
+  - `pkg/minitracecmd/core/session-list.sql`
+  - `pkg/minitracecmd/core/framework-summary.sql`
+  - `pkg/minitracecmd/core/timing-analysis.sql`
+  so JSON extraction expressions are parenthesized correctly in `IN (...)` predicates.
+- Ran:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve ./pkg/minitracecmd -count=1`
+  - `cd go-minitrace && go test ./... -count=1`
+- Verified the commit through pre-commit:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+- The frontend needed a stable API for listing commands and executing them without knowing anything about the internal Go catalog types.
+- Exposing alias commands with target parameters is necessary if aliases are going to be first-class selectable entries in the UI.
+
+### What worked
+- The backend transport conversion helpers stayed fairly small because the command catalog was already normalized.
+- The alias-aware DTO conversion made the frontend model much cleaner: alias commands now look renderable rather than like empty stubs.
+- Rendering plus execution tests against a real in-memory DuckDB archive caught a genuine SQL bug in the embedded assets.
+
+### What didn't work
+- My first attempt to register the execute route as:
+  - `POST /api/v2/query-commands/{path...}/execute`
+  failed because Go’s `http.ServeMux` does not allow a `{path...}` wildcard followed by more path segments.
+- The failure surfaced as a panic during tests:
+  - `panic: parsing "POST /api/v2/query-commands/{path...}/execute": at offset 28: {...} wildcard not at end`
+- I fixed that by registering:
+  - `POST /api/v2/query-commands/{path...}`
+  and then requiring the captured path to end with `/execute` inside the handler.
+- A later execution test also failed with a DuckDB conversion error caused by the unparenthesized JSON extraction predicate in the built-in SQL assets; adding parentheses around `(environment->>'agent_framework')` fixed it.
+
+### What I learned
+- Go’s pattern-based `ServeMux` is convenient, but its wildcard rules matter when designing nested execute routes.
+- Backend tests that actually execute the rendered SQL are essential; render-only tests would not have caught the JSON extraction precedence bug.
+
+### What was tricky to build
+- The most subtle part was alias transport behavior. If aliases were converted literally, the UI would receive entries with no parameters and would be unable to render a useful form. If aliases were flattened completely, the UI would lose the information that the selected entry is actually an alias. The compromise I implemented keeps aliases explicit in the transport while borrowing target parameter definitions and default overrides for form rendering.
+
+### What warrants a second pair of eyes
+- Whether the execute route should stay on the current “wildcard plus `/execute` suffix parsed in handler” shape, or whether a future router abstraction should give it a cleaner declarative path.
+- Whether command execution responses should eventually reuse a shared typed query-result helper across the raw SQL and query-command code paths.
+
+### What should be done in the future
+- Wire the new generated protobuf types into the frontend next.
+- Consider later extracting the row-scanning helper if more query surfaces are added.
+
+### Code review instructions
+- Start with:
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+  - `cmd/go-minitrace/cmds/serve/server.go`
+- Then inspect the execution-facing SQL asset fixes:
+  - `pkg/minitracecmd/core/session-list.sql`
+  - `pkg/minitracecmd/core/framework-summary.sql`
+  - `pkg/minitracecmd/core/timing-analysis.sql`
+- Finally read the new server tests in:
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+- Validate with:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve ./pkg/minitracecmd -count=1`
+  - `cd go-minitrace && go test ./... -count=1`
+
+### Technical details
+- Checked tasks:
+  - `GMT-002` tasks `21`, `25`, `26`, `27`, and `28`
+
+## Step 18: Add the frontend query-command flow, form rendering, and sidebar integration
+
+With the backend endpoints working, I moved to the browser side. The goal here was not just to fetch one more list, but to make structured query commands feel like a first-class mode in the existing query editor without breaking the raw-SQL preset and saved-query workflows that already existed.
+
+I implemented this in a deliberately additive way. The sidebar now gets a new Commands section, the page can switch into a command-driven mode with form state, and execution goes through a dedicated query-command mutation while still reusing the existing results table. The raw SQL editor path is still there; it simply becomes inactive while a structured command is selected.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 17)
+
+**Assistant interpretation:** Continue through the remaining frontend tasks and wire the full end-to-end command flow into the existing UI.
+
+**Inferred user intent:** Finish the usable feature, not just the backend transport.
+
+**Commit (code):** `122c0dcac24ce642b596993dbe429c47057564bc` — "Add query command frontend flow"
+
+### What I did
+- Added new frontend types:
+  - `web/src/types/queryCommand.ts`
+- Extended shared exports in:
+  - `web/src/types/index.ts`
+- Added protobuf/UI adapter helpers in:
+  - `web/src/api/queryCommandProtoAdapters.ts`
+- Extended RTK Query API wiring in:
+  - `web/src/api/minitrace.ts`
+  with:
+  - `getQueryCommands`
+  - `executeQueryCommand`
+- Added a new form component:
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+- Updated:
+  - `web/src/components/QueryEditor/QuerySidebar.tsx`
+  - `web/src/components/QueryEditor/QueryEditor.tsx`
+  - `web/src/pages/QueryEditorPage.tsx`
+  so the page now supports:
+  - a Commands sidebar section
+  - command selection state
+  - per-command parameter values
+  - command execution via the new API
+  - rendering the command form instead of the SQL editor while command mode is active
+  - preserving raw SQL execution and save behavior outside command mode
+- Added/updated Storybook coverage in:
+  - `web/src/components/QueryEditor/stories/QueryEditor.stories.tsx`
+  - `web/src/components/QueryEditor/stories/QuerySidebar.stories.tsx`
+  - `web/src/components/QueryEditor/stories/QueryCommandForm.stories.tsx`
+- Updated mock data and handlers so the Storybook/dev API layer understands query commands:
+  - `web/src/mocks/data.ts`
+  - `web/src/mocks/handlers.ts`
+- Also adjusted backend command DTO conversion so alias commands surface overridden defaults in frontend metadata.
+- Ran frontend validation with:
+  - `cd go-minitrace/web && npm ci`
+  - `cd go-minitrace/web && npm run build`
+  - `cd go-minitrace/web && npx eslint ...` on the touched query-command files
+- Re-ran Go validation for the backend/frontend seam after the alias-default DTO tweak:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve ./pkg/minitracecmd -count=1`
+
+### Why
+- The new backend would not be useful without a browser-side way to discover commands, edit parameters, and execute them.
+- Integrating the command flow into the existing QueryEditor avoided inventing a second disconnected UI.
+
+### What worked
+- The generated protobuf TypeScript types fit neatly into the existing adapter pattern used elsewhere in the frontend.
+- Adding a command mode to the existing query page was less invasive than expected because the result table and global SQL state could be reused.
+- The command form only needed a small set of field renderers to support the initial command repo.
+
+### What didn't work
+- The first attempt to build the frontend failed because I had not installed the web dependencies yet:
+  - `sh: 1: tsc: not found`
+- I fixed that by running:
+  - `cd go-minitrace/web && npm ci`
+- A later build also failed because I guessed the generated enum member names incorrectly in `queryCommandProtoAdapters.ts`; the generated enum uses `ALIAS`, `VERB`, and `UNSPECIFIED` rather than the full protobuf constant names. Updating the adapter to match the generated enum fixed the build.
+- The targeted ESLint run also flagged the new `QueryEditorPage` effects for synchronous `setState` inside effects, so I changed those updates to run through `queueMicrotask(...)` in the specific effect paths that were triggering the rule.
+
+### What I learned
+- The frontend adapter pattern already in the repo was a good fit for the new command transport; adding another generated protobuf-backed surface was straightforward.
+- Alias defaults are much more understandable in the UI if the backend pre-applies them to the parameter metadata rather than expecting the frontend to infer them from alias internals.
+
+### What was tricky to build
+- The trickiest part was integrating command mode into the existing query editor without accidentally breaking the raw SQL flow. The page now has to juggle three source kinds (`preset`, `saved`, `command`) and two execution modes (`sql`, `command`) while keeping the displayed result/error state coherent. I kept this manageable by making command mode explicit in state and switching the editor pane between SQL and form rendering rather than trying to blend both into one ambiguous editing experience.
+
+### What warrants a second pair of eyes
+- Whether the current comma-separated text input UX for `stringList` and `intList` parameters is good enough for the first release or should be replaced with chip-based controls later.
+- Whether the page should show the rendered SQL more explicitly when a command executes, rather than only pushing it into the shared SQL state.
+
+### What should be done in the future
+- Finish the ticket with diary/changelog validation and a refreshed reMarkable upload.
+- Consider adding a dedicated render-only frontend control later if command debugging becomes common.
+
+### Code review instructions
+- Start with:
+  - `web/src/pages/QueryEditorPage.tsx`
+  - `web/src/components/QueryEditor/QueryEditor.tsx`
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+- Then inspect the API layer:
+  - `web/src/api/minitrace.ts`
+  - `web/src/api/queryCommandProtoAdapters.ts`
+- Finally review the updated sidebar/mocks/stories:
+  - `web/src/components/QueryEditor/QuerySidebar.tsx`
+  - `web/src/mocks/data.ts`
+  - `web/src/mocks/handlers.ts`
+  - `web/src/components/QueryEditor/stories/*.tsx`
+- Validate with:
+  - `cd go-minitrace/web && npm run build`
+  - `cd go-minitrace/web && npx eslint src/api/minitrace.ts src/api/queryCommandProtoAdapters.ts src/components/QueryEditor/QueryEditor.tsx src/components/QueryEditor/QuerySidebar.tsx src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/stories/QueryEditor.stories.tsx src/components/QueryEditor/stories/QuerySidebar.stories.tsx src/components/QueryEditor/stories/QueryCommandForm.stories.tsx src/pages/QueryEditorPage.tsx src/mocks/data.ts src/mocks/handlers.ts src/types/query.ts src/types/queryCommand.ts src/types/index.ts`
+
+### Technical details
+- Checked tasks:
+  - `GMT-002` tasks `22`, `29`, `30`, `31`, `32`, `33`, and `34`
+
+## Step 19: Finish the ticket loop with validation and a refreshed reMarkable bundle
+
+After the backend and frontend slices were in place, the last step was to bring the ticket bookkeeping back in sync with reality. That meant checking off the detailed tasks, rerunning the ticket validation, and uploading a refreshed document bundle so the design docs, diary, tasks, and changelog now reflect the completed implementation work rather than just the earlier investigation.
+
+This final step is easy to underestimate, but it is what turns the work from “implemented in Git” into “documented and reviewable later.” It also gives the future reader a clean stopping point: all planned tasks are checked off, the ticket validates, and the current state is archived to reMarkable.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 17)
+
+**Assistant interpretation:** Finish the remaining implementation and leave the ticket in a validated, documented, published state rather than stopping after the code landed.
+
+**Inferred user intent:** End with a complete deliverable, not just a pile of commits.
+
+**Commit (code):** N/A — ticket documentation, validation, and publication only.
+
+### What I did
+- Checked off the detailed backend and frontend tasks in `tasks.md` as each slice landed.
+- Ran:
+  - `cd go-minitrace && docmgr doctor --ticket GMT-002 --stale-after 30`
+- Performed a dry-run bundle upload, then the real upload:
+  - `cd go-minitrace && remarquee upload bundle --dry-run ... --name "GMT-002 query-command implementation progress" --remote-dir "/ai/2026/04/08/GMT-002" --toc-depth 2`
+  - `cd go-minitrace && remarquee upload bundle ... --name "GMT-002 query-command implementation progress" --remote-dir "/ai/2026/04/08/GMT-002" --toc-depth 2`
+- Verified the remote folder contents again with a trailing slash:
+  - `remarquee cloud ls '/ai/2026/04/08/GMT-002/' --long --non-interactive`
+- Confirmed that the new progress bundle now appears alongside the earlier research/design uploads.
+
+### Why
+- The ticket needed to reflect the implementation reality, not just the original investigation state.
+- Re-uploading the bundle makes the updated diary/tasks/changelog easy to review away from the workstation.
+
+### What worked
+- `docmgr doctor` passed cleanly after the new backend/frontend diary and changelog updates.
+- The dry-run and real upload both succeeded.
+- The refreshed remote verification listing showed the new file:
+  - `GMT-002 query-command implementation progress`
+
+### What didn't work
+- The first remote verification I triggered in parallel with the upload did not yet show the new file in the listing output, even though the upload itself had already returned success.
+- Re-running the listing immediately afterward showed the new file correctly, so this appears to have been a timing/refresh issue rather than a real upload problem.
+
+### What I learned
+- The ticket is much easier to hand off when the final “admin” loop is treated as a real implementation step instead of an afterthought.
+- The reMarkable folder is now accumulating a useful chronology of the ticket: initial research, implementation plan variants, and the final implementation-progress bundle.
+
+### What was tricky to build
+- The tricky part was keeping the documentation chronology coherent after a long implementation sequence with many commits. I solved that by batching the backend, frontend, and final-validation narrative into distinct diary steps rather than trying to retroactively rewrite the earlier investigation material.
+
+### What warrants a second pair of eyes
+- Whether the ticket should now be formally closed with `docmgr ticket close --ticket GMT-002`, or whether you want it to remain open for follow-up polish work.
+- Whether the uploaded bundle order and naming are now the best long-term convention for implementation follow-up tickets.
+
+### What should be done in the future
+- If more polish or follow-up work lands, append new diary steps instead of rewriting the completed implementation history.
+- Consider closing the ticket once you are satisfied with the current implementation and documentation state.
+
+### Code review instructions
+- Start with the task list:
+  - `ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/tasks.md`
+- Then review the final implementation diary steps in:
+  - `reference/01-investigation-diary.md`
+- Validate with:
+  - `cd go-minitrace && docmgr doctor --ticket GMT-002 --stale-after 30`
+  - `cd go-minitrace && go test ./... -count=1`
+  - `cd go-minitrace/web && npm run build`
+
+### Technical details
+- Final uploaded bundle name:
+  - `GMT-002 query-command implementation progress`
+- Verified remote folder:
+  - `/ai/2026/04/08/GMT-002/`
+- Final checked task:
+  - `GMT-002` task `23`

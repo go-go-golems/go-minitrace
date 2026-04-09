@@ -128,3 +128,24 @@ Implemented MinitraceCommand SQL rendering helpers and rendering tests, then wir
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/cmd/go-minitrace/cmds/query/command_runtime.go — CLI runtime added
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/render.go — Renderer added
 
+
+## 2026-04-09
+
+Expanded the remaining ticket work into detailed API/frontend subtasks, added a protobuf transport for query commands, implemented backend v2 query-command list/execute handlers with tests, and wired the frontend command sidebar/form/execution flow end to end (commits 6b78de0, b47f81c, 122c0dc).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go — Backend query-command handlers added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/proto/go_go_golems/minitrace/api/v1/query_commands.proto — Query-command transport schema added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/pages/QueryEditorPage.tsx — Frontend command selection and execution flow added
+
+
+## 2026-04-09
+
+Completed the ticket implementation loop by checking off all remaining detailed tasks, re-running docmgr validation, and uploading a refreshed document bundle to reMarkable under a new progress filename.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/reference/01-investigation-diary.md — Diary updated with backend/frontend implementation and final validation steps
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/tasks.md — All detailed implementation tasks checked off
+
