@@ -15,6 +15,10 @@ RelatedFiles:
       Note: Main sqleton parsing reference used during investigation
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
+    - Path: pkg/minitracecmd/assets.go
+      Note: Embedded the built-in MinitraceCommand repository and exposed a loader helper (commit 7cc5370)
+    - Path: pkg/minitracecmd/assets_test.go
+      Note: Embedded catalog smoke coverage added (commit 7cc5370)
     - Path: pkg/minitracecmd/catalog.go
       Note: Added repository-backed catalog loading
     - Path: pkg/minitracecmd/catalog_test.go
@@ -23,6 +27,14 @@ RelatedFiles:
       Note: Added MinitraceCommand compilation and optional bool flag normalization (commit 00830a7)
     - Path: pkg/minitracecmd/compiler_test.go
       Note: Added compiler coverage for verbs
+    - Path: pkg/minitracecmd/core/aliases/codex-framework-summary.alias.yaml
+      Note: New built-in alias example for codex framework summaries (commit 7cc5370)
+    - Path: pkg/minitracecmd/core/framework-summary.sql
+      Note: New built-in framework summary command using sqleton-style metadata (commit 7cc5370)
+    - Path: pkg/minitracecmd/core/session-list.sql
+      Note: New built-in MinitraceCommand session listing command (commit 7cc5370)
+    - Path: pkg/minitracecmd/core/timing-analysis.sql
+      Note: New built-in timing analysis command (commit 7cc5370)
     - Path: pkg/minitracecmd/errors.go
       Note: Added initial sentinel errors for MinitraceCommand parsing and validation (commit b8f3229)
     - Path: pkg/minitracecmd/parse_alias.go
@@ -47,6 +59,7 @@ LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -1054,3 +1067,88 @@ This step also exposed the first implementation hiccup of the coding phase: the 
   - `go-minitrace/pkg/minitracecmd/catalog_test.go`
 - Checked task:
   - `GMT-002` task `17`
+
+## Step 13: Add embedded built-in `MinitraceCommand` assets to the repository
+
+At this point the package could load commands, but only from test fixtures. The next useful step was to give go-minitrace a real built-in command repository so future runtime integration has something concrete to load. I added a small embedded tree under `pkg/minitracecmd/core` and made sure the package can expose it as a read-only source root.
+
+I also chose to make these built-in commands slightly more ambitious than the existing raw preset files: they now carry sqleton-style metadata and a few actual parameters so the later rendering step has realistic helper usage to target. That should make the remaining work more representative and reduce the chance of designing a renderer that only works for trivial parameterless SQL.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue landing the planned implementation tasks in order and keep the diary detailed enough that later work can resume from it directly.
+
+**Inferred user intent:** Move from abstract design to a usable in-repo command system with real assets and visible progress.
+
+**Commit (code):** `7cc5370cb7f60fca8069642ef3d95d1c085686bc` — "Add embedded MinitraceCommand assets"
+
+### What I did
+- Added `pkg/minitracecmd/assets.go`.
+- Embedded the `pkg/minitracecmd/core` directory with:
+  - `EmbeddedSourceRoot()`
+  - `LoadEmbeddedCatalog()`
+- Added built-in sqleton-style command assets:
+  - `pkg/minitracecmd/core/session-list.sql`
+  - `pkg/minitracecmd/core/framework-summary.sql`
+  - `pkg/minitracecmd/core/timing-analysis.sql`
+- Added one built-in alias example:
+  - `pkg/minitracecmd/core/aliases/codex-framework-summary.alias.yaml`
+- Added `pkg/minitracecmd/assets_test.go` to smoke-test that the embedded catalog loads and exposes expected entries.
+- Ran:
+  - `cd go-minitrace && gofmt -w pkg/minitracecmd/*.go`
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+- Verified the commit through the pre-commit hook:
+  - `golangci-lint run -v`
+  - `go test ./...`
+
+### Why
+- Real embedded assets are necessary before CLI or serve integration becomes meaningful.
+- Giving the built-in commands actual parameters now ensures the future renderer gets tested against realistic template helper usage instead of only static SQL.
+- Keeping them under `pkg/minitracecmd/core` makes the package self-contained during this implementation phase.
+
+### What worked
+- Embedding the whole directory as a source root was straightforward.
+- The existing parser/compiler/catalog pipeline handled the embedded assets without any new special-case logic.
+- The alias example gives the next layers a realistic test fixture for alias resolution and default-merging behavior.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The local package architecture is now mature enough that adding real assets is just data plus a thin embedding helper.
+- It is useful to convert the old preset logic into richer command assets gradually rather than waiting for a “big bang” replacement later.
+
+### What was tricky to build
+- The subtle part was choosing how much parameter richness to include in the first built-in assets. If they were too simple, the future renderer would not be forced to support the important helper/filter cases. If they were too fancy, the initial integration would become brittle. I settled on a middle ground: framework filtering, LIKE matching, and limits are enough to exercise the planned helper surface without introducing too many different field types at once.
+
+### What warrants a second pair of eyes
+- Whether the built-in command repository should live permanently under `pkg/minitracecmd/core` or later move to a more user-facing top-level `queries/commands` tree.
+- Whether these new built-in commands should eventually replace the old preset SQLs or coexist for a migration period.
+
+### What should be done in the future
+- Implement the rendering helpers and SQL template execution next so these embedded commands can produce executable SQL.
+- Decide later whether more built-in aliases are worthwhile once the UI/CLI command listing exists.
+
+### Code review instructions
+- Start with:
+  - `pkg/minitracecmd/assets.go`
+- Then inspect the embedded assets:
+  - `pkg/minitracecmd/core/session-list.sql`
+  - `pkg/minitracecmd/core/framework-summary.sql`
+  - `pkg/minitracecmd/core/timing-analysis.sql`
+  - `pkg/minitracecmd/core/aliases/codex-framework-summary.alias.yaml`
+- Validate with:
+  - `cd go-minitrace && go test ./pkg/minitracecmd -count=1`
+
+### Technical details
+- New files:
+  - `go-minitrace/pkg/minitracecmd/assets.go`
+  - `go-minitrace/pkg/minitracecmd/assets_test.go`
+  - `go-minitrace/pkg/minitracecmd/core/session-list.sql`
+  - `go-minitrace/pkg/minitracecmd/core/framework-summary.sql`
+  - `go-minitrace/pkg/minitracecmd/core/timing-analysis.sql`
+  - `go-minitrace/pkg/minitracecmd/core/aliases/codex-framework-summary.alias.yaml`
+- Checked task:
+  - `GMT-002` task `18`

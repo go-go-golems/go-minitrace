@@ -108,3 +108,13 @@ Implemented repository-backed MinitraceCommand catalog loading with fstest-backe
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/catalog.go — Catalog loader added
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/catalog_test.go — Catalog tests added
 
+
+## 2026-04-08
+
+Added an embedded built-in MinitraceCommand repository with initial read-only commands, an example alias, and a helper for loading the embedded catalog (commit 7cc5370).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/assets.go — Embedded source-root helper added
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/pkg/minitracecmd/core/framework-summary.sql — Built-in command asset added
+
