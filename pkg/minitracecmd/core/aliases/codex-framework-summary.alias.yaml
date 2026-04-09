@@ -1,0 +1,6 @@
+name: codex-framework-summary
+short: Summarize only codex sessions
+aliasFor: framework-summary
+flags:
+  framework:
+    - codex
