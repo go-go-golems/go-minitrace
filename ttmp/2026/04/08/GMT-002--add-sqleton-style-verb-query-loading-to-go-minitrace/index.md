@@ -1,7 +1,7 @@
 ---
 Title: Add sqleton-style verb query loading to go-minitrace
 Ticket: GMT-002
-Status: active
+Status: complete
 Topics:
     - backend
     - documentation
@@ -12,11 +12,12 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
-Summary: "Research/design ticket for bringing sqleton-style repository-backed SQL verbs and UI query forms into go-minitrace."
-LastUpdated: 2026-04-08T17:34:25-04:00
-WhatFor: "Track the investigation, design, validation, and delivery work for a future go-minitrace query-catalog / verb-form feature."
-WhenToUse: "Read this ticket when planning or reviewing repository-backed query verbs, structured query forms, and sqleton-inspired query loading in go-minitrace."
+Summary: Research/design ticket for bringing sqleton-style repository-backed SQL verbs and UI query forms into go-minitrace.
+LastUpdated: 2026-04-09T16:22:39.920986717-04:00
+WhatFor: Track the investigation, design, validation, and delivery work for a future go-minitrace query-catalog / verb-form feature.
+WhenToUse: Read this ticket when planning or reviewing repository-backed query verbs, structured query forms, and sqleton-inspired query loading in go-minitrace.
 ---
+
 
 # Add sqleton-style verb query loading to go-minitrace
 
@@ -39,9 +40,9 @@ The main deliverables are:
 
 ## Status
 
-Current status: **active**
+Current status: **complete**
 
-Research and design documentation are complete. Final bookkeeping, validation, and reMarkable delivery are tracked in `tasks.md` and `changelog.md`.
+The research, design, implementation, validation, and reMarkable delivery work are complete. See `tasks.md` for the finished checklist and `changelog.md` for the implementation sequence, final validation, and ticket closure notes.
 
 ## Topics
 

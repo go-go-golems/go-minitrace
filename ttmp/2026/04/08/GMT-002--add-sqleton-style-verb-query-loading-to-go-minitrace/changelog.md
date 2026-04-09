@@ -149,3 +149,30 @@ Completed the ticket implementation loop by checking off all remaining detailed 
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/reference/01-investigation-diary.md — Diary updated with backend/frontend implementation and final validation steps
 - /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/tasks.md — All detailed implementation tasks checked off
 
+
+## 2026-04-09
+
+Ticket closed
+
+
+## 2026-04-09
+
+Ran a manual end-to-end smoke test against a local serve instance to verify the new query-command API and browser flow, then closed the ticket after confirming command execution and alias-default behavior in the UI.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go — Manual API smoke test covered list and execute endpoints
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/reference/01-investigation-diary.md — Diary updated with the manual smoke-test and closure step
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/pages/QueryEditorPage.tsx — Manual browser smoke test covered command selection
+
+
+## 2026-04-09
+
+Added a follow-up SQL-debugging refinement for structured query commands: the API now exposes raw sqleton template SQL metadata, the web UI shows raw-template and last-rendered-SQL accordions, and the flow was revalidated with backend tests, web build, and a manual browser smoke test (commit 4076a50).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/proto/go_go_golems/minitrace/api/v1/query_commands.proto — Query-command transport refined with raw SQL metadata
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/components/QueryEditor/QueryCommandForm.tsx — UI debug-helper accordions added for raw and rendered SQL
+- /home/manuel/workspaces/2026-04-08/sqleton-minitrace/go-minitrace/web/src/pages/QueryEditorPage.tsx — Page now stores last rendered command SQL for debug display
+

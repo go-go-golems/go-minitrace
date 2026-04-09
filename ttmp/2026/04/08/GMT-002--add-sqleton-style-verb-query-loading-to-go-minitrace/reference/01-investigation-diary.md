@@ -22,7 +22,9 @@ RelatedFiles:
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Main go-minitrace raw query-library reference used during investigation
     - Path: cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go
-      Note: Backend query-command DTO conversion and v2 handlers added (commit b47f81c)
+      Note: |-
+        Backend query-command DTO conversion and v2 handlers added (commit b47f81c)
+        Backend query-command metadata now includes raw template SQL/path for UI debug helpers (commit 4076a50)
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: Server coverage added for query-command listing and execution (commit b47f81c)
     - Path: pkg/minitracecmd/assets.go
@@ -70,25 +72,32 @@ RelatedFiles:
     - Path: pkg/query/validation.go
       Note: Extracted shared read-only SQL validation for serve and CLI command execution (commit b218017)
     - Path: proto/go_go_golems/minitrace/api/v1/query_commands.proto
-      Note: New protobuf transport for listing and executing query commands (commit 6b78de0)
+      Note: |-
+        New protobuf transport for listing and executing query commands (commit 6b78de0)
+        Follow-up transport refinement added raw SQL metadata for UI debug helpers (commit 4076a50)
     - Path: web/src/api/minitrace.ts
       Note: RTK Query endpoints added for listing and executing query commands (commit 122c0dc)
     - Path: web/src/api/queryCommandProtoAdapters.ts
       Note: Frontend adapter layer added for generated query-command protobuf types (commit 122c0dc)
     - Path: web/src/components/QueryEditor/QueryCommandForm.tsx
-      Note: Structured query-command form renderer added (commit 122c0dc)
+      Note: |-
+        Structured query-command form renderer added (commit 122c0dc)
+        Raw and rendered SQL debug helper accordions added to the structured command form (commit 4076a50)
     - Path: web/src/components/QueryEditor/QuerySidebar.tsx
       Note: |-
         Frontend evidence for the current sidebar model captured in the diary
         Commands section added to the sidebar (commit 122c0dc)
     - Path: web/src/pages/QueryEditorPage.tsx
-      Note: Page-level command selection and execution flow added (commit 122c0dc)
+      Note: |-
+        Page-level command selection and execution flow added (commit 122c0dc)
+        Page state now tracks the last rendered command SQL for the debug helper UI (commit 4076a50)
 ExternalSources: []
 Summary: Chronological diary of the research and documentation work for sqleton-style verb query loading in go-minitrace.
 LastUpdated: 2026-04-08T17:34:25-04:00
 WhatFor: Record how the ticket was created, what evidence was gathered, how the design conclusions were reached, and how the deliverables were validated and published.
 WhenToUse: Read this when reviewing the research process, continuing the ticket later, or checking which commands and files informed the design guide.
 ---
+
 
 
 
@@ -1749,3 +1758,195 @@ This final step is easy to underestimate, but it is what turns the work from “
   - `/ai/2026/04/08/GMT-002/`
 - Final checked task:
   - `GMT-002` task `23`
+
+## Step 20: Run a manual end-to-end smoke test and close the ticket
+
+After the documented implementation was complete, I ran one more pragmatic validation pass against a real local serve instance using a small archive glob from the workspace. The goal was to confirm the new transport and UI work not just in unit tests, but as an actual user flow: list commands, execute them through the API, load the embedded frontend, select commands in the sidebar, render the form, and run a command through the browser.
+
+Once that smoke pass looked good, I formally closed the ticket so the docmgr state now matches the implementation reality.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Take the next sensible completion step after implementation and documentation rather than stopping at a status summary.
+
+**Inferred user intent:** Finish the last practical validation and wrap the ticket up cleanly.
+
+**Commit (code):** N/A — manual validation, ticket metadata cleanup, and closure only.
+
+### What I did
+- Built and embedded the current web frontend into the serve binary with:
+  - `cd go-minitrace && make frontend`
+- Built the backend binary and launched a local smoke-test server on port `18080` against a small archive glob from the workspace.
+- Verified the new API surface directly with `curl`:
+  - `GET /api/v2/query-commands`
+  - `POST /api/v2/query-commands/framework-summary.sql/execute` in render-only mode
+  - `POST /api/v2/query-commands/aliases/codex-framework-summary.alias.yaml/execute`
+- Opened the built app in a browser and confirmed:
+  - the new **Commands** section appears in the Query sidebar,
+  - selecting `session-list` shows the structured form,
+  - running `session-list` returns rows in the shared results table,
+  - selecting the `codex-framework-summary` alias shows the inherited flag metadata and default `framework=codex`,
+  - running the alias command returns the expected zero-row result set for the current sample data.
+- Closed the ticket with:
+  - `cd go-minitrace && docmgr ticket close --ticket GMT-002`
+- Updated the ticket index so the human-readable status section now says `complete`, not just the frontmatter.
+
+### Why
+- Automated tests were already green, but a real end-to-end smoke pass gives more confidence that the API, frontend adapters, and query-editor state transitions all work together.
+- Closing the ticket keeps docmgr status aligned with the actual state of the work.
+
+### What worked
+- The backend served the embedded frontend correctly after `make frontend`.
+- The API returned the expected command metadata and render/execution responses.
+- The browser flow worked end to end for both a normal verb command and an alias command.
+- The alias default surfaced correctly in the form as `codex`.
+- `docmgr ticket close` succeeded and updated the ticket metadata/changelog.
+
+### What didn't work
+- While preparing the smoke server, my first one-line shell command that tried to start the background server and immediately write the PID file failed with:
+  - `/bin/bash: line 1: ./tmp/query-commands-smoke.pid: No such file or directory`
+- I fixed that by switching from the brittle chained one-liner to a clearer multi-line shell sequence that creates `./tmp`, launches the server, and writes the PID afterward.
+- Running `make frontend` also removed the tracked placeholder file:
+  - `cmd/go-minitrace/cmds/serve/frontend/.gitkeep`
+  because the target replaces the embedded frontend directory with the built `web/dist` output. I restored the placeholder afterward so it would not show up as an accidental deletion in Git.
+
+### What I learned
+- The new query-command flow is strong enough to validate in a real browser without extra glue code; the existing query page absorbed the new mode successfully.
+- Alias defaults are much clearer when verified visually than when only inspected through API payloads.
+
+### What was tricky to build
+- The main subtlety in the smoke pass was making sure I was validating the built/embedded frontend path rather than just the backend endpoints. That required going through `make frontend` first so the local serve binary actually reflected the latest React changes.
+
+### What warrants a second pair of eyes
+- Whether you want a dedicated automated browser smoke test for the query-command path later, now that the manual flow is clear.
+- Whether we should keep a small stable sample archive fixture in-repo so future query-command E2E checks do not depend on ad hoc workspace files.
+
+### What should be done in the future
+- If this feature gets follow-up polish, open a new ticket or append a follow-up note instead of reopening the completed implementation history here.
+- Consider adding a lightweight browser-level regression test once the UI settles.
+
+### Code review instructions
+- Validate the same smoke path with:
+  - `cd go-minitrace && make frontend`
+  - `cd go-minitrace && ./go-minitrace serve --archive-glob '<sample-glob>' --db-path ./tmp/query-commands-smoke.db --port 18080`
+  - `curl http://127.0.0.1:18080/api/v2/query-commands`
+  - then open `http://127.0.0.1:18080/query`
+- Review the final ticket state in:
+  - `ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/index.md`
+  - `ttmp/2026/04/08/GMT-002--add-sqleton-style-verb-query-loading-to-go-minitrace/changelog.md`
+
+### Technical details
+- Smoke-test port:
+  - `18080`
+- Smoke-test archive glob:
+  - `./ttmp/2026/04/08/MINIMAX-VS-GPT-COMPARE--compare-minimax-vs-gpt-5-4-implementation-approaches-sqleton-minitrace/analysis/archive/active/**/*.minitrace.json`
+- Ticket close command:
+  - `docmgr ticket close --ticket GMT-002`
+
+## Step 21: Add raw and rendered SQL debug helpers for structured query commands
+
+After the initial command-form rollout, the user asked for a way to inspect both the raw sqleton template and the rendered SQL directly in the web UI. That turned into a small but useful follow-up slice: expose the raw template through the query-command metadata transport, keep the last rendered SQL from command execution in page state, and show both values in collapsible debug panels next to the command form.
+
+I treated this as a focused additive refinement rather than a redesign. The command form remains the main editor surface, but it now carries two explicit debugging affordances: one for the underlying template and one for the most recently rendered SQL. For aliases, the raw template shown is the target command template, with UI copy that makes that resolution explicit.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Can we view the raw query of a sqleton command in the web UI? and a rendered version of the SQL (as debug helpers)?"
+
+**Assistant interpretation:** Add practical SQL introspection to the new structured-command flow rather than making users infer it from API payloads or Redux state.
+
+**Inferred user intent:** Make structured commands easier to debug in the browser by exposing both the source template and the final rendered SQL.
+
+**Commit (code):** `4076a503c6a573abd898284f21f6f6314d23675d` — "Add query command SQL debug helpers"
+
+### What I did
+- Added follow-up checklist items to `tasks.md` for:
+  - exposing raw SQL template metadata,
+  - adding UI debug helpers,
+  - validating and documenting the refinement.
+- Extended the query-command protobuf schema with:
+  - `raw_sql_path`
+  - `raw_sql`
+- Regenerated protobuf outputs for Go and the web frontend.
+- Updated backend query-command DTO conversion in:
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+  so list responses now include the raw sqleton template body and the source path that produced it.
+- For aliases, exposed the target command template and target SQL path in the API payload while preserving alias identity through `kind` and `alias_for`.
+- Added backend coverage in:
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+  for:
+  - verb raw template metadata,
+  - alias raw-template exposure through the resolved target template.
+- Extended frontend query-command types/adapters to carry:
+  - `rawSqlPath`
+  - `rawSql`
+- Updated `QueryEditorPage.tsx` to keep `lastRenderedCommandSql` in local page state and reset it appropriately when switching commands or switching back to raw SQL sources.
+- Updated `QueryCommandForm.tsx` to render two accordion-based debug helpers:
+  - `Raw command SQL`
+  - `Rendered SQL`
+- Wired the rendered SQL accordion to the last successful command execution result.
+- Updated stories and mock data so the new debug helper state is visible in Storybook and MSW-backed development flows.
+- Ran validation:
+  - `cd go-minitrace && buf generate`
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `cd go-minitrace/web && npx eslint src/api/queryCommandProtoAdapters.ts src/components/QueryEditor/QueryEditor.tsx src/components/QueryEditor/QueryCommandForm.tsx src/components/QueryEditor/stories/QueryEditor.stories.tsx src/components/QueryEditor/stories/QueryCommandForm.stories.tsx src/components/QueryEditor/stories/QuerySidebar.stories.tsx src/pages/QueryEditorPage.tsx src/mocks/data.ts src/types/queryCommand.ts`
+  - `cd go-minitrace/web && npm run build`
+- Rebuilt the embedded frontend, launched a local smoke-test serve instance again, and verified in the browser that:
+  - selecting `session-list` shows the raw SQL accordion with the sqleton template,
+  - the rendered SQL accordion initially shows an empty-state message,
+  - running the command fills the rendered SQL accordion with the rendered query text.
+
+### Why
+- The existing structured command UI was usable, but debugging required either trusting the backend blindly or inferring the SQL from the shared query-editor state.
+- Exposing both the template and the rendered SQL makes it much easier to understand what a command is about to do and what it actually did.
+
+### What worked
+- The backend already had the right seam for this change because command metadata conversion was centralized in one DTO helper.
+- The query page already received `rendered_sql` from command execution responses, so keeping the last rendered SQL in page state was straightforward.
+- The accordion-based UI fits naturally into the form without crowding the primary controls.
+- The smoke test verified the exact intended flow end to end in the browser.
+
+### What didn't work
+- My first backend assertion expected the newer local renderer template shape (`{{ .TableName }}`), but the embedded sqleton-style source assets still expose the literal source-template form (`{{TABLE_NAME}}` and pipe-style helpers). The test failed until I changed the assertion to match the actual stored source template.
+- Rebuilding the embedded frontend with `make frontend` again removed:
+  - `cmd/go-minitrace/cmds/serve/frontend/.gitkeep`
+  because the build target replaces the embedded frontend directory with the generated `web/dist` output. I restored the placeholder afterward so it would not leak into Git as an accidental deletion.
+
+### What I learned
+- There is a real distinction between the raw sqleton source template and the local go-minitrace rendered SQL helper syntax, and it is useful to preserve that distinction explicitly in the UI.
+- The last-rendered-SQL pattern is a good fit for command mode because it avoids implying that the displayed SQL is always current with unsaved form edits.
+
+### What was tricky to build
+- The trickiest part was alias behavior. If the UI showed only the alias file path, users would still be unable to inspect the real SQL template behind the alias. If it flattened aliases completely, users would lose the fact that they had selected an alias entry. The compromise I implemented keeps the alias identity, but shows the resolved target SQL template and labels that in the accordion subtitle.
+
+### What warrants a second pair of eyes
+- Whether a future iteration should add an explicit `Preview rendered SQL` action that calls the existing render-only endpoint without executing the query.
+- Whether the debug helpers should get copy-to-clipboard actions now or only if they prove heavily used.
+
+### What should be done in the future
+- If command debugging becomes a frequent workflow, add a render-only preview button instead of relying solely on “last rendered from a successful run.”
+- Consider a small browser-level regression test that specifically checks the debug helper accordions.
+
+### Code review instructions
+- Start with the transport/backend metadata changes:
+  - `proto/go_go_golems/minitrace/api/v1/query_commands.proto`
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+- Then review the page/form wiring:
+  - `web/src/pages/QueryEditorPage.tsx`
+  - `web/src/components/QueryEditor/QueryEditor.tsx`
+  - `web/src/components/QueryEditor/QueryCommandForm.tsx`
+- Validate with:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `cd go-minitrace/web && npm run build`
+
+### Technical details
+- New transport fields:
+  - `raw_sql_path`
+  - `raw_sql`
+- Manual smoke path re-validated on:
+  - `http://127.0.0.1:18080/query`
+- Follow-up commit:
+  - `4076a503c6a573abd898284f21f6f6314d23675d`

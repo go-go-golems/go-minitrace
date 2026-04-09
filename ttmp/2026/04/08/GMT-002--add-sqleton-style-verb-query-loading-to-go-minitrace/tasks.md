@@ -36,3 +36,6 @@
 - [x] Implement QueryCommandForm rendering for initial Glazed-backed field types and defaults
 - [x] Wire query-command execution results into QueryEditorPage without regressing raw SQL flows
 - [x] Add frontend stories/tests for query-command sidebar and form behavior
+- [x] Expose raw sqleton SQL template metadata for query commands in the v2 API/frontend types
+- [x] Add web UI debug helpers to show raw command SQL and last rendered SQL for structured query commands
+- [x] Validate the new SQL debug-helper flow, then refresh diary/changelog notes for the ticket follow-up
