@@ -17,7 +17,7 @@ SELECT
 FROM {{TABLE_NAME}}
 WHERE 1=1
 {{ if .framework -}}
-AND environment->>'agent_framework' IN ({{ .framework | sqlStringIn }})
+AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 GROUP BY framework
 ORDER BY sessions DESC;

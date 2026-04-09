@@ -1098,6 +1098,140 @@ func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
 	}
 }
 
+func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v2/query-commands", nil)
+	response := httptest.NewRecorder()
+
+	server.handleGetQueryCommandsV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ListQueryCommandsResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal query commands v2: %v", err)
+	}
+	if payload.GetMeta().GetSchemaVersion() != 1 {
+		t.Fatalf("unexpected schema version %d", payload.GetMeta().GetSchemaVersion())
+	}
+
+	foundSessionList := false
+	foundAlias := false
+	for _, command := range payload.GetCommands() {
+		if command.GetPath() == "session-list.sql" {
+			foundSessionList = true
+			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_VERB {
+				t.Fatalf("session-list kind = %v, want verb", command.GetKind())
+			}
+			if len(command.GetFlags()) == 0 {
+				t.Fatalf("session-list should expose flags")
+			}
+		}
+		if command.GetPath() == "aliases/codex-framework-summary.alias.yaml" {
+			foundAlias = true
+			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_ALIAS {
+				t.Fatalf("alias kind = %v, want alias", command.GetKind())
+			}
+			if command.GetAliasFor() != "framework-summary" {
+				t.Fatalf("aliasFor = %q, want framework-summary", command.GetAliasFor())
+			}
+			if len(command.GetFlags()) == 0 {
+				t.Fatalf("alias should expose target flags for form rendering")
+			}
+		}
+	}
+	if !foundSessionList || !foundAlias {
+		t.Fatalf("expected embedded verb and alias commands, got %#v", payload.GetCommands())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
+	request.SetPathValue("path", "framework-summary.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command render-only: %v", err)
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "FROM sessions_base") {
+		t.Fatalf("rendered_sql missing table name substitution: %q", payload.GetRenderedSql())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
+		t.Fatalf("rendered_sql missing framework filter: %q", payload.GetRenderedSql())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase5-query-command")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
+	}); err != nil {
+		t.Fatalf("LoadArchive returned error: %v", err)
+	}
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "aliases/codex-framework-summary.alias.yaml/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command response: %v", err)
+	}
+	if payload.GetRowCount() != 1 {
+		t.Fatalf("expected row_count=1, got %d", payload.GetRowCount())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
+		t.Fatalf("rendered_sql missing alias-provided framework filter: %q", payload.GetRenderedSql())
+	}
+	if got := payload.GetRows()[0].GetFields()["framework"].GetStringValue(); got != "codex" {
+		t.Fatalf("expected framework codex, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ReturnsNotFoundForUnknownCommand(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/missing.sql/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "missing.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d with body %s", response.Code, response.Body.String())
+	}
+}
+
 func TestQueryCRUDV2ValidatesPathsAndPersistsQueries(t *testing.T) {
 	queryDir1 := t.TempDir()
 	queryDir2 := t.TempDir()

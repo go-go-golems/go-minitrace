@@ -18,7 +18,7 @@ SELECT
 FROM {{TABLE_NAME}}
 WHERE timing->>'duration_seconds' IS NOT NULL
 {{ if .framework -}}
-AND environment->>'agent_framework' IN ({{ .framework | sqlStringIn }})
+AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 GROUP BY framework
 ORDER BY avg_duration_s DESC;
