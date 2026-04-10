@@ -11,21 +11,34 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: .github/workflows/release.yaml
-      Note: Release jobs currently provision Go but not Dagger
+      Note: |-
+        Release jobs currently provision Go but not Dagger
+        Release jobs now install Dagger CLI before GoReleaser
     - Path: .goreleaser.yaml
-      Note: Release before-hooks currently call make frontend
+      Note: |-
+        Release before-hooks currently call make frontend
+        Release hook now invokes Go Dagger builder
     - Path: Makefile
-      Note: Current frontend build recipe to replace
+      Note: |-
+        Current frontend build recipe to replace
+        Frontend target cleaned up to call the Dagger builder
+    - Path: cmd/build-web/main.go
+      Note: New Go Dagger frontend builder command
     - Path: cmd/go-minitrace/cmds/serve/embed.go
       Note: Build output must still feed the embed path
     - Path: web/package.json
-      Note: Frontend scripts and package-manager metadata target
+      Note: |-
+        Frontend scripts and package-manager metadata target
+        pnpm packageManager metadata and direct dependency fixes
+    - Path: web/pnpm-lock.yaml
+      Note: Reproducible pnpm lock for frozen installs
 ExternalSources: []
 Summary: Evidence-backed plan for migrating go-minitrace frontend release builds to a Go Dagger pnpm flow.
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Dagger pnpm release-pipeline implementation guide

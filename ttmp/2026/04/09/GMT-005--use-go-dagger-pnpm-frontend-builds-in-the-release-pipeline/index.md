@@ -1,7 +1,7 @@
 ---
 Title: Use Go Dagger pnpm frontend builds in the release pipeline
 Ticket: GMT-005
-Status: active
+Status: complete
 Topics:
     - backend
     - frontend
@@ -11,11 +11,12 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
-Summary: "Replace the release pipeline's npm-based frontend build path with a Go Dagger command that runs reproducible pnpm builds."
-LastUpdated: 2026-04-09T22:10:00-04:00
-WhatFor: "Track the migration of release/frontend build plumbing from ad hoc Makefile npm commands to a Go Dagger-based pnpm builder."
-WhenToUse: "Use when reviewing or continuing the Dagger-based frontend build migration for go-minitrace releases."
+Summary: Replace the release pipeline's npm-based frontend build path with a Go Dagger command that runs reproducible pnpm builds.
+LastUpdated: 2026-04-09T21:51:27.780097645-04:00
+WhatFor: Track the migration of release/frontend build plumbing from ad hoc Makefile npm commands to a Go Dagger-based pnpm builder.
+WhenToUse: Use when reviewing or continuing the Dagger-based frontend build migration for go-minitrace releases.
 ---
+
 
 # Use Go Dagger pnpm frontend builds in the release pipeline
 
