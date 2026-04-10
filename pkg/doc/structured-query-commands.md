@@ -1,0 +1,378 @@
+---
+Title: Structured Query Commands
+Slug: structured-query-commands
+Short: Run and author repository-backed sqleton-style query commands for go-minitrace
+Topics:
+- minitrace
+- duckdb
+- sqleton
+- glazed
+Commands:
+- query
+- query commands
+- serve
+Flags:
+- query-repository
+- archive-glob
+- db-path
+- table-name
+- persist-loaded
+IsTemplate: false
+IsTopLevel: false
+ShowPerDefault: true
+SectionType: GeneralTopic
+---
+
+Structured query commands add a metadata layer on top of raw SQL. Instead of remembering a long `--sql` string or maintaining ad hoc `.sql` files with no parameter schema, you define a sqleton-style command file with a YAML preamble, let go-minitrace turn its flags into real CLI parameters and web-form fields, and then render read-only SQL against the loaded DuckDB table.
+
+This matters when a query becomes part of your team's repeatable analysis workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
+
+## What gets loaded
+
+The `query commands` subgroup loads a catalog from two places:
+
+1. the embedded go-minitrace catalog shipped in `pkg/minitracecmd/core/`
+2. any external repositories configured through flags, environment, or app config
+
+Today the embedded catalog includes examples such as:
+
+- `session-list`
+- `framework-summary`
+- `timing-analysis`
+- `codex-framework-summary` (an alias)
+
+You can inspect the currently loaded commands with standard Cobra help:
+
+```bash
+go-minitrace query commands --help
+go-minitrace query commands session-list --help
+go-minitrace query commands framework-summary --help
+```
+
+## Running structured query commands from the CLI
+
+The CLI surface is:
+
+```bash
+go-minitrace query commands <command-name> [command flags] [query runtime flags]
+```
+
+The command-specific flags come from the sqleton-style file metadata. The query-runtime flags are the same execution settings used by the DuckDB loader, such as `--archive-glob`, `--db-path`, `--table-name`, and `--persist-loaded`.
+
+List sessions with the embedded command:
+
+```bash
+go-minitrace query commands session-list \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Filter the list by framework and limit:
+
+```bash
+go-minitrace query commands session-list \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --framework codex,pi \
+  --limit 25
+```
+
+Run a summary command:
+
+```bash
+go-minitrace query commands framework-summary \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Run an alias command with baked-in defaults:
+
+```bash
+go-minitrace query commands codex-framework-summary \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Use `--output json`, `--output csv`, `--fields ...`, and the other standard Glazed output flags exactly as you would with `query duckdb`, because the rendered SQL still flows through the normal query engine and processor stack.
+
+## Using structured commands through serve and the web UI
+
+The same catalog is also available when you run the HTTP server:
+
+```bash
+go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
+```
+
+In serve mode, structured commands matter in three ways:
+
+- the `/query` page shows them in the Commands sidebar
+- the form is generated from the command's typed flag definitions
+- the backend exposes listing and execution endpoints under `/api/v2/query-commands`
+
+That means one command definition can power:
+
+- CLI execution through `go-minitrace query commands ...`
+- interactive browser execution in the query editor
+- API-driven execution from other clients
+
+The browser UI also exposes raw-template and rendered-SQL debug panels so you can see exactly what the command definition produced.
+
+## Repository discovery and override rules
+
+External repositories are discovered with this precedence:
+
+1. repeated `--query-repository` flags
+2. `GO_MINITRACE_QUERY_REPOSITORIES`
+3. `queryRepositories` in the app config file
+4. the embedded catalog last
+
+Higher-precedence repositories are mounted first so they can override embedded commands without changing loader behavior.
+
+### CLI flag
+
+Use one or more `--query-repository` flags:
+
+```bash
+go-minitrace query commands framework-summary \
+  --query-repository ./query-commands/team \
+  --query-repository ./query-commands/local \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+The flag uses StringSlice semantics, so comma-separated values work too:
+
+```bash
+go-minitrace query commands framework-summary \
+  --query-repository './query-commands/team,./query-commands/local' \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+### Environment variable
+
+Use the platform path-list separator (`:` on Unix, `;` on Windows):
+
+```bash
+export GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team:./query-commands/local
+
+go-minitrace query commands session-list \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+### App config
+
+Add repository roots to the go-minitrace app config:
+
+```yaml
+queryRepositories:
+  - ./query-commands/team
+  - ~/.config/go-minitrace/query-commands
+```
+
+## Repository layout
+
+A repository is just a directory tree containing sqleton-style command SQL files and optional alias YAML files.
+
+A small example looks like this:
+
+```text
+query-commands/
+├── session-list.sql
+├── framework-summary.sql
+└── aliases/
+    └── codex-framework-summary.alias.yaml
+```
+
+The directory layout is mainly about organization and source paths. The CLI command name itself comes from the file metadata `name:` field, not from the filename alone.
+
+## Writing a sqleton-style command file
+
+A structured command is a `.sql` file whose first block is a `/* sqleton ... */` YAML preamble.
+
+The preamble describes the command name, help text, and typed parameters. The rest of the file is the SQL template that will be rendered against the loaded table.
+
+Here is a minimal but realistic example:
+
+```sql
+/* sqleton
+name: session-list
+short: List minitrace sessions
+flags:
+  - name: framework
+    type: stringList
+    help: Filter by agent framework
+  - name: title_like
+    type: string
+    help: Filter titles with LIKE
+  - name: limit
+    type: int
+    default: 100
+    help: Limit the number of rows returned
+*/
+SELECT
+  id,
+  environment->>'agent_framework' AS framework,
+  environment->>'model' AS model,
+  title,
+  CAST(metrics->>'turn_count' AS INT) AS turns,
+  CAST(metrics->>'tool_call_count' AS INT) AS tools
+FROM {{TABLE_NAME}}
+WHERE 1=1
+{{ if .framework -}}
+AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+{{ end -}}
+{{ if .title_like -}}
+AND title LIKE {{ .title_like | sqlLike }}
+{{ end -}}
+ORDER BY timing->>'started_at' DESC
+LIMIT {{ .limit }};
+```
+
+### Required fields
+
+At minimum, a command file needs:
+
+- `name`: the CLI-visible command name
+- `short`: a short help description
+- a non-empty SQL body after the preamble
+
+### Optional fields
+
+You can also include:
+
+- `long`: longer help text
+- `flags`: Glazed field definitions for named parameters
+- `arguments`: positional parameters
+- `layout`: Glazed layout metadata for form organization
+- `tags`: extra metadata for organization/search
+- `metadata`: free-form command metadata
+
+## Supported parameter types
+
+Structured commands reuse Glazed field definitions. That means the CLI side gets real typed flags, and the web UI can render controls based on the field type.
+
+The current web form supports these practical field types:
+
+- `string`
+- `bool`
+- `choice`
+- `int`
+- `float`
+- `date`
+- `stringList`
+- `intList`
+- `floatList`
+- `choiceList`
+
+If you choose a field type outside that currently supported UI set, the CLI may still be able to expose it as a flag, but the browser form may not render it the way you expect yet.
+
+## Template variables and helper functions
+
+The SQL body is rendered locally by go-minitrace before execution. Two inputs matter most:
+
+- `{{TABLE_NAME}}` expands to the loaded DuckDB table name
+- `{{ .flag_name }}` accesses one of your structured flag values
+
+The current helper functions are:
+
+- `sqlString`
+- `sqlStringIn`
+- `sqlIntIn`
+- `sqlLike`
+
+Use these helpers whenever user input becomes part of a predicate. They handle the quoting and escaping rules that the command renderer expects.
+
+For example:
+
+```sql
+WHERE title LIKE {{ .title_like | sqlLike }}
+```
+
+or:
+
+```sql
+AND id IN ({{ .session_ids | sqlStringIn }})
+```
+
+## Writing alias files
+
+Alias files let you publish a shortcut command that points at another command and supplies default values.
+
+A minimal alias looks like this:
+
+```yaml
+name: codex-framework-summary
+short: Summarize only codex sessions
+aliasFor: framework-summary
+flags:
+  framework:
+    - codex
+```
+
+This matters when you want a stable, memorable command for a common filter without copying the SQL template.
+
+A few rules are worth remembering:
+
+- aliases are stored in `.alias.yaml` or `.alias.yml` files
+- `aliasFor` points at the target command name
+- caller-supplied values override alias defaults
+- aliases are first-class entries in the loaded catalog and in the UI sidebar
+
+## Authoring workflow
+
+A practical authoring loop looks like this:
+
+1. create a repository directory
+2. add one sqleton-style `.sql` command file
+3. run `go-minitrace query commands <name> --help` to verify the parameter schema
+4. run the command against a real archive glob
+5. optionally open `/query` in serve mode and verify the form/debug panels
+6. add alias files for repeated filters only after the base command works
+
+A concrete example:
+
+```bash
+mkdir -p ./query-commands/aliases
+$EDITOR ./query-commands/session-list.sql
+
+go-minitrace query commands session-list \
+  --query-repository ./query-commands \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --help
+
+go-minitrace query commands session-list \
+  --query-repository ./query-commands \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --framework codex
+```
+
+## When to use structured commands vs raw SQL
+
+Use `query commands` when:
+
+- the query should be discoverable by name
+- the query has reusable typed parameters
+- you want the same definition to work in CLI, API, and browser UI
+- you want aliases for common defaults
+
+Use `query duckdb --sql` or `--sql-file` when:
+
+- you are doing one-off exploration
+- the query is still changing rapidly
+- the query does not need a typed parameter schema yet
+
+The two approaches are complementary. Structured commands are the reusable layer on top of the same DuckDB backend.
+
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| `unknown command` under `query commands` | The repository root was not loaded, or the command `name:` is different from the filename you expected | Run `go-minitrace query commands --help`, then check `--query-repository`, env/config sources, and the file's `name:` field |
+| A repository command does not override the embedded one | The higher-precedence repository was not mounted first, or the path/config source was wrong | Prefer explicit `--query-repository` during debugging and confirm the directory exists |
+| The browser form is missing a field | The field type is not currently rendered by the UI | Use a currently supported practical type or run the command through the CLI instead |
+| The rendered SQL fails read-only validation | The command template produced non-read-only SQL | Keep the command limited to `SELECT`-style analysis queries |
+| An alias does not behave as expected | The target command name is wrong, or the alias default shape does not match the target flag type | Verify `aliasFor`, then compare the alias `flags:` values to the target command's definitions |
+| `--query-repository` with commas behaves strangely | Shell quoting changed the argument before Cobra saw it | Wrap the comma-separated value in quotes or use repeated flags |
+
+## See also
+
+- `go-minitrace help query-commands` — the raw DuckDB query group, presets, and custom SQL modes
+- `go-minitrace help query-duckdb` — worked examples for `query duckdb`
+- `go-minitrace help writing-duckdb-queries` — custom SQL guidance for the `sessions_base` schema
+- `go-minitrace help getting-started` — end-to-end first-run tutorial
+- `README.md` — project overview and quick-start commands

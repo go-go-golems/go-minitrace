@@ -1,23 +1,38 @@
 ---
 Title: Query Commands
 Slug: query-commands
-Short: Query converted minitrace archives with DuckDB using presets or custom SQL
+Short: Query converted minitrace archives with DuckDB using presets, custom SQL, or structured commands
 Topics:
 - minitrace
 - duckdb
 - glazed
+- sqleton
 Commands:
 - query
 - query duckdb
+- query commands
 IsTemplate: false
 IsTopLevel: false
 ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-The `query` group loads converted minitrace archives into an analysis backend and runs queries against them. The current backend is DuckDB.
+The `query` group loads converted minitrace archives into an analysis backend and runs queries against them. Today that backend is DuckDB, but there are now two distinct user-facing workflows on top of it:
 
-## How it works
+- `query duckdb` for raw presets, inline SQL, and SQL files
+- `query commands` for repository-backed sqleton-style structured commands
+
+Both workflows ultimately execute read-only SQL against the same loaded DuckDB table. The difference is where the SQL comes from: `query duckdb` takes it directly from a preset, string, or file, while `query commands` renders it from a structured command definition with typed parameters.
+
+## Query workflow choices
+
+Choose `query duckdb` when you are exploring, prototyping, or already have raw SQL in hand. It is the shortest path from idea to result.
+
+Choose `query commands` when the query should become a named, reusable analysis tool. Structured commands give you typed parameters, aliases, CLI discoverability, and a matching form in the `/query` web UI.
+
+For the full structured-command authoring and repository-loading guide, see `go-minitrace help structured-query-commands`.
+
+## How `query duckdb` works
 
 When you run `query duckdb`, go-minitrace:
 
@@ -208,8 +223,35 @@ One subtle but important rule: `query duckdb` reads the `.minitrace.json` archiv
 | Type error in SQL | JSON field not cast before arithmetic | Wrap in `CAST(... AS INT)` or `CAST(... AS DOUBLE)` |
 | DuckDB error on ignore_errors | Very old DuckDB version | Update DuckDB; go-minitrace embeds a compatible version |
 
+## Structured query commands
+
+The `query commands` subgroup loads repository-backed sqleton-style command files. Those files define:
+
+- a command name and help text
+- typed Glazed fields
+- optional aliases with prefilled defaults
+- a SQL template that renders against `{{TABLE_NAME}}`
+
+A simple example looks like this:
+
+```bash
+go-minitrace query commands session-list \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --framework codex,pi
+```
+
+The repository-backed flow is the right choice when a query should be reusable by other people, promoted into the web UI, or shared through config/env/flag-discovered command repositories.
+
+See `go-minitrace help structured-query-commands` for:
+
+- how repository loading works
+- how to configure `queryRepositories`, `GO_MINITRACE_QUERY_REPOSITORIES`, and `--query-repository`
+- how to write `/* sqleton ... */` command files
+- how to write `.alias.yaml` shortcut files
+
 ## See also
 
+- `go-minitrace help structured-query-commands` — run and author sqleton-style structured query commands
 - `go-minitrace help annotation-playbook` — operator workflow for creating, syncing, and validating annotations
 - `go-minitrace help writing-duckdb-queries` — how to write custom SQL against the minitrace schema
 - `go-minitrace help duckdb-query-recipes` — ready-to-use query examples

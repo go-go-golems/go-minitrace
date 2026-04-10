@@ -50,6 +50,7 @@ go-minitrace convert chatgpt --source ~/Downloads/chatgpt-export.zip --output-di
 go-minitrace convert chatgpt-json --source-dir /tmp/chatgpt-exports --output-dir ./output
 go-minitrace convert turnsdb --source /tmp/turns.db --output-dir ./output
 go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset session-list
+go-minitrace query commands session-list --archive-glob './output/active/*/*.minitrace.json'
 go-minitrace validate --path /path/to/file-or-dir --recursive
 ```
 
@@ -58,6 +59,107 @@ Query the converted archive with DuckDB:
 ```bash
 duckdb analysis.duckdb -init queries/load.sql -f queries/session-list.sql
 duckdb analysis.duckdb -init queries/load.sql -f queries/framework-summary.sql
+```
+
+## Structured query commands
+
+In addition to `query duckdb`, go-minitrace now supports repository-backed structured query commands under:
+
+```bash
+go-minitrace query commands ...
+```
+
+These commands use sqleton-style SQL files with a `/* sqleton ... */` YAML preamble. That preamble defines the command name, help text, and typed parameters, while the SQL body remains a normal SQL template rendered against the loaded DuckDB table.
+
+This is the right workflow when a query should be reusable, parameterized, and visible in the web UI instead of living only as an ad hoc `--sql` string.
+
+### Quick examples
+
+Run an embedded command:
+
+```bash
+go-minitrace query commands session-list \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Run an alias command with prefilled defaults:
+
+```bash
+go-minitrace query commands codex-framework-summary \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Load additional command repositories:
+
+```bash
+go-minitrace query commands framework-summary \
+  --query-repository ./query-commands/team \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Or configure repositories globally:
+
+```yaml
+queryRepositories:
+  - ./query-commands/team
+```
+
+```bash
+export GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team:./query-commands/local
+```
+
+Repository precedence is:
+
+1. `--query-repository`
+2. `GO_MINITRACE_QUERY_REPOSITORIES`
+3. `queryRepositories` in app config
+4. embedded commands last
+
+### Writing a command
+
+A minimal command file looks like this:
+
+```sql
+/* sqleton
+name: session-list
+short: List minitrace sessions
+flags:
+  - name: framework
+    type: stringList
+    help: Filter by agent framework
+  - name: limit
+    type: int
+    default: 100
+    help: Limit the number of rows returned
+*/
+SELECT
+  id,
+  environment->>'agent_framework' AS framework,
+  title
+FROM {{TABLE_NAME}}
+WHERE 1=1
+{{ if .framework -}}
+AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+{{ end -}}
+ORDER BY timing->>'started_at' DESC
+LIMIT {{ .limit }};
+```
+
+A matching alias file looks like this:
+
+```yaml
+name: codex-framework-summary
+short: Summarize only codex sessions
+aliasFor: framework-summary
+flags:
+  framework:
+    - codex
+```
+
+For the full usage and authoring guide, run:
+
+```bash
+go-minitrace help structured-query-commands
 ```
 
 ## Annotations
