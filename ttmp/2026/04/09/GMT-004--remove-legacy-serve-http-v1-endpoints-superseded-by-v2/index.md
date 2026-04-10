@@ -1,7 +1,7 @@
 ---
 Title: Remove legacy serve HTTP v1 endpoints superseded by v2
 Ticket: GMT-004
-Status: active
+Status: complete
 Topics:
     - backend
     - documentation
@@ -11,11 +11,12 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
-Summary: "Remove obsolete non-v2 serve endpoints while deliberately keeping POST /api/query as the one remaining JSON-native route."
-LastUpdated: 2026-04-09T21:06:41.185202051-04:00
-WhatFor: "Track the cleanup of duplicate serve HTTP route families that the first-party frontend no longer uses."
-WhenToUse: "Use when reviewing or continuing the HTTP API cleanup that removes legacy v1-style serve endpoints superseded by protobuf-backed v2 routes."
+Summary: Remove obsolete non-v2 serve endpoints while deliberately keeping POST /api/query as the one remaining JSON-native route.
+LastUpdated: 2026-04-09T21:27:25.184597598-04:00
+WhatFor: Track the cleanup of duplicate serve HTTP route families that the first-party frontend no longer uses.
+WhenToUse: Use when reviewing or continuing the HTTP API cleanup that removes legacy v1-style serve endpoints superseded by protobuf-backed v2 routes.
 ---
+
 
 # Remove legacy serve HTTP v1 endpoints superseded by v2
 

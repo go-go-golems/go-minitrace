@@ -270,3 +270,82 @@ This slice reached a little wider than the backend. Deleting the legacy annotati
   - `web/src/mocks/handlers.ts`
   - `web/src/types/session.ts`
   - `README.md`
+
+## Step 4: Validate, deliver, and close the cleanup ticket
+
+With the hard-cut changes merged, the last job was to prove the repo and ticket artifacts were internally consistent. I reran the full Go test suite, reran `docmgr doctor`, checked the remaining serve route registrations directly, and then produced a bundled reMarkable upload containing the index, design doc, diary, tasks, and changelog so the cleanup can be reviewed off-device as a coherent package.
+
+This step also flushed out one small delivery wrinkle: my first attempt to verify the remote folder used a path form that `remarquee cloud ls` did not like, even though the upload itself had succeeded. I recorded that failure and the corrected follow-up because these path-shape quirks have been easy to forget across tickets.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Finish the ticket cleanly: validate the codebase, validate the docs workspace, deliver the bundle, and make the cleanup easy to review later.
+
+**Inferred user intent:** Do not stop at code changes; leave behind a fully validated, documented, and reviewable cleanup ticket.
+
+### What I did
+- Ran `go test ./... -count=1` from `go-minitrace`.
+- Ran `docmgr doctor --ticket GMT-004 --stale-after 30`.
+- Verified the remaining `Server.routes()` registrations with `rg -n 'HandleFunc\("(GET|POST|PUT|DELETE) /api/' cmd/go-minitrace/cmds/serve/server.go`.
+- Confirmed reMarkable tooling/account with `remarquee status` and `remarquee cloud account --non-interactive`.
+- Ran a dry-run bundled upload for the GMT-004 docs.
+- Uploaded the real bundle named `GMT-004 legacy serve API cleanup`.
+- Verified the uploaded entry after correcting the cloud-list path form.
+- Marked the final task complete and prepared the ticket for closure.
+
+### Why
+- The user asked for an implementation guide, task-by-task execution, and a detailed diary, so the ticket needs a real finish line, not just merged code.
+- `docmgr doctor` plus the reMarkable bundle are the best checks that the documentation side of the work stayed in sync with the code side.
+- Route-surface verification is worthwhile here because the whole ticket is about deleting routes rather than adding behavior.
+
+### What worked
+- `go test ./... -count=1` passed after the cleanup.
+- `docmgr doctor --ticket GMT-004 --stale-after 30` reported all checks passed.
+- The route inventory now shows only `/api/v2/...` families plus `POST /api/query`.
+- The reMarkable bundle uploaded successfully.
+
+### What didn't work
+- My first verification command for the uploaded bundle failed even though the upload had succeeded.
+- Exact failing command/output:
+  - `remarquee cloud ls '/ai/2026/04/09/GMT-004/' --long --non-interactive`
+  - `Error: entry 'GMT-004' doesnt exist`
+- Fix:
+  - listed the parent directory first with `remarquee cloud ls '/ai/2026/04/09/' --long --non-interactive`
+  - then verified the uploaded entry with `remarquee cloud ls '/ai/2026/04/09/GMT-004' --long --non-interactive`
+
+### What I learned
+- `remarquee cloud ls` can be picky about whether a remote target is treated as an entry versus a directory path; when in doubt, list the parent first and then the exact entry name.
+- The final route inventory is now pleasantly simple: all structured serve APIs are on `/api/v2/...`, and `POST /api/query` is the only intentional holdout.
+
+### What was tricky to build
+- The tricky part here was not code, but validation sequencing. Because the ticket mixes backend deletions, frontend mock/docs updates, and delivery artifacts, I needed to validate in layers: backend tests/lint first, then docmgr health, then reMarkable upload, then remote verification. Skipping that ordering would have made it harder to tell whether a failure came from code, docs, or delivery tooling.
+
+### What warrants a second pair of eyes
+- The remote reMarkable listing path and bundle naming if anyone wants to verify the upload independently.
+- The final serve route inventory in `server.go`, because that is the core behavioral output of the ticket.
+
+### What should be done in the future
+- If the project later decides to protobuf-wrap raw SQL execution too, create a separate ticket instead of reopening this cleanup one.
+
+### Code review instructions
+- Run:
+  - `cd go-minitrace && go test ./... -count=1`
+  - `cd go-minitrace && docmgr doctor --ticket GMT-004 --stale-after 30`
+- Inspect `cmd/go-minitrace/cmds/serve/server.go` and confirm only `/api/v2/...` routes plus `POST /api/query` remain.
+- If needed, verify the uploaded bundle with:
+  - `remarquee cloud ls '/ai/2026/04/09/GMT-004' --long --non-interactive`
+
+### Technical details
+- Validation commands run:
+  - `cd go-minitrace && go test ./... -count=1`
+  - `cd go-minitrace && docmgr doctor --ticket GMT-004 --stale-after 30`
+  - `cd go-minitrace && rg -n 'HandleFunc\("(GET|POST|PUT|DELETE) /api/' cmd/go-minitrace/cmds/serve/server.go`
+- Delivery commands run:
+  - `remarquee status`
+  - `remarquee cloud account --non-interactive`
+  - `cd go-minitrace && remarquee upload bundle --dry-run ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/index.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/design-doc/01-legacy-serve-http-cleanup-implementation-guide.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/reference/01-cleanup-implementation-diary.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/tasks.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/changelog.md --name "GMT-004 legacy serve API cleanup" --remote-dir "/ai/2026/04/09/GMT-004" --toc-depth 2`
+  - `cd go-minitrace && remarquee upload bundle ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/index.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/design-doc/01-legacy-serve-http-cleanup-implementation-guide.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/reference/01-cleanup-implementation-diary.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/tasks.md ttmp/2026/04/09/GMT-004--remove-legacy-serve-http-v1-endpoints-superseded-by-v2/changelog.md --name "GMT-004 legacy serve API cleanup" --remote-dir "/ai/2026/04/09/GMT-004" --toc-depth 2`
+  - `remarquee cloud ls '/ai/2026/04/09/' --long --non-interactive`
+  - `remarquee cloud ls '/ai/2026/04/09/GMT-004' --long --non-interactive`

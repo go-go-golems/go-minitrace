@@ -16,4 +16,4 @@
 - [x] Add route-level regression coverage that removed legacy annotation endpoints return 404
 - [x] Update frontend mocks and API-facing comments/docs to reflect the v2-only route surface, while preserving `/api/query`
 - [x] Update the top-level README serve API section so it documents the surviving route families accurately
-- [ ] Run focused and full validation (`go test`, lint if needed, `docmgr doctor`) and upload the updated ticket bundle to reMarkable
+- [x] Run focused and full validation (`go test`, lint if needed, `docmgr doctor`) and upload the updated ticket bundle to reMarkable
