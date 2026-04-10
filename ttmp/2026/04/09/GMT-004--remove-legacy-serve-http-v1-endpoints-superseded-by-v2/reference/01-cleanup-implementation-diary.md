@@ -10,6 +10,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: README.md
+      Note: Updated serve API docs to v2-only annotation routes in Step 3 (commit c1ca601)
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
       Note: Deleted legacy preset/query handler entrypoints in Step 2 (commit e44d8cf)
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
@@ -18,18 +20,26 @@ RelatedFiles:
       Note: |-
         Initial route inventory recorded in Step 1
         Removed legacy session and query metadata route registrations in Step 2 (commit e44d8cf)
+        Removed legacy annotation route registrations in Step 3 (commit c1ca601)
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
-      Note: Added DevMode mux 404 regression tests for removed routes in Step 2 (commit e44d8cf)
+      Note: |-
+        Added DevMode mux 404 regression tests for removed routes in Step 2 (commit e44d8cf)
+        Added mux-level 404 checks for removed annotation routes in Step 3 (commit c1ca601)
     - Path: web/src/api/minitrace.ts
       Note: Confirmed surviving frontend API contract
     - Path: web/src/mocks/handlers.ts
-      Note: Captured stale mock surface during planning
+      Note: |-
+        Captured stale mock surface during planning
+        Reworked MSW handlers to v2/proto-json route shapes in Step 3 (commit c1ca601)
+    - Path: web/src/types/session.ts
+      Note: Updated API route comments to the v2-only surface in Step 3 (commit c1ca601)
 ExternalSources: []
 Summary: Chronological diary for the serve HTTP legacy-route cleanup work.
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -179,3 +189,84 @@ The actual code change was mostly subtraction. I removed the legacy route regist
   - `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
   - `cmd/go-minitrace/cmds/serve/handlers_queries.go`
   - `cmd/go-minitrace/cmds/serve/server_test.go`
+
+## Step 3: Remove the legacy annotation surface and make the docs/mocks tell the truth
+
+After the session and query-metadata cleanup, the remaining duplicated API family was annotations. Because the user had already clarified that we should treat this as a hard cutover, I removed the old annotation routes entirely instead of trying to preserve helper wrappers or deprecated aliases.
+
+This slice reached a little wider than the backend. Deleting the legacy annotation file from the server was only half of the story; the frontend-facing mock layer and README still described the old contract. I updated the MSW handlers to serve v2 session and annotation shapes, rewrote the stale API comments in `web/src/types/session.ts`, and refreshed the README serve section so it now explicitly says the structured API is `/api/v2/...` while `POST /api/query` remains the lone JSON-native exception.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Finish the hard-cut cleanup by removing the last legacy route family and aligning supporting artifacts with the new route contract.
+
+**Inferred user intent:** Make the backend, docs, and frontend support files consistently reflect a decisive v2-only API surface instead of a mixed transitional state.
+
+**Commit (code):** `c1ca601` — `Remove legacy annotation routes and refresh API docs`
+
+### What I did
+- Removed the legacy annotation route registrations from `cmd/go-minitrace/cmds/serve/server.go`.
+- Deleted `cmd/go-minitrace/cmds/serve/handlers_annotations.go` because nothing in it was still needed after the hard cutover.
+- Added mux-level 404 tests for removed legacy annotation endpoints in `cmd/go-minitrace/cmds/serve/server_test.go`.
+- Reworked `web/src/mocks/handlers.ts` so it mocks the active v2 session and annotation routes instead of the removed `/api/...` session/query surfaces.
+- Updated route comments in `web/src/types/session.ts` from legacy `/api/...` paths to `/api/v2/...` paths.
+- Updated `README.md` so the serve API section documents `/api/v2/...` annotation routes and explicitly preserves `POST /api/query` as the exception.
+- Ran `go test ./cmd/go-minitrace/cmds/serve -count=1`, `golangci-lint run -v`, and `cd web && npm run build`.
+
+### Why
+- Once the backend hard-cut removed the old annotation routes, leaving legacy mock/docs references behind would create avoidable confusion for future work and for UI development.
+- `handlers_annotations.go` contained only legacy entrypoints, so keeping it around after route removal would have been dead code by definition.
+- The v2-first frontend deserves a mock layer that actually mirrors the active production contract.
+
+### What worked
+- Deleting the legacy annotation handler file was safe because the protobuf-backed v2 annotation handlers live in their own file and do not depend on the removed implementation.
+- The new mux-level annotation absence tests behaved the same way as the earlier session/query checks when run with `DevMode: true`.
+- `npm run build` succeeded after the MSW rewrite, which gave a useful sanity check that the TypeScript-side route-shape changes were coherent.
+
+### What didn't work
+- I accidentally tried to run `gofmt` on TypeScript files while batching validation commands.
+- Exact failing command/output:
+  - `cd go-minitrace && gofmt -w cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/server_test.go web/src/mocks/handlers.ts web/src/types/session.ts && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `web/src/mocks/handlers.ts:1:1: expected 'package', found 'import'`
+  - `web/src/types/session.ts:3:1: expected 'package', found export`
+- Fix: reran `gofmt` on Go files only and used the normal frontend build for TypeScript validation.
+
+### What I learned
+- The annotation cleanup was the easiest true hard deletion in this ticket because unlike sessions and saved queries, the old annotation file did not contain shared helper code that v2 still reused.
+- The mock layer had drifted farther behind reality than I expected; it still modeled several removed routes and did not match the protobuf/v2 response envelopes the frontend adapters actually decode.
+
+### What was tricky to build
+- The tricky part was the mock rewrite, not the backend deletion. The old MSW handlers returned UI-shaped session objects directly, but the current frontend adapters decode protobuf-style v2 envelopes. That meant I had to build lightweight proto-JSON-shaped mock payloads for sessions, blocks, tool calls, badges, and annotations instead of merely renaming route paths. The symptom would have been successful route matches with decode failures or silent UI drift. The solution was to add explicit adapter helpers inside `web/src/mocks/handlers.ts` that convert the existing mock UI objects into the camelCase proto-json shape expected by the frontend decoders.
+
+### What warrants a second pair of eyes
+- `web/src/mocks/handlers.ts` because it now hand-builds proto-json-like session and annotation payloads for Storybook/MSW use.
+- `README.md` to confirm the public route documentation now matches the intended hard-cut contract.
+- `cmd/go-minitrace/cmds/serve/server_test.go` to ensure the removed annotation route assertions cover the right endpoints and nothing more.
+
+### What should be done in the future
+- Only the final validation/bookkeeping/delivery loop remains for this ticket.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/server.go` and verify that only `/api/v2/...` annotation routes remain.
+- Confirm `cmd/go-minitrace/cmds/serve/handlers_annotations.go` was deleted and that `handlers_annotations_v2.go` still owns the live annotation API.
+- Review `web/src/mocks/handlers.ts` and `README.md` together to ensure the supporting artifacts now describe the same route surface the backend exposes.
+- Validate with:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `cd go-minitrace && golangci-lint run -v`
+  - `cd go-minitrace/web && npm run build`
+
+### Technical details
+- Commands run:
+  - `cd go-minitrace && rm cmd/go-minitrace/cmds/serve/handlers_annotations.go`
+  - `cd go-minitrace && gofmt -w cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/server_test.go`
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `cd go-minitrace && golangci-lint run -v`
+  - `cd go-minitrace/web && npm run build`
+- Related files for this step:
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+  - `web/src/mocks/handlers.ts`
+  - `web/src/types/session.ts`
+  - `README.md`

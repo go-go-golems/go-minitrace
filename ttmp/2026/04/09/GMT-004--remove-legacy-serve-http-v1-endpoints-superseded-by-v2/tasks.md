@@ -11,9 +11,9 @@
 - [x] Remove the legacy preset/query route registrations from `cmd/go-minitrace/cmds/serve/server.go`
 - [x] Remove the unused v1 preset/query handlers while keeping the shared SQL file helper/types used by v2
 - [x] Replace direct v1 preset/query tests with route-level coverage for removed endpoints and keep v2 CRUD coverage intact
-- [ ] Remove the legacy annotation route registrations from `cmd/go-minitrace/cmds/serve/server.go`
-- [ ] Remove the unused v1 annotation handlers and dead path-parsing helpers while keeping the protobuf-backed v2 annotation flow intact
-- [ ] Add route-level regression coverage that removed legacy annotation endpoints return 404
-- [ ] Update frontend mocks and API-facing comments/docs to reflect the v2-only route surface, while preserving `/api/query`
-- [ ] Update the top-level README serve API section so it documents the surviving route families accurately
+- [x] Remove the legacy annotation route registrations from `cmd/go-minitrace/cmds/serve/server.go`
+- [x] Remove the unused v1 annotation handlers and dead path-parsing helpers while keeping the protobuf-backed v2 annotation flow intact
+- [x] Add route-level regression coverage that removed legacy annotation endpoints return 404
+- [x] Update frontend mocks and API-facing comments/docs to reflect the v2-only route surface, while preserving `/api/query`
+- [x] Update the top-level README serve API section so it documents the surviving route families accurately
 - [ ] Run focused and full validation (`go test`, lint if needed, `docmgr doctor`) and upload the updated ticket bundle to reMarkable

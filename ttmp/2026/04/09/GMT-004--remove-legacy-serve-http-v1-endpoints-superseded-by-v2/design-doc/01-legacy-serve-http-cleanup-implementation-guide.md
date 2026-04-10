@@ -11,7 +11,9 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: README.md
-      Note: Serve API docs still mention legacy annotation endpoints
+      Note: |-
+        Serve API docs still mention legacy annotation endpoints
+        Serve API docs updated to match the hard-cut contract
     - Path: cmd/go-minitrace/cmds/serve/handlers_annotations.go
       Note: Legacy annotation handlers targeted for removal
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
@@ -31,13 +33,18 @@ RelatedFiles:
     - Path: web/src/api/minitrace.ts
       Note: Frontend evidence that v2 routes are already the active contract
     - Path: web/src/mocks/handlers.ts
-      Note: Storybook mocks still expose stale legacy routes
+      Note: |-
+        Storybook mocks still expose stale legacy routes
+        Frontend mocks now mirror the active v2 contract instead of removed legacy routes
+    - Path: web/src/types/session.ts
+      Note: API-facing comments now describe the surviving v2 route surface
 ExternalSources: []
 Summary: Evidence-backed plan for removing obsolete non-v2 serve HTTP endpoints while preserving the one remaining JSON-native raw-query route.
 LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
