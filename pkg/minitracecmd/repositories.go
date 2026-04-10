@@ -1,6 +1,7 @@
 package minitracecmd
 
 import (
+	"encoding/csv"
 	"os"
 	"path/filepath"
 	"strings"
@@ -139,11 +140,24 @@ func ExtractRepositoryFlagValuesFromArgs(args []string) []string {
 			if i+1 >= len(args) {
 				continue
 			}
-			values = append(values, args[i+1])
+			values = append(values, splitRepositoryFlagValue(args[i+1])...)
 			i++
 		case strings.HasPrefix(arg, "--"+QueryRepositoryFlagName+"="):
-			values = append(values, strings.TrimPrefix(arg, "--"+QueryRepositoryFlagName+"="))
+			values = append(values, splitRepositoryFlagValue(strings.TrimPrefix(arg, "--"+QueryRepositoryFlagName+"="))...)
 		}
 	}
 	return normalizeRepositoryPaths(values)
+}
+
+func splitRepositoryFlagValue(value string) []string {
+	if value == "" {
+		return nil
+	}
+
+	reader := csv.NewReader(strings.NewReader(value))
+	values, err := reader.Read()
+	if err != nil {
+		return []string{value}
+	}
+	return values
 }

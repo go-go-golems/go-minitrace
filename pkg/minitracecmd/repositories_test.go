@@ -90,3 +90,23 @@ func TestExtractRepositoryFlagValuesFromArgs_SupportsSplitAndEqualsForms(t *test
 		}
 	}
 }
+
+func TestExtractRepositoryFlagValuesFromArgs_SplitsCommaSeparatedValues(t *testing.T) {
+	args := []string{
+		"query",
+		"commands",
+		"--query-repository", "./queries/team,./queries/shared",
+		"--query-repository=./queries/extra,./queries/override",
+	}
+
+	got := ExtractRepositoryFlagValuesFromArgs(args)
+	want := []string{"./queries/team", "./queries/shared", "./queries/extra", "./queries/override"}
+	if len(got) != len(want) {
+		t.Fatalf("len(got) = %d, want %d (%#v)", len(got), len(want), got)
+	}
+	for i, path := range want {
+		if got[i] != path {
+			t.Fatalf("got[%d] = %q, want %q (all=%#v)", i, got[i], path, got)
+		}
+	}
+}
