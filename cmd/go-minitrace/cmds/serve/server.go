@@ -85,20 +85,11 @@ func (s *Server) queryCommandCatalog() (*minitracecmd.Catalog, error) {
 }
 
 func (s *Server) routes() {
-	s.mux.HandleFunc("GET /api/sessions", s.handleGetSessions)
-	s.mux.HandleFunc("GET /api/sessions/{id}", s.handleGetSession)
-	s.mux.HandleFunc("GET /api/sessions/{id}/summary", s.handleGetSessionSummary)
-	s.mux.HandleFunc("GET /api/sessions/{id}/blocks", s.handleGetSessionBlocks)
 	s.mux.HandleFunc("GET /api/v2/sessions", s.handleGetSessionsV2)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}", s.handleGetSessionV2)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}/summary", s.handleGetSessionSummaryV2)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}/blocks", s.handleGetSessionBlocksV2)
 	s.mux.HandleFunc("POST /api/query", s.handleExecuteQuery)
-	s.mux.HandleFunc("GET /api/presets", s.handleGetPresets)
-	s.mux.HandleFunc("GET /api/queries", s.handleGetQueries)
-	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
-	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
-	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
 	s.mux.HandleFunc("GET /api/v2/presets", s.handleGetPresetsV2)
 	s.mux.HandleFunc("GET /api/v2/queries", s.handleGetQueriesV2)
 	s.mux.HandleFunc("POST /api/v2/queries", s.handleSaveQueryV2)
@@ -319,15 +310,6 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
-}
-
-func decodeRequest(r *http.Request, dest any) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(dest); err != nil {
-		return errors.Wrap(err, "decoding request body")
-	}
-	return nil
 }
 
 func normalizeDirList(dirs []string) []string {
