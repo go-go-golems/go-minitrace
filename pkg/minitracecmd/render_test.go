@@ -138,3 +138,20 @@ func TestRenderCommand_RejectsInvalidTableName(t *testing.T) {
 		t.Fatalf("error = %v, want ErrInvalidTableName", err)
 	}
 }
+
+func TestSQLIntIn_AcceptsJSONNumericSlices(t *testing.T) {
+	got, err := sqlIntIn([]any{float64(1), float64(2), float64(42)})
+	if err != nil {
+		t.Fatalf("sqlIntIn returned error: %v", err)
+	}
+	if got != "1, 2, 42" {
+		t.Fatalf("sqlIntIn = %q, want %q", got, "1, 2, 42")
+	}
+}
+
+func TestSQLIntIn_RejectsNonIntegerFloats(t *testing.T) {
+	_, err := sqlIntIn([]any{float64(1.5)})
+	if err == nil {
+		t.Fatalf("sqlIntIn expected error for non-integer float")
+	}
+}

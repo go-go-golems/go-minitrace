@@ -2,6 +2,7 @@ package minitracecmd
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -100,16 +101,47 @@ func toInt64Slice(values any) ([]int64, error) {
 
 	ret := make([]int64, 0, rv.Len())
 	for i := 0; i < rv.Len(); i++ {
-		item := rv.Index(i)
-		//exhaustive:ignore
-		switch item.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			ret = append(ret, item.Int())
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			ret = append(ret, int64(item.Uint()))
-		default:
-			return nil, fmt.Errorf("expected int slice element, got %T", item.Interface())
+		item, err := toInt64Value(rv.Index(i).Interface())
+		if err != nil {
+			return nil, err
 		}
+		ret = append(ret, item)
 	}
 	return ret, nil
+}
+
+func toInt64Value(value any) (int64, error) {
+	if value == nil {
+		return 0, fmt.Errorf("expected int slice element, got <nil>")
+	}
+
+	rv := reflect.ValueOf(value)
+	for rv.Kind() == reflect.Interface || rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return 0, fmt.Errorf("expected int slice element, got <nil>")
+		}
+		rv = rv.Elem()
+	}
+
+	//exhaustive:ignore
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return rv.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if rv.Uint() > math.MaxInt64 {
+			return 0, fmt.Errorf("expected int slice element in int64 range, got %v", value)
+		}
+		return int64(rv.Uint()), nil
+	case reflect.Float32, reflect.Float64:
+		f := rv.Float()
+		if math.Trunc(f) != f {
+			return 0, fmt.Errorf("expected int slice element, got non-integer %v", value)
+		}
+		if f < math.MinInt64 || f > math.MaxInt64 {
+			return 0, fmt.Errorf("expected int slice element in int64 range, got %v", value)
+		}
+		return int64(f), nil
+	default:
+		return 0, fmt.Errorf("expected int slice element, got %T", value)
+	}
 }
