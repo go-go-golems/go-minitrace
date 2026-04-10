@@ -5,8 +5,8 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
-    # Build frontend assets and copy them into the serve command directory
-    - make frontend
+    # Build frontend assets via the Go Dagger pnpm builder and export them into the serve embed directory
+    - go run ./cmd/build-web
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
