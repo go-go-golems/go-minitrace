@@ -1,13 +1,21 @@
 import { http, HttpResponse } from "msw";
+import type {
+  SessionBlock,
+  SessionDetail,
+  SessionSummary,
+  ToolCall,
+  Turn,
+} from "../types";
 import {
   mockSessions,
   mockSessionDetail,
   mockPresets,
+  mockQueryCommands,
   mockSavedQueries,
   mockQueryResult,
 } from "./data";
 
-function buildMockSessionDetail(id: string) {
+function buildMockSessionDetail(id: string): SessionDetail | null {
   const summary = mockSessions.find((session) => session.id === id);
   if (!summary) {
     return null;
@@ -21,25 +29,262 @@ function buildMockSessionDetail(id: string) {
   };
 }
 
+function toProtoBadge(badge: ToolCall["badges"][number]): string {
+  switch (badge) {
+    case "commit":
+      return "COMMIT";
+    case "ticket-create":
+      return "TICKET_CREATE";
+    case "doc-add":
+      return "DOC_ADD";
+    case "diary-write":
+      return "DIARY_WRITE";
+    case "error":
+    default:
+      return "ERROR";
+  }
+}
+
+function toProtoToolCall(toolCall: ToolCall) {
+  return {
+    id: toolCall.id,
+    toolName: toolCall.tool_name,
+    timestamp: toolCall.timestamp,
+    operationType: toolCall.operation_type,
+    input: {
+      command: toolCall.input.command,
+      arguments: toolCall.input.arguments,
+      filePath: toolCall.input.file_path ?? undefined,
+    },
+    output: {
+      success: toolCall.output.success,
+      result: toolCall.output.result ?? undefined,
+      error: toolCall.output.error ?? undefined,
+      durationMs: toolCall.output.duration_ms,
+      truncated: toolCall.output.truncated,
+    },
+    badges: toolCall.badges.map(toProtoBadge),
+  };
+}
+
+function toProtoTurn(turn: Turn) {
+  return {
+    idx: turn.idx,
+    role: turn.role,
+    source: turn.source,
+    content: turn.content,
+    timestamp: turn.timestamp,
+    thinking: turn.thinking ?? undefined,
+    model: turn.model ?? undefined,
+    usage: turn.usage
+      ? {
+          inputTokens: turn.usage.input_tokens ?? undefined,
+          outputTokens: turn.usage.output_tokens ?? undefined,
+          cacheReadTokens: turn.usage.cache_read_tokens ?? undefined,
+          reasoningTokens: turn.usage.reasoning_tokens ?? undefined,
+        }
+      : undefined,
+    toolCallsInTurn: turn.tool_calls_in_turn.map(toProtoToolCall),
+  };
+}
+
+function toProtoBlock(block: SessionBlock) {
+  return {
+    blockNum: block.block_num,
+    userTurnIdx: block.user_turn_idx,
+    userTs: block.user_ts,
+    userContent: block.user_content,
+    agentTurns: block.agent_turns,
+    toolCalls: block.tool_calls,
+    gapMinutes: block.gap_minutes ?? undefined,
+    turns: block.turns.map(toProtoTurn),
+    artifacts: {
+      commits: block.artifacts.commits,
+      ticketsCreated: block.artifacts.tickets_created,
+      docsAdded: block.artifacts.docs_added,
+      diaryWrites: block.artifacts.diary_writes,
+    },
+  };
+}
+
+function toProtoSessionSummary(session: SessionSummary) {
+  return {
+    id: session.id,
+    title: session.title,
+    summary: session.summary ?? undefined,
+    classification: session.classification,
+    timing: {
+      startedAt: session.timing.started_at,
+      endedAt: session.timing.ended_at ?? undefined,
+      durationSeconds: session.timing.duration_seconds,
+      activeDurationSeconds: session.timing.active_duration_seconds,
+      hourOfDay: session.timing.hour_of_day,
+      dayOfWeek: session.timing.day_of_week,
+    },
+    metrics: {
+      turnCount: session.metrics.turn_count,
+      toolCallCount: session.metrics.tool_call_count,
+      totalInputTokens: session.metrics.total_input_tokens,
+      totalOutputTokens: session.metrics.total_output_tokens,
+      totalCacheReadTokens: session.metrics.total_cache_read_tokens,
+    },
+    environment: {
+      agentFramework: session.environment.agent_framework,
+      model: session.environment.model,
+    },
+    operationalContext: {
+      workingDirectory: session.operational_context.working_directory,
+      autonomyLevel: session.operational_context.autonomy_level,
+      sandbox: session.operational_context.sandbox,
+    },
+  };
+}
+
+function toProtoSessionSummaryDetail(session: SessionDetail) {
+  return {
+    ...toProtoSessionSummary(session),
+    provenance: {
+      sourceFormat: session.provenance.source_format,
+      sourcePath: session.provenance.source_path,
+      originalSessionId: session.provenance.original_session_id,
+      convertedAt: session.provenance.converted_at,
+    },
+  };
+}
+
+function toProtoSessionDetail(session: SessionDetail) {
+  return {
+    ...toProtoSessionSummaryDetail(session),
+    blocks: session.blocks.map(toProtoBlock),
+  };
+}
+
+function buildMockAnnotation(sessionId: string, annotationId = "mock-annotation") {
+  return {
+    id: annotationId,
+    timestamp: "2026-04-09T12:00:00Z",
+    annotator: "user",
+    scope: {
+      type: "SESSION",
+      targetId: sessionId,
+    },
+    content: {
+      category: "OBSERVATION",
+      tags: ["mock"],
+      title: "Mock annotation",
+      detail: "Generated by MSW for UI development",
+    },
+    taxonomyMappings: {
+      minitrace: [],
+      mast: [],
+      toolemu: [],
+    },
+  };
+}
+
 export const handlers = [
-  http.get("/api/sessions", () => {
-    return HttpResponse.json(mockSessions);
+  http.get("/api/v2/sessions", () => {
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      sessions: mockSessions.map(toProtoSessionSummary),
+    });
   }),
 
-  http.get("/api/sessions/:id", ({ params }) => {
+  http.get("/api/v2/sessions/:id", ({ params }) => {
     const sessionDetail = buildMockSessionDetail(String(params.id ?? ""));
-    if (sessionDetail) {
-      return HttpResponse.json(sessionDetail);
+    if (!sessionDetail) {
+      return HttpResponse.json({ error: "not found" }, { status: 404 });
     }
-    return HttpResponse.json({ error: "not found" }, { status: 404 });
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      session: toProtoSessionDetail(sessionDetail),
+    });
   }),
 
-  http.get("/api/sessions/:id/blocks", ({ params }) => {
+  http.get("/api/v2/sessions/:id/summary", ({ params }) => {
     const sessionDetail = buildMockSessionDetail(String(params.id ?? ""));
-    if (sessionDetail) {
-      return HttpResponse.json(sessionDetail.blocks);
+    if (!sessionDetail) {
+      return HttpResponse.json({ error: "not found" }, { status: 404 });
     }
-    return HttpResponse.json({ error: "not found" }, { status: 404 });
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      session: toProtoSessionSummaryDetail(sessionDetail),
+    });
+  }),
+
+  http.get("/api/v2/sessions/:id/blocks", ({ params }) => {
+    const sessionDetail = buildMockSessionDetail(String(params.id ?? ""));
+    if (!sessionDetail) {
+      return HttpResponse.json({ error: "not found" }, { status: 404 });
+    }
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      blocks: sessionDetail.blocks.map(toProtoBlock),
+    });
+  }),
+
+  http.get("/api/v2/sessions/:id/annotations", ({ params }) => {
+    const sessionId = String(params.id ?? "");
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      sessionId,
+      count: 1,
+      annotations: [buildMockAnnotation(sessionId)],
+    });
+  }),
+
+  http.post("/api/v2/sessions/:id/annotations", async ({ params }) => {
+    const sessionId = String(params.id ?? "");
+    return HttpResponse.json(buildMockAnnotation(sessionId, "created-mock-annotation"), { status: 201 });
+  }),
+
+  http.get("/api/v2/annotations", () => {
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      annotations: [
+        {
+          id: "mock-annotation",
+          sessionId: mockSessions[0]?.id ?? "",
+          annotator: "user",
+          scopeType: "SESSION",
+          targetId: mockSessions[0]?.id ?? "",
+          category: "OBSERVATION",
+          title: "Mock annotation",
+          detail: "Generated by MSW for UI development",
+          tags: ["mock"],
+          taxonomyMinitrace: [],
+          taxonomyMast: [],
+          taxonomyToolemu: [],
+          createdAt: "2026-04-09T12:00:00Z",
+          updatedAt: "2026-04-09T12:00:00Z",
+        },
+      ],
+    });
+  }),
+
+  http.put("/api/v2/annotations/:id", ({ params }) => {
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      id: String(params.id ?? ""),
+      status: "updated",
+    });
+  }),
+
+  http.delete("/api/v2/annotations/:id", ({ params }) => {
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      id: String(params.id ?? ""),
+      status: "deleted",
+    });
+  }),
+
+  http.post("/api/v2/annotations/sync", () => {
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      synced: mockSessions.slice(0, 1).map((session) => session.id),
+      skipped: [],
+      errors: [],
+    });
   }),
 
   http.post("/api/query", async ({ request }) => {
@@ -59,25 +304,35 @@ export const handlers = [
     return HttpResponse.json(mockQueryResult);
   }),
 
-  http.get("/api/presets", () => {
-    return HttpResponse.json(mockPresets);
-  }),
-
   http.get("/api/v2/presets", () => {
     return HttpResponse.json({ meta: { schemaVersion: 1 }, presets: mockPresets });
-  }),
-
-  http.get("/api/queries", () => {
-    return HttpResponse.json(mockSavedQueries);
   }),
 
   http.get("/api/v2/queries", () => {
     return HttpResponse.json({ meta: { schemaVersion: 1 }, queries: mockSavedQueries });
   }),
 
-  http.post("/api/queries", async ({ request }) => {
-    const body = (await request.json()) as { name: string; sql: string; folder?: string; description?: string };
-    return HttpResponse.json({ ...body, path: `my-queries/${body.name}.sql` }, { status: 201 });
+  http.get("/api/v2/query-commands", () => {
+    return HttpResponse.json({ meta: { schemaVersion: 1 }, commands: mockQueryCommands });
+  }),
+
+  http.post(/\/api\/v2\/query-commands\/(.+)\/execute$/, async ({ request }) => {
+    const body = (await request.json()) as { values?: Record<string, unknown>; renderOnly?: boolean };
+    const pathname = new URL(request.url).pathname;
+    const path = pathname.replace(/^\/api\/v2\/query-commands\//, "").replace(/\/execute$/, "");
+    const selected = mockQueryCommands.find((command) => command.path === path);
+    const renderedSql = selected?.path === "aliases/codex-framework-summary.alias.yaml"
+      ? "SELECT framework, COUNT(*) AS sessions FROM sessions_base WHERE (environment->>'agent_framework') IN ('codex') GROUP BY framework ORDER BY sessions DESC;"
+      : "SELECT id, title FROM sessions_base LIMIT 100;";
+
+    return HttpResponse.json({
+      meta: { schemaVersion: 1 },
+      renderedSql,
+      columns: body.renderOnly ? [] : mockQueryResult.columns,
+      rows: body.renderOnly ? [] : mockQueryResult.rows,
+      durationMs: body.renderOnly ? 0 : 12,
+      rowCount: body.renderOnly ? 0 : mockQueryResult.row_count,
+    });
   }),
 
   http.post("/api/v2/queries", async ({ request }) => {

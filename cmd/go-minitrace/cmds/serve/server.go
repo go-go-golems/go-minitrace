@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -22,15 +23,16 @@ import (
 )
 
 type Server struct {
-	conn         *sql.Conn
-	tableName    string
-	presetDirs   []string
-	queryDirs    []string
-	sessionIndex map[string]string
-	annoStore    *annotate.Store
-	annoIndex    map[string]string
-	devMode      bool
-	mux          *http.ServeMux
+	conn               *sql.Conn
+	tableName          string
+	presetDirs         []string
+	queryDirs          []string
+	sessionIndex       map[string]string
+	annoStore          *annotate.Store
+	annoIndex          map[string]string
+	devMode            bool
+	commandSourceRoots []minitracecmd.SourceRoot
+	mux                *http.ServeMux
 }
 
 type QueryRequest struct {
@@ -75,34 +77,28 @@ func NewServer(
 	return s
 }
 
+func (s *Server) queryCommandCatalog() (*minitracecmd.Catalog, error) {
+	if len(s.commandSourceRoots) == 0 {
+		return minitracecmd.LoadEmbeddedCatalog()
+	}
+	return minitracecmd.LoadCatalog(s.commandSourceRoots)
+}
+
 func (s *Server) routes() {
-	s.mux.HandleFunc("GET /api/sessions", s.handleGetSessions)
-	s.mux.HandleFunc("GET /api/sessions/{id}", s.handleGetSession)
-	s.mux.HandleFunc("GET /api/sessions/{id}/summary", s.handleGetSessionSummary)
-	s.mux.HandleFunc("GET /api/sessions/{id}/blocks", s.handleGetSessionBlocks)
 	s.mux.HandleFunc("GET /api/v2/sessions", s.handleGetSessionsV2)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}", s.handleGetSessionV2)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}/summary", s.handleGetSessionSummaryV2)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}/blocks", s.handleGetSessionBlocksV2)
 	s.mux.HandleFunc("POST /api/query", s.handleExecuteQuery)
-	s.mux.HandleFunc("GET /api/presets", s.handleGetPresets)
-	s.mux.HandleFunc("GET /api/queries", s.handleGetQueries)
-	s.mux.HandleFunc("POST /api/queries", s.handleSaveQuery)
-	s.mux.HandleFunc("PUT /api/queries/{path...}", s.handleUpdateQuery)
-	s.mux.HandleFunc("DELETE /api/queries/{path...}", s.handleDeleteQuery)
 	s.mux.HandleFunc("GET /api/v2/presets", s.handleGetPresetsV2)
 	s.mux.HandleFunc("GET /api/v2/queries", s.handleGetQueriesV2)
 	s.mux.HandleFunc("POST /api/v2/queries", s.handleSaveQueryV2)
 	s.mux.HandleFunc("PUT /api/v2/queries/{path...}", s.handleUpdateQueryV2)
 	s.mux.HandleFunc("DELETE /api/v2/queries/{path...}", s.handleDeleteQueryV2)
+	s.mux.HandleFunc("GET /api/v2/query-commands", s.handleGetQueryCommandsV2)
+	s.mux.HandleFunc("POST /api/v2/query-commands/{path...}", s.handleExecuteQueryCommandV2)
 
 	// Annotation routes.
-	s.mux.HandleFunc("GET /api/sessions/{id}/annotations", s.handleGetSessionAnnotations)
-	s.mux.HandleFunc("POST /api/sessions/{id}/annotations", s.handleCreateAnnotation)
-	s.mux.HandleFunc("GET /api/annotations", s.handleListAnnotations)
-	s.mux.HandleFunc("PUT /api/annotations/{annId}", s.handleUpdateAnnotation)
-	s.mux.HandleFunc("DELETE /api/annotations/{annId}", s.handleDeleteAnnotation)
-	s.mux.HandleFunc("POST /api/annotations/sync", s.handleSyncAnnotations)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}/annotations", s.handleGetSessionAnnotationsV2)
 	s.mux.HandleFunc("POST /api/v2/sessions/{id}/annotations", s.handleCreateAnnotationV2)
 	s.mux.HandleFunc("GET /api/v2/annotations", s.handleListAnnotationsV2)
@@ -178,7 +174,7 @@ func (s *Server) handleExecuteQuery(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if err := validateReadOnlyQuery(req.SQL); err != nil {
+	if err := queryengine.ValidateReadOnlyQuery(req.SQL); err != nil {
 		writeJSON(w, http.StatusBadRequest, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
@@ -298,64 +294,6 @@ func readSessionIDFromArchive(filePath string) (string, error) {
 	return meta.ID, nil
 }
 
-func validateReadOnlyQuery(sqlText string) error {
-	normalized, err := normalizeQueryForValidation(sqlText)
-	if err != nil {
-		return err
-	}
-
-	allowedPrefixes := []string{"select", "with", "explain", "describe", "show"}
-	lower := strings.ToLower(normalized)
-	for _, prefix := range allowedPrefixes {
-		if strings.HasPrefix(lower, prefix) {
-			return nil
-		}
-	}
-
-	return errors.New("only read-only SELECT, WITH, EXPLAIN, DESCRIBE, and SHOW queries are allowed")
-}
-
-func normalizeQueryForValidation(sqlText string) (string, error) {
-	trimmed := strings.TrimSpace(sqlText)
-	if trimmed == "" {
-		return "", errors.New("sql is required")
-	}
-
-	for {
-		switch {
-		case strings.HasPrefix(trimmed, "--"):
-			newlineIdx := strings.Index(trimmed, "\n")
-			if newlineIdx == -1 {
-				return "", errors.New("sql is required")
-			}
-			trimmed = strings.TrimSpace(trimmed[newlineIdx+1:])
-		case strings.HasPrefix(trimmed, "/*"):
-			endIdx := strings.Index(trimmed, "*/")
-			if endIdx == -1 {
-				return "", errors.New("unterminated SQL comment")
-			}
-			trimmed = strings.TrimSpace(trimmed[endIdx+2:])
-		default:
-			goto done
-		}
-	}
-
-done:
-	if trimmed == "" {
-		return "", errors.New("sql is required")
-	}
-
-	withoutTrailingSemicolon := strings.TrimSpace(strings.TrimSuffix(trimmed, ";"))
-	if withoutTrailingSemicolon == "" {
-		return "", errors.New("sql is required")
-	}
-	if strings.Contains(withoutTrailingSemicolon, ";") {
-		return "", errors.New("multiple SQL statements are not allowed")
-	}
-
-	return withoutTrailingSemicolon, nil
-}
-
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -366,15 +304,6 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
-}
-
-func decodeRequest(r *http.Request, dest any) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(dest); err != nil {
-		return errors.Wrap(err, "decoding request body")
-	}
-	return nil
 }
 
 func normalizeDirList(dirs []string) []string {

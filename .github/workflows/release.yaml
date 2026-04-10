@@ -28,6 +28,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      - name: Install Dagger CLI
+        run: |
+          curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR="$HOME/.local/bin" DAGGER_VERSION=0.20.5 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/dagger" version
       - uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser-pro
@@ -53,6 +58,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Install Dagger CLI
+        run: |
+          curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR="$HOME/.local/bin" DAGGER_VERSION=0.20.5 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/dagger" version
       - uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser-pro

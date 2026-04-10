@@ -31,6 +31,14 @@ topics:
       description: Web UI architecture and implementation
     - slug: transcript-analysis
       description: Transcript viewing and analysis workflows
+    - slug: code-review
+      description: Code review and analysis
+    - slug: gpt
+      description: OpenAI GPT models
+    - slug: minimax
+      description: MiniMax AI models
+    - slug: configuration
+      description: Configuration files, environment variables, and CLI flag wiring
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes

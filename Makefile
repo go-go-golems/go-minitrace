@@ -35,9 +35,7 @@ build: frontend
 	go build ./...
 
 frontend:
-	cd web && npm ci && npm run build
-	rm -rf cmd/go-minitrace/cmds/serve/frontend
-	cp -r web/dist cmd/go-minitrace/cmds/serve/frontend
+	go run ./cmd/build-web
 
 build-bin: frontend
 	mkdir -p ./dist
@@ -110,7 +108,7 @@ dev:
 	sleep 2
 	tmux split-window -t $(DEV_TMUX) -h
 	@# Pane 2 (right): frontend dev server
-	tmux send-keys -t $(DEV_TMUX):.1 'cd $(DEV_WEB_DIR) && npm run dev' Enter
+	tmux send-keys -t $(DEV_TMUX):.1 'cd $(DEV_WEB_DIR) && pnpm run dev' Enter
 	@# Split bottom pane for logs/shell
 	tmux split-window -t $(DEV_TMUX) -v
 	@# Pane 3 (bottom): instructions

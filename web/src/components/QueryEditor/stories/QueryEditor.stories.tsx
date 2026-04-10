@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import Box from "@mui/material/Box";
 import { QueryEditor } from "../QueryEditor";
 import { withTheme } from "../../../test-utils/storybook-decorators";
-import { mockPresets, mockSavedQueries, mockQueryResult } from "../../../mocks/data";
+import { mockPresets, mockQueryCommands, mockSavedQueries, mockQueryResult } from "../../../mocks/data";
 
 const meta = {
   title: "Screens/QueryEditor",
@@ -20,12 +20,17 @@ const meta = {
     sql: "SELECT id, title,\n  CAST(metrics->>'turn_count' AS INT) AS turns\nFROM sessions_base\nWHERE LOWER(title) LIKE '%wesen%'\nORDER BY timing->>'started_at';",
     onSqlChange: fn(),
     onExecute: fn(),
+    onExecuteCommand: fn(),
+    onPreviewCommand: fn(),
     onSave: fn(),
     onSelectQuery: fn(),
+    onSelectCommand: fn(),
+    onCommandValueChange: fn(),
     onReloadSource: fn(),
     onClickSessionId: fn(),
     presets: mockPresets,
     savedQueries: mockSavedQueries,
+    commands: mockQueryCommands,
     result: null,
     error: null,
     isLoading: false,
@@ -98,6 +103,26 @@ ORDER BY ts;`,
       duration_ms: 45,
       row_count: 2,
     },
+  },
+};
+
+export const CommandMode: Story = {
+  args: {
+    activeCommand: mockQueryCommands[0],
+    commandValues: {
+      framework: ["codex"],
+      title_like: "wesen",
+      limit: 25,
+    },
+    commandRenderedSql: "SELECT id, title FROM sessions_base LIMIT 25;",
+    sourceStatus: {
+      label: "Query command",
+      path: mockQueryCommands[0].path,
+      missing: false,
+      externalUpdateAvailable: false,
+    },
+    result: mockQueryResult,
+    onSave: undefined,
   },
 };
 

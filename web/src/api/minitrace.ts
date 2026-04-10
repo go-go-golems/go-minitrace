@@ -5,6 +5,7 @@ import type {
   SessionDetail,
   SessionBlock,
   SavedQuery,
+  QueryCommand,
   QueryResult,
   Annotation,
   AnnotationListRow,
@@ -32,11 +33,23 @@ import {
   decodeSavedQueries,
   decodeSavedQuery,
 } from "./queryProtoAdapters";
+import {
+  buildExecuteQueryCommandBody,
+  decodeExecuteQueryCommandResponse,
+  decodeQueryCommands,
+} from "./queryCommandProtoAdapters";
+
+function encodePathSegments(path: string): string {
+  return path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
 
 export const minitraceApi = createApi({
   reducerPath: "minitraceApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
-  tagTypes: ["Sessions", "Queries", "Annotations"],
+  tagTypes: ["Sessions", "Queries", "QueryCommands", "Annotations"],
   endpoints: (builder) => ({
     // ── sessions ─────────────────────────────────
     getSessions: builder.query<SessionSummary[], void>({
@@ -74,6 +87,24 @@ export const minitraceApi = createApi({
       query: () => "v2/queries",
       transformResponse: decodeSavedQueries,
       providesTags: ["Queries"],
+    }),
+
+    getQueryCommands: builder.query<QueryCommand[], void>({
+      query: () => "v2/query-commands",
+      transformResponse: decodeQueryCommands,
+      providesTags: ["QueryCommands"],
+    }),
+
+    executeQueryCommand: builder.mutation<
+      QueryResult,
+      { path: string; values: Record<string, unknown>; renderOnly?: boolean }
+    >({
+      query: ({ path, values, renderOnly = false }) => ({
+        url: `v2/query-commands/${encodePathSegments(path)}/execute`,
+        method: "POST",
+        body: buildExecuteQueryCommandBody(values, renderOnly),
+      }),
+      transformResponse: decodeExecuteQueryCommandResponse,
     }),
 
     saveQuery: builder.mutation<
@@ -125,9 +156,7 @@ export const minitraceApi = createApi({
         body: buildUpdateAnnotationBody(patch),
       }),
       transformResponse: decodeUpdateStatus,
-      invalidatesTags: (_result, _error, { id: _annotationId }) => [
-        { type: "Annotations" },
-      ],
+      invalidatesTags: [{ type: "Annotations" }],
     }),
 
     deleteAnnotation: builder.mutation<void, { id: string; session_id: string }>({
@@ -154,6 +183,8 @@ export const {
   useExecuteQueryMutation,
   useGetPresetsQuery,
   useGetSavedQueriesQuery,
+  useGetQueryCommandsQuery,
+  useExecuteQueryCommandMutation,
   useSaveQueryMutation,
   useGetSessionAnnotationsQuery,
   useGetAnnotationsQuery,

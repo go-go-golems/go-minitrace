@@ -8,9 +8,13 @@ import (
 )
 
 func BuildCobraCommand(command cmds.Command) (*cobra.Command, error) {
+	return BuildCobraCommandWithShortHelpSections(command, schema.DefaultSlug)
+}
+
+func BuildCobraCommandWithShortHelpSections(command cmds.Command, shortHelpSections ...string) (*cobra.Command, error) {
 	return cli.BuildCobraCommandFromCommand(command,
 		cli.WithParserConfig(cli.CobraParserConfig{
-			ShortHelpSections: []string{schema.DefaultSlug},
+			ShortHelpSections: shortHelpSections,
 			MiddlewaresFunc:   cli.CobraCommandDefaultMiddlewares,
 		}),
 	)

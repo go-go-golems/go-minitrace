@@ -1,0 +1,31 @@
+{
+  "version": "minitrace-manifest-v2",
+  "period": "2026-04",
+  "generated_at": "2026-04-09T00:57:56Z",
+  "sessions": [
+    {
+      "id": "7f61f412-40f0-417f-ab85-4dffdb9927e5",
+      "schema_version": "minitrace-v0.2.0",
+      "profile": "organic",
+      "title": "Create a new docmgr ticket to add sqleton-style verb query loading for go-minitr",
+      "classification": "internal",
+      "quality": "A",
+      "started_at": "2026-04-08T21:27:52Z",
+      "duration_seconds": 11890.183,
+      "model": "gpt-5.4",
+      "agent_framework": "pi",
+      "turn_count": 192,
+      "tool_call_count": 269,
+      "file_path": "7f61f412-40f0-417f-ab85-4dffdb9927e5.minitrace.json",
+      "file_size_bytes": 1543747,
+      "source_format": "pi-agent-jsonl-v3",
+      "flags": {
+        "for_research": false,
+        "needs_cleaning": false,
+        "contains_error": false,
+        "contains_pii": false,
+        "category": []
+      }
+    }
+  ]
+}

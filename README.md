@@ -119,7 +119,7 @@ go-minitrace annotate import --file annotations.json --output-dir ./output
 
 ### Serve + HTTP API
 
-When `serve` is started with an `--archive-glob`, it automatically attaches the annotations database. All annotation endpoints return 503 if the store is unavailable.
+When `serve` is started with an `--archive-glob`, it automatically attaches the annotations database. The structured HTTP API now lives on `/api/v2/...`; the one deliberate JSON-native exception that remains is raw SQL execution on `POST /api/query`. Annotation endpoints return 503 if the store is unavailable.
 
 ```bash
 go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
@@ -127,12 +127,12 @@ go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/sessions/{id}/annotations` | List annotations for session |
-| POST | `/api/sessions/{id}/annotations` | Create annotation |
-| GET | `/api/annotations` | List all (filter: `?session=&category=&annotator=`) |
-| PUT | `/api/annotations/{annId}` | Patch annotation |
-| DELETE | `/api/annotations/{annId}` | Delete annotation |
-| POST | `/api/annotations/sync` | Sync SQLite → .minitrace.json |
+| GET | `/api/v2/sessions/{id}/annotations` | List annotations for session |
+| POST | `/api/v2/sessions/{id}/annotations` | Create annotation |
+| GET | `/api/v2/annotations` | List all (filter: `?session=&category=&annotator=`) |
+| PUT | `/api/v2/annotations/{annId}` | Patch annotation |
+| DELETE | `/api/v2/annotations/{annId}` | Delete annotation |
+| POST | `/api/v2/annotations/sync` | Sync SQLite → .minitrace.json |
 
 ### Validation
 

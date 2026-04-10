@@ -1,0 +1,112 @@
+package minitracecmd
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestLoadAppConfigFromPath_LoadsQueryRepositories(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(configPath, []byte("queryRepositories:\n  - ./queries/team\n  - ./queries/shared\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	cfg, err := loadAppConfigFromPath(configPath)
+	if err != nil {
+		t.Fatalf("loadAppConfigFromPath returned error: %v", err)
+	}
+
+	want := []string{"./queries/team", "./queries/shared"}
+	if len(cfg.QueryRepositories) != len(want) {
+		t.Fatalf("QueryRepositories length = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
+	}
+	for i, path := range want {
+		if cfg.QueryRepositories[i] != path {
+			t.Fatalf("QueryRepositories[%d] = %q, want %q", i, cfg.QueryRepositories[i], path)
+		}
+	}
+}
+
+func TestCollectRepositoryPaths_PrioritizesFlagsThenEnvThenConfig(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(configPath, []byte("queryRepositories:\n  - config-a\n  - shared\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	t.Setenv(QueryRepositoriesEnvVar, "env-a:shared")
+	flagPaths := []string{"flag-a", "shared"}
+
+	cfg, err := loadAppConfigFromPath(configPath)
+	if err != nil {
+		t.Fatalf("loadAppConfigFromPath returned error: %v", err)
+	}
+
+	got := collectRepositoryPaths(cfg, flagPaths)
+	want := []string{"flag-a", "shared", "env-a", "config-a"}
+	if len(got) != len(want) {
+		t.Fatalf("len(got) = %d, want %d (%#v)", len(got), len(want), got)
+	}
+	for i, path := range want {
+		if got[i] != path {
+			t.Fatalf("got[%d] = %q, want %q (all=%#v)", i, got[i], path, got)
+		}
+	}
+}
+
+func TestSourceRootsFromPaths_PutsEmbeddedLastAndSkipsMissingDirs(t *testing.T) {
+	repo := t.TempDir()
+	roots := SourceRootsFromPaths([]string{"/missing/repo", repo})
+	if len(roots) != 2 {
+		t.Fatalf("len(roots) = %d, want 2", len(roots))
+	}
+	if roots[0].Name != repo {
+		t.Fatalf("roots[0].Name = %q, want %q", roots[0].Name, repo)
+	}
+	if roots[1].Name != "embedded" {
+		t.Fatalf("roots[1].Name = %q, want embedded", roots[1].Name)
+	}
+}
+
+func TestExtractRepositoryFlagValuesFromArgs_SupportsSplitAndEqualsForms(t *testing.T) {
+	args := []string{
+		"query",
+		"commands",
+		"--query-repository", "./queries/team",
+		"--query-repository=./queries/shared",
+		"session-list",
+	}
+
+	got := ExtractRepositoryFlagValuesFromArgs(args)
+	want := []string{"./queries/team", "./queries/shared"}
+	if len(got) != len(want) {
+		t.Fatalf("len(got) = %d, want %d (%#v)", len(got), len(want), got)
+	}
+	for i, path := range want {
+		if got[i] != path {
+			t.Fatalf("got[%d] = %q, want %q", i, got[i], path)
+		}
+	}
+}
+
+func TestExtractRepositoryFlagValuesFromArgs_SplitsCommaSeparatedValues(t *testing.T) {
+	args := []string{
+		"query",
+		"commands",
+		"--query-repository", "./queries/team,./queries/shared",
+		"--query-repository=./queries/extra,./queries/override",
+	}
+
+	got := ExtractRepositoryFlagValuesFromArgs(args)
+	want := []string{"./queries/team", "./queries/shared", "./queries/extra", "./queries/override"}
+	if len(got) != len(want) {
+		t.Fatalf("len(got) = %d, want %d (%#v)", len(got), len(want), got)
+	}
+	for i, path := range want {
+		if got[i] != path {
+			t.Fatalf("got[%d] = %q, want %q (all=%#v)", i, got[i], path, got)
+		}
+	}
+}

@@ -15,6 +15,7 @@ import (
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -198,209 +199,30 @@ func TestHandleExecuteQueryRejectsNonReadOnlyStatements(t *testing.T) {
 	}
 }
 
-func TestHandleGetSessionsReturnsNormalizedSummaries(t *testing.T) {
-	archiveRoot := t.TempDir()
-	session := buildFixtureSession(t, "phase2-sessions")
-	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
-		t.Fatalf("WriteSession returned error: %v", err)
+func TestLegacySessionRoutesReturnNotFound(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
+
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/sessions"},
+		{method: http.MethodGet, path: "/api/sessions/phase2-detail"},
+		{method: http.MethodGet, path: "/api/sessions/phase2-summary/summary"},
+		{method: http.MethodGet, path: "/api/sessions/phase3-blocks/blocks"},
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			request := httptest.NewRequest(tt.method, tt.path, nil)
+			response := httptest.NewRecorder()
 
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
-		TableName:    "sessions_base",
-	}); err != nil {
-		t.Fatalf("LoadArchive returned error: %v", err)
-	}
+			server.mux.ServeHTTP(response, request)
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
-	request := httptest.NewRequest(http.MethodGet, "/api/sessions", nil)
-	response := httptest.NewRecorder()
-
-	server.handleGetSessions(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
-	}
-
-	var payload []SessionSummaryResponse
-	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshaling summaries: %v", err)
-	}
-	if len(payload) != 1 {
-		t.Fatalf("expected 1 summary, got %d", len(payload))
-	}
-	if payload[0].ID != "phase2-sessions" {
-		t.Fatalf("unexpected session ID %q", payload[0].ID)
-	}
-	if payload[0].Environment.Model != "gpt-5" {
-		t.Fatalf("unexpected model %q", payload[0].Environment.Model)
-	}
-	if payload[0].OperationalContext.WorkingDirectory != "/tmp/project" {
-		t.Fatalf("unexpected workdir %q", payload[0].OperationalContext.WorkingDirectory)
-	}
-}
-
-func TestHandleGetSessionSummaryReturnsMetadataWithoutBlocks(t *testing.T) {
-	archiveRoot := t.TempDir()
-	session := buildFixtureSession(t, "phase2-summary")
-	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
-		t.Fatalf("WriteSession returned error: %v", err)
-	}
-
-	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
-	if err != nil {
-		t.Fatalf("buildSessionIndex returned error: %v", err)
-	}
-
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
-	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase2-summary/summary", nil)
-	request.SetPathValue("id", "phase2-summary")
-	response := httptest.NewRecorder()
-
-	server.handleGetSessionSummary(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
-	}
-
-	var payload SessionSummaryDetailResponse
-	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshaling summary detail: %v", err)
-	}
-	if payload.ID != "phase2-summary" {
-		t.Fatalf("unexpected session ID %q", payload.ID)
-	}
-	if payload.Title != "Fixture Session" {
-		t.Fatalf("unexpected session title %q", payload.Title)
-	}
-	if payload.Provenance.SourceFormat != "fixture" {
-		t.Fatalf("unexpected source format %q", payload.Provenance.SourceFormat)
-	}
-	if strings.Contains(response.Body.String(), "\"blocks\"") {
-		t.Fatalf("summary response should not include blocks: %s", response.Body.String())
-	}
-}
-
-func TestHandleGetSessionReturnsDetailWithBlocks(t *testing.T) {
-	archiveRoot := t.TempDir()
-	session := buildFixtureSession(t, "phase2-detail")
-	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
-		t.Fatalf("WriteSession returned error: %v", err)
-	}
-
-	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
-	if err != nil {
-		t.Fatalf("buildSessionIndex returned error: %v", err)
-	}
-
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
-	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase2-detail", nil)
-	request.SetPathValue("id", "phase2-detail")
-	response := httptest.NewRecorder()
-
-	server.handleGetSession(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
-	}
-
-	var payload SessionDetailResponse
-	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshaling detail: %v", err)
-	}
-	if payload.ID != "phase2-detail" {
-		t.Fatalf("unexpected session ID %q", payload.ID)
-	}
-	if len(payload.Blocks) != 1 {
-		t.Fatalf("expected 1 block, got %d", len(payload.Blocks))
-	}
-	if payload.Blocks[0].ToolCalls != 1 {
-		t.Fatalf("expected 1 tool call in block, got %d", payload.Blocks[0].ToolCalls)
-	}
-	if payload.Blocks[0].Artifacts.Commits[0] != "feat: fixture" {
-		t.Fatalf("expected commit artifact, got %#v", payload.Blocks[0].Artifacts.Commits)
-	}
-	if len(payload.Blocks[0].Turns) != 2 {
-		t.Fatalf("expected 2 turns in block, got %d", len(payload.Blocks[0].Turns))
-	}
-	if len(payload.Blocks[0].Turns[1].ToolCallsInTurn) != 1 {
-		t.Fatalf("expected 1 tool call in assistant turn, got %d", len(payload.Blocks[0].Turns[1].ToolCallsInTurn))
-	}
-	if payload.Blocks[0].Turns[1].ToolCallsInTurn[0].ToolName != "exec_command" {
-		t.Fatalf("unexpected tool name %q", payload.Blocks[0].Turns[1].ToolCallsInTurn[0].ToolName)
-	}
-	if payload.Blocks[0].Turns[1].ToolCallsInTurn[0].Badges[0] != BadgeCommit {
-		t.Fatalf("expected commit badge, got %#v", payload.Blocks[0].Turns[1].ToolCallsInTurn[0].Badges)
-	}
-}
-
-func TestHandleGetSessionBlocksReturnsGapsAndArtifacts(t *testing.T) {
-	archiveRoot := t.TempDir()
-	session := buildTwoBlockSession(t, "phase3-blocks")
-	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
-		t.Fatalf("WriteSession returned error: %v", err)
-	}
-
-	index, err := buildSessionIndex([]string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")})
-	if err != nil {
-		t.Fatalf("buildSessionIndex returned error: %v", err)
-	}
-
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
-	request := httptest.NewRequest(http.MethodGet, "/api/sessions/phase3-blocks/blocks", nil)
-	request.SetPathValue("id", "phase3-blocks")
-	response := httptest.NewRecorder()
-
-	server.handleGetSessionBlocks(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
-	}
-
-	var payload []SessionBlock
-	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshaling blocks: %v", err)
-	}
-	if len(payload) != 2 {
-		t.Fatalf("expected 2 blocks, got %d", len(payload))
-	}
-	if payload[0].Artifacts.DiaryWrites != 1 {
-		t.Fatalf("expected 1 diary write, got %d", payload[0].Artifacts.DiaryWrites)
-	}
-	if payload[1].GapMinutes == nil || *payload[1].GapMinutes < 9.9 || *payload[1].GapMinutes > 10.1 {
-		t.Fatalf("expected ~10 minute gap, got %+v", payload[1].GapMinutes)
+			if response.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d with body %s", response.Code, response.Body.String())
+			}
+		})
 	}
 }
 
@@ -883,166 +705,60 @@ func TestHandleSyncAnnotationsV2ReturnsStructuredReport(t *testing.T) {
 	}
 }
 
-func TestHandleGetPresetsReturnsBuiltInAndExternalQueries(t *testing.T) {
-	presetDir1 := t.TempDir()
-	presetDir2 := t.TempDir()
-	if err := os.WriteFile(filepath.Join(presetDir1, "custom.sql"), []byte("-- custom preset\nSELECT 1;"), 0o644); err != nil {
-		t.Fatalf("writing custom preset: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(presetDir2, "analysis"), 0o755); err != nil {
-		t.Fatalf("creating nested preset dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(presetDir2, "analysis", "extra.sql"), []byte("-- extra preset\nSELECT 2;"), 0o644); err != nil {
-		t.Fatalf("writing extra preset: %v", err)
+func TestLegacyAnnotationRoutesReturnNotFound(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
+
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/sessions/sess-v2-ann/annotations"},
+		{method: http.MethodPost, path: "/api/sessions/sess-v2-ann/annotations"},
+		{method: http.MethodGet, path: "/api/annotations"},
+		{method: http.MethodPut, path: "/api/annotations/ann-v2-update"},
+		{method: http.MethodDelete, path: "/api/annotations/ann-v2-update"},
+		{method: http.MethodPost, path: "/api/annotations/sync"},
 	}
 
-	server := NewServer(nil, &ServeSettings{
-		TableName: "sessions_base",
-		PresetDir: []string{presetDir1, presetDir2},
-	}, map[string]string{}, nil, nil)
-	request := httptest.NewRequest(http.MethodGet, "/api/presets", nil)
-	response := httptest.NewRecorder()
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			request := httptest.NewRequest(tt.method, tt.path, nil)
+			response := httptest.NewRecorder()
 
-	server.handleGetPresets(response, request)
+			server.mux.ServeHTTP(response, request)
 
-	if response.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
-	}
-
-	var payload []SavedQuery
-	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("unmarshaling presets: %v", err)
-	}
-	if len(payload) == 0 {
-		t.Fatal("expected presets to be returned")
-	}
-	foundBuiltIn := false
-	foundCustom := false
-	foundExtra := false
-	for _, query := range payload {
-		if query.Name == "session-list" && query.Folder == "core" && query.Readonly {
-			foundBuiltIn = true
-		}
-		if query.Name == "custom" && query.Description == "custom preset" && query.Readonly {
-			foundCustom = true
-		}
-		if query.Path == "analysis/extra.sql" && query.Description == "extra preset" && query.Readonly {
-			foundExtra = true
-		}
-	}
-	if !foundBuiltIn {
-		t.Fatalf("expected built-in session-list preset in %#v", payload)
-	}
-	if !foundCustom {
-		t.Fatalf("expected custom external preset in %#v", payload)
-	}
-	if !foundExtra {
-		t.Fatalf("expected extra external preset in %#v", payload)
+			if response.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d with body %s", response.Code, response.Body.String())
+			}
+		})
 	}
 }
 
-func TestQueryCRUDValidatesPathsAndPersistsQueries(t *testing.T) {
-	queryDir1 := t.TempDir()
-	queryDir2 := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(queryDir2, "shared"), 0o755); err != nil {
-		t.Fatalf("creating second query dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(queryDir2, "shared", "team.sql"), []byte("-- team query\nSELECT 9;"), 0o644); err != nil {
-		t.Fatalf("writing second-root query: %v", err)
-	}
-	server := NewServer(nil, &ServeSettings{
-		TableName: "sessions_base",
-		QueryDir:  []string{queryDir1, queryDir2},
-	}, map[string]string{}, nil, nil)
+func TestLegacyPresetAndQueryRoutesReturnNotFound(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
 
-	saveRequest := httptest.NewRequest(http.MethodPost, "/api/queries", strings.NewReader(`{"name":"wesen-os-filter","folder":"saved/analysis","description":"saved query","sql":"SELECT 1;"}`))
-	saveResponse := httptest.NewRecorder()
-	server.handleSaveQuery(saveResponse, saveRequest)
-
-	if saveResponse.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d with body %s", saveResponse.Code, saveResponse.Body.String())
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/presets"},
+		{method: http.MethodGet, path: "/api/queries"},
+		{method: http.MethodPost, path: "/api/queries"},
+		{method: http.MethodPut, path: "/api/queries/saved/analysis/wesen-os-filter.sql"},
+		{method: http.MethodDelete, path: "/api/queries/saved/analysis/wesen-os-filter.sql"},
 	}
 
-	var saved SavedQuery
-	if err := json.Unmarshal(saveResponse.Body.Bytes(), &saved); err != nil {
-		t.Fatalf("unmarshaling saved query: %v", err)
-	}
-	if saved.Path != "saved/analysis/wesen-os-filter.sql" {
-		t.Fatalf("unexpected saved path %q", saved.Path)
-	}
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			request := httptest.NewRequest(tt.method, tt.path, nil)
+			response := httptest.NewRecorder()
 
-	getRequest := httptest.NewRequest(http.MethodGet, "/api/queries", nil)
-	getResponse := httptest.NewRecorder()
-	server.handleGetQueries(getResponse, getRequest)
-	if getResponse.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", getResponse.Code, getResponse.Body.String())
-	}
-	var queries []SavedQuery
-	if err := json.Unmarshal(getResponse.Body.Bytes(), &queries); err != nil {
-		t.Fatalf("unmarshaling queries: %v", err)
-	}
-	foundSaved := false
-	foundSecondRoot := false
-	for _, query := range queries {
-		if query.Path == "saved/analysis/wesen-os-filter.sql" {
-			foundSaved = true
-		}
-		if query.Path == "shared/team.sql" && query.Description == "team query" {
-			foundSecondRoot = true
-		}
-	}
-	if !foundSaved || !foundSecondRoot {
-		t.Fatalf("expected queries from both roots, got %#v", queries)
-	}
+			server.mux.ServeHTTP(response, request)
 
-	updateRequest := httptest.NewRequest(http.MethodPut, "/api/queries/saved/analysis/wesen-os-filter.sql", strings.NewReader(`{"description":"updated query","sql":"SELECT 2;"}`))
-	updateRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
-	updateResponse := httptest.NewRecorder()
-	server.handleUpdateQuery(updateResponse, updateRequest)
-	if updateResponse.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d with body %s", updateResponse.Code, updateResponse.Body.String())
-	}
-
-	updateSecondRootRequest := httptest.NewRequest(http.MethodPut, "/api/queries/shared/team.sql", strings.NewReader(`{"description":"updated team query","sql":"SELECT 10;"}`))
-	updateSecondRootRequest.SetPathValue("path", "shared/team.sql")
-	updateSecondRootResponse := httptest.NewRecorder()
-	server.handleUpdateQuery(updateSecondRootResponse, updateSecondRootRequest)
-	if updateSecondRootResponse.Code != http.StatusOK {
-		t.Fatalf("expected 200 for second-root update, got %d with body %s", updateSecondRootResponse.Code, updateSecondRootResponse.Body.String())
-	}
-
-	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/queries/saved/analysis/wesen-os-filter.sql", nil)
-	deleteRequest.SetPathValue("path", "saved/analysis/wesen-os-filter.sql")
-	deleteResponse := httptest.NewRecorder()
-	server.handleDeleteQuery(deleteResponse, deleteRequest)
-	if deleteResponse.Code != http.StatusNoContent {
-		t.Fatalf("expected 204, got %d with body %s", deleteResponse.Code, deleteResponse.Body.String())
-	}
-
-	traversalRequest := httptest.NewRequest(http.MethodPost, "/api/queries", strings.NewReader(`{"name":"bad","folder":"../escape","description":"x","sql":"SELECT 1;"}`))
-	traversalResponse := httptest.NewRecorder()
-	server.handleSaveQuery(traversalResponse, traversalRequest)
-	if traversalResponse.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for traversal, got %d with body %s", traversalResponse.Code, traversalResponse.Body.String())
-	}
-
-	absoluteUpdateRequest := httptest.NewRequest(http.MethodPut, "/api/queries/tmp/evil.sql", strings.NewReader(`{"description":"x","sql":"SELECT 1;"}`))
-	absoluteUpdateRequest.SetPathValue("path", "/tmp/evil.sql")
-	absoluteUpdateResponse := httptest.NewRecorder()
-	server.handleUpdateQuery(absoluteUpdateResponse, absoluteUpdateRequest)
-	if absoluteUpdateResponse.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for absolute path update, got %d with body %s", absoluteUpdateResponse.Code, absoluteUpdateResponse.Body.String())
-	}
-
-	if _, err := os.Stat(filepath.Join(queryDir1, "saved", "analysis", "wesen-os-filter.sql")); !os.IsNotExist(err) {
-		t.Fatalf("expected saved query to be deleted from first root, stat err=%v", err)
-	}
-	secondRootContent, err := os.ReadFile(filepath.Join(queryDir2, "shared", "team.sql"))
-	if err != nil {
-		t.Fatalf("reading updated second-root query: %v", err)
-	}
-	if !strings.Contains(string(secondRootContent), "updated team query") {
-		t.Fatalf("expected second-root file to be updated, got %q", string(secondRootContent))
+			if response.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d with body %s", response.Code, response.Body.String())
+			}
+		})
 	}
 }
 
@@ -1095,6 +811,193 @@ func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
 	}
 	if !foundBuiltIn || !foundCustom || !foundExtra {
 		t.Fatalf("expected built-in/custom/extra presets in %#v", payload.GetPresets())
+	}
+}
+
+func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v2/query-commands", nil)
+	response := httptest.NewRecorder()
+
+	server.handleGetQueryCommandsV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ListQueryCommandsResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal query commands v2: %v", err)
+	}
+	if payload.GetMeta().GetSchemaVersion() != 1 {
+		t.Fatalf("unexpected schema version %d", payload.GetMeta().GetSchemaVersion())
+	}
+
+	foundSessionList := false
+	foundAlias := false
+	for _, command := range payload.GetCommands() {
+		if command.GetPath() == "session-list.sql" {
+			foundSessionList = true
+			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_VERB {
+				t.Fatalf("session-list kind = %v, want verb", command.GetKind())
+			}
+			if len(command.GetFlags()) == 0 {
+				t.Fatalf("session-list should expose flags")
+			}
+			if !strings.Contains(command.GetRawSql(), "FROM {{TABLE_NAME}}") {
+				t.Fatalf("session-list raw_sql missing template body: %q", command.GetRawSql())
+			}
+			if command.GetRawSqlPath() != "session-list.sql" {
+				t.Fatalf("session-list raw_sql_path = %q, want session-list.sql", command.GetRawSqlPath())
+			}
+		}
+		if command.GetPath() == "aliases/codex-framework-summary.alias.yaml" {
+			foundAlias = true
+			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_ALIAS {
+				t.Fatalf("alias kind = %v, want alias", command.GetKind())
+			}
+			if command.GetAliasFor() != "framework-summary" {
+				t.Fatalf("aliasFor = %q, want framework-summary", command.GetAliasFor())
+			}
+			if len(command.GetFlags()) == 0 {
+				t.Fatalf("alias should expose target flags for form rendering")
+			}
+			if command.GetRawSqlPath() != "framework-summary.sql" {
+				t.Fatalf("alias raw_sql_path = %q, want framework-summary.sql", command.GetRawSqlPath())
+			}
+			if !strings.Contains(command.GetRawSql(), "GROUP BY framework") {
+				t.Fatalf("alias raw_sql should expose target template body: %q", command.GetRawSql())
+			}
+		}
+	}
+	if !foundSessionList || !foundAlias {
+		t.Fatalf("expected embedded verb and alias commands, got %#v", payload.GetCommands())
+	}
+}
+
+func TestHandleGetQueryCommandsV2UsesConfiguredSourceRoots(t *testing.T) {
+	repo := t.TempDir()
+	content := `/* sqleton
+name: session-list
+short: Override session list from external repository
+*/
+SELECT 99 AS answer FROM {{TABLE_NAME}};`
+	if err := os.WriteFile(filepath.Join(repo, "session-list.sql"), []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repo})
+	request := httptest.NewRequest(http.MethodGet, "/api/v2/query-commands", nil)
+	response := httptest.NewRecorder()
+
+	server.handleGetQueryCommandsV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ListQueryCommandsResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal query commands v2: %v", err)
+	}
+
+	foundOverride := false
+	for _, command := range payload.GetCommands() {
+		if command.GetPath() == "session-list.sql" {
+			foundOverride = true
+			if command.GetShortDescription() != "Override session list from external repository" {
+				t.Fatalf("shortDescription = %q, want override description", command.GetShortDescription())
+			}
+		}
+	}
+	if !foundOverride {
+		t.Fatalf("expected overridden session-list in %#v", payload.GetCommands())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
+	request.SetPathValue("path", "framework-summary.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command render-only: %v", err)
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "FROM sessions_base") {
+		t.Fatalf("rendered_sql missing table name substitution: %q", payload.GetRenderedSql())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
+		t.Fatalf("rendered_sql missing framework filter: %q", payload.GetRenderedSql())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase5-query-command")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
+	}); err != nil {
+		t.Fatalf("LoadArchive returned error: %v", err)
+	}
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "aliases/codex-framework-summary.alias.yaml/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command response: %v", err)
+	}
+	if payload.GetRowCount() != 1 {
+		t.Fatalf("expected row_count=1, got %d", payload.GetRowCount())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
+		t.Fatalf("rendered_sql missing alias-provided framework filter: %q", payload.GetRenderedSql())
+	}
+	if got := payload.GetRows()[0].GetFields()["framework"].GetStringValue(); got != "codex" {
+		t.Fatalf("expected framework codex, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ReturnsNotFoundForUnknownCommand(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/missing.sql/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "missing.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d with body %s", response.Code, response.Body.String())
 	}
 }
 
