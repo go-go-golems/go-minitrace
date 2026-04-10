@@ -99,12 +99,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v2/query-commands/{path...}", s.handleExecuteQueryCommandV2)
 
 	// Annotation routes.
-	s.mux.HandleFunc("GET /api/sessions/{id}/annotations", s.handleGetSessionAnnotations)
-	s.mux.HandleFunc("POST /api/sessions/{id}/annotations", s.handleCreateAnnotation)
-	s.mux.HandleFunc("GET /api/annotations", s.handleListAnnotations)
-	s.mux.HandleFunc("PUT /api/annotations/{annId}", s.handleUpdateAnnotation)
-	s.mux.HandleFunc("DELETE /api/annotations/{annId}", s.handleDeleteAnnotation)
-	s.mux.HandleFunc("POST /api/annotations/sync", s.handleSyncAnnotations)
 	s.mux.HandleFunc("GET /api/v2/sessions/{id}/annotations", s.handleGetSessionAnnotationsV2)
 	s.mux.HandleFunc("POST /api/v2/sessions/{id}/annotations", s.handleCreateAnnotationV2)
 	s.mux.HandleFunc("GET /api/v2/annotations", s.handleListAnnotationsV2)

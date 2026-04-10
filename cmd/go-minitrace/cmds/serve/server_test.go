@@ -705,6 +705,35 @@ func TestHandleSyncAnnotationsV2ReturnsStructuredReport(t *testing.T) {
 	}
 }
 
+func TestLegacyAnnotationRoutesReturnNotFound(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
+
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/sessions/sess-v2-ann/annotations"},
+		{method: http.MethodPost, path: "/api/sessions/sess-v2-ann/annotations"},
+		{method: http.MethodGet, path: "/api/annotations"},
+		{method: http.MethodPut, path: "/api/annotations/ann-v2-update"},
+		{method: http.MethodDelete, path: "/api/annotations/ann-v2-update"},
+		{method: http.MethodPost, path: "/api/annotations/sync"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			request := httptest.NewRequest(tt.method, tt.path, nil)
+			response := httptest.NewRecorder()
+
+			server.mux.ServeHTTP(response, request)
+
+			if response.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d with body %s", response.Code, response.Body.String())
+			}
+		})
+	}
+}
+
 func TestLegacyPresetAndQueryRoutesReturnNotFound(t *testing.T) {
 	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
 

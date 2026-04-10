@@ -35,7 +35,7 @@ export interface SessionProvenance {
   converted_at: string;
 }
 
-/** Summary row returned by /api/sessions */
+/** Summary row returned by /api/v2/sessions */
 export interface SessionSummary {
   id: string;
   title: string;
@@ -114,7 +114,7 @@ export interface SessionBlock {
   artifacts: BlockArtifacts;
 }
 
-/** Summary detail returned by /api/sessions/:id/summary */
+/** Summary detail returned by /api/v2/sessions/:id/summary */
 export interface SessionSummaryDetail {
   id: string;
   title: string;
@@ -127,7 +127,7 @@ export interface SessionSummaryDetail {
   provenance: SessionProvenance;
 }
 
-/** Full session detail returned by /api/sessions/:id */
+/** Full session detail returned by /api/v2/sessions/:id */
 export interface SessionDetail extends SessionSummaryDetail {
   blocks: SessionBlock[];
 }
@@ -178,7 +178,7 @@ export const ANNOTATION_CATEGORY_COLORS: Record<string, "default" | "primary" | 
   "to-improve": "primary",
 };
 
-// Response from GET /api/sessions/:id/annotations
+// Response from GET /api/v2/sessions/:id/annotations
 export interface SessionAnnotationsResponse {
   session_id: string;
   count: number;
@@ -204,7 +204,7 @@ export interface AnnotationListRow {
   updatedAt: string;
 }
 
-// Sync report returned by POST /api/annotations/sync
+// Sync report returned by POST /api/v2/annotations/sync
 export interface SyncReport {
   synced: string[];
   skipped: string[];
