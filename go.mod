@@ -2,7 +2,7 @@ module github.com/go-go-golems/go-minitrace
 
 go 1.25.7
 
-toolchain go1.26.1
+toolchain go1.26.2
 
 require (
 	github.com/duckdb/duckdb-go/v2 v2.10501.0
@@ -15,6 +15,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/sync v0.19.0
 	google.golang.org/protobuf v1.36.11
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -121,5 +122,4 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
