@@ -15,11 +15,17 @@ RelatedFiles:
     - Path: cmd/go-minitrace/cmds/serve/handlers_annotations.go
       Note: Legacy annotation handlers targeted for removal
     - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
-      Note: Legacy preset/query handlers share helpers with v2
+      Note: |-
+        Legacy preset/query handlers share helpers with v2
+        V2 still reuses SavedQuery and SQL-dir helpers after handler removal
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
-      Note: Legacy session handlers share helpers with v2
+      Note: |-
+        Legacy session handlers share helpers with v2
+        V2 still reuses helper models after handler removal
     - Path: cmd/go-minitrace/cmds/serve/server.go
-      Note: Route registration inventory and cleanup target
+      Note: |-
+        Route registration inventory and cleanup target
+        Hard-cut removal now implemented for sessions and query metadata
     - Path: cmd/go-minitrace/cmds/serve/server_test.go
       Note: Legacy handler tests to replace with route-level assertions
     - Path: web/src/api/minitrace.ts
@@ -32,6 +38,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Legacy serve HTTP cleanup implementation guide

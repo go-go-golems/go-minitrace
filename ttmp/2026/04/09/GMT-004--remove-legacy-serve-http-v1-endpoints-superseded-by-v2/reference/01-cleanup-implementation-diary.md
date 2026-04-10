@@ -10,8 +10,16 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/go-minitrace/cmds/serve/handlers_queries.go
+      Note: Deleted legacy preset/query handler entrypoints in Step 2 (commit e44d8cf)
+    - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
+      Note: Deleted legacy session handler entrypoints in Step 2 (commit e44d8cf)
     - Path: cmd/go-minitrace/cmds/serve/server.go
-      Note: Initial route inventory recorded in Step 1
+      Note: |-
+        Initial route inventory recorded in Step 1
+        Removed legacy session and query metadata route registrations in Step 2 (commit e44d8cf)
+    - Path: cmd/go-minitrace/cmds/serve/server_test.go
+      Note: Added DevMode mux 404 regression tests for removed routes in Step 2 (commit e44d8cf)
     - Path: web/src/api/minitrace.ts
       Note: Confirmed surviving frontend API contract
     - Path: web/src/mocks/handlers.ts
@@ -22,6 +30,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -94,3 +103,79 @@ The evidence was straightforward but important to collect before touching code. 
   - `nl -ba cmd/go-minitrace/cmds/serve/server.go | sed -n '70,125p'`
   - `nl -ba web/src/api/minitrace.ts | sed -n '50,120p'`
   - `nl -ba web/src/mocks/handlers.ts | sed -n '1,140p'`
+
+## Step 2: Hard-cut the legacy session and saved-query route families
+
+Once the ticket plan was in place, I moved directly into the backend cleanup instead of preserving any compatibility shims. The user explicitly clarified that we can assume a hard cutover, so I treated the old `/api/sessions...`, `/api/presets`, and `/api/queries...` surfaces as dead code rather than as something to deprecate gently.
+
+The actual code change was mostly subtraction. I removed the legacy route registrations from `server.go`, deleted the dead session and saved-query handler entrypoints, and kept only the shared normalization/file-loading helper code that the v2 handlers still call. I also replaced the old direct-handler tests with mux-level tests that prove the removed routes are now absent when the server runs in `DevMode`, which avoids the SPA fallback turning missing API paths into HTML 200 responses.
+
+### Prompt Context
+
+**User prompt (verbatim):** "I don't wnat to keep any legacy stuff over, we can pretty much assume hard cutover"
+
+**Assistant interpretation:** Treat the remaining duplicated serve endpoints as a hard removal rather than as a compatibility/deprecation exercise.
+
+**Inferred user intent:** Keep the cleanup decisive and avoid carrying dead routes or shims just because they used to exist.
+
+**Commit (code):** `e44d8cf` — `Remove legacy session and query metadata routes`
+
+### What I did
+- Removed legacy session route registrations from `cmd/go-minitrace/cmds/serve/server.go`.
+- Removed legacy preset/query route registrations from `cmd/go-minitrace/cmds/serve/server.go`.
+- Deleted the v1 session handlers from `cmd/go-minitrace/cmds/serve/handlers_sessions.go`.
+- Deleted the v1 preset/query handlers plus unused request structs from `cmd/go-minitrace/cmds/serve/handlers_queries.go`.
+- Removed the now-unused `decodeRequest(...)` helper from `cmd/go-minitrace/cmds/serve/server.go` after lint reported it as dead.
+- Replaced direct legacy session/query tests in `cmd/go-minitrace/cmds/serve/server_test.go` with mux-level 404 checks that run with `DevMode: true`.
+- Ran `go test ./cmd/go-minitrace/cmds/serve -count=1`, then the pre-commit `go test ./...` and `golangci-lint run -v` via commit hooks.
+
+### Why
+- The first-party frontend already uses the v2 routes for these domains, so keeping the old route families only increases maintenance surface.
+- The user explicitly said not to preserve legacy compatibility.
+- Route-level absence tests are a better long-term fit than continuing to exercise deleted handlers directly.
+
+### What worked
+- The handler files separated cleanly into "dead entrypoints" and "shared helpers still used by v2", so most of the change was straightforward deletion.
+- The v2 tests continued to pass without code changes, which confirmed that the shared session normalization and saved-query helper code remained intact.
+- Running the mux-level absence tests in `DevMode` avoided accidental SPA fallback interference.
+
+### What didn't work
+- My first attempt at the absence tests expected 404s from the default server config, but the non-dev `spaHandler(frontendFS)` fallback returned the frontend HTML with status 200 instead.
+- Exact failing command/output:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `--- FAIL: TestLegacySessionRoutesReturnNotFound (0.00s)`
+  - `server_test.go:223: expected 404, got 200 with body <!doctype html> ...`
+- Fix: instantiate the test server with `DevMode: true` so the SPA catch-all route is not registered when asserting missing API endpoints.
+
+### What I learned
+- For route-removal tests in this server, `DevMode` is the easiest way to assert true mux absence because otherwise the SPA fallback masks missing endpoints.
+- Removing one family of legacy handlers can expose additional dead helpers immediately; in this slice, `decodeRequest(...)` became unused as soon as the old JSON query-metadata handlers disappeared.
+
+### What was tricky to build
+- The tricky part was the interaction between API route removal and the SPA catch-all. A missing API route does not naturally produce a 404 in the default test server because the embedded frontend is mounted at `/`. The symptom was an unexpected HTML document with status 200 in the new regression test. The solution was to run the absence assertions with `ServeSettings{DevMode: true}`, which skips the SPA route and lets the mux report 404 for genuinely missing API endpoints.
+
+### What warrants a second pair of eyes
+- `cmd/go-minitrace/cmds/serve/server.go` to confirm the intended route families are the only ones removed.
+- `cmd/go-minitrace/cmds/serve/server_test.go` to confirm the new absence tests cover the intended hard-cut endpoints without accidentally asserting behavior hidden by the SPA fallback.
+- `cmd/go-minitrace/cmds/serve/handlers_queries.go` to confirm only dead entrypoints were removed and not the helper code reused by v2 CRUD handlers.
+
+### What should be done in the future
+- Finish the same hard-cut removal for the legacy annotation route family and then update mocks/docs so the supporting artifacts match the backend cleanup.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/serve/server.go` and verify that legacy session/query metadata registrations are gone while `/api/query` and `/api/v2/...` remain.
+- Review `cmd/go-minitrace/cmds/serve/handlers_sessions.go` and `cmd/go-minitrace/cmds/serve/handlers_queries.go` to ensure only dead handler entrypoints were deleted.
+- Run:
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `cd go-minitrace && golangci-lint run -v`
+
+### Technical details
+- Commands run:
+  - `cd go-minitrace && gofmt -w cmd/go-minitrace/cmds/serve/server.go cmd/go-minitrace/cmds/serve/handlers_sessions.go cmd/go-minitrace/cmds/serve/handlers_queries.go cmd/go-minitrace/cmds/serve/server_test.go`
+  - `cd go-minitrace && go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `cd go-minitrace && golangci-lint run -v`
+- Related files for this step:
+  - `cmd/go-minitrace/cmds/serve/server.go`
+  - `cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+  - `cmd/go-minitrace/cmds/serve/handlers_queries.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
