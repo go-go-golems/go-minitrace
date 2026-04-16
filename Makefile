@@ -30,14 +30,15 @@ govulncheck:
 test:
 	go test ./...
 
-build: frontend
+build:
 	go generate ./...
 	go build ./...
 
 frontend:
-	go run ./cmd/build-web
+	go generate ./cmd/go-minitrace/cmds/serve
 
-build-bin: frontend
+build-bin:
+	go generate ./...
 	mkdir -p ./dist
 	go build -o ./dist/$(BINARY) $(CMD_DIR)
 

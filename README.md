@@ -35,6 +35,21 @@ brew install go-minitrace
 go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
 ```
 
+### Building from a checkout
+
+The embedded web UI is refreshed via `go generate`, not a separate manual frontend step.
+
+```bash
+go generate ./...
+go build ./...
+```
+
+If you only want to rebuild the embedded frontend bundle, run:
+
+```bash
+go generate ./cmd/go-minitrace/cmds/serve
+```
+
 ## Quick start
 
 ```bash
