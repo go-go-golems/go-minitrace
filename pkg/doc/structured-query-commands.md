@@ -36,17 +36,17 @@ The `query commands` subgroup loads a catalog from two places:
 
 Today the embedded catalog includes examples such as:
 
-- `session-list`
-- `framework-summary`
-- `timing-analysis`
-- `codex-framework-summary` (an alias)
+- `overview session-list`
+- `overview framework-summary`
+- `timing timing-analysis`
+- `overview aliases codex-framework-summary` (an alias)
 
 You can inspect the currently loaded commands with standard Cobra help:
 
 ```bash
 go-minitrace query commands --help
-go-minitrace query commands session-list --help
-go-minitrace query commands framework-summary --help
+go-minitrace query commands overview session-list --help
+go-minitrace query commands overview framework-summary --help
 ```
 
 ## Running structured query commands from the CLI
@@ -54,22 +54,27 @@ go-minitrace query commands framework-summary --help
 The CLI surface is:
 
 ```bash
-go-minitrace query commands <command-name> [command flags] [query runtime flags]
+go-minitrace query commands <group...> <command-name> [command flags] [query runtime flags]
 ```
+
+Repository subdirectories become nested Cobra groups. For example:
+
+- `pkg/minitracecmd/core/overview/session-list.sql` → `go-minitrace query commands overview session-list`
+- `pkg/minitracecmd/core/overview/aliases/codex-framework-summary.alias.yaml` → `go-minitrace query commands overview aliases codex-framework-summary`
 
 The command-specific flags come from the sqleton-style file metadata. The query-runtime flags are the same execution settings used by the DuckDB loader, such as `--archive-glob`, `--db-path`, `--table-name`, and `--persist-loaded`.
 
 List sessions with the embedded command:
 
 ```bash
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 Filter the list by framework and limit:
 
 ```bash
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex,pi \
   --limit 25
@@ -78,14 +83,14 @@ go-minitrace query commands session-list \
 Run a summary command:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 Run an alias command with baked-in defaults:
 
 ```bash
-go-minitrace query commands codex-framework-summary \
+go-minitrace query commands overview aliases codex-framework-summary \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
@@ -129,7 +134,7 @@ Higher-precedence repositories are mounted first so they can override embedded c
 Use one or more `--query-repository` flags:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --query-repository ./query-commands/team \
   --query-repository ./query-commands/local \
   --archive-glob './output/active/*/*.minitrace.json'
@@ -138,7 +143,7 @@ go-minitrace query commands framework-summary \
 The flag uses StringSlice semantics, so comma-separated values work too:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --query-repository './query-commands/team,./query-commands/local' \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
@@ -150,7 +155,7 @@ Use the platform path-list separator (`:` on Unix, `;` on Windows):
 ```bash
 export GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team:./query-commands/local
 
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
@@ -172,13 +177,28 @@ A small example looks like this:
 
 ```text
 query-commands/
-├── session-list.sql
-├── framework-summary.sql
-└── aliases/
-    └── codex-framework-summary.alias.yaml
+├── overview/
+│   ├── session-list.sql
+│   ├── framework-summary.sql
+│   └── aliases/
+│       └── codex-framework-summary.alias.yaml
+├── timing/
+│   └── timing-analysis.sql
+└── tools/
+    └── tool-failures.sql
 ```
 
-The directory layout is mainly about organization and source paths. The CLI command name itself comes from the file metadata `name:` field, not from the filename alone.
+Those folders become nested CLI groups:
+
+```bash
+go-minitrace query commands overview session-list
+go-minitrace query commands overview framework-summary
+go-minitrace query commands overview aliases codex-framework-summary
+go-minitrace query commands timing timing-analysis
+go-minitrace query commands tools tool-failures
+```
+
+The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. The folder structure controls the command-group hierarchy and the source path shown in the UI/API.
 
 ## Writing a sqleton-style command file
 
@@ -330,12 +350,12 @@ A concrete example:
 mkdir -p ./query-commands/aliases
 $EDITOR ./query-commands/session-list.sql
 
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --help
 
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex

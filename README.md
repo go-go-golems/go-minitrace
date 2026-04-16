@@ -50,7 +50,7 @@ go-minitrace convert chatgpt --source ~/Downloads/chatgpt-export.zip --output-di
 go-minitrace convert chatgpt-json --source-dir /tmp/chatgpt-exports --output-dir ./output
 go-minitrace convert turnsdb --source /tmp/turns.db --output-dir ./output
 go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset session-list
-go-minitrace query commands session-list --archive-glob './output/active/*/*.minitrace.json'
+go-minitrace query commands overview session-list --archive-glob './output/active/*/*.minitrace.json'
 go-minitrace validate --path /path/to/file-or-dir --recursive
 ```
 
@@ -69,6 +69,12 @@ In addition to `query duckdb`, go-minitrace now supports repository-backed struc
 go-minitrace query commands ...
 ```
 
+Repository subdirectories become nested CLI groups. For example, `pkg/minitracecmd/core/overview/session-list.sql` is exposed as:
+
+```bash
+go-minitrace query commands overview session-list
+```
+
 These commands use sqleton-style SQL files with a `/* sqleton ... */` YAML preamble. That preamble defines the command name, help text, and typed parameters, while the SQL body remains a normal SQL template rendered against the loaded DuckDB table.
 
 This is the right workflow when a query should be reusable, parameterized, and visible in the web UI instead of living only as an ad hoc `--sql` string.
@@ -78,23 +84,40 @@ This is the right workflow when a query should be reusable, parameterized, and v
 Run an embedded command:
 
 ```bash
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 Run an alias command with prefilled defaults:
 
 ```bash
-go-minitrace query commands codex-framework-summary \
+go-minitrace query commands overview aliases codex-framework-summary \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 Load additional command repositories:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --query-repository ./query-commands/team \
   --archive-glob './output/active/*/*.minitrace.json'
+```
+
+External repositories follow the same nested-tree pattern. For example:
+
+```text
+query-commands/
+└── overview/
+    ├── session-list.sql
+    └── aliases/
+        └── codex-framework-summary.alias.yaml
+```
+
+becomes:
+
+```bash
+go-minitrace query commands overview session-list
+go-minitrace query commands overview aliases codex-framework-summary
 ```
 
 Or configure repositories globally:

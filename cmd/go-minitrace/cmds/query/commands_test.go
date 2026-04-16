@@ -1,32 +1,67 @@
 package query
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestNewCommandsCommand_IncludesEmbeddedCommands(t *testing.T) {
+func TestNewCommandsCommand_IncludesEmbeddedCommandsAsFolderGroups(t *testing.T) {
 	setIsolatedConfigHome(t)
 	cmd, err := NewCommandsCommand(nil)
 	if err != nil {
 		t.Fatalf("NewCommandsCommand returned error: %v", err)
 	}
 
-	want := map[string]bool{
-		"session-list":            false,
-		"framework-summary":       false,
-		"timing-analysis":         false,
-		"codex-framework-summary": false,
+	cases := [][]string{
+		{"overview", "session-list"},
+		{"overview", "framework-summary"},
+		{"timing", "timing-analysis"},
+		{"overview", "aliases", "codex-framework-summary"},
 	}
-	for _, sub := range cmd.Commands() {
-		if _, ok := want[sub.Name()]; ok {
-			want[sub.Name()] = true
+	for _, args := range cases {
+		found, _, err := cmd.Find(args)
+		if err != nil {
+			t.Fatalf("Find(%v) returned error: %v", args, err)
+		}
+		if found == nil || found.Name() != args[len(args)-1] {
+			t.Fatalf("Find(%v) resolved to %#v", args, found)
 		}
 	}
-	for name, seen := range want {
-		if !seen {
-			t.Fatalf("commands subgroup missing %q", name)
+}
+
+func TestNewCommandsCommand_GroupHelpSmokeTests(t *testing.T) {
+	setIsolatedConfigHome(t)
+	cases := []struct {
+		args        []string
+		wantContain []string
+	}{
+		{args: []string{"overview", "--help"}, wantContain: []string{"session-list", "framework-summary", "aliases"}},
+		{args: []string{"overview", "aliases", "--help"}, wantContain: []string{"codex-framework-summary"}},
+		{args: []string{"timing", "--help"}, wantContain: []string{"timing-analysis"}},
+		{args: []string{"tools", "--help"}, wantContain: []string{"tool-failures", "tool-operation-breakdown"}},
+		{args: []string{"files", "--help"}, wantContain: []string{"file-operations", "file-timeline"}},
+	}
+
+	for _, tc := range cases {
+		cmd, err := NewCommandsCommand(nil)
+		if err != nil {
+			t.Fatalf("NewCommandsCommand returned error: %v", err)
+		}
+		buf := &bytes.Buffer{}
+		cmd.SetOut(buf)
+		cmd.SetErr(buf)
+		cmd.SetArgs(tc.args)
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("Execute(%v) returned error: %v\noutput:\n%s", tc.args, err, buf.String())
+		}
+		output := buf.String()
+		for _, needle := range tc.wantContain {
+			if !strings.Contains(output, needle) {
+				t.Fatalf("Execute(%v) output missing %q\noutput:\n%s", tc.args, needle, output)
+			}
 		}
 	}
 }
@@ -59,7 +94,10 @@ name: session-list
 short: Override session list
 */
 SELECT 42 AS answer FROM {{TABLE_NAME}};`
-	if err := os.WriteFile(filepath.Join(repo, "session-list.sql"), []byte(content), 0o644); err != nil {
+	if err := os.MkdirAll(filepath.Join(repo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "overview", "session-list.sql"), []byte(content), 0o644); err != nil {
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 
@@ -68,22 +106,122 @@ SELECT 42 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("NewCommandsCommand returned error: %v", err)
 	}
 
-	found := false
-	for _, sub := range cmd.Commands() {
-		if sub.Name() == "session-list" {
-			found = true
-			if sub.Short != "Override session list" {
-				t.Fatalf("sub.Short = %q, want override short description", sub.Short)
-			}
-		}
+	found, _, err := cmd.Find([]string{"overview", "session-list"})
+	if err != nil {
+		t.Fatalf("Find returned error: %v", err)
 	}
-	if !found {
-		t.Fatalf("expected overridden session-list command in %#v", cmd.Commands())
+	if found == nil || found.Name() != "session-list" {
+		t.Fatalf("expected overridden overview/session-list command, got %#v", found)
+	}
+	if found.Short != "Override session list" {
+		t.Fatalf("found.Short = %q, want override short description", found.Short)
 	}
 
 	flag := cmd.PersistentFlags().Lookup("query-repository")
 	if flag == nil {
 		t.Fatalf("commands root missing query-repository flag")
+	}
+}
+
+func TestNewCommandsCommand_LoadsConfiguredRepositoryFromAppConfig(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	content := `/* sqleton
+name: session-list
+short: App config override session list
+*/
+SELECT 42 AS answer FROM {{TABLE_NAME}};`
+	if err := os.MkdirAll(filepath.Join(repo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "overview", "session-list.sql"), []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	configDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "go-minitrace")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	configPath := filepath.Join(configDir, "config.yaml")
+	configContent := "queryRepositories:\n  - " + repo + "\n"
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("WriteFile(config) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand(nil)
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	found, _, err := cmd.Find([]string{"overview", "session-list"})
+	if err != nil {
+		t.Fatalf("Find returned error: %v", err)
+	}
+	if found == nil || found.Name() != "session-list" {
+		t.Fatalf("expected app-config overridden overview/session-list command, got %#v", found)
+	}
+	if found.Short != "App config override session list" {
+		t.Fatalf("found.Short = %q, want app-config override short description", found.Short)
+	}
+}
+
+func TestNewCommandsCommand_XDGConfigOverridesHomeConfig(t *testing.T) {
+	setIsolatedConfigHome(t)
+	homeRepo := t.TempDir()
+	xdgRepo := t.TempDir()
+	homeContent := `/* sqleton
+name: session-list
+short: Home config override session list
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`
+	xdgContent := `/* sqleton
+name: session-list
+short: XDG config override session list
+*/
+SELECT 2 AS answer FROM {{TABLE_NAME}};`
+	if err := os.MkdirAll(filepath.Join(homeRepo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(home repo) returned error: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(xdgRepo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(xdg repo) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(homeRepo, "overview", "session-list.sql"), []byte(homeContent), 0o644); err != nil {
+		t.Fatalf("WriteFile(home repo) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(xdgRepo, "overview", "session-list.sql"), []byte(xdgContent), 0o644); err != nil {
+		t.Fatalf("WriteFile(xdg repo) returned error: %v", err)
+	}
+
+	homeConfigDir := filepath.Join(os.Getenv("HOME"), ".go-minitrace")
+	if err := os.MkdirAll(homeConfigDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(home config) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(homeConfigDir, "config.yaml"), []byte("queryRepositories:\n  - "+homeRepo+"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(home config) returned error: %v", err)
+	}
+
+	xdgConfigDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "go-minitrace")
+	if err := os.MkdirAll(xdgConfigDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(xdg config) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(xdgConfigDir, "config.yaml"), []byte("queryRepositories:\n  - "+xdgRepo+"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(xdg config) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand(nil)
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	found, _, err := cmd.Find([]string{"overview", "session-list"})
+	if err != nil {
+		t.Fatalf("Find returned error: %v", err)
+	}
+	if found == nil || found.Name() != "session-list" {
+		t.Fatalf("expected XDG-config overridden overview/session-list command, got %#v", found)
+	}
+	if found.Short != "XDG config override session list" {
+		t.Fatalf("found.Short = %q, want XDG config override short description", found.Short)
 	}
 }
 

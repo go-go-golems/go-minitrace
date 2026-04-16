@@ -17,7 +17,7 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 	if catalog.ByName["framework-summary"] == nil {
 		t.Fatalf("embedded catalog missing framework-summary command")
 	}
-	if catalog.ByPath["aliases/codex-framework-summary.alias.yaml"] == nil {
+	if catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"] == nil {
 		t.Fatalf("embedded catalog missing codex-framework-summary alias")
 	}
 }

@@ -13,16 +13,21 @@ import (
 func (s *Server) handleGetPresetsV2(w http.ResponseWriter, _ *http.Request) {
 	presets := make([]SavedQuery, 0)
 
-	for _, name := range queryengine.ListPresets() {
-		sqlText, err := queryengine.ResolvePresetSQL(name, s.tableName)
+	for _, preset := range queryengine.ListPresetEntries() {
+		presetID := strings.TrimSuffix(preset.Path, ".sql")
+		sqlText, err := queryengine.ResolvePresetSQL(presetID, s.tableName)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		folder := "core"
+		if preset.Folder != "" {
+			folder = "core/" + preset.Folder
+		}
 		presets = append(presets, SavedQuery{
-			Name:        name,
-			Folder:      "core",
-			Path:        "core/" + name + ".sql",
+			Name:        preset.Name,
+			Folder:      folder,
+			Path:        "core/" + preset.Path,
 			Description: extractSQLComment(sqlText),
 			SQL:         sqlText,
 			Readonly:    true,

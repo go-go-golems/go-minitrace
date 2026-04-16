@@ -799,7 +799,7 @@ func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
 	foundCustom := false
 	foundExtra := false
 	for _, query := range payload.GetPresets() {
-		if query.GetName() == "session-list" && query.GetFolder() == "core" && query.GetReadonly() {
+		if query.GetName() == "session-list" && query.GetFolder() == "core/overview" && query.GetPath() == "core/overview/session-list.sql" && query.GetReadonly() {
 			foundBuiltIn = true
 		}
 		if query.GetName() == "custom" && query.GetDescription() == "custom preset" && query.GetReadonly() {
@@ -836,7 +836,7 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 	foundSessionList := false
 	foundAlias := false
 	for _, command := range payload.GetCommands() {
-		if command.GetPath() == "session-list.sql" {
+		if command.GetPath() == "overview/session-list.sql" {
 			foundSessionList = true
 			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_VERB {
 				t.Fatalf("session-list kind = %v, want verb", command.GetKind())
@@ -847,11 +847,11 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			if !strings.Contains(command.GetRawSql(), "FROM {{TABLE_NAME}}") {
 				t.Fatalf("session-list raw_sql missing template body: %q", command.GetRawSql())
 			}
-			if command.GetRawSqlPath() != "session-list.sql" {
-				t.Fatalf("session-list raw_sql_path = %q, want session-list.sql", command.GetRawSqlPath())
+			if command.GetRawSqlPath() != "overview/session-list.sql" {
+				t.Fatalf("session-list raw_sql_path = %q, want overview/session-list.sql", command.GetRawSqlPath())
 			}
 		}
-		if command.GetPath() == "aliases/codex-framework-summary.alias.yaml" {
+		if command.GetPath() == "overview/aliases/codex-framework-summary.alias.yaml" {
 			foundAlias = true
 			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_ALIAS {
 				t.Fatalf("alias kind = %v, want alias", command.GetKind())
@@ -862,8 +862,8 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			if len(command.GetFlags()) == 0 {
 				t.Fatalf("alias should expose target flags for form rendering")
 			}
-			if command.GetRawSqlPath() != "framework-summary.sql" {
-				t.Fatalf("alias raw_sql_path = %q, want framework-summary.sql", command.GetRawSqlPath())
+			if command.GetRawSqlPath() != "overview/framework-summary.sql" {
+				t.Fatalf("alias raw_sql_path = %q, want overview/framework-summary.sql", command.GetRawSqlPath())
 			}
 			if !strings.Contains(command.GetRawSql(), "GROUP BY framework") {
 				t.Fatalf("alias raw_sql should expose target template body: %q", command.GetRawSql())
@@ -918,8 +918,8 @@ SELECT 99 AS answer FROM {{TABLE_NAME}};`
 
 func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
 	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
-	request.SetPathValue("path", "framework-summary.sql/execute")
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
+	request.SetPathValue("path", "overview/framework-summary.sql/execute")
 	response := httptest.NewRecorder()
 
 	server.handleExecuteQueryCommandV2(response, request)
@@ -963,8 +963,8 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 
 	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
-	request.SetPathValue("path", "aliases/codex-framework-summary.alias.yaml/execute")
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "overview/aliases/codex-framework-summary.alias.yaml/execute")
 	response := httptest.NewRecorder()
 
 	server.handleExecuteQueryCommandV2(response, request)

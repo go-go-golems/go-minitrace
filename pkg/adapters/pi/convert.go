@@ -173,7 +173,8 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 				toolCallID := stringValue(msg["toolCallId"])
 				if toolCallID != "" {
 					if pendingIndex, ok := pendingToolCalls[toolCallID]; ok {
-						applyToolResult(&toolCalls[pendingIndex], contentBlocks, false, timestampPtr)
+						isErr := boolValue(firstNonNil(msg["isError"], msg["is_error"]))
+						applyToolResult(&toolCalls[pendingIndex], contentBlocks, isErr, timestampPtr)
 						delete(pendingToolCalls, toolCallID)
 					}
 				}

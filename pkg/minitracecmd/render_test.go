@@ -71,7 +71,7 @@ func TestResolveAliasCommand_MergesAliasDefaults(t *testing.T) {
 		t.Fatalf("LoadEmbeddedCatalog returned error: %v", err)
 	}
 
-	alias := catalog.ByPath["aliases/codex-framework-summary.alias.yaml"]
+	alias := catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"]
 	if alias == nil {
 		t.Fatalf("embedded catalog missing alias command")
 	}
@@ -99,7 +99,7 @@ func TestResolveAliasCommand_OverrideWins(t *testing.T) {
 		t.Fatalf("LoadEmbeddedCatalog returned error: %v", err)
 	}
 
-	alias := catalog.ByPath["aliases/codex-framework-summary.alias.yaml"]
+	alias := catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"]
 	target, values, err := ResolveAliasCommand(catalog, alias, map[string]any{"framework": []string{"claude"}})
 	if err != nil {
 		t.Fatalf("ResolveAliasCommand returned error: %v", err)
@@ -119,7 +119,7 @@ func TestRenderCommand_RejectsAliasDirectly(t *testing.T) {
 		t.Fatalf("LoadEmbeddedCatalog returned error: %v", err)
 	}
 
-	alias := catalog.ByPath["aliases/codex-framework-summary.alias.yaml"]
+	alias := catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"]
 	_, err = RenderCommand(alias, RenderContext{TableName: "sessions_base"})
 	if !errors.Is(err, ErrCannotRenderAlias) {
 		t.Fatalf("error = %v, want ErrCannotRenderAlias", err)

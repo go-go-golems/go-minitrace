@@ -225,7 +225,9 @@ One subtle but important rule: `query duckdb` reads the `.minitrace.json` archiv
 
 ## Structured query commands
 
-The `query commands` subgroup loads repository-backed sqleton-style command files. Those files define:
+The `query commands` subgroup loads repository-backed sqleton-style command files. Repository subdirectories become nested CLI groups, so `pkg/minitracecmd/core/overview/session-list.sql` is exposed as `go-minitrace query commands overview session-list`.
+
+Those files define:
 
 - a command name and help text
 - typed Glazed fields
@@ -235,7 +237,7 @@ The `query commands` subgroup loads repository-backed sqleton-style command file
 A simple example looks like this:
 
 ```bash
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex,pi
 ```
