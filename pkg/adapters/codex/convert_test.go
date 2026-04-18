@@ -153,6 +153,13 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 				"aggregated_output": "ok",
 				"exit_code":         0,
 				"status":            "completed",
+				"turn_id":           "turn-1",
+				"source":            "exec-runner",
+				"parsed_cmd": []any{
+					map[string]any{"type": "test", "cmd": "go test ./..."},
+				},
+				"stdout": "ok",
+				"stderr": "",
 			},
 		},
 		{
@@ -165,8 +172,10 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 		{
 			"type": "item.completed",
 			"item": map[string]any{
-				"type": "agent_message",
-				"text": "Tests passed.",
+				"type":    "agent_message",
+				"text":    "Tests passed.",
+				"turn_id": "turn-1",
+				"phase":   "commentary",
 			},
 		},
 	}
@@ -188,7 +197,152 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 	if session.ToolCalls[0].Output.ExitCode == nil || *session.ToolCalls[0].Output.ExitCode != 0 {
 		t.Fatalf("expected exec exit code 0, got %+v", session.ToolCalls[0].Output.ExitCode)
 	}
+	metadata, ok := session.ToolCalls[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected tool metadata map, got %+v", session.ToolCalls[0].FrameworkMetadata)
+	}
+	if metadata["source"] != "exec-runner" {
+		t.Fatalf("expected exec source metadata, got %+v", metadata)
+	}
+	if metadata["turn_id"] != "turn-1" {
+		t.Fatalf("expected tool turn_id metadata, got %+v", metadata)
+	}
+	if metadata["stdout"] != "ok" {
+		t.Fatalf("expected stdout metadata, got %+v", metadata)
+	}
 	if len(session.Turns) != 1 || session.Turns[0].Thinking == nil || *session.Turns[0].Thinking != "Running tests" {
 		t.Fatalf("expected reasoning to attach to assistant turn, got %+v", session.Turns)
+	}
+	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected turn metadata map, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if turnMetadata["turn_id"] != "turn-1" || turnMetadata["phase"] != "commentary" {
+		t.Fatalf("expected exec turn metadata, got %+v", turnMetadata)
+	}
+}
+
+func TestConvertRecordsSessionJSONLPreservesFrameworkMetadata(t *testing.T) {
+	records := []map[string]any{
+		{
+			"timestamp": "2026-03-29T11:00:00Z",
+			"type":      "session_meta",
+			"payload": map[string]any{
+				"id":             "session-meta",
+				"cwd":            "/home/manuel/project",
+				"cli_version":    "0.114.0",
+				"model_provider": "openai",
+				"source":         "cli",
+			},
+		},
+		{
+			"timestamp": "2026-03-29T11:00:00Z",
+			"type":      "turn_context",
+			"payload": map[string]any{
+				"turn_id":         "turn-ctx-1",
+				"cwd":             "/home/manuel/project",
+				"approval_policy": "on-request",
+				"sandbox_policy": map[string]any{
+					"type":           "workspace-write",
+					"network_access": false,
+				},
+				"collaboration_mode": map[string]any{
+					"mode": "default",
+					"settings": map[string]any{
+						"reasoning_effort": "high",
+					},
+				},
+				"truncation_policy": map[string]any{
+					"kind": "auto",
+				},
+				"model":       "gpt-5-codex",
+				"personality": "pragmatic",
+				"timezone":    "America/New_York",
+				"effort":      "high",
+			},
+		},
+		{
+			"timestamp": "2026-03-29T11:00:01Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "call-1",
+				"name":      "exec_command",
+				"arguments": "{\"cmd\":\"rg --files\"}",
+			},
+		},
+		{
+			"timestamp": "2026-03-29T11:00:02Z",
+			"type":      "event_msg",
+			"payload": map[string]any{
+				"type":    "exec_command_end",
+				"call_id": "call-1",
+				"turn_id": "turn-ctx-1",
+				"source":  "unified_exec_startup",
+				"parsed_cmd": []any{
+					map[string]any{"type": "list_files", "cmd": "rg --files"},
+				},
+				"stdout":            "main.go",
+				"stderr":            "",
+				"exit_code":         0,
+				"status":            "completed",
+				"aggregated_output": "main.go",
+			},
+		},
+		{
+			"timestamp": "2026-03-29T11:00:03Z",
+			"type":      "event_msg",
+			"payload": map[string]any{
+				"type":        "token_count",
+				"rate_limits": map[string]any{"plan_type": "pro"},
+				"info":        map[string]any{"model_context_window": 272000},
+			},
+		},
+		{
+			"timestamp": "2026-03-29T11:00:04Z",
+			"type":      "event_msg",
+			"payload": map[string]any{
+				"type":            "agent_message",
+				"message":         "Done.",
+				"phase":           "commentary",
+				"memory_citation": "memory://abc",
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/session-meta.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if config["approval_policy"] != "on-request" {
+		t.Fatalf("expected approval_policy in framework config, got %+v", config)
+	}
+	if config["session_source"] != "cli" {
+		t.Fatalf("expected session_source in framework config, got %+v", config)
+	}
+	if config["rate_limits"] == nil || config["truncation_policy"] == nil || config["sandbox_policy"] == nil {
+		t.Fatalf("expected detailed Codex config metadata, got %+v", config)
+	}
+	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected assistant turn metadata, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if turnMetadata["turn_id"] != "turn-ctx-1" || turnMetadata["phase"] != "commentary" || turnMetadata["memory_citation"] != "memory://abc" {
+		t.Fatalf("unexpected turn metadata: %+v", turnMetadata)
+	}
+	toolMetadata, ok := session.ToolCalls[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected tool metadata map, got %+v", session.ToolCalls[0].FrameworkMetadata)
+	}
+	if toolMetadata["source"] != "unified_exec_startup" || toolMetadata["turn_id"] != "turn-ctx-1" {
+		t.Fatalf("unexpected tool metadata: %+v", toolMetadata)
+	}
+	if toolMetadata["parsed_cmd"] == nil || toolMetadata["stdout"] != "main.go" {
+		t.Fatalf("expected parsed_cmd/stdout metadata, got %+v", toolMetadata)
 	}
 }
