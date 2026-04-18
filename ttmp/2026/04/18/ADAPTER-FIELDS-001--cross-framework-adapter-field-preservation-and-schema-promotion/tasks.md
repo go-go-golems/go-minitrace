@@ -44,4 +44,7 @@
 
 - [x] Update `pkg/doc/minitrace-schema.md` for framework metadata conventions and newly preserved fields
 - [x] Update `pkg/doc/adapter-reference.md` with preserved metadata details per adapter
+- [x] Add a detailed public mapping doc for preserved framework metadata
+- [x] Add non-embedded example queries demonstrating `exit_code`, `justification`, and framework metadata analysis
+- [x] Smoke-test the new example queries against real converted Codex/Claude/Pi transcripts
 - [x] Update ticket diary/changelog/tasks after each implementation slice

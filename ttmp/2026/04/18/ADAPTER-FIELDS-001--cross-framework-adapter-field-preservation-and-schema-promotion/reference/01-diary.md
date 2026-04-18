@@ -31,6 +31,18 @@ RelatedFiles:
       Note: Diary Step 2 explains why the shared builder initializes the new fields to nil
     - Path: pkg/minitrace/schema.go
       Note: Diary Step 2 records the addition of first-class exit_code and justification fields
+    - Path: queries/README.md
+      Note: Diary Step 7 updates the non-embedded query inventory and usage guidance
+    - Path: queries/framework-metadata/claude-turn-metadata.sql
+      Note: Diary Step 7 adds a Claude metadata query example
+    - Path: queries/framework-metadata/codex-exec-metadata.sql
+      Note: Diary Step 7 adds a Codex metadata query example
+    - Path: queries/framework-metadata/pi-edit-diffs.sql
+      Note: Diary Step 7 adds a Pi metadata query example
+    - Path: queries/tools/exit-codes.sql
+      Note: Diary Step 7 adds a non-embedded example query for the new exit_code field
+    - Path: queries/tools/justifications.sql
+      Note: Diary Step 7 adds a non-embedded example query for the new justification field
     - Path: ttmp/2026/04/18/ADAPTER-FIELDS-001--cross-framework-adapter-field-preservation-and-schema-promotion/analysis/01-cross-framework-field-matrix.md
       Note: Diary references the validated matrix and its implementation plan
     - Path: ttmp/2026/04/18/ADAPTER-FIELDS-001--cross-framework-adapter-field-preservation-and-schema-promotion/scripts/01-scan-field-representations.py
@@ -43,6 +55,7 @@ LastUpdated: 2026-04-18T00:00:00Z
 WhatFor: Capture what changed, what evidence supported it, what failed, and how to review the work.
 WhenToUse: Use when continuing or reviewing ADAPTER-FIELDS-001.
 ---
+
 
 
 
@@ -482,8 +495,73 @@ I fixed that by adding a dedicated help page for framework metadata mappings, up
   - `pkg/doc/adapter-reference.md`
 
 ### Technical details
-- Code/docs commit: see the latest `Document framework metadata mappings` commit for this ticket
+- Code/docs commit: `2c560569df3f51d952689bf540bbeab44058052c`
 - Key docs added/updated:
   - `pkg/doc/framework-metadata-mappings.md`
   - `pkg/doc/minitrace-schema.md`
   - `pkg/doc/adapter-reference.md`
+
+## Step 7: Add non-embedded example queries for the new fields and metadata
+
+After the adapter and docs work was done, I added a final layer of practical examples: plain SQL files under `queries/` that exercise the newly promoted fields and preserved framework metadata. These are intentionally not embedded into the binary; they are editable example queries that users can run directly with DuckDB.
+
+I kept the split aligned with how the data is likely to be used: two general-purpose tool queries under `queries/tools/`, and three framework-specific examples under a new `queries/framework-metadata/` folder. I also smoke-tested all five against real converted Codex, Claude Code, and Pi transcripts so they serve as working examples rather than speculative snippets.
+
+### Prompt Context
+
+**User prompt (verbatim):** "cool, add all 5 into that folder then, and i guess we are then done?"
+
+**Assistant interpretation:** Add the five query examples to the non-embedded `queries/` tree and then do the final close-out pass.
+
+**Inferred user intent:** Finish the work with practical, on-disk example queries so the new fields are easy to explore without changing the compiled preset set.
+
+**Commit (code):** latest `Add metadata example queries` commit for this ticket
+
+### What I did
+- Added:
+  - `queries/tools/exit-codes.sql`
+  - `queries/tools/justifications.sql`
+  - `queries/framework-metadata/codex-exec-metadata.sql`
+  - `queries/framework-metadata/claude-turn-metadata.sql`
+  - `queries/framework-metadata/pi-edit-diffs.sql`
+- Updated `queries/README.md` to list the new files and clarify that `queries/` contains non-embedded example SQL files.
+- Smoke-tested all five queries with DuckDB against real converted output files from:
+  - Codex
+  - Claude Code
+  - Pi
+
+### Why
+- The `queries/` tree is the right place for example/manual SQL that should remain editable and not be compiled into the binary.
+- The examples demonstrate the analytical value of the new schema fields and preserved metadata more directly than prose docs alone.
+- Keeping them outside the embedded preset set avoids prematurely promoting framework-specific queries into the stable built-in catalog.
+
+### What worked
+- All five SQL files executed successfully against real converted transcripts.
+- The README now makes the distinction between embedded presets and on-disk example queries explicit.
+- The framework-specific examples provide a concrete answer to “how do I query the metadata we just preserved?”
+
+### What didn't work
+- My first smoke-test loop used `head` on DuckDB output and produced noisy, truncated terminal output that was not useful for concise verification. I switched to a pure success/fail execution loop instead.
+
+### What I learned
+- The non-embedded `queries/` tree is a good middle ground for examples that are useful but still somewhat framework-specific.
+- Real transcript smoke tests catch SQL-shape mistakes early, especially around DuckDB JSON access and `UNNEST` behavior.
+
+### What was tricky to build
+- The tricky part was keeping the SQL compatible with the existing `queries/load.sql` shape, which exposes `sessions_base` with nested JSON arrays rather than convenience views like `tool_calls_base` or `turns_base`. I wrote the examples directly against `sessions_base` plus `UNNEST(...)` so they fit the documented manual-query workflow.
+
+### What warrants a second pair of eyes
+- Whether any of these five examples should later be promoted into embedded presets after enough real usage.
+
+### What should be done in the future
+- If these queries prove repeatedly useful, promote the two most general ones (`exit-codes`, `justifications`) into built-in presets later.
+
+### Code review instructions
+- Start with `queries/README.md`.
+- Then review the five new SQL files under `queries/tools/` and `queries/framework-metadata/`.
+- Validate with DuckDB using `queries/load.sql` or with a temp `sessions_base` table over real converted output.
+
+### Technical details
+- Smoke-test command shape used for validation:
+  - create a temporary `sessions_base` table over the real converted Codex/Claude/Pi JSON files
+  - run each of the five query files with `duckdb :memory: -init /tmp/test-metadata-queries.sql -f <query>`

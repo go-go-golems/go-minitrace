@@ -56,7 +56,7 @@ Preserved the Pi metadata-only follow-up fields in the adapter. Assistant turns 
 
 ## 2026-04-18
 
-Added detailed documentation for framework-specific metadata storage and mappings. Introduced a new help page that lists the preserved Codex, Claude Code, and Pi metadata keys and where each one is stored (`framework_config`, `turn.framework_metadata`, or `tool_call.framework_metadata`). Updated the schema and adapter reference docs to describe the new conventions and preserved fields. Also updated the ticket tasks/diary to reflect the completed implementation slices.
+Added detailed documentation for framework-specific metadata storage and mappings. Introduced a new help page that lists the preserved Codex, Claude Code, and Pi metadata keys and where each one is stored (`framework_config`, `turn.framework_metadata`, or `tool_call.framework_metadata`). Updated the schema and adapter reference docs to describe the new conventions and preserved fields. Also updated the ticket tasks/diary to reflect the completed implementation slices. Recorded in commit `2c560569df3f51d952689bf540bbeab44058052c` (`Document framework metadata mappings`).
 
 ### Related Files
 
@@ -64,3 +64,16 @@ Added detailed documentation for framework-specific metadata storage and mapping
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/minitrace-schema.md - Added framework metadata storage conventions
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/pkg/doc/adapter-reference.md - Listed preserved metadata per adapter and linked to the new mapping doc
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/ttmp/2026/04/18/ADAPTER-FIELDS-001--cross-framework-adapter-field-preservation-and-schema-promotion/reference/01-diary.md - Detailed work diary for the metadata preservation slices
+
+## 2026-04-18
+
+Added five non-embedded example DuckDB queries under `queries/` so users can inspect the new first-class fields and preserved framework metadata without relying on embedded presets. The new files cover explicit exit codes, justifications, Codex execution metadata, Claude turn metadata, and Pi edit diffs. Updated `queries/README.md` to list the new examples and clarify that they are on-disk query files rather than compiled presets. Smoke-tested all five queries against real converted Codex, Claude Code, and Pi transcripts.
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/tools/exit-codes.sql - Example query for explicit process exit codes
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/tools/justifications.sql - Example query for tool-use justifications
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/framework-metadata/codex-exec-metadata.sql - Example query for preserved Codex execution metadata
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/framework-metadata/claude-turn-metadata.sql - Example query for preserved Claude turn metadata
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/framework-metadata/pi-edit-diffs.sql - Example query for preserved Pi edit diff metadata
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/queries/README.md - Updated query inventory and clarified non-embedded example query usage

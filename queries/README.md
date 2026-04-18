@@ -66,6 +66,8 @@ duckdb analysis.duckdb -init queries/load.sql -f queries/overview/session-list.s
 | `tool-operation-breakdown.sql` | Count tool calls by framework and operation type |
 | `tool-failures.sql` | All failed tool calls with error details |
 | `read-ratio-distribution.sql` | Inspect read-before-write style behavior |
+| `exit-codes.sql` | Tool calls with explicit process exit codes |
+| `justifications.sql` | Tool calls that include an explicit justification |
 
 ### `timing/` — temporal analysis
 
@@ -80,13 +82,24 @@ duckdb analysis.duckdb -init queries/load.sql -f queries/overview/session-list.s
 | `file-operations.sql` | Every read/write/edit on files in turn order |
 | `file-timeline.sql` | Chronological ops on files matching a path pattern (edit the `LIKE '%'` filter at the bottom) |
 
+### `framework-metadata/` — framework-specific metadata examples
+
+| File | Purpose |
+|------|---------|
+| `codex-exec-metadata.sql` | Inspect preserved Codex execution metadata such as source, parsed command info, stdout/stderr, and exit code |
+| `claude-turn-metadata.sql` | Inspect preserved Claude Code turn metadata such as entrypoint, thread context, stop reason, and cache buckets |
+| `pi-edit-diffs.sql` | Inspect preserved Pi edit diffs and first changed line metadata |
+
 ## Custom queries
 
 Drop your own queries in `my-queries/`. They won't be tracked by git (it's in `.gitignore`).
 
 ## Preset names for CLI usage
 
-These queries are also available as built-in presets via `go-minitrace query duckdb --preset <name>`:
+Only the built-in preset set is available via `go-minitrace query duckdb --preset <name>`.
+The example queries in `queries/` are plain SQL files on disk and are **not** compiled into the binary.
+
+Current built-in presets:
 
 ```
 annotations, framework-summary, session-list,
