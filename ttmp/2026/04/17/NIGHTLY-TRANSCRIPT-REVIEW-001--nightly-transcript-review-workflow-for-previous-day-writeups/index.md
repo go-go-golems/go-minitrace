@@ -1,7 +1,7 @@
 ---
 Title: Nightly transcript review workflow for previous-day writeups
 Ticket: NIGHTLY-TRANSCRIPT-REVIEW-001
-Status: active
+Status: complete
 Topics:
     - transcript-analysis
     - minitrace
@@ -25,10 +25,11 @@ RelatedFiles:
       Note: Embedded nightly follow-up candidate command
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-04-17T12:39:47-04:00
+LastUpdated: 2026-04-18T10:48:40.256234904-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Nightly transcript review workflow for previous-day writeups
