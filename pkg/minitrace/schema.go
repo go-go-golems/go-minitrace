@@ -147,15 +147,17 @@ type ToolCall struct {
 }
 
 type ToolCallInput struct {
-	FilePath  *string `json:"file_path"`
-	Command   *string `json:"command"`
-	Arguments any     `json:"arguments"`
+	FilePath      *string `json:"file_path"`
+	Command       *string `json:"command"`
+	Justification *string `json:"justification"`
+	Arguments     any     `json:"arguments"`
 }
 
 type ToolCallOutput struct {
 	Success       bool    `json:"success"`
 	Result        *string `json:"result"`
 	Error         *string `json:"error"`
+	ExitCode      *int    `json:"exit_code"`
 	DurationMS    *int    `json:"duration_ms"`
 	Truncated     bool    `json:"truncated"`
 	FullBytes     *int    `json:"full_bytes"`

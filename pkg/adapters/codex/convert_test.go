@@ -124,8 +124,14 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	if session.ToolCalls[0].OperationType != "READ" {
 		t.Fatalf("expected READ operation, got %s", session.ToolCalls[0].OperationType)
 	}
+	if session.ToolCalls[0].Input.Justification == nil || *session.ToolCalls[0].Input.Justification != "inspect file" {
+		t.Fatalf("expected justification to be promoted, got %+v", session.ToolCalls[0].Input.Justification)
+	}
 	if session.ToolCalls[0].Output.Result == nil || *session.ToolCalls[0].Output.Result != "package main" {
 		t.Fatalf("unexpected tool output: %+v", session.ToolCalls[0].Output.Result)
+	}
+	if session.ToolCalls[0].Output.ExitCode == nil || *session.ToolCalls[0].Output.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %+v", session.ToolCalls[0].Output.ExitCode)
 	}
 	if session.Metrics.TotalInputTokens == nil || *session.Metrics.TotalInputTokens != 30 {
 		t.Fatalf("expected input tokens 30, got %+v", session.Metrics.TotalInputTokens)
@@ -178,6 +184,9 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 	}
 	if session.ToolCalls[0].ToolName != "exec_command" {
 		t.Fatalf("expected exec_command, got %s", session.ToolCalls[0].ToolName)
+	}
+	if session.ToolCalls[0].Output.ExitCode == nil || *session.ToolCalls[0].Output.ExitCode != 0 {
+		t.Fatalf("expected exec exit code 0, got %+v", session.ToolCalls[0].Output.ExitCode)
 	}
 	if len(session.Turns) != 1 || session.Turns[0].Thinking == nil || *session.Turns[0].Thinking != "Running tests" {
 		t.Fatalf("expected reasoning to attach to assistant turn, got %+v", session.Turns)

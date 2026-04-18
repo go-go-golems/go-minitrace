@@ -322,6 +322,9 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 					classifyContentOrigin(funcName),
 					nil,
 				)
+				if justification := stringValue(args["justification"]); justification != "" {
+					toolCall.Input.Justification = &justification
+				}
 				toolCalls = append(toolCalls, toolCall)
 				pendingFunctionCalls[callID] = len(toolCalls) - 1
 				pendingTurnToolIDs[callID] = struct{}{}
@@ -338,6 +341,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				toolCalls[index].Output.FullBytes = fullBytes
 				toolCalls[index].Output.FullHash = fullHash
 				toolCalls[index].Output.DurationMS = durationMS
+				toolCalls[index].Output.ExitCode = exitCode
 				if exitCode != nil {
 					toolCalls[index].Output.Success = *exitCode == 0
 					if *exitCode != 0 {
@@ -418,8 +422,11 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 				command := stringValue(item["command"])
 				output := stringValue(item["aggregated_output"])
 				var success bool
+				var exitCode *int
 				if exitCodeValue, ok := item["exit_code"]; ok {
-					success = minitrace.SafeInt(exitCodeValue, 1) == 0
+					parsedExitCode := minitrace.SafeInt(exitCodeValue, 1)
+					exitCode = &parsedExitCode
+					success = parsedExitCode == 0
 				} else {
 					success = stringValue(item["status"]) == "completed"
 				}
@@ -445,6 +452,7 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 					classifyContentOrigin("exec_command"),
 					nil,
 				)
+				toolCall.Output.ExitCode = exitCode
 				toolCalls = append(toolCalls, toolCall)
 			case "agent_message":
 				source := ptr("model")

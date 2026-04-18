@@ -165,6 +165,7 @@ Every tool invocation is recorded with its input, output, and contextual positio
 |-------|------|-------------|
 | `file_path` | string? | File path argument (normalized, `~` for home) |
 | `command` | string? | Shell command if applicable |
+| `justification` | string? | Tool-use rationale if the source transcript provides one |
 | `arguments` | any? | Full arguments blob |
 
 ### Tool Call Output
@@ -174,6 +175,7 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `success` | bool | Whether the tool call succeeded |
 | `result` | string? | Output text (truncated to 10 KB if larger) |
 | `error` | string? | Error message if the call failed |
+| `exit_code` | int? | Process exit code when the source transcript exposes one |
 | `duration_ms` | int? | Execution time in milliseconds |
 | `truncated` | bool | Whether the result was truncated |
 | `full_bytes` | int? | Original size before truncation |

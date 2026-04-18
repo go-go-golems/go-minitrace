@@ -78,6 +78,8 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 
 - **Session JSONL** → conversation turns and tool invocations
 - **Exec JSONL** → tool calls from `codex exec --json` output
+- **Command metadata** → exit codes and execution metadata when present
+- **Tool-call arguments** → command strings plus optional justification text
 
 ### Known limitations
 
@@ -86,7 +88,7 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 
 ### What is not preserved
 
-- Codex-specific metadata fields not in the minitrace schema
+- Much of Codex's richer policy/runtime metadata still remains framework-specific rather than first-class schema (`approval_policy`, detailed `sandbox_policy`, `rate_limits`, `phase`, `parsed_cmd`, `stdout`, `stderr`)
 - Binary exec output is truncated
 
 ## Pi adapter
