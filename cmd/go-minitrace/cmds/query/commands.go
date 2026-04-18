@@ -24,6 +24,10 @@ Subdirectories in the repository are exposed as nested CLI groups, so a file lik
 pkg/minitracecmd/core/overview/session-list.sql becomes:
   go-minitrace query commands overview session-list
 
+The nightly review commands live under the nightly subverb, so a file like
+pkg/minitracecmd/core/nightly/session-inventory.sql becomes:
+  go-minitrace query commands nightly session-inventory
+
 Additional repositories can be provided through:
   - app config: queryRepositories
   - environment: GO_MINITRACE_QUERY_REPOSITORIES

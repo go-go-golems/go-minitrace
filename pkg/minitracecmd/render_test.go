@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRenderCommand_RendersFrameworkFilter(t *testing.T) {
@@ -139,19 +140,50 @@ func TestRenderCommand_RejectsInvalidTableName(t *testing.T) {
 	}
 }
 
-func TestSQLIntIn_AcceptsJSONNumericSlices(t *testing.T) {
-	got, err := sqlIntIn([]any{float64(1), float64(2), float64(42)})
-	if err != nil {
-		t.Fatalf("sqlIntIn returned error: %v", err)
+func TestRenderCommand_UsesSqlDateHelper(t *testing.T) {
+	cmd := &MinitraceCommand{
+		Name:  "date-helper",
+		Kind:  MinitraceCommandVerb,
+		Short: "Date helper test",
+		Query: "SELECT {{ .day | sqlDate }} AS day",
 	}
-	if got != "1, 2, 42" {
-		t.Fatalf("sqlIntIn = %q, want %q", got, "1, 2, 42")
+
+	day := time.Date(2026, time.April, 16, 0, 0, 0, 0, time.Local)
+	got, err := RenderCommand(cmd, RenderContext{
+		TableName: "sessions_base",
+		Values: map[string]any{
+			"day": day,
+		},
+	})
+	if err != nil {
+		t.Fatalf("RenderCommand returned error: %v", err)
+	}
+
+	if !strings.Contains(got, "SELECT '2026-04-16' AS day") {
+		t.Fatalf("rendered SQL missing sqlDate output: %s", got)
 	}
 }
 
-func TestSQLIntIn_RejectsNonIntegerFloats(t *testing.T) {
-	_, err := sqlIntIn([]any{float64(1.5)})
-	if err == nil {
-		t.Fatalf("sqlIntIn expected error for non-integer float")
+func TestRenderCommand_UsesSqlDateTimeHelper(t *testing.T) {
+	cmd := &MinitraceCommand{
+		Name:  "datetime-helper",
+		Kind:  MinitraceCommandVerb,
+		Short: "Date time helper test",
+		Query: "SELECT {{ .when | sqlDateTime }} AS when",
+	}
+
+	when := time.Date(2026, time.April, 16, 14, 30, 0, 0, time.Local)
+	got, err := RenderCommand(cmd, RenderContext{
+		TableName: "sessions_base",
+		Values: map[string]any{
+			"when": when,
+		},
+	})
+	if err != nil {
+		t.Fatalf("RenderCommand returned error: %v", err)
+	}
+
+	if !strings.Contains(got, "SELECT '2026-04-16T14:30:00' AS when") {
+		t.Fatalf("rendered SQL missing sqlDateTime output: %s", got)
 	}
 }

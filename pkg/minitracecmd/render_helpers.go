@@ -145,3 +145,22 @@ func toInt64Value(value any) (int64, error) {
 		return 0, fmt.Errorf("expected int slice element, got %T", value)
 	}
 }
+
+func mergeValues(base map[string]any, overrides map[string]any) map[string]any {
+	ret := copyValues(base)
+	for key, value := range overrides {
+		ret[key] = value
+	}
+	return ret
+}
+
+func copyValues(values map[string]any) map[string]any {
+	if len(values) == 0 {
+		return map[string]any{}
+	}
+	ret := make(map[string]any, len(values))
+	for key, value := range values {
+		ret[key] = value
+	}
+	return ret
+}

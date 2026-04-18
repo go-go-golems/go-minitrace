@@ -8,14 +8,44 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 		t.Fatalf("LoadEmbeddedCatalog returned error: %v", err)
 	}
 
-	if len(catalog.Commands) < 4 {
-		t.Fatalf("len(Commands) = %d, want at least 4", len(catalog.Commands))
+	if len(catalog.Commands) < 9 {
+		t.Fatalf("len(Commands) = %d, want at least 9", len(catalog.Commands))
 	}
 	if catalog.ByName["session-list"] == nil {
 		t.Fatalf("embedded catalog missing session-list command")
 	}
 	if catalog.ByName["framework-summary"] == nil {
 		t.Fatalf("embedded catalog missing framework-summary command")
+	}
+	if catalog.ByName["session-inventory"] == nil {
+		t.Fatalf("embedded catalog missing nightly/session-inventory command")
+	}
+	if catalog.ByName["workspace-summary"] == nil {
+		t.Fatalf("embedded catalog missing nightly/workspace-summary command")
+	}
+	if catalog.ByName["tool-breakdown"] == nil {
+		t.Fatalf("embedded catalog missing nightly/tool-breakdown command")
+	}
+	if catalog.ByName["followup-candidates"] == nil {
+		t.Fatalf("embedded catalog missing nightly/followup-candidates command")
+	}
+	if catalog.ByName["annotation-summary"] == nil {
+		t.Fatalf("embedded catalog missing nightly/annotation-summary command")
+	}
+	if catalog.ByPath["nightly/session-inventory.sql"] == nil {
+		t.Fatalf("embedded catalog missing nightly/session-inventory path")
+	}
+	if catalog.ByPath["nightly/workspace-summary.sql"] == nil {
+		t.Fatalf("embedded catalog missing nightly/workspace-summary path")
+	}
+	if catalog.ByPath["nightly/tool-breakdown.sql"] == nil {
+		t.Fatalf("embedded catalog missing nightly/tool-breakdown path")
+	}
+	if catalog.ByPath["nightly/followup-candidates.sql"] == nil {
+		t.Fatalf("embedded catalog missing nightly/followup-candidates path")
+	}
+	if catalog.ByPath["nightly/annotation-summary.sql"] == nil {
+		t.Fatalf("embedded catalog missing nightly/annotation-summary path")
 	}
 	if catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"] == nil {
 		t.Fatalf("embedded catalog missing codex-framework-summary alias")

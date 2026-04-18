@@ -19,6 +19,11 @@ func TestNewCommandsCommand_IncludesEmbeddedCommandsAsFolderGroups(t *testing.T)
 		{"overview", "session-list"},
 		{"overview", "framework-summary"},
 		{"timing", "timing-analysis"},
+		{"nightly", "session-inventory"},
+		{"nightly", "workspace-summary"},
+		{"nightly", "tool-breakdown"},
+		{"nightly", "followup-candidates"},
+		{"nightly", "annotation-summary"},
 		{"overview", "aliases", "codex-framework-summary"},
 	}
 	for _, args := range cases {
@@ -43,6 +48,7 @@ func TestNewCommandsCommand_GroupHelpSmokeTests(t *testing.T) {
 		{args: []string{"timing", "--help"}, wantContain: []string{"timing-analysis"}},
 		{args: []string{"tools", "--help"}, wantContain: []string{"tool-failures", "tool-operation-breakdown"}},
 		{args: []string{"files", "--help"}, wantContain: []string{"file-operations", "file-timeline"}},
+		{args: []string{"nightly", "--help"}, wantContain: []string{"session-inventory", "workspace-summary", "followup-candidates"}},
 	}
 
 	for _, tc := range cases {

@@ -39,6 +39,8 @@ Today the embedded catalog includes examples such as:
 - `overview session-list`
 - `overview framework-summary`
 - `timing timing-analysis`
+- `nightly session-inventory`
+- `nightly workspace-summary`
 - `overview aliases codex-framework-summary` (an alias)
 
 You can inspect the currently loaded commands with standard Cobra help:
@@ -60,6 +62,7 @@ go-minitrace query commands <group...> <command-name> [command flags] [query run
 Repository subdirectories become nested Cobra groups. For example:
 
 - `pkg/minitracecmd/core/overview/session-list.sql` → `go-minitrace query commands overview session-list`
+- `pkg/minitracecmd/core/nightly/session-inventory.sql` → `go-minitrace query commands nightly session-inventory`
 - `pkg/minitracecmd/core/overview/aliases/codex-framework-summary.alias.yaml` → `go-minitrace query commands overview aliases codex-framework-summary`
 
 The command-specific flags come from the sqleton-style file metadata. The query-runtime flags are the same execution settings used by the DuckDB loader, such as `--archive-glob`, `--db-path`, `--table-name`, and `--persist-loaded`.

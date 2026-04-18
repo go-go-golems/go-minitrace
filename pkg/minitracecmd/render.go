@@ -2,10 +2,13 @@ package minitracecmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"text/template"
+
+	claysql "github.com/go-go-golems/clay/pkg/sql"
 )
 
 type RenderContext struct {
@@ -30,22 +33,21 @@ func RenderCommand(cmd *MinitraceCommand, ctx RenderContext) (string, error) {
 	}
 
 	queryText := strings.ReplaceAll(cmd.Query, "{{TABLE_NAME}}", ctx.TableName)
-	tmpl, err := template.New(cmd.Name).
+	tmpl := claysql.CreateTemplate(context.Background(), nil, copyValues(ctx.Values), nil).
 		Option("missingkey=zero").
 		Funcs(template.FuncMap{
 			"sqlString":   sqlString,
 			"sqlStringIn": sqlStringIn,
 			"sqlIntIn":    sqlIntIn,
 			"sqlLike":     sqlLike,
-		}).
-		Parse(queryText)
+		})
+	parsed, err := tmpl.Parse(queryText)
 	if err != nil {
 		return "", err
 	}
 
-	values := copyValues(ctx.Values)
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, values); err != nil {
+	if err := parsed.Execute(&buf, copyValues(ctx.Values)); err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil
@@ -68,23 +70,4 @@ func ResolveAliasCommand(catalog *Catalog, cmd *MinitraceCommand, values map[str
 	}
 
 	return target, mergeValues(cmd.AliasFlags, values), nil
-}
-
-func mergeValues(base map[string]any, overrides map[string]any) map[string]any {
-	ret := copyValues(base)
-	for key, value := range overrides {
-		ret[key] = value
-	}
-	return ret
-}
-
-func copyValues(values map[string]any) map[string]any {
-	if len(values) == 0 {
-		return map[string]any{}
-	}
-	ret := make(map[string]any, len(values))
-	for key, value := range values {
-		ret[key] = value
-	}
-	return ret
 }
