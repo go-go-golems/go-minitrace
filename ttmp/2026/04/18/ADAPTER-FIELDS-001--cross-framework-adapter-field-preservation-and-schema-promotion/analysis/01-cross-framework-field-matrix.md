@@ -62,7 +62,7 @@ The matrix below is based on:
 
 ## Status note
 
-This matrix was written to drive the first implementation slice. As of 2026-04-18, the first two promotions recommended here (`tool_calls[].output.exit_code` and `tool_calls[].input.justification`) have since been implemented in commit `ffbd6a1d62512a01250d9a780b5dcc6be2b73f3a`. The matrix still reflects the research decision process and remains the reference for the metadata-only follow-up fields.
+This matrix was written to drive the first implementation slice. As of 2026-04-18, the first two promotions recommended here (`tool_calls[].output.exit_code` and `tool_calls[].input.justification`) have since been implemented in commit `ffbd6a1d62512a01250d9a780b5dcc6be2b73f3a`, and the metadata-only preservation slices have been implemented in commits `585db79bab918ce61131144c78918b8591b71c65`, `01e5ddccb19e5165dc5248a4afbfd067957d5a63`, and `332a9d7c648a45fa2c2a33a366508366f4aeeb49`. The matrix still reflects the research decision process and remains the reference for the preserved field set.
 
 ## Quick conclusions
 

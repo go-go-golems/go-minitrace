@@ -13,10 +13,20 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: pkg/adapters/claudecode/convert.go
+      Note: Diary Step 4 records Claude session/turn/tool metadata preservation
+    - Path: pkg/adapters/claudecode/convert_test.go
+      Note: Diary Step 4 references regression coverage for Claude metadata preservation
     - Path: pkg/adapters/codex/convert.go
       Note: Diary Step 2 records the Codex population logic for exit_code and justification
     - Path: pkg/adapters/codex/convert_test.go
       Note: Diary Step 2 references the regression coverage for the promoted fields
+    - Path: pkg/adapters/pi/convert.go
+      Note: Diary Step 5 records Pi assistant/tool-result metadata preservation
+    - Path: pkg/adapters/pi/convert_test.go
+      Note: Diary Step 5 references regression coverage for Pi metadata preservation
+    - Path: pkg/doc/framework-metadata-mappings.md
+      Note: Diary Step 6 references the new public mapping doc for preserved framework metadata
     - Path: pkg/minitrace/builders.go
       Note: Diary Step 2 explains why the shared builder initializes the new fields to nil
     - Path: pkg/minitrace/schema.go
@@ -33,6 +43,7 @@ LastUpdated: 2026-04-18T00:00:00Z
 WhatFor: Capture what changed, what evidence supported it, what failed, and how to review the work.
 WhenToUse: Use when continuing or reviewing ADAPTER-FIELDS-001.
 ---
+
 
 
 
@@ -202,3 +213,277 @@ I kept the implementation narrow: update the schema and shared builder, populate
   - `gofmt -w pkg/minitrace/schema.go pkg/minitrace/builders.go pkg/adapters/codex/convert.go pkg/adapters/codex/convert_test.go`
   - `go test ./pkg/adapters/codex ./pkg/minitrace -count=1`
   - `go test ./... -count=1`
+
+## Step 3: Preserve Codex session, turn, and tool metadata
+
+With the first-class schema additions done, I moved to the larger metadata-preservation slice for Codex. The aim here was to keep the richer raw Codex execution/runtime context available for analysis without exploding the shared schema further.
+
+I treated this as a separate step and commit because it touches a different class of data: framework-specific raw detail rather than cross-framework first-class fields. That separation keeps review simpler and makes it easier to revert or refine the storage conventions later.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Preserve the remaining validated Codex metadata in the adapter now that the initial schema promotions are done.
+
+**Inferred user intent:** Keep the raw Codex richness accessible in minitrace so future analysis does not depend on re-reading native JSONL files.
+
+**Commit (code):** `585db79bab918ce61131144c78918b8591b71c65` — `Preserve Codex adapter metadata`
+
+### What I did
+- Extended `pkg/adapters/codex/convert.go` to preserve richer session/runtime metadata in `operational_context.framework_config`:
+  - `approval_policy`
+  - detailed `sandbox_policy`
+  - `collaboration_mode_detail`
+  - `truncation_policy`
+  - `rate_limits`
+  - `session_source`
+- Preserved turn-level metadata in `turns[].framework_metadata`:
+  - `turn_id`
+  - `phase`
+  - `memory_citation`
+- Preserved tool-call metadata in `tool_calls[].framework_metadata`:
+  - `source`
+  - `parsed_cmd`
+  - `stdout`
+  - `stderr`
+  - `status`
+  - `turn_id`
+- Added/extended Codex regression tests to cover both session-jsonl-v1 and exec-jsonl-v1 metadata preservation.
+- Ran:
+  - `gofmt -w pkg/adapters/codex/convert.go pkg/adapters/codex/convert_test.go`
+  - `go test ./pkg/adapters/codex -count=1`
+  - pre-commit validation via `git commit`
+
+### Why
+- Codex’s raw format exposes far more execution/runtime detail than the normalized schema can reasonably absorb all at once.
+- Preserving those fields in `framework_config` and `framework_metadata` keeps them queryable without forcing a premature schema redesign.
+- The split between session/turn/tool metadata lines up well with the underlying raw Codex event structure.
+
+### What worked
+- The metadata landed cleanly in the intended storage locations.
+- Session-jsonl-v1 and exec-jsonl-v1 both stayed green after the preservation changes.
+- The metadata keys are now stable enough to document externally.
+
+### What didn't work
+- I initially wired `codexTurnMetadata(...)` to return `any`, which caused a compile error when merging tool metadata:
+  - `pkg/adapters/codex/convert.go:366:79: cannot use codexTurnMetadata(currentTurnID, nil, nil) (value of interface type any) as map[string]any value in argument to mergeMetadataMap: need type assertion`
+- I fixed that by making `codexTurnMetadata(...)` return `map[string]any` directly.
+
+### What I learned
+- The raw Codex event model maps naturally onto minitrace’s three escape hatches: session config, turn metadata, and tool metadata.
+- `exec_command_end` is especially valuable because it carries structured execution detail that is richer than the text-only tool output path.
+
+### What was tricky to build
+- The tricky part was preserving detailed metadata without breaking the existing meaning of keys that already existed in converted sessions. I kept the existing string `collaboration_mode` and added `collaboration_mode_detail` for the full object instead of silently changing the type of the older key.
+
+### What warrants a second pair of eyes
+- Whether `rate_limits` belongs permanently in `framework_config` or should eventually move into a separate session/turn analytics model.
+- Whether we should later synthesize a separate query-oriented projection for parsed command metadata.
+
+### What should be done in the future
+- Keep the stored key names stable now that the metadata is preserved and documented.
+- Consider follow-up presets/queries that use `phase`, `rate_limits`, or `parsed_cmd`.
+
+### Code review instructions
+- Start with `pkg/adapters/codex/convert.go`.
+- Then review the assertions in `pkg/adapters/codex/convert_test.go`.
+- Validate with:
+  - `go test ./pkg/adapters/codex -count=1`
+  - `go test ./... -count=1`
+
+### Technical details
+- Code commit: `585db79bab918ce61131144c78918b8591b71c65`
+- Exact compile failure encountered before the fix:
+  - `pkg/adapters/codex/convert.go:366:79: cannot use codexTurnMetadata(currentTurnID, nil, nil) (value of interface type any) as map[string]any value in argument to mergeMetadataMap: need type assertion`
+
+## Step 4: Preserve Claude Code session, turn, and tool metadata
+
+After Codex, I applied the same preservation strategy to Claude Code, but with a different emphasis: Claude’s interesting metadata is mostly about turn/session/thread context rather than execution runtime. I kept the implementation narrow and only preserved the fields we had already validated from raw transcripts.
+
+This step also needed special handling for tool-result pseudo-turns. Because the adapter intentionally absorbs those records into tool calls instead of emitting separate turns, any record-level metadata on those tool-result messages would otherwise be lost.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Preserve the validated Claude-specific metadata without promoting it into shared schema fields.
+
+**Inferred user intent:** Keep Claude’s thread/session context and cache metadata available for analysis, especially where minitrace intentionally collapses raw records.
+
+**Commit (code):** `01e5ddccb19e5165dc5248a4afbfd067957d5a63` — `Preserve Claude adapter metadata`
+
+### What I did
+- Preserved Claude session-level `entrypoint` in `operational_context.framework_config`.
+- Preserved turn metadata in `turns[].framework_metadata`:
+  - `entrypoint`
+  - `slug`
+  - `parent_uuid`
+  - `is_sidechain`
+  - `stop_reason`
+  - `stop_sequence`
+  - `cache_creation`
+- Preserved tool metadata in `tool_calls[].framework_metadata`:
+  - `caller`
+  - record context from skipped tool-result messages so `entrypoint`, `slug`, `parent_uuid`, and `is_sidechain` are not lost when those pseudo-turns are absorbed into tool calls
+- Added regression coverage for the preserved Claude metadata.
+- Relied on the pre-commit hook plus `go test ./... -count=1` validation already in the working loop.
+
+### Why
+- Claude’s raw transcript has important metadata that is orthogonal to the normalized schema and different from Codex’s execution-heavy details.
+- Preserving it in metadata is the least invasive way to keep it available.
+- The tool-result absorption path would otherwise silently discard some of the most useful thread/session context.
+
+### What worked
+- The adapter preserved the validated Claude metadata without changing the existing turn/tool model.
+- The new test clearly demonstrates both the assistant-turn metadata and the tool-result metadata merge.
+- The session-level `entrypoint` preservation is simple and stable.
+
+### What didn't work
+- There was no major implementation failure in this slice after the Codex helper issue was resolved, but the pre-commit hook again expanded each focused code change into a full-repo validation run.
+
+### What I learned
+- Claude’s metadata is much more about context and provenance than command execution mechanics.
+- Tool-result record merging is the key preservation seam in the Claude adapter because that is where raw-record detail can disappear even when tool outputs remain intact.
+
+### What was tricky to build
+- The tricky part was choosing where to keep record-level metadata from skipped tool-result pseudo-turns. I merged it into the corresponding tool call’s `framework_metadata`, which preserves the information without reintroducing the fake turns the adapter intentionally avoids.
+
+### What warrants a second pair of eyes
+- Whether `entrypoint` should remain both session-level and turn/tool-level when present, or whether one of those layers is redundant.
+- Whether `cache_creation` should eventually get a more structured first-class representation if multiple adapters start exposing comparable bucket detail.
+
+### What should be done in the future
+- Revisit whether Claude thread metadata (`parent_uuid`, `is_sidechain`, `slug`) warrants a higher-level session/thread model.
+
+### Code review instructions
+- Start with `pkg/adapters/claudecode/convert.go`.
+- Then review `pkg/adapters/claudecode/convert_test.go`.
+- Validate with:
+  - `go test ./pkg/adapters/claudecode -count=1`
+  - `go test ./... -count=1`
+
+### Technical details
+- Code commit: `01e5ddccb19e5165dc5248a4afbfd067957d5a63`
+
+## Step 5: Preserve Pi assistant and tool-result metadata
+
+The Pi slice was smaller than Codex and Claude, but it closed two of the concrete gaps that originally came up during the Jellyfin debugging work: assistant stop/error detail and edit diffs on tool results. These are exactly the kinds of fields that are highly useful during forensic analysis yet not obviously cross-framework enough for immediate schema promotion.
+
+I implemented this by preserving assistant message details on turns and tool-result details on tool calls. That keeps the normalized schema clean while making the missing raw context available again.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Preserve the validated Pi-only metadata that was left out of the first bug-fix ticket.
+
+**Inferred user intent:** Avoid losing Pi’s useful debugging context now that the Go-side `toolResult.isError` fix is already complete.
+
+**Commit (code):** `332a9d7c648a45fa2c2a33a366508366f4aeeb49` — `Preserve Pi adapter metadata`
+
+### What I did
+- Preserved assistant turn metadata in `turns[].framework_metadata`:
+  - `stop_reason`
+  - `error_message`
+- Extended `applyToolResult(...)` to preserve Pi tool-result metadata in `tool_calls[].framework_metadata`:
+  - `diff`
+  - `first_changed_line`
+- Updated the Pi tests so they assert:
+  - assistant `stop_reason` / `error_message` preservation
+  - message-level tool-result diff preservation
+- Ran formatting/tests and relied on the pre-commit full validation during commit.
+
+### Why
+- These fields were validated directly from the raw Pi session and were among the highest-value Pi-specific losses.
+- They are clearly useful for debugging and review, especially edit diffs.
+- Preserving them in metadata avoids locking in a Pi-specific schema design prematurely.
+
+### What worked
+- The changes were small and localized.
+- Existing Pi behavior remained intact while the missing metadata started surviving conversion.
+- The message-level tool-result test now covers both success/failure semantics and diff preservation.
+
+### What didn't work
+- There was no major failure in this slice after the earlier Codex compile fix, but the repo’s full pre-commit checks still dominate the runtime for even focused adapter commits.
+
+### What I learned
+- Pi’s most valuable extra metadata is not session/runtime policy or thread structure; it is concrete execution/debugging detail attached to assistant messages and tool results.
+- `applyToolResult(...)` is the right seam for preserving Pi tool-result metadata because both content-block and message-level result paths already flow through it.
+
+### What was tricky to build
+- The tricky part was keeping the preservation logic shared across the content-block and message-level tool-result paths. Extending `applyToolResult(...)` to accept the raw result map was the cleanest way to do that without duplicating extraction logic.
+
+### What warrants a second pair of eyes
+- Whether additional Pi tool-result `details.*` fields beyond `diff` and `firstChangedLine` should also be preserved in a later pass.
+
+### What should be done in the future
+- Evaluate whether Pi `diff` metadata is common enough and important enough to justify first-class schema treatment later.
+
+### Code review instructions
+- Start with `pkg/adapters/pi/convert.go`.
+- Then review `pkg/adapters/pi/convert_test.go`.
+- Validate with:
+  - `go test ./pkg/adapters/pi -count=1`
+  - `go test ./... -count=1`
+
+### Technical details
+- Code commit: `332a9d7c648a45fa2c2a33a366508366f4aeeb49`
+
+## Step 6: Document the framework-specific metadata contract
+
+Once the three adapter slices were in place, I wrote the docs that explain where these fields live and how to interpret them. The core problem was that the schema page and adapter reference explained the shared schema reasonably well, but they did not explicitly document the now-expanded metadata contract.
+
+I fixed that by adding a dedicated help page for framework metadata mappings, updating the schema doc to explain the three metadata escape hatches, and expanding the adapter reference to list what each adapter now preserves.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Finish the implementation with documentation that makes the preserved metadata discoverable and reviewable.
+
+**Inferred user intent:** Ensure the new metadata behavior is not hidden in code and tests only.
+
+**Commit (code):** latest docs/bookkeeping commit for this ticket — `Document framework metadata mappings`
+
+### What I did
+- Added `pkg/doc/framework-metadata-mappings.md`.
+- Updated `pkg/doc/minitrace-schema.md` with framework metadata storage conventions.
+- Updated `pkg/doc/adapter-reference.md` with per-adapter preserved metadata summaries and a link to the new mapping doc.
+- Updated the ticket tasks/changelog/diary to reflect the completed slices.
+
+### Why
+- Metadata preservation without documentation quickly becomes invisible to users and future maintainers.
+- The new doc gives one stable place to answer: “where is this raw field stored after conversion?”
+
+### What worked
+- The documentation now mirrors the storage design used in code.
+- The new help page provides a more durable answer than burying the mappings inside a ticket note only.
+
+### What didn't work
+- N/A so far.
+
+### What I learned
+- A small shared schema plus explicit metadata contracts is easier to evolve than trying to force every useful raw field into first-class schema immediately.
+
+### What was tricky to build
+- The tricky part was balancing the adapter-specific doc detail with the schema doc’s more general role. I kept the schema page focused on conventions and put the per-adapter mapping tables in a separate help page.
+
+### What warrants a second pair of eyes
+- The exact metadata key naming (`parent_uuid` vs raw `parentUuid`, `stop_reason` vs raw `stopReason`) should stay consistent across future adapter work.
+
+### What should be done in the future
+- Keep the new mapping doc updated whenever metadata is added, renamed, promoted, or removed.
+
+### Code review instructions
+- Start with `pkg/doc/framework-metadata-mappings.md`.
+- Then review the related updates in:
+  - `pkg/doc/minitrace-schema.md`
+  - `pkg/doc/adapter-reference.md`
+
+### Technical details
+- Code/docs commit: see the latest `Document framework metadata mappings` commit for this ticket
+- Key docs added/updated:
+  - `pkg/doc/framework-metadata-mappings.md`
+  - `pkg/doc/minitrace-schema.md`
+  - `pkg/doc/adapter-reference.md`

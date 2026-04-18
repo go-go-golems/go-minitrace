@@ -15,10 +15,12 @@ Owners: []
 RelatedFiles:
     - Path: ttmp/2026/04/18/ADAPTER-FIELDS-001--cross-framework-adapter-field-preservation-and-schema-promotion/analysis/01-cross-framework-field-matrix.md
       Note: Source-backed matrix of candidate fields across Pi, Codex, and Claude Code
+    - Path: pkg/doc/framework-metadata-mappings.md
+      Note: Detailed public reference for preserved framework-specific metadata and where it is stored
     - Path: pkg/minitrace/schema.go
-      Note: First-wave schema changes will add exit_code and justification here
+      Note: First-wave schema changes added exit_code and justification here
     - Path: pkg/adapters/codex/convert.go
-      Note: Codex adapter is the first implementation target for exit_code and justification
+      Note: Codex metadata preservation plus exit_code/justification population
 ExternalSources: []
 Summary: "Separate ticket for source-backed adapter field preservation and first-wave schema promotion work across Pi, Codex, and Claude Code."
 LastUpdated: 2026-04-18T00:00:00Z
