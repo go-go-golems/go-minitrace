@@ -141,6 +141,99 @@ func TestConvertRecordsAnnotatesOrphanToolCalls(t *testing.T) {
 	}
 }
 
+func TestConvertRecordsPreservesClaudeFrameworkMetadata(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":        "assistant",
+			"timestamp":   "2026-03-29T10:00:10Z",
+			"entrypoint":  "sdk-ts",
+			"slug":        "curious-otter",
+			"parentUuid":  "parent-1",
+			"isSidechain": false,
+			"message": map[string]any{
+				"model":         "claude-opus-4-1",
+				"stop_reason":   "tool_use",
+				"stop_sequence": nil,
+				"usage": map[string]any{
+					"input_tokens":                10,
+					"output_tokens":               20,
+					"cache_read_input_tokens":     3,
+					"cache_creation_input_tokens": 1,
+					"cache_creation": map[string]any{
+						"ephemeral_5m_input_tokens": 1,
+						"ephemeral_1h_input_tokens": 2,
+					},
+				},
+				"content": []any{
+					map[string]any{"type": "text", "text": "I'll inspect the file."},
+					map[string]any{
+						"type": "tool_use",
+						"id":   "tool-1",
+						"name": "Read",
+						"input": map[string]any{
+							"file_path": "/home/manuel/project/app.go",
+						},
+						"caller": map[string]any{"type": "direct"},
+					},
+				},
+			},
+		},
+		{
+			"type":        "user",
+			"timestamp":   "2026-03-29T10:00:11Z",
+			"entrypoint":  "sdk-ts",
+			"slug":        "curious-otter",
+			"parentUuid":  "assistant-1",
+			"isSidechain": false,
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{
+						"type":        "tool_result",
+						"tool_use_id": "tool-1",
+						"content":     "package main",
+						"is_error":    false,
+					},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-meta", "/tmp/session-meta.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok || config["entrypoint"] != "sdk-ts" {
+		t.Fatalf("expected entrypoint in framework config, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected assistant turn metadata map, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if turnMetadata["entrypoint"] != "sdk-ts" || turnMetadata["slug"] != "curious-otter" || turnMetadata["parent_uuid"] != "parent-1" {
+		t.Fatalf("unexpected assistant turn metadata: %+v", turnMetadata)
+	}
+	if turnMetadata["stop_reason"] != "tool_use" {
+		t.Fatalf("expected stop_reason metadata, got %+v", turnMetadata)
+	}
+	cacheCreation, ok := turnMetadata["cache_creation"].(map[string]any)
+	if !ok || cacheCreation["ephemeral_1h_input_tokens"] != 2 {
+		t.Fatalf("expected cache_creation bucket detail, got %+v", turnMetadata)
+	}
+	toolMetadata, ok := session.ToolCalls[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected tool metadata map, got %+v", session.ToolCalls[0].FrameworkMetadata)
+	}
+	caller, ok := toolMetadata["caller"].(map[string]any)
+	if !ok || caller["type"] != "direct" {
+		t.Fatalf("expected caller metadata, got %+v", toolMetadata)
+	}
+	if toolMetadata["slug"] != "curious-otter" || toolMetadata["entrypoint"] != "sdk-ts" || toolMetadata["parent_uuid"] != "assistant-1" {
+		t.Fatalf("expected tool-result metadata to be preserved, got %+v", toolMetadata)
+	}
+}
+
 func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
 	parent := minitrace.BuildSessionSkeleton("parent-1", "claude-code", SourceFormatV2, AdapterVersion)
 	turnIndex := 0

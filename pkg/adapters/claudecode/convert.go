@@ -95,8 +95,13 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 	turnIndex := 0
 	toolCounter := 0
 	var sessionModel *string
+	frameworkConfig := map[string]any{}
 
 	for _, record := range records {
+		if entrypoint := stringValue(record["entrypoint"]); entrypoint != "" {
+			frameworkConfig["entrypoint"] = entrypoint
+		}
+
 		recordType := stringValue(record["type"])
 		if _, ok := discardTypes[recordType]; ok || recordType == "progress" {
 			continue
@@ -115,6 +120,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 			source := ptr("framework")
 			turn := minitrace.BuildTurn(turnIndex, timestampPtr, "system", source, content)
 			turn.InputChannel = classifyInputChannel(record)
+			turn.FrameworkMetadata = claudeTurnMetadata(record, message)
 			turns = append(turns, turn)
 			turnIndex++
 		case "user":
@@ -159,6 +165,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 							pending.Output.FullBytes = fullBytes
 							pending.Output.FullHash = fullHash
 							pending.Timestamp = timestampPtr
+							pending.FrameworkMetadata = mergeMetadataMap(pending.FrameworkMetadata, claudeToolResultMetadata(record))
 							toolCalls = append(toolCalls, pending)
 							delete(pendingToolCalls, toolUseID)
 						}
@@ -175,6 +182,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 				source := classifySource(record)
 				turn := minitrace.BuildTurn(turnIndex, timestampPtr, "user", source, content)
 				turn.InputChannel = classifyInputChannel(record)
+				turn.FrameworkMetadata = claudeTurnMetadata(record, message)
 				turns = append(turns, turn)
 				turnIndex++
 				continue
@@ -184,6 +192,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 			source := classifySource(record)
 			turn := minitrace.BuildTurn(turnIndex, timestampPtr, "user", source, content)
 			turn.InputChannel = classifyInputChannel(record)
+			turn.FrameworkMetadata = claudeTurnMetadata(record, message)
 			turns = append(turns, turn)
 			turnIndex++
 		case "assistant":
@@ -248,7 +257,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 						nil,
 						nil,
 						nil,
-						nil,
+						claudeToolMetadata(record, block),
 						nil,
 						classifyContentOrigin(toolName),
 						nil,
@@ -271,9 +280,14 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 			turn.Usage = turnUsage
 			turn.Streaming.WasStreamed = true
 			turn.Model = sessionModel
+			turn.FrameworkMetadata = claudeTurnMetadata(record, message)
 			turns = append(turns, turn)
 			turnIndex++
 		}
+	}
+
+	if len(frameworkConfig) > 0 {
+		session.OperationalContext.FrameworkConfig = frameworkConfig
 	}
 
 	for toolCallID, toolCall := range pendingToolCalls {
@@ -643,6 +657,98 @@ func buildUsage(usage map[string]any, tokenTotals *minitrace.TokenTotals) *minit
 		u.CacheCreationTokens = &cacheCreationTokens
 	}
 	return u
+}
+
+func claudeTurnMetadata(record map[string]any, message map[string]any) any {
+	metadata := map[string]any{}
+	if entrypoint := stringValue(record["entrypoint"]); entrypoint != "" {
+		metadata["entrypoint"] = entrypoint
+	}
+	if slug := stringValue(record["slug"]); slug != "" {
+		metadata["slug"] = slug
+	}
+	if parentUUID, ok := record["parentUuid"]; ok {
+		metadata["parent_uuid"] = parentUUID
+	}
+	if isSidechain, ok := record["isSidechain"]; ok {
+		metadata["is_sidechain"] = isSidechain
+	}
+	if message != nil {
+		if stopReason, ok := message["stop_reason"]; ok {
+			metadata["stop_reason"] = stopReason
+		}
+		if stopSequence, ok := message["stop_sequence"]; ok {
+			metadata["stop_sequence"] = stopSequence
+		}
+		if usage := mapValue(message["usage"]); usage != nil {
+			if cacheCreation, ok := usage["cache_creation"]; ok {
+				metadata["cache_creation"] = cacheCreation
+			}
+		}
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
+}
+
+func claudeToolMetadata(record map[string]any, block map[string]any) any {
+	metadata := map[string]any{}
+	if caller := mapValue(block["caller"]); caller != nil {
+		metadata["caller"] = caller
+	}
+	if entrypoint := stringValue(record["entrypoint"]); entrypoint != "" {
+		metadata["entrypoint"] = entrypoint
+	}
+	if slug := stringValue(record["slug"]); slug != "" {
+		metadata["slug"] = slug
+	}
+	if parentUUID, ok := record["parentUuid"]; ok {
+		metadata["parent_uuid"] = parentUUID
+	}
+	if isSidechain, ok := record["isSidechain"]; ok {
+		metadata["is_sidechain"] = isSidechain
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
+}
+
+func claudeToolResultMetadata(record map[string]any) map[string]any {
+	metadata := map[string]any{}
+	if entrypoint := stringValue(record["entrypoint"]); entrypoint != "" {
+		metadata["entrypoint"] = entrypoint
+	}
+	if slug := stringValue(record["slug"]); slug != "" {
+		metadata["slug"] = slug
+	}
+	if parentUUID, ok := record["parentUuid"]; ok {
+		metadata["parent_uuid"] = parentUUID
+	}
+	if isSidechain, ok := record["isSidechain"]; ok {
+		metadata["is_sidechain"] = isSidechain
+	}
+	return metadata
+}
+
+func mergeMetadataMap(existing any, fields map[string]any) any {
+	if len(fields) == 0 {
+		return existing
+	}
+	metadata := map[string]any{}
+	if current, ok := existing.(map[string]any); ok {
+		for key, value := range current {
+			metadata[key] = value
+		}
+	}
+	for key, value := range fields {
+		metadata[key] = value
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
 }
 
 func countSubagents(toolCalls []minitrace.ToolCall) int {
