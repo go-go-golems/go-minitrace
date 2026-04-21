@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-21T15:32:00-04:00
+LastUpdated: 2026-04-21T15:48:00-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -1053,3 +1053,46 @@ I extended the existing JS showcase with alias examples targeting advanced analy
   - JS alias help listing `focus-top-workspaces`, `core-tool-pairs`, `heavy-session-shapes`
   - mixed SQL output: `{ "framework": "pi", "session_count": 8, ... }`
   - mixed JS output: `{ "framework": "pi", "share_percent": 100, ... }`
+
+## Step 13: Add a Showcase Comparison Guide and Serve/API Coverage for Checked-In Repositories
+
+The user accepted both suggested follow-ups: a “best-of” top-level README that compares the checked-in showcase repositories, and serve/API smoke tests that execute those checked-in repositories through `/api/v2/query-commands/.../execute`. I treated this as the final polish pass for the feature because it closes the loop for both humans and tooling: humans get a clearer entry point into the example set, and the server now has explicit regression coverage for checked-in SQL/JS showcase repositories rather than only inline or embedded test fixtures.
+
+### What I changed
+- Added a top-level guide at:
+  - `testdata/query-repositories/README.md`
+- Updated docs/backlinks in:
+  - `pkg/doc/structured-query-commands.md`
+  - `testdata/query-repositories/js-showcase/README.md`
+  - `testdata/query-repositories/mixed-sql-js-showcase/README.md`
+- Added checked-in repository serve tests in:
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+
+### What the new guide covers
+- when to start from `js-showcase/`
+- when to start from `mixed-sql-js-showcase/`
+- representative commands in each repo
+- a rule of thumb for “stay in SQL” vs “move to JS”
+- concrete smoke commands for each repository
+
+### What the new serve tests cover
+- checked-in JS showcase alias execution through:
+  - `/api/v2/query-commands/analysis/aliases/focus-top-workspaces.alias.yaml/execute`
+- checked-in mixed showcase SQL execution through:
+  - `/api/v2/query-commands/overview/framework-summary.sql/execute`
+- checked-in mixed showcase JS alias execution through:
+  - `/api/v2/query-commands/analysis/aliases/top-workspaces.alias.yaml/execute`
+
+### Small issue found during testing
+The first draft of the new serve tests surfaced two quirks that were worth documenting even though I did not turn this slice into a separate implementation task:
+
+1. JS showcase filters using `environment->>'agent_framework' IN (...)` hit the same DuckDB JSON/operator sensitivity in the tiny fixture-backed server tests that we previously saw in another form with `IS NOT NULL` checks. The simplest way to keep this slice scoped to “checked-in repo API coverage” was to avoid adding the extra framework filter in these particular tests.
+2. Direct API execution of the mixed showcase SQL leaf needed an explicit `limit` value in the request body, whereas the CLI path gets defaults through command parsing. That is a real behavioral difference worth remembering if we later want API-side default hydration for direct SQL command execution.
+
+### Validation
+- Focused serve test run passed after the request-body adjustments.
+- Full `go test ./...` passed.
+- `docmgr doctor --ticket GMT-007 --stale-after 30` passed.
+
+### Why this matters
+Before this step, we had strong CLI/runtime coverage and checked-in example repositories, but a new reader still had to infer which repository to copy from, and the serve/API tests were mostly proving the handler contract against embedded or inline examples. After this step, there is a clearer human entry point plus explicit API regression coverage for the checked-in showcase repos themselves.

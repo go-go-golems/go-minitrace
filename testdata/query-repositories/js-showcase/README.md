@@ -1,5 +1,8 @@
 # JS showcase query repository
 
+See also: `../README.md` for a comparison of all checked-in showcase repositories.
+
+
 This testdata repository demonstrates scanner-first JavaScript query commands that go well beyond wrapping a single SQL statement. It is intended as both:
 
 - a copy-paste starting point for authors, and

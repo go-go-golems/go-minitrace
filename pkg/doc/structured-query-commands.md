@@ -382,7 +382,11 @@ Important rules for JS command files:
 - helper modules can still be loaded with relative `require()` calls,
 - and text-output JS commands are currently deferred in `go-minitrace query commands`.
 
-For more realistic examples, see the checked-in showcase repositories under:
+For more realistic examples, start with the checked-in showcase guide:
+
+- `testdata/query-repositories/README.md`
+
+Then inspect the repositories under:
 
 - `testdata/query-repositories/js-showcase/`
 - `testdata/query-repositories/mixed-sql-js-showcase/`

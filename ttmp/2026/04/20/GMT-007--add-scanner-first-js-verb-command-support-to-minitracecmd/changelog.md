@@ -17,4 +17,5 @@
 - Added a checked-in `testdata/query-repositories/js-showcase/` repository with realistic JS examples covering helper modules, multi-verb files, synthetic row generation, async commands, `queryOne`, and JS-side post-processing, plus tests and smoke validation proving the showcase runs end-to-end
 - Expanded the JS showcase with advanced analysis examples that combine multiple queries, perform JS-side joins/scoring/classification, compute tool co-occurrence pairs, and were smoke-validated against a temporary archive converted from real Pi sessions under `~/.pi/agent/sessions`
 - Added JS alias examples for advanced analysis commands plus a second checked-in `mixed-sql-js-showcase/` repository that demonstrates SQL leaves, JS file-group commands, SQL aliases, and JS aliases coexisting in one repository, all smoke-validated against real Pi-derived archive data
+- Added a top-level `testdata/query-repositories/README.md` that compares the checked-in showcase repositories and added serve/API tests that execute checked-in showcase commands through `/api/v2/query-commands/.../execute`
 

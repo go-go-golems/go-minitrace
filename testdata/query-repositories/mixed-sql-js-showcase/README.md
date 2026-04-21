@@ -1,5 +1,8 @@
 # Mixed SQL + JS showcase query repository
 
+See also: `../README.md` for a comparison of all checked-in showcase repositories.
+
+
 This repository demonstrates how plain SQL command files, JS-backed command groups, and aliases can coexist in a single structured query-command repository.
 
 ## Layout
