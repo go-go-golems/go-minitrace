@@ -130,7 +130,7 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 		payload.Columns = columns
 		payload.Rows = rowStructs
 		payload.DurationMs = time.Since(start).Milliseconds()
-		payload.RowCount = int32(len(rows))
+		payload.RowCount = clampIntToInt32(len(rows))
 		writeProtoJSON(w, http.StatusOK, payload)
 		return
 	}
@@ -170,7 +170,7 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 	payload.Columns = columnsFromRows(rows)
 	payload.Rows = rowStructs
 	payload.DurationMs = time.Since(start).Milliseconds()
-	payload.RowCount = int32(len(rows))
+	payload.RowCount = clampIntToInt32(len(rows))
 	writeProtoJSON(w, http.StatusOK, payload)
 }
 

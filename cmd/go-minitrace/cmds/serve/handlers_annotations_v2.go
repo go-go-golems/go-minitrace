@@ -65,7 +65,7 @@ func (s *Server) handleGetSessionAnnotationsV2(w http.ResponseWriter, r *http.Re
 	payload := &apiv1.GetSessionAnnotationsResponse{
 		Meta:        &apiv1.ApiMeta{SchemaVersion: apiSchemaVersion},
 		SessionId:   sessionID,
-		Count:       uint32(len(anns)),
+		Count:       clampIntToUint32(len(anns)),
 		Annotations: protoAnnotations(anns),
 	}
 	writeProtoJSON(w, http.StatusOK, payload)

@@ -128,10 +128,11 @@ func toInt64Value(value any) (int64, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return rv.Int(), nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		if rv.Uint() > math.MaxInt64 {
+		u := rv.Uint()
+		if u > math.MaxInt64 {
 			return 0, fmt.Errorf("expected int slice element in int64 range, got %v", value)
 		}
-		return int64(rv.Uint()), nil
+		return int64(u), nil
 	case reflect.Float32, reflect.Float64:
 		f := rv.Float()
 		if math.Trunc(f) != f {

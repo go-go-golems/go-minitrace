@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -107,8 +108,14 @@ func SafeInt(value any, defaults int) int {
 	case int32:
 		return int(v)
 	case int64:
+		if v < int64(math.MinInt) || v > int64(math.MaxInt) {
+			return defaults
+		}
 		return int(v)
 	case uint:
+		if v > uint(math.MaxInt) {
+			return defaults
+		}
 		return int(v)
 	case uint8:
 		return int(v)
@@ -117,10 +124,19 @@ func SafeInt(value any, defaults int) int {
 	case uint32:
 		return int(v)
 	case uint64:
+		if v > uint64(math.MaxInt) {
+			return defaults
+		}
 		return int(v)
 	case float32:
+		if v < float32(math.MinInt) || v > float32(math.MaxInt) {
+			return defaults
+		}
 		return int(v)
 	case float64:
+		if v < float64(math.MinInt) || v > float64(math.MaxInt) {
+			return defaults
+		}
 		return int(v)
 	case string:
 		i, err := strconv.Atoi(v)
