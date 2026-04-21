@@ -5,10 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	fields "github.com/go-go-golems/glazed/pkg/cmds/fields"
+	"github.com/go-go-golems/glazed/pkg/cmds/schema"
+	glazedvalues "github.com/go-go-golems/glazed/pkg/cmds/values"
+	"github.com/go-go-golems/glazed/pkg/types"
+	querycmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query"
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
@@ -67,44 +72,87 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
-		TableName: s.tableName,
-		Values:    resolvedValues,
-	})
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+	payload := &apiv1.ExecuteQueryCommandResponse{
+		Meta:       &apiv1.ApiMeta{SchemaVersion: apiSchemaVersion},
+		Columns:    []string{},
+		Rows:       []*structpb.Struct{},
+		DurationMs: 0,
+		RowCount:   0,
 	}
 
-	payload := &apiv1.ExecuteQueryCommandResponse{
-		Meta:        &apiv1.ApiMeta{SchemaVersion: apiSchemaVersion},
-		RenderedSql: sqlText,
-		Columns:     []string{},
-		Rows:        []*structpb.Struct{},
-		DurationMs:  0,
-		RowCount:    0,
-	}
-	if req.GetRenderOnly() {
+	if resolvedCommand.Runtime == minitracecmd.CommandRuntimeSQL || resolvedCommand.Runtime == minitracecmd.CommandRuntimeUnknown {
+		sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
+			TableName: s.tableName,
+			Values:    resolvedValues,
+		})
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		payload.RenderedSql = sqlText
+		if req.GetRenderOnly() {
+			writeProtoJSON(w, http.StatusOK, payload)
+			return
+		}
+
+		if s.conn == nil {
+			writeError(w, http.StatusInternalServerError, "query connection is not initialized")
+			return
+		}
+		if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		start := time.Now()
+		columns, rows, err := executeQueryRows(r.Context(), s.conn, sqlText)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		rowStructs := make([]*structpb.Struct, 0, len(rows))
+		for _, row := range rows {
+			pbRow, err := structpb.NewStruct(row)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, errors.Wrap(err, "encoding query-command row").Error())
+				return
+			}
+			rowStructs = append(rowStructs, pbRow)
+		}
+
+		payload.Columns = columns
+		payload.Rows = rowStructs
+		payload.DurationMs = time.Since(start).Milliseconds()
+		payload.RowCount = int32(len(rows))
 		writeProtoJSON(w, http.StatusOK, payload)
 		return
 	}
 
+	if req.GetRenderOnly() {
+		writeProtoJSON(w, http.StatusOK, payload)
+		return
+	}
 	if s.conn == nil {
 		writeError(w, http.StatusInternalServerError, "query connection is not initialized")
 		return
 	}
-	if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
 
 	start := time.Now()
-	columns, rows, err := executeQueryRows(r.Context(), s.conn, sqlText)
-	if err != nil {
+	collector := &queryCommandCollectingProcessor{}
+	runtimeSettings := &querycmd.MinitraceQueryRuntimeSettings{
+		ArchiveGlob:   nil,
+		DBPath:        "",
+		TableName:     s.tableName,
+		PersistLoaded: false,
+	}
+	parsedValues := requestValuesToParsedValues(req.GetValues(), resolvedCommand.Schema)
+	if err := querycmd.RunJSCommandIntoProcessor(r.Context(), catalog, resolvedCommand, runtimeSettings, parsedValues, resolvedValues, s.conn, collector); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	rows := collector.maps()
 	rowStructs := make([]*structpb.Struct, 0, len(rows))
 	for _, row := range rows {
 		pbRow, err := structpb.NewStruct(row)
@@ -114,8 +162,7 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 		}
 		rowStructs = append(rowStructs, pbRow)
 	}
-
-	payload.Columns = columns
+	payload.Columns = columnsFromRows(rows)
 	payload.Rows = rowStructs
 	payload.DurationMs = time.Since(start).Milliseconds()
 	payload.RowCount = int32(len(rows))
@@ -227,6 +274,86 @@ func requestValuesToMap(values map[string]*structpb.Value) map[string]any {
 		ret[key] = value.AsInterface()
 	}
 	return ret
+}
+
+func requestValuesToParsedValues(values map[string]*structpb.Value, commandSchema *schema.Schema) *glazedvalues.Values {
+	ret := glazedvalues.New()
+	if commandSchema == nil {
+		return ret
+	}
+	sectionsByField := map[string]schema.Section{}
+	commandSchema.ForEach(func(_ string, section schema.Section) {
+		if section == nil {
+			return
+		}
+		section.GetDefinitions().ForEach(func(def *fields.Definition) {
+			if def == nil {
+				return
+			}
+			if _, ok := sectionsByField[def.Name]; ok {
+				return
+			}
+			sectionsByField[def.Name] = section
+		})
+	})
+	for key, value := range values {
+		section, ok := sectionsByField[key]
+		if !ok || section == nil || value == nil {
+			continue
+		}
+		definition, ok := section.GetDefinitions().Get(key)
+		if !ok || definition == nil {
+			continue
+		}
+		sectionValues := ret.GetOrCreate(section)
+		fieldValue := &fields.FieldValue{Definition: definition.Clone()}
+		if err := fieldValue.Update(value.AsInterface()); err != nil {
+			continue
+		}
+		sectionValues.Fields.Set(key, fieldValue)
+	}
+	return ret
+}
+
+type queryCommandCollectingProcessor struct {
+	rows []types.Row
+}
+
+func (p *queryCommandCollectingProcessor) AddRow(_ context.Context, row types.Row) error {
+	p.rows = append(p.rows, row)
+	return nil
+}
+
+func (p *queryCommandCollectingProcessor) Close(context.Context) error {
+	return nil
+}
+
+func (p *queryCommandCollectingProcessor) maps() []map[string]any {
+	ret := make([]map[string]any, 0, len(p.rows))
+	for _, row := range p.rows {
+		mapped := map[string]any{}
+		for pair := row.Oldest(); pair != nil; pair = pair.Next() {
+			mapped[pair.Key] = pair.Value
+		}
+		ret = append(ret, mapped)
+	}
+	return ret
+}
+
+func columnsFromRows(rows []map[string]any) []string {
+	seen := map[string]struct{}{}
+	columns := []string{}
+	for _, row := range rows {
+		for key := range row {
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			columns = append(columns, key)
+		}
+	}
+	sort.Strings(columns)
+	return columns
 }
 
 func executeQueryRows(ctx context.Context, conn *sql.Conn, sqlText string) ([]string, []map[string]any, error) {

@@ -988,6 +988,83 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 }
 
+func TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase5-js-query-command")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
+	}); err != nil {
+		t.Fatalf("LoadArchive returned error: %v", err)
+	}
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", DBPath: ":memory:"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = []minitracecmd.SourceRoot{{
+		Name: "test-root",
+		FS: fstest.MapFS{
+			"queries/overview/session-list.js": &fstest.MapFile{Data: []byte(`
+__section__("filters", {
+  fields: {
+    limit: { type: "int", default: 10 }
+  }
+});
+
+function sessionList(filters) {
+  const mt = require("minitrace");
+  return mt.query(` + "`" + `
+    SELECT id
+    FROM ${mt.tableName}
+    LIMIT ${filters.limit}
+  ` + "`" + `);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions",
+  fields: {
+    filters: { bind: "filters" }
+  }
+});
+`)},
+		},
+		RootDir:  "queries",
+		Readonly: true,
+	}}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/session-list.js:session-list/execute", strings.NewReader(`{"values":{"limit":1}}`))
+	request.SetPathValue("path", "overview/session-list.js:session-list/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute js query command response: %v", err)
+	}
+	if payload.GetRowCount() != 1 {
+		t.Fatalf("expected row_count=1, got %d", payload.GetRowCount())
+	}
+	if got := payload.GetRows()[0].GetFields()["id"].GetStringValue(); got != "phase5-js-query-command" {
+		t.Fatalf("expected returned id phase5-js-query-command, got %q", got)
+	}
+}
+
 func TestHandleExecuteQueryCommandV2ReturnsNotFoundForUnknownCommand(t *testing.T) {
 	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/missing.sql/execute", strings.NewReader(`{}`))

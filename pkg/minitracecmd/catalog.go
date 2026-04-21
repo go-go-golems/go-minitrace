@@ -17,22 +17,25 @@ type SourceRoot struct {
 }
 
 type Catalog struct {
-	Commands []*MinitraceCommand
-	ByPath   map[string]*MinitraceCommand
-	ByName   map[string]*MinitraceCommand
+	Commands    []*MinitraceCommand
+	ByPath      map[string]*MinitraceCommand
+	ByName      map[string]*MinitraceCommand
+	SourceRoots map[string]SourceRoot
 }
 
 func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 	compiler := &Compiler{}
 	catalog := &Catalog{
-		Commands: []*MinitraceCommand{},
-		ByPath:   map[string]*MinitraceCommand{},
-		ByName:   map[string]*MinitraceCommand{},
+		Commands:    []*MinitraceCommand{},
+		ByPath:      map[string]*MinitraceCommand{},
+		ByName:      map[string]*MinitraceCommand{},
+		SourceRoots: map[string]SourceRoot{},
 	}
 	seenSourcePaths := map[string]struct{}{}
 	seenCommandPaths := map[string]string{}
 
 	for _, root := range roots {
+		catalog.SourceRoots[root.Name] = root
 		rootDir := root.RootDir
 		if rootDir == "" {
 			rootDir = "."
