@@ -613,3 +613,64 @@ This step also produced one small but instructive failure. My first command-help
     - `{ "id": "smoke-session", "title": "Smoke Session" }`
   - SQL command output:
     - `{ "framework": "codex", "count": 1 }`
+
+## Step 8: Refresh the reMarkable Bundle After Implementation
+
+The original reMarkable upload for `GMT-007` happened before any of the implementation work landed, so once the code, tests, and docs were complete I uploaded a refreshed final bundle rather than leaving the device copy stale. I used a new PDF name in the same remote ticket directory so the earlier design-only bundle remained intact and no overwrite was necessary.
+
+This final delivery refresh also needed one extra verification pass. The first post-upload listing showed only the original bundle name, which made it unclear whether the new upload had actually landed. A second listing of the same directory showed both PDFs, confirming that the upload had succeeded and the first listing had simply not reflected the new file yet.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 5)
+
+**Assistant interpretation:** Keep the ticket artifacts and delivery state aligned as implementation progresses.
+
+**Inferred user intent:** Make sure the final stored and delivered documentation matches the completed implementation state, not just the earlier design state.
+
+### What I did
+- Ran a dry-run bundled upload for the updated ticket docs.
+- Uploaded a refreshed bundle named:
+  - `GMT-007 scanner-first JS verb commands complete`
+- Verified the remote directory again under:
+  - `/ai/2026/04/20/GMT-007/`
+
+### Why
+- The earlier uploaded PDF was useful for design review, but it no longer reflected the completed implementation, tests, and final diary.
+- Using a new output name preserved the earlier artifact and avoided forcing an overwrite.
+
+### What worked
+- Dry-run upload succeeded.
+- Real upload succeeded:
+  - `OK: uploaded GMT-007 scanner-first JS verb commands complete.pdf -> /ai/2026/04/20/GMT-007`
+- Final directory listing showed both bundles:
+  - `[f]\tGMT-007 scanner-first JS verb commands`
+  - `[f]\tGMT-007 scanner-first JS verb commands complete`
+
+### What didn't work
+- The first immediate listing after upload only showed the original file name, so I needed to rerun the directory listing to confirm the refreshed bundle.
+
+### What I learned
+- Using a distinct final bundle name is the safest way to refresh the reMarkable delivery without disturbing the earlier uploaded artifact.
+
+### What was tricky to build
+- The only tricky part was verification timing. The upload itself succeeded, but the first listing result was incomplete enough to warrant a second check before claiming success.
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- When a ticket evolves significantly after its first upload, prefer publishing a second clearly named “complete” bundle instead of overwriting the original.
+
+### Code review instructions
+- Verify the updated remote delivery with:
+  - `remarquee cloud ls '/ai/2026/04/20/GMT-007/' --long --non-interactive`
+
+### Technical details
+- Dry-run upload command:
+  - `cd /home/manuel/workspaces/2026-04-20/minitrace-js/go-minitrace && remarquee upload bundle --dry-run ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/index.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/design-doc/01-scanner-first-js-verb-commands-for-minitracecmd-analysis-design-and-implementation-guide.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/reference/01-investigation-diary.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/tasks.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/changelog.md --name "GMT-007 scanner-first JS verb commands complete" --remote-dir "/ai/2026/04/20/GMT-007" --toc-depth 2`
+- Real upload command:
+  - `cd /home/manuel/workspaces/2026-04-20/minitrace-js/go-minitrace && remarquee upload bundle ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/index.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/design-doc/01-scanner-first-js-verb-commands-for-minitracecmd-analysis-design-and-implementation-guide.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/reference/01-investigation-diary.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/tasks.md ttmp/2026/04/20/GMT-007--add-scanner-first-js-verb-command-support-to-minitracecmd/changelog.md --name "GMT-007 scanner-first JS verb commands complete" --remote-dir "/ai/2026/04/20/GMT-007" --toc-depth 2`
+- Final verified remote listing:
+  - `[f]\tGMT-007 scanner-first JS verb commands`
+  - `[f]\tGMT-007 scanner-first JS verb commands complete`
