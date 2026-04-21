@@ -32,12 +32,15 @@ func (c *Compiler) Compile(spec *MinitraceCommandSpec, opts CompileOptions) (*Mi
 		Long:       spec.Long,
 		Layout:     spec.Layout,
 		Flags:      normalizeOptionalBoolFlags(spec.Flags),
-		Arguments:  spec.Arguments,
-		Tags:       spec.Tags,
-		Metadata:   spec.Metadata,
+		Arguments:  cloneDefinitions(spec.Arguments),
+		Tags:       append([]string(nil), spec.Tags...),
+		Metadata:   cloneMap(spec.Metadata),
+		Schema:     cloneSchema(spec.Schema),
+		Runtime:    spec.Runtime,
 		Query:      spec.Query,
+		JS:         cloneJSCommandSpec(spec.JS),
 		AliasFor:   spec.AliasFor,
-		AliasFlags: spec.AliasFlags,
+		AliasFlags: cloneMap(spec.AliasFlags),
 		Kind:       spec.Kind,
 		Readonly:   opts.Readonly,
 		SourceRoot: opts.SourceRoot,
@@ -65,4 +68,38 @@ func normalizeOptionalBoolFlags(flags []*fields.Definition) []*fields.Definition
 		ret = append(ret, cloned)
 	}
 	return ret
+}
+
+func cloneDefinitions(definitions []*fields.Definition) []*fields.Definition {
+	if len(definitions) == 0 {
+		return nil
+	}
+	ret := make([]*fields.Definition, 0, len(definitions))
+	for _, definition := range definitions {
+		if definition == nil {
+			ret = append(ret, nil)
+			continue
+		}
+		ret = append(ret, definition.Clone())
+	}
+	return ret
+}
+
+func cloneMap(in map[string]any) map[string]any {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(in))
+	for key, value := range in {
+		out[key] = value
+	}
+	return out
+}
+
+func cloneJSCommandSpec(js *JSCommandSpec) *JSCommandSpec {
+	if js == nil {
+		return nil
+	}
+	ret := *js
+	return &ret
 }

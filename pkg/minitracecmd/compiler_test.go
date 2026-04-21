@@ -10,12 +10,13 @@ func TestCompiler_CompileVerb(t *testing.T) {
 	flag := fields.New("verbose", fields.TypeBool, fields.WithHelp("Include extra rows"))
 
 	cmd, err := (&Compiler{}).Compile(&MinitraceCommandSpec{
-		Name:  "session-list",
-		Short: "List sessions",
-		Query: "SELECT 1",
-		Flags: []*fields.Definition{flag},
-		Tags:  []string{"analysis"},
-		Kind:  MinitraceCommandVerb,
+		Name:    "session-list",
+		Short:   "List sessions",
+		Runtime: CommandRuntimeSQL,
+		Query:   "SELECT 1",
+		Flags:   []*fields.Definition{flag},
+		Tags:    []string{"analysis"},
+		Kind:    MinitraceCommandVerb,
 	}, CompileOptions{
 		Folder:     "queries/core",
 		Path:       "queries/core/session-list.sql",
@@ -35,6 +36,9 @@ func TestCompiler_CompileVerb(t *testing.T) {
 	}
 	if cmd.SourceRoot != "embedded" {
 		t.Fatalf("SourceRoot = %q, want embedded", cmd.SourceRoot)
+	}
+	if cmd.Runtime != CommandRuntimeSQL {
+		t.Fatalf("Runtime = %q, want %q", cmd.Runtime, CommandRuntimeSQL)
 	}
 	if !cmd.Readonly {
 		t.Fatalf("Readonly = false, want true")
@@ -71,6 +75,39 @@ func TestCompiler_CompileAlias(t *testing.T) {
 	}
 }
 
+func TestCompiler_CompileJSVerb(t *testing.T) {
+	cmd, err := (&Compiler{}).Compile(&MinitraceCommandSpec{
+		Name:    "session-list",
+		Short:   "List sessions",
+		Runtime: CommandRuntimeJS,
+		JS: &JSCommandSpec{
+			ModulePath:   "overview/session-list",
+			FunctionName: "sessionList",
+			OutputMode:   "glaze",
+		},
+		Kind: MinitraceCommandVerb,
+	}, CompileOptions{
+		Folder:     "queries/core",
+		Path:       "queries/core/session-list.js:session-list",
+		SourceRoot: "embedded",
+		SourcePath: "queries/core/session-list.js",
+		Readonly:   true,
+	})
+	if err != nil {
+		t.Fatalf("Compile returned error: %v", err)
+	}
+
+	if cmd.Runtime != CommandRuntimeJS {
+		t.Fatalf("Runtime = %q, want %q", cmd.Runtime, CommandRuntimeJS)
+	}
+	if cmd.JS == nil {
+		t.Fatalf("JS = nil, want js metadata")
+	}
+	if cmd.JS.FunctionName != "sessionList" {
+		t.Fatalf("FunctionName = %q, want sessionList", cmd.JS.FunctionName)
+	}
+}
+
 func TestCompiler_NormalizesOptionalBoolFlags(t *testing.T) {
 	flag := fields.New("verbose", fields.TypeBool, fields.WithHelp("Include extra rows"))
 	if flag.Default != nil {
@@ -78,11 +115,12 @@ func TestCompiler_NormalizesOptionalBoolFlags(t *testing.T) {
 	}
 
 	cmd, err := (&Compiler{}).Compile(&MinitraceCommandSpec{
-		Name:  "session-list",
-		Short: "List sessions",
-		Query: "SELECT 1",
-		Flags: []*fields.Definition{flag},
-		Kind:  MinitraceCommandVerb,
+		Name:    "session-list",
+		Short:   "List sessions",
+		Runtime: CommandRuntimeSQL,
+		Query:   "SELECT 1",
+		Flags:   []*fields.Definition{flag},
+		Kind:    MinitraceCommandVerb,
 	}, CompileOptions{})
 	if err != nil {
 		t.Fatalf("Compile returned error: %v", err)

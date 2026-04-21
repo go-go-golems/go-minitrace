@@ -47,11 +47,14 @@ func NewMinitraceCatalogGlazeCommand(command *minitracecmd.MinitraceCommand, cat
 	options := []cmds.CommandDescriptionOption{
 		cmds.WithShort(command.Short),
 		cmds.WithLong(command.Long),
-		cmds.WithFlags(command.Flags...),
-		cmds.WithArguments(command.Arguments...),
 		cmds.WithTags(command.Tags...),
 		cmds.WithMetadata(command.Metadata),
 		cmds.WithSections(glazedSection, commandSettingsSection, queryRuntimeSection),
+	}
+	if command.Schema != nil {
+		options = append(options, cmds.WithSchema(command.Schema.Clone()))
+	} else {
+		options = append(options, cmds.WithFlags(command.Flags...), cmds.WithArguments(command.Arguments...))
 	}
 	if len(command.Layout) > 0 {
 		options = append(options, cmds.WithLayout(&layout.Layout{Sections: command.Layout}))

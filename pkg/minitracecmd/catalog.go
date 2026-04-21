@@ -29,6 +29,8 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 		ByPath:   map[string]*MinitraceCommand{},
 		ByName:   map[string]*MinitraceCommand{},
 	}
+	seenSourcePaths := map[string]struct{}{}
+	seenCommandPaths := map[string]string{}
 
 	for _, root := range roots {
 		rootDir := root.RootDir
@@ -49,56 +51,64 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 				return nil
 			}
 
-			contents, err := fs.ReadFile(root.FS, path)
-			if err != nil {
-				return err
-			}
-
-			var spec *MinitraceCommandSpec
-			switch kind {
-			case SourceSQLCommand:
-				if !LooksLikeSqletonSQLCommand(contents) {
-					return nil
-				}
-				spec, err = ParseSQLCommandSpec(path, contents)
-			case SourceYAMLAlias:
-				spec, err = ParseAliasSpec(path, contents)
-			case SourceUnknown:
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-
 			rel, err := filepath.Rel(rootDir, path)
 			if err != nil {
 				return err
 			}
 			rel = filepath.ToSlash(rel)
-			folder := filepath.ToSlash(filepath.Dir(rel))
-			if folder == "." {
-				folder = ""
+			if _, ok := seenSourcePaths[rel]; ok {
+				return nil // first root wins for a source file path
 			}
 
-			cmd, err := compiler.Compile(spec, CompileOptions{
-				Folder:     folder,
-				Path:       rel,
-				SourceRoot: root.Name,
-				SourcePath: path,
-				Readonly:   root.Readonly,
-			})
+			contents, err := fs.ReadFile(root.FS, path)
 			if err != nil {
 				return err
 			}
 
-			if _, exists := catalog.ByPath[cmd.Path]; exists {
-				return nil // first root wins
+			parsed, err := parseSourceSpecs(path, rel, kind, contents)
+			if err != nil {
+				return err
 			}
-			catalog.ByPath[cmd.Path] = cmd
-			catalog.Commands = append(catalog.Commands, cmd)
-			if cmd.Kind == MinitraceCommandVerb {
-				if _, exists := catalog.ByName[cmd.Name]; !exists {
-					catalog.ByName[cmd.Name] = cmd
+			if len(parsed) == 0 {
+				return nil
+			}
+			seenSourcePaths[rel] = struct{}{}
+
+			for _, entry := range parsed {
+				if entry.Spec == nil {
+					continue
+				}
+				folder := filepath.ToSlash(filepath.Dir(entry.Path))
+				if folder == "." {
+					folder = ""
+				}
+
+				cmd, err := compiler.Compile(entry.Spec, CompileOptions{
+					Folder:     folder,
+					Path:       entry.Path,
+					SourceRoot: root.Name,
+					SourcePath: path,
+					Readonly:   root.Readonly,
+				})
+				if err != nil {
+					return err
+				}
+
+				logicalPath := commandLogicalPath(cmd)
+				if existingSource, exists := seenCommandPaths[logicalPath]; exists {
+					return errors.Wrapf(ErrDuplicateCommandPath, "%s already defined by %s", logicalPath, existingSource)
+				}
+				seenCommandPaths[logicalPath] = cmd.SourcePath
+
+				if _, exists := catalog.ByPath[cmd.Path]; exists {
+					return errors.Wrapf(ErrDuplicateCommandPath, "%s already defined", cmd.Path)
+				}
+				catalog.ByPath[cmd.Path] = cmd
+				catalog.Commands = append(catalog.Commands, cmd)
+				if cmd.Kind == MinitraceCommandVerb {
+					if _, exists := catalog.ByName[cmd.Name]; !exists {
+						catalog.ByName[cmd.Name] = cmd
+					}
 				}
 			}
 
@@ -118,6 +128,42 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 	}
 
 	return catalog, nil
+}
+
+func parseSourceSpecs(sourcePath string, rel string, kind SourceKind, contents []byte) ([]ParsedCommandSpec, error) {
+	switch kind {
+	case SourceUnknown:
+		return nil, nil
+	case SourceSQLCommand:
+		if !LooksLikeSqletonSQLCommand(contents) {
+			return nil, nil
+		}
+		spec, err := ParseSQLCommandSpec(sourcePath, contents)
+		if err != nil {
+			return nil, err
+		}
+		return []ParsedCommandSpec{{Spec: spec, Path: rel}}, nil
+	case SourceJSCommand:
+		return ParseJSCommandSpecs(rel, contents)
+	case SourceYAMLAlias:
+		spec, err := ParseAliasSpec(sourcePath, contents)
+		if err != nil {
+			return nil, err
+		}
+		return []ParsedCommandSpec{{Spec: spec, Path: rel}}, nil
+	}
+
+	return nil, nil
+}
+
+func commandLogicalPath(cmd *MinitraceCommand) string {
+	if cmd == nil {
+		return ""
+	}
+	if strings.TrimSpace(cmd.Folder) == "" {
+		return cmd.Name
+	}
+	return cmd.Folder + "/" + cmd.Name
 }
 
 func resolveAliases(catalog *Catalog) error {
