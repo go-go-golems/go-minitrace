@@ -94,7 +94,7 @@ Runtime context captured at session start. Availability depends on the source fo
 | `git_ref` | string? | Git commit reference |
 | `autonomy_level` | string? | How autonomous the agent was |
 | `sandbox` | bool? | Whether the session ran in a sandbox |
-| `framework_config` | any? | Adapter-specific configuration blob |
+| `framework_config` | any? | Adapter-specific configuration blob, typically for raw session/runtime metadata that does not fit the shared schema |
 
 ## Timing
 
@@ -124,7 +124,7 @@ The conversation transcript as an ordered array. Each turn is one message from a
 | `content_type` | string? | MIME type hint for the content |
 | `input_channel` | string? | How the input arrived |
 | `content` | string | The actual message text |
-| `framework_metadata` | any? | Adapter-specific turn metadata |
+| `framework_metadata` | any? | Adapter-specific turn metadata preserved from the raw transcript |
 | `tool_calls_in_turn` | string[] | IDs of tool calls emitted by this turn |
 | `thinking` | string? | Chain-of-thought / reasoning text if captured |
 | `intent_markers` | object? | Whether this turn was requested, inferred, or proactive |
@@ -156,7 +156,7 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `input` | object | Tool input (see below) |
 | `output` | object | Tool output (see below) |
 | `context` | object | Position and surrounding tool context |
-| `framework_metadata` | any? | Adapter-specific tool call metadata |
+| `framework_metadata` | any? | Adapter-specific tool call metadata preserved from the raw transcript |
 | `spawned_agent` | object? | If this tool call delegated to a subagent |
 
 ### Tool Call Input
@@ -165,6 +165,7 @@ Every tool invocation is recorded with its input, output, and contextual positio
 |-------|------|-------------|
 | `file_path` | string? | File path argument (normalized, `~` for home) |
 | `command` | string? | Shell command if applicable |
+| `justification` | string? | Tool-use rationale if the source transcript provides one |
 | `arguments` | any? | Full arguments blob |
 
 ### Tool Call Output
@@ -174,6 +175,7 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `success` | bool | Whether the tool call succeeded |
 | `result` | string? | Output text (truncated to 10 KB if larger) |
 | `error` | string? | Error message if the call failed |
+| `exit_code` | int? | Process exit code when the source transcript exposes one |
 | `duration_ms` | int? | Execution time in milliseconds |
 | `truncated` | bool | Whether the result was truncated |
 | `full_bytes` | int? | Original size before truncation |
@@ -181,6 +183,16 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `full_reference` | string? | External reference to the full output |
 | `redacted` | bool? | Whether the output was redacted |
 | `content_origin` | string? | Where the content came from |
+
+## Framework-specific metadata conventions
+
+Minitrace uses a small number of shared first-class fields plus three explicit escape hatches for source-specific detail:
+
+- `operational_context.framework_config`
+- `turns[].framework_metadata`
+- `tool_calls[].framework_metadata`
+
+Use these when a raw field is analytically useful but not yet stable enough to become shared schema. See `go-minitrace help framework-metadata-mappings` for the per-adapter mapping tables.
 
 ### Tool Call Context
 

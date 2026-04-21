@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	_ "github.com/mattn/go-sqlite3"
@@ -214,14 +215,15 @@ func (s *Store) List(ctx context.Context, opts ListOptions) ([]AnnotationRow, er
 		args = append(args, pat, pat, pat)
 	}
 
-	query += " ORDER BY created_at DESC"
-	if opts.Limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d", opts.Limit)
-	} else {
-		query += " LIMIT 50"
+	query += " ORDER BY created_at DESC LIMIT ?"
+	limit := opts.Limit
+	if limit <= 0 {
+		limit = 50
 	}
+	args = append(args, limit)
 	if opts.Offset > 0 {
-		query += fmt.Sprintf(" OFFSET %d", opts.Offset)
+		query += " OFFSET ?"
+		args = append(args, opts.Offset)
 	}
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -290,7 +292,8 @@ func (s *Store) Update(ctx context.Context, id string, patch AnnotationPatch) er
 	args = append(args, minitrace.FormatTimestamp(minitrace.NowUTC()))
 	args = append(args, id)
 
-	query := fmt.Sprintf("UPDATE annotations SET %s WHERE id = ?", set)
+	// #nosec G201 -- set is assembled only from fixed column names in buildPatchSET
+	query := strings.Join([]string{"UPDATE annotations SET", set, "WHERE id = ?"}, " ")
 	result, err := s.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("updating annotation: %w", err)

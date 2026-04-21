@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -799,7 +800,7 @@ func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
 	foundCustom := false
 	foundExtra := false
 	for _, query := range payload.GetPresets() {
-		if query.GetName() == "session-list" && query.GetFolder() == "core" && query.GetReadonly() {
+		if query.GetName() == "session-list" && query.GetFolder() == "core/overview" && query.GetPath() == "core/overview/session-list.sql" && query.GetReadonly() {
 			foundBuiltIn = true
 		}
 		if query.GetName() == "custom" && query.GetDescription() == "custom preset" && query.GetReadonly() {
@@ -836,7 +837,7 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 	foundSessionList := false
 	foundAlias := false
 	for _, command := range payload.GetCommands() {
-		if command.GetPath() == "session-list.sql" {
+		if command.GetPath() == "overview/session-list.sql" {
 			foundSessionList = true
 			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_VERB {
 				t.Fatalf("session-list kind = %v, want verb", command.GetKind())
@@ -847,11 +848,11 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			if !strings.Contains(command.GetRawSql(), "FROM {{TABLE_NAME}}") {
 				t.Fatalf("session-list raw_sql missing template body: %q", command.GetRawSql())
 			}
-			if command.GetRawSqlPath() != "session-list.sql" {
-				t.Fatalf("session-list raw_sql_path = %q, want session-list.sql", command.GetRawSqlPath())
+			if command.GetRawSqlPath() != "overview/session-list.sql" {
+				t.Fatalf("session-list raw_sql_path = %q, want overview/session-list.sql", command.GetRawSqlPath())
 			}
 		}
-		if command.GetPath() == "aliases/codex-framework-summary.alias.yaml" {
+		if command.GetPath() == "overview/aliases/codex-framework-summary.alias.yaml" {
 			foundAlias = true
 			if command.GetKind() != apiv1.QueryCommandKind_QUERY_COMMAND_KIND_ALIAS {
 				t.Fatalf("alias kind = %v, want alias", command.GetKind())
@@ -862,8 +863,8 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			if len(command.GetFlags()) == 0 {
 				t.Fatalf("alias should expose target flags for form rendering")
 			}
-			if command.GetRawSqlPath() != "framework-summary.sql" {
-				t.Fatalf("alias raw_sql_path = %q, want framework-summary.sql", command.GetRawSqlPath())
+			if command.GetRawSqlPath() != "overview/framework-summary.sql" {
+				t.Fatalf("alias raw_sql_path = %q, want overview/framework-summary.sql", command.GetRawSqlPath())
 			}
 			if !strings.Contains(command.GetRawSql(), "GROUP BY framework") {
 				t.Fatalf("alias raw_sql should expose target template body: %q", command.GetRawSql())
@@ -918,8 +919,8 @@ SELECT 99 AS answer FROM {{TABLE_NAME}};`
 
 func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
 	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
-	request.SetPathValue("path", "framework-summary.sql/execute")
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
+	request.SetPathValue("path", "overview/framework-summary.sql/execute")
 	response := httptest.NewRecorder()
 
 	server.handleExecuteQueryCommandV2(response, request)
@@ -937,6 +938,31 @@ func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
 	}
 	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
 		t.Fatalf("rendered_sql missing framework filter: %q", payload.GetRenderedSql())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2RenderOnlyHydratesSQLDefaults(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase")})
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"renderOnly":true}`))
+	request.SetPathValue("path", "overview/framework-summary.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command render-only defaults: %v", err)
+	}
+	if strings.Contains(payload.GetRenderedSql(), "<no value>") {
+		t.Fatalf("rendered_sql still contains missing placeholder: %q", payload.GetRenderedSql())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "LIMIT 10") {
+		t.Fatalf("rendered_sql missing hydrated default limit: %q", payload.GetRenderedSql())
 	}
 }
 
@@ -963,8 +989,8 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 
 	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
-	request.SetPathValue("path", "aliases/codex-framework-summary.alias.yaml/execute")
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "overview/aliases/codex-framework-summary.alias.yaml/execute")
 	response := httptest.NewRecorder()
 
 	server.handleExecuteQueryCommandV2(response, request)
@@ -985,6 +1011,256 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 	if got := payload.GetRows()[0].GetFields()["framework"].GetStringValue(); got != "codex" {
 		t.Fatalf("expected framework codex, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2RenderOnlyUsesCallerOverrideThenAliasThenCommandDefaults(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = []minitracecmd.SourceRoot{{
+		Name: "test-root",
+		FS: fstest.MapFS{
+			"queries/overview/framework-summary.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+name: framework-summary
+short: Summarize sessions by framework
+flags:
+  - name: framework
+    type: stringList
+    help: Restrict to specific agent frameworks
+  - name: limit
+    type: int
+    default: 10
+    help: Maximum number of rows to return
+*/
+SELECT
+  environment->>'agent_framework' AS framework,
+  COUNT(*) AS session_count
+FROM {{TABLE_NAME}}
+WHERE 1=1
+{{ if .framework -}}
+AND environment->>'agent_framework' IN ({{ .framework | sqlStringIn }})
+{{ end -}}
+GROUP BY 1
+ORDER BY session_count DESC
+LIMIT {{ .limit }};`)},
+			"queries/overview/aliases/custom-framework-summary.alias.yaml": &fstest.MapFile{Data: []byte(`name: custom-framework-summary
+short: Summary using alias defaults
+aliasFor: framework-summary
+flags:
+  framework:
+    - pi
+`)},
+		},
+		RootDir:  "queries",
+		Readonly: true,
+	}}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/aliases/custom-framework-summary.alias.yaml/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
+	request.SetPathValue("path", "overview/aliases/custom-framework-summary.alias.yaml/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal precedence render-only response: %v", err)
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
+		t.Fatalf("rendered_sql missing caller override framework: %q", payload.GetRenderedSql())
+	}
+	if strings.Contains(payload.GetRenderedSql(), "IN ('pi')") {
+		t.Fatalf("rendered_sql should not keep alias framework once caller overrides it: %q", payload.GetRenderedSql())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "LIMIT 10") {
+		t.Fatalf("rendered_sql missing command default limit: %q", payload.GetRenderedSql())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive(t *testing.T) {
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase5-js-query-command")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	defer func() { _ = db.Close() }()
+
+	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
+	}); err != nil {
+		t.Fatalf("LoadArchive returned error: %v", err)
+	}
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", DBPath: ":memory:"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = []minitracecmd.SourceRoot{{
+		Name: "test-root",
+		FS: fstest.MapFS{
+			"queries/overview/session-list.js": &fstest.MapFile{Data: []byte(`
+__section__("filters", {
+  fields: {
+    limit: { type: "int", default: 10 }
+  }
+});
+
+function sessionList(filters) {
+  const mt = require("minitrace");
+  return mt.query(` + "`" + `
+    SELECT id
+    FROM ${mt.tableName}
+    LIMIT ${filters.limit}
+  ` + "`" + `);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions",
+  fields: {
+    filters: { bind: "filters" }
+  }
+});
+`)},
+		},
+		RootDir:  "queries",
+		Readonly: true,
+	}}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/session-list/session-list/execute", strings.NewReader(`{"values":{"limit":1}}`))
+	request.SetPathValue("path", "overview/session-list/session-list/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute js query command response: %v", err)
+	}
+	if payload.GetRowCount() != 1 {
+		t.Fatalf("expected row_count=1, got %d", payload.GetRowCount())
+	}
+	if got := payload.GetRows()[0].GetFields()["id"].GetStringValue(); got != "phase5-js-query-command" {
+		t.Fatalf("expected returned id phase5-js-query-command, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesCheckedInJSShowcaseAlias(t *testing.T) {
+	server := newLoadedQueryCommandServer(t, checkedInQueryRepositoryRoot(t, "js-showcase"),
+		fixtureSessionForQueryRepository(t, "phase6-js-alias-a", "/tmp/workspaces/alpha/project"),
+		fixtureSessionForQueryRepository(t, "phase6-js-alias-b", "/tmp/workspaces/beta/project"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/analysis/aliases/focus-top-workspaces.alias.yaml/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "analysis/aliases/focus-top-workspaces.alias.yaml/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute checked-in js alias response: %v", err)
+	}
+	if payload.GetRowCount() == 0 {
+		t.Fatalf("expected alias to return rows, got %d", payload.GetRowCount())
+	}
+	if got := payload.GetRows()[0].GetFields()["workspace_slug"].GetStringValue(); got == "" {
+		t.Fatalf("expected non-empty workspace_slug in %#v", payload.GetRows()[0].GetFields())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseSQL(t *testing.T) {
+	server := newLoadedQueryCommandServer(t, checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-sql", "/tmp/workspaces/mixed/project"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "overview/framework-summary.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute checked-in mixed sql response: %v", err)
+	}
+	if payload.GetRowCount() != 1 {
+		t.Fatalf("expected row_count=1, got %d", payload.GetRowCount())
+	}
+	if got := payload.GetRows()[0].GetFields()["framework"].GetStringValue(); got != "codex" {
+		t.Fatalf("expected framework codex, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseJSWithDefaults(t *testing.T) {
+	server := newLoadedQueryCommandServer(t, checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-js-default-a", "/tmp/workspaces/mixed/a"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-js-default-b", "/tmp/workspaces/mixed/b"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/session-tools/session-list/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "overview/session-tools/session-list/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute checked-in mixed js defaults response: %v", err)
+	}
+	if payload.GetRowCount() != 2 {
+		t.Fatalf("expected row_count=2, got %d", payload.GetRowCount())
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseJSAlias(t *testing.T) {
+	server := newLoadedQueryCommandServer(t, checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-js-a", "/tmp/workspaces/mixed/a"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-js-b", "/tmp/workspaces/mixed/b"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/analysis/aliases/top-workspaces.alias.yaml/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "analysis/aliases/top-workspaces.alias.yaml/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute checked-in mixed js alias response: %v", err)
+	}
+	if payload.GetRowCount() == 0 {
+		t.Fatalf("expected mixed js alias to return rows, got %d", payload.GetRowCount())
+	}
+	if got := payload.GetRows()[0].GetFields()["working_directory"].GetStringValue(); got == "" {
+		t.Fatalf("expected non-empty working_directory in %#v", payload.GetRows()[0].GetFields())
 	}
 }
 
@@ -1179,6 +1455,53 @@ func TestSpaHandlerFallsBackToIndexHTML(t *testing.T) {
 	if !strings.Contains(routeResponse.Body.String(), "index") {
 		t.Fatalf("expected SPA fallback to index, got %q", routeResponse.Body.String())
 	}
+}
+
+func checkedInQueryRepositoryRoot(t *testing.T, name string) string {
+	t.Helper()
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "testdata", "query-repositories", name))
+}
+
+func newLoadedQueryCommandServer(t *testing.T, repoRoot string, sessions ...*minitrace.Session) *Server {
+	t.Helper()
+
+	archiveRoot := t.TempDir()
+	for _, session := range sessions {
+		if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+			t.Fatalf("WriteSession returned error: %v", err)
+		}
+	}
+
+	ctx := context.Background()
+	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
+	if err != nil {
+		t.Fatalf("OpenConnection returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	t.Cleanup(func() { _ = db.Close() })
+
+	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
+		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		TableName:    "sessions_base",
+	}); err != nil {
+		t.Fatalf("LoadArchive returned error: %v", err)
+	}
+
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repoRoot})
+	return server
+}
+
+func fixtureSessionForQueryRepository(t *testing.T, sessionID, workingDirectory string) *minitrace.Session {
+	t.Helper()
+	session := buildFixtureSession(t, sessionID)
+	session.OperationalContext.WorkingDirectory = stringPtr(workingDirectory)
+	session.Title = stringPtr("Fixture " + sessionID)
+	return session
 }
 
 func buildFixtureSession(t *testing.T, sessionID string) *minitrace.Session {

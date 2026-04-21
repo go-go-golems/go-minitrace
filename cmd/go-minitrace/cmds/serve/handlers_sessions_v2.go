@@ -236,12 +236,12 @@ func protoSessionBlock(block SessionBlock) (*apiv1.SessionBlock, error) {
 		return nil, err
 	}
 	return &apiv1.SessionBlock{
-		BlockNum:    uint32(block.BlockNum),
-		UserTurnIdx: int32(block.UserTurnIdx),
+		BlockNum:    clampIntToUint32(block.BlockNum),
+		UserTurnIdx: clampIntToInt32(block.UserTurnIdx),
 		UserTs:      block.UserTs,
 		UserContent: block.UserContent,
-		AgentTurns:  uint32(block.AgentTurns),
-		ToolCalls:   uint32(block.ToolCalls),
+		AgentTurns:  clampIntToUint32(block.AgentTurns),
+		ToolCalls:   clampIntToUint32(block.ToolCalls),
 		GapMinutes:  protoOptionalFloat64(block.GapMinutes),
 		Turns:       turns,
 		Artifacts:   protoBlockArtifacts(block.Artifacts),
@@ -265,22 +265,10 @@ func protoTurnUsage(u *TurnUsageResponse) *apiv1.TurnUsage {
 		return nil
 	}
 	ret := &apiv1.TurnUsage{}
-	if u.InputTokens != nil {
-		v := uint32(*u.InputTokens)
-		ret.InputTokens = &v
-	}
-	if u.OutputTokens != nil {
-		v := uint32(*u.OutputTokens)
-		ret.OutputTokens = &v
-	}
-	if u.CacheReadTokens != nil {
-		v := uint32(*u.CacheReadTokens)
-		ret.CacheReadTokens = &v
-	}
-	if u.ReasoningTokens != nil {
-		v := uint32(*u.ReasoningTokens)
-		ret.ReasoningTokens = &v
-	}
+	ret.InputTokens = clampOptionalIntToUint32(u.InputTokens)
+	ret.OutputTokens = clampOptionalIntToUint32(u.OutputTokens)
+	ret.CacheReadTokens = clampOptionalIntToUint32(u.CacheReadTokens)
+	ret.ReasoningTokens = clampOptionalIntToUint32(u.ReasoningTokens)
 	return ret
 }
 
@@ -290,7 +278,7 @@ func protoTurn(turn TurnResponse) (*apiv1.Turn, error) {
 		return nil, err
 	}
 	return &apiv1.Turn{
-		Idx:             uint32(turn.Idx),
+		Idx:             clampIntToUint32(turn.Idx),
 		Role:            turn.Role,
 		Source:          turn.Source,
 		Content:         turn.Content,
@@ -350,7 +338,7 @@ func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
 		Success:    output.Success,
 		Result:     output.Result,
 		Error:      output.Error,
-		DurationMs: uint32(output.DurationMs),
+		DurationMs: clampIntToUint32(output.DurationMs),
 		Truncated:  output.Truncated,
 	}
 }
@@ -381,15 +369,15 @@ func protoSessionTiming(timing SessionTimingResponse) *apiv1.SessionTiming {
 		EndedAt:               timing.EndedAt,
 		DurationSeconds:       timing.DurationSeconds,
 		ActiveDurationSeconds: timing.ActiveDurationSeconds,
-		HourOfDay:             uint32(timing.HourOfDay),
-		DayOfWeek:             uint32(timing.DayOfWeek),
+		HourOfDay:             clampIntToUint32(timing.HourOfDay),
+		DayOfWeek:             clampIntToUint32(timing.DayOfWeek),
 	}
 }
 
 func protoSessionMetrics(metrics SessionMetricsResponse) *apiv1.SessionMetrics {
 	return &apiv1.SessionMetrics{
-		TurnCount:            uint32(metrics.TurnCount),
-		ToolCallCount:        uint32(metrics.ToolCallCount),
+		TurnCount:            clampIntToUint32(metrics.TurnCount),
+		ToolCallCount:        clampIntToUint32(metrics.ToolCallCount),
 		TotalInputTokens:     protoOptionalUint32(metrics.TotalInputTokens),
 		TotalOutputTokens:    protoOptionalUint32(metrics.TotalOutputTokens),
 		TotalCacheReadTokens: protoOptionalUint32(metrics.TotalCacheReadTokens),
@@ -425,7 +413,7 @@ func protoBlockArtifacts(artifacts BlockArtifacts) *apiv1.BlockArtifacts {
 		Commits:        append([]string(nil), artifacts.Commits...),
 		TicketsCreated: append([]string(nil), artifacts.TicketsCreated...),
 		DocsAdded:      append([]string(nil), artifacts.DocsAdded...),
-		DiaryWrites:    uint32(artifacts.DiaryWrites),
+		DiaryWrites:    clampIntToUint32(artifacts.DiaryWrites),
 	}
 }
 
@@ -437,11 +425,7 @@ func protoOptionalString(value string) *string {
 }
 
 func protoOptionalUint32(value *int) *uint32 {
-	if value == nil {
-		return nil
-	}
-	v := uint32(*value)
-	return &v
+	return clampOptionalIntToUint32(value)
 }
 
 func protoOptionalFloat64(value *float64) *float64 {

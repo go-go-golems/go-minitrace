@@ -56,6 +56,60 @@ func TestCollectRepositoryPaths_PrioritizesFlagsThenEnvThenConfig(t *testing.T) 
 	}
 }
 
+func TestLoadAppConfigFromPaths_OverlaysLaterFiles(t *testing.T) {
+	dir := t.TempDir()
+	basePath := filepath.Join(dir, "base.yaml")
+	userPath := filepath.Join(dir, "user.yaml")
+	if err := os.WriteFile(basePath, []byte("queryRepositories:\n  - base-a\n  - shared\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(base) returned error: %v", err)
+	}
+	if err := os.WriteFile(userPath, []byte("queryRepositories:\n  - user-a\n  - shared\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(user) returned error: %v", err)
+	}
+
+	cfg, err := loadAppConfigFromPaths([]string{basePath, userPath})
+	if err != nil {
+		t.Fatalf("loadAppConfigFromPaths returned error: %v", err)
+	}
+
+	want := []string{"user-a", "shared"}
+	if len(cfg.QueryRepositories) != len(want) {
+		t.Fatalf("len(cfg.QueryRepositories) = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
+	}
+	for i, path := range want {
+		if cfg.QueryRepositories[i] != path {
+			t.Fatalf("cfg.QueryRepositories[%d] = %q, want %q", i, cfg.QueryRepositories[i], path)
+		}
+	}
+}
+
+func TestLoadAppConfigFromPaths_KeepsEarlierValuesWhenLaterFileOmitsField(t *testing.T) {
+	dir := t.TempDir()
+	basePath := filepath.Join(dir, "base.yaml")
+	userPath := filepath.Join(dir, "user.yaml")
+	if err := os.WriteFile(basePath, []byte("queryRepositories:\n  - base-a\n  - shared\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(base) returned error: %v", err)
+	}
+	if err := os.WriteFile(userPath, []byte("otherField: true\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(user) returned error: %v", err)
+	}
+
+	cfg, err := loadAppConfigFromPaths([]string{basePath, userPath})
+	if err != nil {
+		t.Fatalf("loadAppConfigFromPaths returned error: %v", err)
+	}
+
+	want := []string{"base-a", "shared"}
+	if len(cfg.QueryRepositories) != len(want) {
+		t.Fatalf("len(cfg.QueryRepositories) = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
+	}
+	for i, path := range want {
+		if cfg.QueryRepositories[i] != path {
+			t.Fatalf("cfg.QueryRepositories[%d] = %q, want %q", i, cfg.QueryRepositories[i], path)
+		}
+	}
+}
+
 func TestSourceRootsFromPaths_PutsEmbeddedLastAndSkipsMissingDirs(t *testing.T) {
 	repo := t.TempDir()
 	roots := SourceRootsFromPaths([]string{"/missing/repo", repo})

@@ -1,0 +1,5 @@
+name: top-workspaces
+short: Top 3 workspace leaderboard rows
+aliasFor: workspace-scoreboard
+flags:
+  limit: 3

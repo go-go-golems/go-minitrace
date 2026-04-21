@@ -60,6 +60,23 @@ Additionally, dir-v1 tool-results sessions (an older format that stores tool res
 
 When a session directory contains a `subagents/` subdirectory, each subagent JSONL file becomes its own minitrace session. The parent session's `Agent` tool call receives a `spawned_agent` field with the subagent's `sub_session_id`. The subagent session's title is prefixed with `[subagent]`.
 
+### Preserved framework-specific metadata
+
+Claude Code now keeps additional raw metadata in minitrace without promoting it into shared schema fields:
+
+- `operational_context.framework_config.entrypoint`
+- `turns[].framework_metadata`:
+  - `entrypoint`
+  - `slug`
+  - `parent_uuid`
+  - `is_sidechain`
+  - `stop_reason`
+  - `stop_sequence`
+  - `cache_creation`
+- `tool_calls[].framework_metadata`:
+  - `caller`
+  - tool-result record context such as `entrypoint`, `slug`, `parent_uuid`, `is_sidechain`
+
 ### What is not preserved
 
 - System prompt content (set to null for privacy)
@@ -78,15 +95,44 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 
 - **Session JSONL** → conversation turns and tool invocations
 - **Exec JSONL** → tool calls from `codex exec --json` output
+- **Command metadata** → exit codes and execution metadata when present
+- **Tool-call arguments** → command strings plus optional justification text
 
 ### Known limitations
 
 - Older sessions with unrecognized formats produce `unsupported Codex format hint: unknown-jsonl` errors
 - The adapter does not skip these automatically; it fails on the first unrecognized session
 
+### Preserved framework-specific metadata
+
+Codex keeps richer raw metadata in the adapter-specific metadata/config fields:
+
+- `operational_context.framework_config`:
+  - `approval_policy`
+  - detailed `sandbox_policy`
+  - `collaboration_mode_detail`
+  - `truncation_policy`
+  - `rate_limits`
+  - `session_source`
+  - other session/runtime config such as `originator`, `personality`, `reasoning_effort`, `timezone`
+- `turns[].framework_metadata`:
+  - `turn_id`
+  - `phase`
+  - `memory_citation`
+- `tool_calls[].framework_metadata`:
+  - `codex_function`
+  - `justification` (also promoted to `input.justification`)
+  - `source`
+  - `parsed_cmd`
+  - `stdout`
+  - `stderr`
+  - `status`
+  - `turn_id`
+  - `exit_code` (also promoted to `output.exit_code`)
+
 ### What is not preserved
 
-- Codex-specific metadata fields not in the minitrace schema
+- Some Codex source-specific records still collapse into the nearest session/turn/tool representation rather than being modeled as standalone event types
 - Binary exec output is truncated
 
 ## Pi adapter
@@ -125,6 +171,17 @@ Pi tools are mapped similarly to Claude Code:
 | `write`, `Write` | `NEW` |
 | `bash`, `Bash` | `EXECUTE` |
 | `mcp` tools | `OTHER` (unless name suggests read/write) |
+
+### Preserved framework-specific metadata
+
+Pi now preserves additional raw metadata alongside the normalized schema:
+
+- `turns[].framework_metadata`:
+  - `stop_reason`
+  - `error_message`
+- `tool_calls[].framework_metadata`:
+  - `diff`
+  - `first_changed_line`
 
 ### Single session conversion
 
@@ -250,3 +307,4 @@ All adapters use the same quality grading logic after conversion:
 
 - `go-minitrace help convert-commands` — conversion command flags and usage
 - `go-minitrace help minitrace-schema` — the target schema these adapters produce
+- `go-minitrace help framework-metadata-mappings` — detailed per-adapter metadata preservation tables

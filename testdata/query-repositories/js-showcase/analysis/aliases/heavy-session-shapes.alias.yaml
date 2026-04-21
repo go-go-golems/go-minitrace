@@ -1,0 +1,6 @@
+name: heavy-session-shapes
+short: Rank only sessions with at least 50 tool calls
+aliasFor: session-shape-ranker
+flags:
+  min_tool_calls: 50
+  limit: 5

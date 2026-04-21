@@ -1,6 +1,7 @@
 package minitracecmd
 
 import (
+	"context"
 	"encoding/csv"
 	"os"
 	"path/filepath"
@@ -21,12 +22,50 @@ type AppConfig struct {
 }
 
 func loadAppConfig(appName string) (*AppConfig, error) {
-	configPath, err := glazedconfig.ResolveAppConfigPath(appName, "")
+	configPaths, err := resolveAppConfigPaths(appName)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not resolve app config path")
+		return nil, err
 	}
 
-	return loadAppConfigFromPath(configPath)
+	return loadAppConfigFromPaths(configPaths)
+}
+
+func resolveAppConfigPaths(appName string) ([]string, error) {
+	files, _, err := glazedconfig.NewPlan(
+		glazedconfig.WithLayerOrder(glazedconfig.LayerSystem, glazedconfig.LayerUser),
+		glazedconfig.WithDedupePaths(),
+	).Add(
+		glazedconfig.SystemAppConfig(appName).Named("system-app-config").Kind("app-config"),
+		glazedconfig.HomeAppConfig(appName).Named("home-app-config").Kind("app-config"),
+		glazedconfig.XDGAppConfig(appName).Named("xdg-app-config").Kind("app-config"),
+	).Resolve(context.Background())
+	if err != nil {
+		return nil, errors.Wrap(err, "could not resolve app config files")
+	}
+
+	paths := make([]string, 0, len(files))
+	for _, file := range files {
+		if strings.TrimSpace(file.Path) == "" {
+			continue
+		}
+		paths = append(paths, file.Path)
+	}
+	return paths, nil
+}
+
+func loadAppConfigFromPaths(configPaths []string) (*AppConfig, error) {
+	cfg := &AppConfig{}
+	for _, configPath := range configPaths {
+		partial, err := loadAppConfigFromPath(configPath)
+		if err != nil {
+			return nil, err
+		}
+		if partial.QueryRepositories != nil {
+			cfg.QueryRepositories = append([]string(nil), partial.QueryRepositories...)
+		}
+	}
+	cfg.QueryRepositories = normalizeRepositoryPaths(cfg.QueryRepositories)
+	return cfg, nil
 }
 
 func loadAppConfigFromPath(configPath string) (*AppConfig, error) {
@@ -39,12 +78,21 @@ func loadAppConfigFromPath(configPath string) (*AppConfig, error) {
 		return nil, errors.Wrap(err, "could not read app config")
 	}
 
+	var raw map[string]any
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil, errors.Wrap(err, "could not parse app config")
+	}
+
 	var cfg AppConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, errors.Wrap(err, "could not parse app config")
 	}
 
-	cfg.QueryRepositories = normalizeRepositoryPaths(cfg.QueryRepositories)
+	if _, ok := raw["queryRepositories"]; ok {
+		cfg.QueryRepositories = normalizeRepositoryPaths(cfg.QueryRepositories)
+	} else {
+		cfg.QueryRepositories = nil
+	}
 	return &cfg, nil
 }
 

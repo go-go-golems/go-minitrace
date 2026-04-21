@@ -162,7 +162,7 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 					toolCallID := firstNonEmpty(stringValue(block["toolUseId"]), stringValue(block["tool_use_id"]))
 					if toolCallID != "" {
 						if pendingIndex, ok := pendingToolCalls[toolCallID]; ok {
-							applyToolResult(&toolCalls[pendingIndex], block["content"], boolValue(firstNonNil(block["isError"], block["is_error"])), timestampPtr)
+							applyToolResult(&toolCalls[pendingIndex], block["content"], boolValue(firstNonNil(block["isError"], block["is_error"])), timestampPtr, block)
 							delete(pendingToolCalls, toolCallID)
 						}
 					}
@@ -173,7 +173,8 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 				toolCallID := stringValue(msg["toolCallId"])
 				if toolCallID != "" {
 					if pendingIndex, ok := pendingToolCalls[toolCallID]; ok {
-						applyToolResult(&toolCalls[pendingIndex], contentBlocks, false, timestampPtr)
+						isErr := boolValue(firstNonNil(msg["isError"], msg["is_error"]))
+						applyToolResult(&toolCalls[pendingIndex], contentBlocks, isErr, timestampPtr, msg)
 						delete(pendingToolCalls, toolCallID)
 					}
 				}
@@ -184,6 +185,7 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 			source, normalizedRole := classifyTurnRole(role)
 			content := strings.TrimSpace(strings.Join(textParts, "\n"))
 			turn := minitrace.BuildTurn(turnIndex, timestampPtr, normalizedRole, source, content)
+			turn.FrameworkMetadata = piTurnMetadata(msg)
 			if len(thinkingParts) > 0 {
 				thinking := strings.Join(thinkingParts, "\n")
 				turn.Thinking = &thinking
@@ -365,7 +367,7 @@ func buildUsage(raw map[string]any, totals *minitrace.TokenTotals) *minitrace.Us
 	return usage
 }
 
-func applyToolResult(toolCall *minitrace.ToolCall, content any, isError bool, timestamp *string) {
+func applyToolResult(toolCall *minitrace.ToolCall, content any, isError bool, timestamp *string, raw map[string]any) {
 	truncated, fullBytes, fullHash := minitrace.TruncateContent(stringifyContent(content), minitrace.TruncateLimit)
 	toolCall.Output.Success = !isError
 	toolCall.Output.Result = truncated
@@ -373,6 +375,7 @@ func applyToolResult(toolCall *minitrace.ToolCall, content any, isError bool, ti
 	toolCall.Output.FullBytes = fullBytes
 	toolCall.Output.FullHash = fullHash
 	toolCall.Timestamp = timestamp
+	toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, piToolResultMetadata(raw))
 	if isError && truncated != nil {
 		errorText := *truncated
 		if len(errorText) > 500 {
@@ -380,6 +383,54 @@ func applyToolResult(toolCall *minitrace.ToolCall, content any, isError bool, ti
 		}
 		toolCall.Output.Error = &errorText
 	}
+}
+
+func piTurnMetadata(msg map[string]any) any {
+	metadata := map[string]any{}
+	if stopReason, ok := msg["stopReason"]; ok {
+		metadata["stop_reason"] = stopReason
+	}
+	if errorMessage, ok := msg["errorMessage"]; ok {
+		metadata["error_message"] = errorMessage
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
+}
+
+func piToolResultMetadata(raw map[string]any) map[string]any {
+	metadata := map[string]any{}
+	details := mapValue(raw["details"])
+	if details == nil {
+		return metadata
+	}
+	if diff := stringValue(details["diff"]); diff != "" {
+		metadata["diff"] = diff
+	}
+	if firstChangedLine, ok := details["firstChangedLine"]; ok {
+		metadata["first_changed_line"] = firstChangedLine
+	}
+	return metadata
+}
+
+func mergeMetadataMap(existing any, fields map[string]any) any {
+	if len(fields) == 0 {
+		return existing
+	}
+	metadata := map[string]any{}
+	if current, ok := existing.(map[string]any); ok {
+		for key, value := range current {
+			metadata[key] = value
+		}
+	}
+	for key, value := range fields {
+		metadata[key] = value
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
 }
 
 func classifyOperation(toolName string, arguments map[string]any) string {

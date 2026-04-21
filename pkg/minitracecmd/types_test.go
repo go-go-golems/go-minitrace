@@ -2,16 +2,65 @@ package minitracecmd
 
 import "testing"
 
-func TestMinitraceCommandSpecValidateVerb(t *testing.T) {
+func TestMinitraceCommandSpecValidateSQLVerb(t *testing.T) {
 	spec := &MinitraceCommandSpec{
-		Name:  "session-list",
-		Short: "List sessions",
-		Query: "select 1",
-		Kind:  MinitraceCommandVerb,
+		Name:    "session-list",
+		Short:   "List sessions",
+		Runtime: CommandRuntimeSQL,
+		Query:   "select 1",
+		Kind:    MinitraceCommandVerb,
 	}
 
 	if err := spec.Validate(); err != nil {
 		t.Fatalf("Validate returned error: %v", err)
+	}
+}
+
+func TestMinitraceCommandSpecValidateJSVerb(t *testing.T) {
+	spec := &MinitraceCommandSpec{
+		Name:    "session-list",
+		Short:   "List sessions",
+		Runtime: CommandRuntimeJS,
+		JS: &JSCommandSpec{
+			ModulePath:   "overview/session-list",
+			FunctionName: "sessionList",
+			OutputMode:   "glaze",
+		},
+		Kind: MinitraceCommandVerb,
+	}
+
+	if err := spec.Validate(); err != nil {
+		t.Fatalf("Validate returned error: %v", err)
+	}
+}
+
+func TestMinitraceCommandSpecValidateVerbRejectsMultipleRuntimes(t *testing.T) {
+	spec := &MinitraceCommandSpec{
+		Name:  "session-list",
+		Short: "List sessions",
+		Query: "select 1",
+		JS: &JSCommandSpec{
+			ModulePath:   "overview/session-list",
+			FunctionName: "sessionList",
+			OutputMode:   "glaze",
+		},
+		Kind: MinitraceCommandVerb,
+	}
+
+	if err := spec.Validate(); err != ErrMultipleRuntimes {
+		t.Fatalf("Validate returned %v, want %v", err, ErrMultipleRuntimes)
+	}
+}
+
+func TestMinitraceCommandSpecValidateVerbRejectsMissingRuntime(t *testing.T) {
+	spec := &MinitraceCommandSpec{
+		Name:  "session-list",
+		Short: "List sessions",
+		Kind:  MinitraceCommandVerb,
+	}
+
+	if err := spec.Validate(); err != ErrMissingRuntime {
+		t.Fatalf("Validate returned %v, want %v", err, ErrMissingRuntime)
 	}
 }
 
@@ -33,6 +82,8 @@ func TestDetectSourceKind(t *testing.T) {
 		want SourceKind
 	}{
 		{path: "queries/session-list.sql", want: SourceSQLCommand},
+		{path: "queries/session-list.js", want: SourceJSCommand},
+		{path: "queries/session-list.cjs", want: SourceJSCommand},
 		{path: "queries/short.alias.yaml", want: SourceYAMLAlias},
 		{path: "queries/short.alias.yml", want: SourceYAMLAlias},
 		{path: "queries/readme.md", want: SourceUnknown},

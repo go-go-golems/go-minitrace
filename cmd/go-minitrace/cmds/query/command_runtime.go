@@ -47,11 +47,14 @@ func NewMinitraceCatalogGlazeCommand(command *minitracecmd.MinitraceCommand, cat
 	options := []cmds.CommandDescriptionOption{
 		cmds.WithShort(command.Short),
 		cmds.WithLong(command.Long),
-		cmds.WithFlags(command.Flags...),
-		cmds.WithArguments(command.Arguments...),
 		cmds.WithTags(command.Tags...),
 		cmds.WithMetadata(command.Metadata),
 		cmds.WithSections(glazedSection, commandSettingsSection, queryRuntimeSection),
+	}
+	if command.Schema != nil {
+		options = append(options, cmds.WithSchema(command.Schema.Clone()))
+	} else {
+		options = append(options, cmds.WithFlags(command.Flags...), cmds.WithArguments(command.Arguments...))
 	}
 	if len(command.Layout) > 0 {
 		options = append(options, cmds.WithLayout(&layout.Layout{Sections: command.Layout}))
@@ -80,17 +83,6 @@ func (c *MinitraceCatalogGlazeCommand) RunIntoGlazeProcessor(ctx context.Context
 		return err
 	}
 
-	sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
-		TableName: runtimeSettings.TableName,
-		Values:    resolvedValues,
-	})
-	if err != nil {
-		return err
-	}
-	if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
-		return err
-	}
-
 	db, conn, err := queryengine.OpenConnection(ctx, runtimeSettings.DBPath)
 	if err != nil {
 		return err
@@ -106,17 +98,51 @@ func (c *MinitraceCatalogGlazeCommand) RunIntoGlazeProcessor(ctx context.Context
 		return err
 	}
 
-	return queryengine.RunIntoProcessor(ctx, conn, sqlText, gp)
+	switch resolvedCommand.Runtime {
+	case minitracecmd.CommandRuntimeSQL, minitracecmd.CommandRuntimeUnknown:
+		sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
+			TableName: runtimeSettings.TableName,
+			Values:    resolvedValues,
+		})
+		if err != nil {
+			return err
+		}
+		if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
+			return err
+		}
+		return queryengine.RunIntoProcessor(ctx, conn, sqlText, gp)
+	case minitracecmd.CommandRuntimeJS:
+		return RunJSCommandIntoProcessor(ctx, c.catalog, resolvedCommand, runtimeSettings, vals, resolvedValues, conn, gp)
+	default:
+		return errors.Errorf("unsupported command runtime %q", resolvedCommand.Runtime)
+	}
 }
 
 func collectCommandValues(vals *glazedvalues.Values, command *minitracecmd.MinitraceCommand) map[string]any {
 	ret := map[string]any{}
-	defaultValues := vals.DefaultSectionValues()
+	if vals == nil {
+		return ret
+	}
 
+	if command != nil && command.Schema != nil {
+		vals.ForEach(func(_ string, sectionValues *glazedvalues.SectionValues) {
+			if sectionValues == nil {
+				return
+			}
+			sectionValues.Fields.ForEach(func(_ string, fieldValue *fields.FieldValue) {
+				if fieldValue == nil || fieldValue.Definition == nil {
+					return
+				}
+				ret[fieldValue.Definition.Name] = fieldValue.Value
+			})
+		})
+		return ret
+	}
+
+	defaultValues := vals.DefaultSectionValues()
 	definitions := make([]*fields.Definition, 0, len(command.Flags)+len(command.Arguments))
 	definitions = append(definitions, command.Flags...)
 	definitions = append(definitions, command.Arguments...)
-
 	for _, definition := range definitions {
 		if definition == nil {
 			continue
@@ -127,6 +153,5 @@ func collectCommandValues(vals *glazedvalues.Values, command *minitracecmd.Minit
 		}
 		ret[definition.Name] = fieldValue.Value
 	}
-
 	return ret
 }

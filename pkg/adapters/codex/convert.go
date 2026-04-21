@@ -144,20 +144,25 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 }
 
 type codexMetadata struct {
-	SessionID         string
-	Model             string
-	ModelProvider     string
-	CWD               string
-	CLIVersion        string
-	Originator        string
-	SystemPrompt      string
-	ApprovalPolicy    string
-	SandboxPolicy     string
-	Personality       string
-	CollaborationMode string
-	ReasoningEffort   string
-	Timezone          string
-	ContextWindow     int
+	SessionID               string
+	Model                   string
+	ModelProvider           string
+	CWD                     string
+	CLIVersion              string
+	Originator              string
+	SessionSource           string
+	SystemPrompt            string
+	ApprovalPolicy          string
+	SandboxPolicy           string
+	SandboxPolicyDetail     any
+	Personality             string
+	CollaborationMode       string
+	CollaborationModeDetail any
+	ReasoningEffort         string
+	Timezone                string
+	ContextWindow           int
+	TruncationPolicy        any
+	LatestRateLimits        any
 }
 
 func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.ToolCall, []minitrace.Annotation, []time.Time, *minitrace.TokenTotals, codexMetadata) {
@@ -171,6 +176,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	pendingFunctionCalls := map[string]int{}
 	pendingTurnToolIDs := map[string]struct{}{}
 	currentThinking := []string{}
+	currentTurnID := ""
 	turnIndex := 0
 	toolCounter := 0
 
@@ -192,6 +198,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 			metadata.CWD = firstNonEmpty(stringValue(payload["cwd"]), metadata.CWD)
 			metadata.CLIVersion = firstNonEmpty(stringValue(payload["cli_version"]), metadata.CLIVersion)
 			metadata.Originator = firstNonEmpty(stringValue(payload["originator"]), metadata.Originator)
+			metadata.SessionSource = firstNonEmpty(stringValue(payload["source"]), metadata.SessionSource)
 			metadata.ModelProvider = firstNonEmpty(stringValue(payload["model_provider"]), metadata.ModelProvider)
 			baseInstructions := mapValue(payload["base_instructions"])
 			if baseInstructions != nil {
@@ -202,25 +209,35 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 			metadata.Model = firstNonEmpty(stringValue(payload["model"]), metadata.Model)
 			metadata.ApprovalPolicy = firstNonEmpty(stringValue(payload["approval_policy"]), metadata.ApprovalPolicy)
 			metadata.SandboxPolicy = firstNonEmpty(extractSandboxPolicy(payload["sandbox_policy"]), metadata.SandboxPolicy)
+			if payload["sandbox_policy"] != nil {
+				metadata.SandboxPolicyDetail = payload["sandbox_policy"]
+			}
 			metadata.Personality = firstNonEmpty(stringValue(payload["personality"]), metadata.Personality)
 			metadata.Timezone = firstNonEmpty(stringValue(payload["timezone"]), metadata.Timezone)
 			metadata.ReasoningEffort = firstNonEmpty(stringValue(payload["effort"]), metadata.ReasoningEffort)
+			currentTurnID = firstNonEmpty(stringValue(payload["turn_id"]), currentTurnID)
 			if collaboration := mapValue(payload["collaboration_mode"]); collaboration != nil {
 				metadata.CollaborationMode = firstNonEmpty(stringValue(collaboration["mode"]), metadata.CollaborationMode)
+				metadata.CollaborationModeDetail = payload["collaboration_mode"]
 				settings := mapValue(collaboration["settings"])
 				if settings != nil {
 					metadata.ReasoningEffort = firstNonEmpty(stringValue(settings["reasoning_effort"]), metadata.ReasoningEffort)
 				}
+			}
+			if payload["truncation_policy"] != nil {
+				metadata.TruncationPolicy = payload["truncation_policy"]
 			}
 		case "event_msg":
 			eventType := stringValue(payload["type"])
 			switch eventType {
 			case "task_started":
 				metadata.ContextWindow = firstNonZero(minitrace.SafeInt(payload["model_context_window"], 0), metadata.ContextWindow)
+				currentTurnID = firstNonEmpty(stringValue(payload["turn_id"]), currentTurnID)
 			case "user_message":
 				source := ptr("human")
 				turn := minitrace.BuildTurn(turnIndex, timestampPtr, "user", source, stringValue(payload["message"]))
 				turn.InputChannel = ptr("user_input")
+				turn.FrameworkMetadata = codexTurnMetadata(currentTurnID, nil, nil)
 				turns = append(turns, turn)
 				turnIndex++
 			case "agent_reasoning":
@@ -235,6 +252,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 					turn.Thinking = &thinking
 				}
 				turn.Model = optionalString(metadata.Model)
+				turn.FrameworkMetadata = codexTurnMetadata(currentTurnID, payload, nil)
 				toolIDs := pendingTurnToolIDsSlice(pendingTurnToolIDs)
 				for _, toolID := range toolIDs {
 					if index, ok := pendingFunctionCalls[toolID]; ok {
@@ -248,7 +266,11 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				currentThinking = nil
 				pendingTurnToolIDs = map[string]struct{}{}
 			case "token_count":
+				if payload["rate_limits"] != nil {
+					metadata.LatestRateLimits = payload["rate_limits"]
+				}
 				info := mapValue(payload["info"])
+				metadata.ContextWindow = firstNonZero(minitrace.SafeInt(info["model_context_window"], 0), metadata.ContextWindow)
 				lastUsage := mapValue(info["last_token_usage"])
 				if lastUsage == nil {
 					continue
@@ -261,7 +283,6 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				tokenTotals.Output += outputTokens
 				tokenTotals.CacheRead += cacheReadTokens
 				tokenTotals.Reasoning += reasoningTokens
-				metadata.ContextWindow = firstNonZero(minitrace.SafeInt(info["model_context_window"], 0), metadata.ContextWindow)
 				if len(turns) > 0 && turns[len(turns)-1].Role == "assistant" {
 					usage := &minitrace.Usage{}
 					if inputTokens != 0 {
@@ -277,6 +298,23 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 						usage.ReasoningTokens = &reasoningTokens
 					}
 					turns[len(turns)-1].Usage = usage
+				}
+			case "exec_command_end":
+				callID := stringValue(payload["call_id"])
+				if callID == "" {
+					continue
+				}
+				if turnID := stringValue(payload["turn_id"]); turnID != "" {
+					currentTurnID = turnID
+				}
+				if index, ok := pendingFunctionCalls[callID]; ok {
+					toolCalls[index].FrameworkMetadata = mergeMetadataMap(toolCalls[index].FrameworkMetadata, codexToolExecutionMetadata(payload))
+					if toolCalls[index].Output.ExitCode == nil {
+						if exitCodeValue, ok := payload["exit_code"]; ok {
+							parsedExitCode := minitrace.SafeInt(exitCodeValue, 1)
+							toolCalls[index].Output.ExitCode = &parsedExitCode
+						}
+					}
 				}
 			}
 		case "response_item":
@@ -322,6 +360,10 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 					classifyContentOrigin(funcName),
 					nil,
 				)
+				if justification := stringValue(args["justification"]); justification != "" {
+					toolCall.Input.Justification = &justification
+				}
+				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexTurnMetadata(currentTurnID, nil, nil))
 				toolCalls = append(toolCalls, toolCall)
 				pendingFunctionCalls[callID] = len(toolCalls) - 1
 				pendingTurnToolIDs[callID] = struct{}{}
@@ -338,6 +380,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				toolCalls[index].Output.FullBytes = fullBytes
 				toolCalls[index].Output.FullHash = fullHash
 				toolCalls[index].Output.DurationMS = durationMS
+				toolCalls[index].Output.ExitCode = exitCode
 				if exitCode != nil {
 					toolCalls[index].Output.Success = *exitCode == 0
 					if *exitCode != 0 {
@@ -418,8 +461,11 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 				command := stringValue(item["command"])
 				output := stringValue(item["aggregated_output"])
 				var success bool
+				var exitCode *int
 				if exitCodeValue, ok := item["exit_code"]; ok {
-					success = minitrace.SafeInt(exitCodeValue, 1) == 0
+					parsedExitCode := minitrace.SafeInt(exitCodeValue, 1)
+					exitCode = &parsedExitCode
+					success = parsedExitCode == 0
 				} else {
 					success = stringValue(item["status"]) == "completed"
 				}
@@ -445,6 +491,8 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 					classifyContentOrigin("exec_command"),
 					nil,
 				)
+				toolCall.Output.ExitCode = exitCode
+				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexToolExecutionMetadata(item))
 				toolCalls = append(toolCalls, toolCall)
 			case "agent_message":
 				source := ptr("model")
@@ -453,6 +501,7 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 					thinking := strings.Join(currentThinking, "\n")
 					turn.Thinking = &thinking
 				}
+				turn.FrameworkMetadata = codexTurnMetadata(stringValue(item["turn_id"]), item, nil)
 				toolIDs := []string{}
 				for _, toolCall := range toolCalls {
 					if toolCall.EmittingTurnIndex != nil && *toolCall.EmittingTurnIndex == turnIndex {
@@ -737,11 +786,29 @@ func frameworkConfig(metadata codexMetadata) any {
 	if metadata.CollaborationMode != "" {
 		config["collaboration_mode"] = metadata.CollaborationMode
 	}
+	if metadata.CollaborationModeDetail != nil {
+		config["collaboration_mode_detail"] = metadata.CollaborationModeDetail
+	}
 	if metadata.ReasoningEffort != "" {
 		config["reasoning_effort"] = metadata.ReasoningEffort
 	}
 	if metadata.Originator != "" {
 		config["originator"] = metadata.Originator
+	}
+	if metadata.SessionSource != "" {
+		config["session_source"] = metadata.SessionSource
+	}
+	if metadata.ApprovalPolicy != "" {
+		config["approval_policy"] = metadata.ApprovalPolicy
+	}
+	if metadata.SandboxPolicyDetail != nil {
+		config["sandbox_policy"] = metadata.SandboxPolicyDetail
+	}
+	if metadata.TruncationPolicy != nil {
+		config["truncation_policy"] = metadata.TruncationPolicy
+	}
+	if metadata.LatestRateLimits != nil {
+		config["rate_limits"] = metadata.LatestRateLimits
 	}
 	if metadata.ContextWindow != 0 {
 		config["model_context_window"] = metadata.ContextWindow
@@ -753,6 +820,70 @@ func frameworkConfig(metadata codexMetadata) any {
 		return nil
 	}
 	return config
+}
+
+func codexTurnMetadata(turnID string, payload map[string]any, extra map[string]any) map[string]any {
+	metadata := map[string]any{}
+	if turnID != "" {
+		metadata["turn_id"] = turnID
+	}
+	if payload != nil {
+		if phase, ok := payload["phase"]; ok {
+			metadata["phase"] = phase
+		}
+		if memoryCitation, ok := payload["memory_citation"]; ok {
+			metadata["memory_citation"] = memoryCitation
+		}
+	}
+	for key, value := range extra {
+		metadata[key] = value
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
+}
+
+func codexToolExecutionMetadata(payload map[string]any) map[string]any {
+	metadata := map[string]any{}
+	if source := stringValue(payload["source"]); source != "" {
+		metadata["source"] = source
+	}
+	if parsedCmd := payload["parsed_cmd"]; parsedCmd != nil {
+		metadata["parsed_cmd"] = parsedCmd
+	}
+	if stdout, ok := payload["stdout"]; ok {
+		metadata["stdout"] = stdout
+	}
+	if stderr, ok := payload["stderr"]; ok {
+		metadata["stderr"] = stderr
+	}
+	if status, ok := payload["status"]; ok {
+		metadata["status"] = status
+	}
+	if turnID := stringValue(payload["turn_id"]); turnID != "" {
+		metadata["turn_id"] = turnID
+	}
+	return metadata
+}
+
+func mergeMetadataMap(existing any, fields map[string]any) any {
+	if len(fields) == 0 {
+		return existing
+	}
+	metadata := map[string]any{}
+	if current, ok := existing.(map[string]any); ok {
+		for key, value := range current {
+			metadata[key] = value
+		}
+	}
+	for key, value := range fields {
+		metadata[key] = value
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
 }
 
 func extractSandboxPolicy(value any) string {

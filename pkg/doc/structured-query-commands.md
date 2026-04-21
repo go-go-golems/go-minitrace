@@ -23,9 +23,9 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-Structured query commands add a metadata layer on top of raw SQL. Instead of remembering a long `--sql` string or maintaining ad hoc `.sql` files with no parameter schema, you define a sqleton-style command file with a YAML preamble, let go-minitrace turn its flags into real CLI parameters and web-form fields, and then render read-only SQL against the loaded DuckDB table.
+Structured query commands add a metadata layer on top of raw SQL and JavaScript-backed analysis scripts. Instead of remembering a long `--sql` string or maintaining ad hoc files with no parameter schema, you define a scanner-first command source, let go-minitrace turn its fields into real CLI parameters and web-form fields, and then either render read-only SQL or invoke a JS handler against the loaded DuckDB table.
 
-This matters when a query becomes part of your team's repeatable analysis workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
+This matters when a query or analysis script becomes part of your team's repeatable workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
 
 ## What gets loaded
 
@@ -36,17 +36,19 @@ The `query commands` subgroup loads a catalog from two places:
 
 Today the embedded catalog includes examples such as:
 
-- `session-list`
-- `framework-summary`
-- `timing-analysis`
-- `codex-framework-summary` (an alias)
+- `overview session-list`
+- `overview framework-summary`
+- `timing timing-analysis`
+- `nightly session-inventory`
+- `nightly workspace-summary`
+- `overview aliases codex-framework-summary` (an alias)
 
 You can inspect the currently loaded commands with standard Cobra help:
 
 ```bash
 go-minitrace query commands --help
-go-minitrace query commands session-list --help
-go-minitrace query commands framework-summary --help
+go-minitrace query commands overview session-list --help
+go-minitrace query commands overview framework-summary --help
 ```
 
 ## Running structured query commands from the CLI
@@ -54,22 +56,29 @@ go-minitrace query commands framework-summary --help
 The CLI surface is:
 
 ```bash
-go-minitrace query commands <command-name> [command flags] [query runtime flags]
+go-minitrace query commands <group...> <command-name> [command flags] [query runtime flags]
 ```
+
+Repository subdirectories become nested Cobra groups. SQL files map directly to leaf commands, while JS files add one extra group level based on the file stem. For example:
+
+- `pkg/minitracecmd/core/overview/session-list.sql` → `go-minitrace query commands overview session-list`
+- `pkg/minitracecmd/core/overview/session-tools.js` with `name: session-list` → `go-minitrace query commands overview session-tools session-list`
+- `pkg/minitracecmd/core/nightly/session-inventory.sql` → `go-minitrace query commands nightly session-inventory`
+- `pkg/minitracecmd/core/overview/aliases/codex-framework-summary.alias.yaml` → `go-minitrace query commands overview aliases codex-framework-summary`
 
 The command-specific flags come from the sqleton-style file metadata. The query-runtime flags are the same execution settings used by the DuckDB loader, such as `--archive-glob`, `--db-path`, `--table-name`, and `--persist-loaded`.
 
 List sessions with the embedded command:
 
 ```bash
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 Filter the list by framework and limit:
 
 ```bash
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex,pi \
   --limit 25
@@ -78,14 +87,14 @@ go-minitrace query commands session-list \
 Run a summary command:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 Run an alias command with baked-in defaults:
 
 ```bash
-go-minitrace query commands codex-framework-summary \
+go-minitrace query commands overview aliases codex-framework-summary \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
@@ -129,7 +138,7 @@ Higher-precedence repositories are mounted first so they can override embedded c
 Use one or more `--query-repository` flags:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --query-repository ./query-commands/team \
   --query-repository ./query-commands/local \
   --archive-glob './output/active/*/*.minitrace.json'
@@ -138,7 +147,7 @@ go-minitrace query commands framework-summary \
 The flag uses StringSlice semantics, so comma-separated values work too:
 
 ```bash
-go-minitrace query commands framework-summary \
+go-minitrace query commands overview framework-summary \
   --query-repository './query-commands/team,./query-commands/local' \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
@@ -150,7 +159,7 @@ Use the platform path-list separator (`:` on Unix, `;` on Windows):
 ```bash
 export GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team:./query-commands/local
 
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
@@ -166,23 +175,46 @@ queryRepositories:
 
 ## Repository layout
 
-A repository is just a directory tree containing sqleton-style command SQL files and optional alias YAML files.
+A repository is just a directory tree containing scanner-first command files and optional alias YAML files.
 
 A small example looks like this:
 
 ```text
 query-commands/
-├── session-list.sql
-├── framework-summary.sql
-└── aliases/
-    └── codex-framework-summary.alias.yaml
+├── overview/
+│   ├── session-list.sql
+│   ├── session-tools.js
+│   ├── framework-summary.sql
+│   └── aliases/
+│       └── codex-framework-summary.alias.yaml
+├── timing/
+│   └── timing-analysis.sql
+└── tools/
+    └── tool-failures.sql
 ```
 
-The directory layout is mainly about organization and source paths. The CLI command name itself comes from the file metadata `name:` field, not from the filename alone.
+Those folders become nested CLI groups. The source file extension decides how the command is executed:
 
-## Writing a sqleton-style command file
+- `.sql` -> sqleton-style SQL preamble + SQL template body
+- `.js` / `.cjs` -> scanner-first JS metadata (`__verb__`, `__section__`, `__package__`) + JS handler body
+- `.alias.yaml` / `.alias.yml` -> alias definition that targets a previously loaded command by name
 
-A structured command is a `.sql` file whose first block is a `/* sqleton ... */` YAML preamble.
+Those folders become nested CLI groups, and JS file stems become one more group level:
+
+```bash
+go-minitrace query commands overview session-list
+go-minitrace query commands overview session-tools session-list
+go-minitrace query commands overview framework-summary
+go-minitrace query commands overview aliases codex-framework-summary
+go-minitrace query commands timing timing-analysis
+go-minitrace query commands tools tool-failures
+```
+
+The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. For JS sources, the filename contributes a group and the scanned verb name contributes the final leaf command.
+
+## Writing a sqleton-style SQL command file
+
+A structured SQL command is a `.sql` file whose first block is a `/* sqleton ... */` YAML preamble.
 
 The preamble describes the command name, help text, and typed parameters. The rest of the file is the SQL template that will be rendered against the loaded table.
 
@@ -289,6 +321,90 @@ or:
 AND id IN ({{ .session_ids | sqlStringIn }})
 ```
 
+## Writing a scanner-first JS command file
+
+A structured JS command is a `.js` or `.cjs` file that exposes command metadata through static scanner markers and executes only when the command is invoked.
+
+A minimal example looks like this:
+
+```js
+__section__("filters", {
+  title: "Filters",
+  fields: {
+    framework: {
+      type: "stringList",
+      help: "Filter by agent framework",
+    },
+    limit: {
+      type: "int",
+      default: 25,
+      help: "Maximum number of rows",
+    },
+  },
+});
+
+function sessionList(filters) {
+  const mt = require("minitrace");
+  return mt.query(`
+    SELECT
+      id,
+      title,
+      environment->>'agent_framework' AS framework
+    FROM ${mt.tableName}
+    WHERE 1=1
+    ${filters.framework?.length ? `AND environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})` : ""}
+    ORDER BY timing->>'started_at' DESC
+    LIMIT ${filters.limit}
+  `);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List minitrace sessions",
+  fields: {
+    filters: { bind: "filters" }
+  }
+});
+```
+
+If that file is stored as `overview/session-tools.js`, the resulting CLI path is:
+
+```bash
+go-minitrace query commands overview session-tools session-list
+```
+
+Important rules for JS command files:
+
+- metadata must stay static and scanner-friendly,
+- `__verb__` must point at a top-level function,
+- one file may define multiple verbs,
+- the JS file stem becomes a command group and each scanned verb name becomes a leaf command,
+- helper modules can still be loaded with relative `require()` calls,
+- and text-output JS commands are currently deferred in `go-minitrace query commands`.
+
+For more realistic examples, start with the checked-in showcase guide:
+
+- `testdata/query-repositories/README.md`
+
+Then inspect the repositories under:
+
+- `testdata/query-repositories/js-showcase/`
+- `testdata/query-repositories/mixed-sql-js-showcase/`
+
+Those testdata repositories demonstrate:
+
+- multi-verb files,
+- JS aliases targeting JS-backed commands,
+- relative helper modules,
+- pure synthetic row generation with no DB query,
+- async commands using `require("timer")`,
+- `queryOne(...)` plus JS-side reshaping,
+- query results post-processed in JavaScript before emission,
+- multiple SQL queries joined together in JS,
+- JS-side scoring and session classification logic,
+- side-by-side SQL leaves and JS file-group commands in one repository,
+- and real-data validation workflows using `go-minitrace convert pi --source-dir ~/.pi/agent/sessions ...`.
+
 ## Writing alias files
 
 Alias files let you publish a shortcut command that points at another command and supplies default values.
@@ -318,8 +434,8 @@ A few rules are worth remembering:
 A practical authoring loop looks like this:
 
 1. create a repository directory
-2. add one sqleton-style `.sql` command file
-3. run `go-minitrace query commands <name> --help` to verify the parameter schema
+2. add one sqleton-style `.sql` command file or one scanner-first `.js` command file
+3. run `go-minitrace query commands <groups...> <name> --help` to verify the parameter schema
 4. run the command against a real archive glob
 5. optionally open `/query` in serve mode and verify the form/debug panels
 6. add alias files for repeated filters only after the base command works
@@ -327,15 +443,15 @@ A practical authoring loop looks like this:
 A concrete example:
 
 ```bash
-mkdir -p ./query-commands/aliases
-$EDITOR ./query-commands/session-list.sql
+mkdir -p ./query-commands/overview/aliases
+$EDITOR ./query-commands/overview/session-tools.js
 
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-tools session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --help
 
-go-minitrace query commands session-list \
+go-minitrace query commands overview session-tools session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex
@@ -366,6 +482,8 @@ The two approaches are complementary. Structured commands are the reusable layer
 | A repository command does not override the embedded one | The higher-precedence repository was not mounted first, or the path/config source was wrong | Prefer explicit `--query-repository` during debugging and confirm the directory exists |
 | The browser form is missing a field | The field type is not currently rendered by the UI | Use a currently supported practical type or run the command through the CLI instead |
 | The rendered SQL fails read-only validation | The command template produced non-read-only SQL | Keep the command limited to `SELECT`-style analysis queries |
+| A JS command fails during execution | The handler threw, rejected a Promise, or called the host API with invalid SQL | Re-run through the CLI first, then check the exact JS runtime error and the handler source file |
+| A JS command with `output: "text"` does not run | Text-output JS commands are currently deferred in `go-minitrace query commands` | Return row-shaped data for now, or implement writer-mode support in a follow-up slice |
 | An alias does not behave as expected | The target command name is wrong, or the alias default shape does not match the target flag type | Verify `aliasFor`, then compare the alias `flags:` values to the target command's definitions |
 | `--query-repository` with commas behaves strangely | Shell quoting changed the argument before Cobra saw it | Wrap the comma-separated value in quotes or use repeated flags |
 

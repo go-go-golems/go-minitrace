@@ -1,0 +1,152 @@
+=== pi ===
+
+[diff]
+- message.details.diff
+  snippet: {"type":"message","id":"b1e1a5b9","parentId":"95bd85d1","timestamp":"2026-04-16T01:37:16.882Z","message":{"role":"toolResult","toolCallId":"call_function_dmfeqo5xf0oo_1","toolName":"edit","content":[{"type":"text","text":"Successfully replaced 1 block(s) in /home/manuel/code/wesen/crib-k3s/ttmp/2026/04/15/jellyfin-001--jellyfin-setup-on-proxmox-k3s/reference/01-diary.md."}],"details":{"diff":"    ...\n  9 | Component | Details |\n 10 |-----------|---------|\n 11 | Proxmox Host | root@pve |\n 12 
+  snippet: {"type":"message","id":"a4c8c37a","parentId":"747cfcce","timestamp":"2026-04-16T01:52:23.974Z","message":{"role":"toolResult","toolCallId":"call_function_twt7re3qz8h5_1","toolName":"edit","content":[{"type":"text","text":"Successfully replaced 1 block(s) in /home/manuel/code/wesen/crib-k3s/ttmp/2026/04/15/jellyfin-001--jellyfin-setup-on-proxmox-k3s/reference/01-diary.md."}],"details":{"diff":"     ...\n 175 8. [ ] Commit and push to GitHub\n 176 9. [ ] Verify ArgoCD syncs the application\n 177 1
+
+[stopReason]
+- message.stopReason
+  snippet: {"type":"message","id":"2f38bdaa","parentId":"20ce102f","timestamp":"2026-04-16T01:35:46.268Z","message":{"role":"assistant","content":[{"type":"thinking","thinking":"The user wants to set up Jellyfin (a media server) and wants me to:\n1. Create a new docmgr ticket\n2. Walk them through setup choices\n3. Keep a detailed diary as we go\n\nLet me first read the docmgr skill to understand how to create tickets properly.","thinkingSignature":"a547a5607d4849c224cba973f47edd3632032125e50da14c807dff724
+  snippet: {"type":"message","id":"719c0084","parentId":"d75b92fa","timestamp":"2026-04-16T01:35:53.145Z","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Now I understand the workflow. Let me:\n1. Create a docmgr ticket for jellyfin setup\n2. Create a diary document within the ticket\n3. Then walk the user through setup choices\n\nLet me start by creating the ticket.","thinkingSignature":"372b79e931afe68fe689dbcba30d3015f24fc89ae32d32d3ece1a16235dfa914"},{"type":"text","text":"Let m
+
+[errorMessage]
+- message.errorMessage
+  snippet: {"type":"message","id":"907c737e","parentId":"fbdc6586","timestamp":"2026-04-16T02:05:54.779Z","message":{"role":"assistant","content":[],"api":"anthropic-messages","provider":"minimax","model":"MiniMax-M2.7","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"stopReason":"error","timestamp":1776305147598,"errorMessage":"529 {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"The 
+  snippet: {"type":"message","id":"f93966cb","parentId":"28032ec8","timestamp":"2026-04-16T02:06:08.259Z","message":{"role":"assistant","content":[],"api":"anthropic-messages","provider":"minimax","model":"MiniMax-M2.7","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"stopReason":"aborted","timestamp":1776305166218,"errorMessage":"Operation aborted"}}
+
+=== codex-2026-04 ===
+
+[exit_code]
+- payload.exit_code
+  snippet: {"timestamp":"2026-04-15T00:19:37.015Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_tRXVWBUzzzvnKIzsBLYwogf4","process_id":"69537","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","docmgr import file --file ~/Downloads/repl-essay\\(1\\).jsx --ticket GOJA-043-INTERACTIVE-REPL-ESSAY"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"unknown","cmd":"docmgr import file --file ~/Downloads/repl-essay\\(1\\).
+  snippet: {"timestamp":"2026-04-15T00:19:44.038Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_8IJmG6sxRisquSMIqe9hpRfa","process_id":"58973","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","rg --files"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"list_files","cmd":"rg --files","path":null}],"source":"unified_exec_startup","stdout":"","stderr":"","aggregated_output":"go.work.sum\nglazed/cmd/examples/help-sy
+
+[approval_policy]
+- payload.approval_policy
+  snippet: {"timestamp":"2026-04-15T00:19:26.988Z","type":"turn_context","payload":{"turn_id":"019d8e81-d681-7521-bd7d-83847355e132","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","writable_roots":["/home/manuel/.codex/memories"],"network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.3-codex","personality":"pragmatic","col
+  snippet: {"timestamp":"2026-04-15T00:25:12.600Z","type":"turn_context","payload":{"turn_id":"019d8e87-1c94-7290-9aa1-f44d65aef58a","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.3-codex","personality":"pragmatic","collaboration_mode":{"mode":"default","settings":{"model":"gpt-5.3-codex","reasoning_effort":"high","developer_instructions":"# Collabo
+
+[sandbox_policy]
+- payload.sandbox_policy
+  snippet: {"timestamp":"2026-04-15T00:19:26.988Z","type":"turn_context","payload":{"turn_id":"019d8e81-d681-7521-bd7d-83847355e132","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","writable_roots":["/home/manuel/.codex/memories"],"network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.3-codex","personality":"pragmatic","col
+  snippet: {"timestamp":"2026-04-15T00:25:12.600Z","type":"turn_context","payload":{"turn_id":"019d8e87-1c94-7290-9aa1-f44d65aef58a","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.3-codex","personality":"pragmatic","collaboration_mode":{"mode":"default","settings":{"model":"gpt-5.3-codex","reasoning_effort":"high","developer_instructions":"# Collabo
+
+[collaboration_mode]
+- payload.collaboration_mode
+  snippet: {"timestamp":"2026-04-15T00:19:26.988Z","type":"turn_context","payload":{"turn_id":"019d8e81-d681-7521-bd7d-83847355e132","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","writable_roots":["/home/manuel/.codex/memories"],"network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.3-codex","personality":"pragmatic","col
+  snippet: {"timestamp":"2026-04-15T00:25:12.600Z","type":"turn_context","payload":{"turn_id":"019d8e87-1c94-7290-9aa1-f44d65aef58a","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.3-codex","personality":"pragmatic","collaboration_mode":{"mode":"default","settings":{"model":"gpt-5.3-codex","reasoning_effort":"high","developer_instructions":"# Collabo
+
+[truncation_policy]
+- payload.truncation_policy
+  snippet: {"timestamp":"2026-04-15T00:19:26.988Z","type":"turn_context","payload":{"turn_id":"019d8e81-d681-7521-bd7d-83847355e132","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","writable_roots":["/home/manuel/.codex/memories"],"network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.3-codex","personality":"pragmatic","col
+  snippet: {"timestamp":"2026-04-15T00:25:12.600Z","type":"turn_context","payload":{"turn_id":"019d8e87-1c94-7290-9aa1-f44d65aef58a","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.3-codex","personality":"pragmatic","collaboration_mode":{"mode":"default","settings":{"model":"gpt-5.3-codex","reasoning_effort":"high","developer_instructions":"# Collabo
+
+[rate_limits]
+- payload.rate_limits
+  snippet: {"timestamp":"2026-04-15T00:19:27.416Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":10.0,"window_minutes":300,"resets_at":1776224698},"secondary":{"used_percent":36.0,"window_minutes":10080,"resets_at":1776359470},"credits":null,"plan_type":"pro"}}}
+  snippet: {"timestamp":"2026-04-15T00:19:36.487Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":32084,"cached_input_tokens":3456,"output_tokens":432,"reasoning_output_tokens":255,"total_tokens":32516},"last_token_usage":{"input_tokens":32084,"cached_input_tokens":3456,"output_tokens":432,"reasoning_output_tokens":255,"total_tokens":32516},"model_context_window":258400},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":10.0,"windo
+
+[turn_id]
+- payload.turn_id
+  snippet: {"timestamp":"2026-04-15T00:19:26.988Z","type":"event_msg","payload":{"type":"task_started","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","started_at":1776212366,"model_context_window":258400,"collaboration_mode_kind":"default"}}
+  snippet: {"timestamp":"2026-04-15T00:19:26.988Z","type":"turn_context","payload":{"turn_id":"019d8e81-d681-7521-bd7d-83847355e132","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","current_date":"2026-04-14","timezone":"America/New_York","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","writable_roots":["/home/manuel/.codex/memories"],"network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.3-codex","personality":"pragmatic","col
+
+[phase]
+- payload.phase
+  snippet: {"timestamp":"2026-04-15T00:19:34.423Z","type":"event_msg","payload":{"type":"agent_message","message":"I’ll import the designer’s JSX into the `GOJA-043-INTERACTIVE-REPL-ESSAY` ticket first, then inspect `web/` and the relevant local skills so I can scaffold a themable primitive/component/page architecture with Storybook, Redux Toolkit, RTK Query, and MSW support. After implementation, I’ll add a design/implementation doc and a concrete frontend task list into the same ticket.","phase":"comment
+  snippet: {"timestamp":"2026-04-15T00:19:34.424Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"I’ll import the designer’s JSX into the `GOJA-043-INTERACTIVE-REPL-ESSAY` ticket first, then inspect `web/` and the relevant local skills so I can scaffold a themable primitive/component/page architecture with Storybook, Redux Toolkit, RTK Query, and MSW support. After implementation, I’ll add a design/implementation doc and a concrete frontend ta
+
+[memory_citation]
+- payload.memory_citation
+  snippet: {"timestamp":"2026-04-15T00:19:34.423Z","type":"event_msg","payload":{"type":"agent_message","message":"I’ll import the designer’s JSX into the `GOJA-043-INTERACTIVE-REPL-ESSAY` ticket first, then inspect `web/` and the relevant local skills so I can scaffold a themable primitive/component/page architecture with Storybook, Redux Toolkit, RTK Query, and MSW support. After implementation, I’ll add a design/implementation doc and a concrete frontend task list into the same ticket.","phase":"comment
+  snippet: {"timestamp":"2026-04-15T00:19:43.463Z","type":"event_msg","payload":{"type":"agent_message","message":"The mockup is now imported into the ticket source folder successfully. Next I’m mapping the current `web/` implementation and reading the relevant skill guides so I can align the extraction with the project’s expected architecture.","phase":"commentary","memory_citation":null}}
+
+[source]
+- payload.source
+  snippet: {"timestamp":"2026-04-15T00:19:26.987Z","type":"session_meta","payload":{"id":"019d8e7f-99a5-7243-b19a-845778ff2b5a","timestamp":"2026-04-15T00:17:00.330Z","cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","originator":"codex-tui","cli_version":"0.120.0","source":"cli","model_provider":"openai","base_instructions":{"text":"You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.\n\n# Personality\n\nYou are a d
+  snippet: {"timestamp":"2026-04-15T00:19:37.015Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_tRXVWBUzzzvnKIzsBLYwogf4","process_id":"69537","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","docmgr import file --file ~/Downloads/repl-essay\\(1\\).jsx --ticket GOJA-043-INTERACTIVE-REPL-ESSAY"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"unknown","cmd":"docmgr import file --file ~/Downloads/repl-essay\\(1\\).
+
+[parsed_cmd]
+- payload.parsed_cmd
+  snippet: {"timestamp":"2026-04-15T00:19:37.015Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_tRXVWBUzzzvnKIzsBLYwogf4","process_id":"69537","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","docmgr import file --file ~/Downloads/repl-essay\\(1\\).jsx --ticket GOJA-043-INTERACTIVE-REPL-ESSAY"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"unknown","cmd":"docmgr import file --file ~/Downloads/repl-essay\\(1\\).
+  snippet: {"timestamp":"2026-04-15T00:19:44.038Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_8IJmG6sxRisquSMIqe9hpRfa","process_id":"58973","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","rg --files"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"list_files","cmd":"rg --files","path":null}],"source":"unified_exec_startup","stdout":"","stderr":"","aggregated_output":"go.work.sum\nglazed/cmd/examples/help-sy
+
+[stdout]
+- payload.stdout
+  snippet: {"timestamp":"2026-04-15T00:19:37.015Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_tRXVWBUzzzvnKIzsBLYwogf4","process_id":"69537","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","docmgr import file --file ~/Downloads/repl-essay\\(1\\).jsx --ticket GOJA-043-INTERACTIVE-REPL-ESSAY"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"unknown","cmd":"docmgr import file --file ~/Downloads/repl-essay\\(1\\).
+  snippet: {"timestamp":"2026-04-15T00:19:44.038Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_8IJmG6sxRisquSMIqe9hpRfa","process_id":"58973","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","rg --files"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"list_files","cmd":"rg --files","path":null}],"source":"unified_exec_startup","stdout":"","stderr":"","aggregated_output":"go.work.sum\nglazed/cmd/examples/help-sy
+
+[stderr]
+- payload.stderr
+  snippet: {"timestamp":"2026-04-15T00:19:37.015Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_tRXVWBUzzzvnKIzsBLYwogf4","process_id":"69537","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","docmgr import file --file ~/Downloads/repl-essay\\(1\\).jsx --ticket GOJA-043-INTERACTIVE-REPL-ESSAY"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"unknown","cmd":"docmgr import file --file ~/Downloads/repl-essay\\(1\\).
+  snippet: {"timestamp":"2026-04-15T00:19:44.038Z","type":"event_msg","payload":{"type":"exec_command_end","call_id":"call_8IJmG6sxRisquSMIqe9hpRfa","process_id":"58973","turn_id":"019d8e81-d681-7521-bd7d-83847355e132","command":["/usr/bin/zsh","-lc","rg --files"],"cwd":"/home/manuel/workspaces/2026-04-03/js-repl-smailnail","parsed_cmd":[{"type":"list_files","cmd":"rg --files","path":null}],"source":"unified_exec_startup","stdout":"","stderr":"","aggregated_output":"go.work.sum\nglazed/cmd/examples/help-sy
+
+=== codex-2026-01 ===
+
+[approval_policy]
+- payload.approval_policy
+  snippet: {"timestamp":"2026-01-12T20:54:10.878Z","type":"turn_context","payload":{"cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.2-codex","effort":"high","summary":"auto","user_instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.
+  snippet: {"timestamp":"2026-01-12T20:54:16.376Z","type":"turn_context","payload":{"cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.2-codex","effort":"high","summary":"auto","user_instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.md` file. Below is the list of skills that can be used. Each entry includes a name
+
+[sandbox_policy]
+- payload.sandbox_policy
+  snippet: {"timestamp":"2026-01-12T20:54:10.878Z","type":"turn_context","payload":{"cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.2-codex","effort":"high","summary":"auto","user_instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.
+  snippet: {"timestamp":"2026-01-12T20:54:16.376Z","type":"turn_context","payload":{"cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.2-codex","effort":"high","summary":"auto","user_instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.md` file. Below is the list of skills that can be used. Each entry includes a name
+
+[truncation_policy]
+- payload.truncation_policy
+  snippet: {"timestamp":"2026-01-12T20:54:10.878Z","type":"turn_context","payload":{"cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","approval_policy":"on-request","sandbox_policy":{"type":"workspace-write","network_access":false,"exclude_tmpdir_env_var":false,"exclude_slash_tmp":false},"model":"gpt-5.2-codex","effort":"high","summary":"auto","user_instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.
+  snippet: {"timestamp":"2026-01-12T20:54:16.376Z","type":"turn_context","payload":{"cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","approval_policy":"never","sandbox_policy":{"type":"danger-full-access"},"model":"gpt-5.2-codex","effort":"high","summary":"auto","user_instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.md` file. Below is the list of skills that can be used. Each entry includes a name
+
+[rate_limits]
+- payload.rate_limits
+  snippet: {"timestamp":"2026-01-12T20:54:16.651Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"primary":{"used_percent":5.0,"window_minutes":300,"resets_at":1768256572},"secondary":{"used_percent":14.0,"window_minutes":10080,"resets_at":1768682115},"credits":{"has_credits":false,"unlimited":false,"balance":null},"plan_type":null}}}
+  snippet: {"timestamp":"2026-01-12T20:54:19.700Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":6674,"cached_input_tokens":3200,"output_tokens":56,"reasoning_output_tokens":0,"total_tokens":6730},"last_token_usage":{"input_tokens":6674,"cached_input_tokens":3200,"output_tokens":56,"reasoning_output_tokens":0,"total_tokens":6730},"model_context_window":258400},"rate_limits":{"primary":{"used_percent":5.0,"window_minutes":300,"resets_at":1768256572},"secondar
+
+[source]
+- payload.source
+  snippet: {"timestamp":"2026-01-12T20:46:57.656Z","type":"session_meta","payload":{"id":"019bb3f6-3c71-7013-b585-4f16d9bdceb6","timestamp":"2026-01-12T20:46:57.649Z","cwd":"/home/manuel/workspaces/2026-01-12/add-quick-js-redux-experiment/vibes/2026/01/12/js-plugin-system","originator":"codex_cli_rs","cli_version":"0.80.0","instructions":"## Skills\nA skill is a set of local instructions to follow that is stored in a `SKILL.md` file. Below is the list of skills that can be used. Each entry includes a name,
+
+=== claude ===
+
+[caller]
+- message.content[0].caller
+  snippet: {"parentUuid":"b61459f6-b9c4-43f7-ae6d-538a6a03bea5","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_01DmrAs3tMiwPHA2CPUBiDKL","name":"Read","input":{"file_path":"/home/manuel/code/others/pretext/ttmp/2026/03/28/PRETEXT-20260328--pretext-architecture-and-intern-onboarding-guide/index.md"},"caller":{"type":"direct"}}],"stop_reason":null,"stop_sequence":null,"usage":{"input_to
+  snippet: {"parentUuid":"40b9f139-ff52-45ae-900c-8e7ae88bcc94","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_017KoRJYV12gxFG7PRfJzmT1","name":"Read","input":{"file_path":"/home/manuel/code/others/pretext/ttmp/2026/03/28/PRETEXT-20260328--pretext-architecture-and-intern-onboarding-guide/design-doc/01-pretext-architecture-algorithms-and-intern-implementation-guide.md"},"caller":{"type
+
+[entrypoint]
+- entrypoint
+  snippet: {"parentUuid":null,"isSidechain":false,"promptId":"723c5ef4-662f-429e-9c7f-3e657127adab","type":"user","message":{"role":"user","content":[{"type":"text","text":"USER:\n"},{"type":"text","text":"Work on docmgr ticket PRETEXT-20260328 and read the docs, and then create a nice long dynamic blog post (with JS or react or whatever makes the most sense) to have a dynamic document iwth many little demos (think a bret victor article) that I can run in the browser and learn all about pretext and the alg
+  snippet: {"parentUuid":"8c3cd815-cbc4-4a7a-b291-d2787b8a20fb","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"text","text":"\n\nLet me read the ticket documents."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":723,"cache_read_input_tokens":75735,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":723},"output_tokens":2,"service_tie
+
+[stop_reason]
+- message.stop_reason
+  snippet: {"parentUuid":"8c3cd815-cbc4-4a7a-b291-d2787b8a20fb","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"text","text":"\n\nLet me read the ticket documents."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":723,"cache_read_input_tokens":75735,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":723},"output_tokens":2,"service_tie
+  snippet: {"parentUuid":"b61459f6-b9c4-43f7-ae6d-538a6a03bea5","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_01DmrAs3tMiwPHA2CPUBiDKL","name":"Read","input":{"file_path":"/home/manuel/code/others/pretext/ttmp/2026/03/28/PRETEXT-20260328--pretext-architecture-and-intern-onboarding-guide/index.md"},"caller":{"type":"direct"}}],"stop_reason":null,"stop_sequence":null,"usage":{"input_to
+
+[stop_sequence]
+- message.stop_sequence
+  snippet: {"parentUuid":"8c3cd815-cbc4-4a7a-b291-d2787b8a20fb","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"text","text":"\n\nLet me read the ticket documents."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":723,"cache_read_input_tokens":75735,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":723},"output_tokens":2,"service_tie
+  snippet: {"parentUuid":"b61459f6-b9c4-43f7-ae6d-538a6a03bea5","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_01DmrAs3tMiwPHA2CPUBiDKL","name":"Read","input":{"file_path":"/home/manuel/code/others/pretext/ttmp/2026/03/28/PRETEXT-20260328--pretext-architecture-and-intern-onboarding-guide/index.md"},"caller":{"type":"direct"}}],"stop_reason":null,"stop_sequence":null,"usage":{"input_to
+
+[slug]
+- slug
+  snippet: {"parentUuid":"5492b8bd-fa0f-4996-a608-94badd879643","isSidechain":false,"promptId":"723c5ef4-662f-429e-9c7f-3e657127adab","type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_01DmrAs3tMiwPHA2CPUBiDKL","type":"tool_result","content":"1\t---\n2\tTitle: Pretext architecture and intern onboarding guide\n3\tTicket: PRETEXT-20260328\n4\tStatus: active\n5\tTopics:\n6\t    - pretext\n7\t    - text-layout\n8\t    - browser-accuracy\n9\t    - intern-onboarding\n10\tDocType: index\n11\t
+  snippet: {"parentUuid":"40b9f139-ff52-45ae-900c-8e7ae88bcc94","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_017KoRJYV12gxFG7PRfJzmT1","name":"Read","input":{"file_path":"/home/manuel/code/others/pretext/ttmp/2026/03/28/PRETEXT-20260328--pretext-architecture-and-intern-onboarding-guide/design-doc/01-pretext-architecture-algorithms-and-intern-implementation-guide.md"},"caller":{"type
+
+[parentUuid]
+- parentUuid
+  snippet: {"parentUuid":null,"isSidechain":false,"promptId":"723c5ef4-662f-429e-9c7f-3e657127adab","type":"user","message":{"role":"user","content":[{"type":"text","text":"USER:\n"},{"type":"text","text":"Work on docmgr ticket PRETEXT-20260328 and read the docs, and then create a nice long dynamic blog post (with JS or react or whatever makes the most sense) to have a dynamic document iwth many little demos (think a bret victor article) that I can run in the browser and learn all about pretext and the alg
+  snippet: {"parentUuid":"8c3cd815-cbc4-4a7a-b291-d2787b8a20fb","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"text","text":"\n\nLet me read the ticket documents."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":723,"cache_read_input_tokens":75735,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":723},"output_tokens":2,"service_tie
+
+[isSidechain]
+- isSidechain
+  snippet: {"parentUuid":null,"isSidechain":false,"promptId":"723c5ef4-662f-429e-9c7f-3e657127adab","type":"user","message":{"role":"user","content":[{"type":"text","text":"USER:\n"},{"type":"text","text":"Work on docmgr ticket PRETEXT-20260328 and read the docs, and then create a nice long dynamic blog post (with JS or react or whatever makes the most sense) to have a dynamic document iwth many little demos (think a bret victor article) that I can run in the browser and learn all about pretext and the alg
+  snippet: {"parentUuid":"8c3cd815-cbc4-4a7a-b291-d2787b8a20fb","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"text","text":"\n\nLet me read the ticket documents."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":723,"cache_read_input_tokens":75735,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":723},"output_tokens":2,"service_tie
+
+[cache_creation]
+- message.usage.cache_creation
+  snippet: {"parentUuid":"8c3cd815-cbc4-4a7a-b291-d2787b8a20fb","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"text","text":"\n\nLet me read the ticket documents."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":2,"cache_creation_input_tokens":723,"cache_read_input_tokens":75735,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":723},"output_tokens":2,"service_tie
+  snippet: {"parentUuid":"b61459f6-b9c4-43f7-ae6d-538a6a03bea5","isSidechain":false,"message":{"model":"claude-opus-4-6","id":"msg_01K7bgFPP6gG29jX68264KjB","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_01DmrAs3tMiwPHA2CPUBiDKL","name":"Read","input":{"file_path":"/home/manuel/code/others/pretext/ttmp/2026/03/28/PRETEXT-20260328--pretext-architecture-and-intern-onboarding-guide/index.md"},"caller":{"type":"direct"}}],"stop_reason":null,"stop_sequence":null,"usage":{"input_to
+

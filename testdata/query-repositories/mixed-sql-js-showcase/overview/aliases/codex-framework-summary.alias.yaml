@@ -1,0 +1,7 @@
+name: codex-framework-summary
+short: Summarize only pi sessions
+aliasFor: framework-summary
+flags:
+  framework:
+    - pi
+  limit: 5
