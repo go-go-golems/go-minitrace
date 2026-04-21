@@ -161,6 +161,12 @@ func TestLoadCatalog_LoadsJSShowcaseTestdata(t *testing.T) {
 		"overview/runtime-playground/build-synthetic-rows",
 		"overview/async-tools/delayed-summary",
 		"overview/async-tools/top-session-cards",
+		"analysis/workspace-lab/workspace-scoreboard",
+		"analysis/workspace-lab/workspace-session-highlights",
+		"analysis/tool-intelligence/toolbox-overview",
+		"analysis/tool-intelligence/tool-pair-matrix",
+		"analysis/session-architectures/session-shape-ranker",
+		"analysis/session-architectures/session-spotlights",
 	}
 	for _, path := range wantPaths {
 		if catalog.ByPath[path] == nil {
@@ -169,7 +175,10 @@ func TestLoadCatalog_LoadsJSShowcaseTestdata(t *testing.T) {
 	}
 
 	if catalog.ByPath["overview/lib/transforms"] != nil {
-		t.Fatalf("helper module unexpectedly registered as command")
+		t.Fatalf("overview helper module unexpectedly registered as command")
+	}
+	if catalog.ByPath["analysis/lib/cookbook"] != nil {
+		t.Fatalf("analysis helper module unexpectedly registered as command")
 	}
 }
 

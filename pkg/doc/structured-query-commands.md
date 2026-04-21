@@ -393,7 +393,10 @@ That testdata demonstrates:
 - pure synthetic row generation with no DB query,
 - async commands using `require("timer")`,
 - `queryOne(...)` plus JS-side reshaping,
-- and query results post-processed in JavaScript before emission.
+- query results post-processed in JavaScript before emission,
+- multiple SQL queries joined together in JS,
+- JS-side scoring and session classification logic,
+- and real-data validation workflows using `go-minitrace convert pi --source-dir ~/.pi/agent/sessions ...`.
 
 ## Writing alias files
 

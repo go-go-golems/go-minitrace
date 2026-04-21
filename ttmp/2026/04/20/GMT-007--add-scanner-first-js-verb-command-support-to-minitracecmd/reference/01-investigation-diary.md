@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-21T14:32:00-04:00
+LastUpdated: 2026-04-21T15:10:00-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -861,3 +861,98 @@ This step also uncovered one subtle runtime behavior from `go-go-goja/pkg/jsverb
   - `framework-share` -> `{ "framework": "codex", "count": 1, "rank": 1, "share_percent": 100 }`
   - `build-synthetic-rows` -> rows with slugs `demo-alpha` and `demo-beta`
   - `delayed-summary` -> `{ "delayed": true, "first_id": "smoke-session", "session_count": 1 }`
+
+## Step 11: Add Advanced Multi-Query JS Examples and Validate Them on Real Pi Traces
+
+Once the basic showcase existed, the next request was to go further and demonstrate examples where JavaScript is clearly doing more than acting as a thin SQL wrapper. I used that as the prompt to expand the showcase with an `analysis/` set of commands that combine multiple queries, perform joins in JS, compute scores and labels, and extract higher-level patterns such as tool pair co-occurrence. To make sure these were not toy examples, I also validated them against a temporary archive converted from real Pi sessions under `~/.pi/agent/sessions`.
+
+This step was especially useful because it exposed a real SQL/runtime quirk that only showed up against more complex queries on real data. The first version of the advanced commands used conditions like `call->>'tool_name' IS NOT NULL`. Under the JS runtime path in DuckDB, those expressions needed explicit parentheses: `(call->>'tool_name') IS NOT NULL`. The initial real-data smoke run failed, I patched the queries, and the rerun produced the intended results. That is exactly the sort of failure a richer example pack is supposed to flush out.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can you do more complex js examples that show maybe how to combined different queries and do JS operations, basically a whole set of cool examples. You can use real minitrace traces from ~/.pi/agent/sessions or so"
+
+**Assistant interpretation:** Expand the JS showcase with more sophisticated examples that demonstrate why JS is useful beyond templated SQL, and validate them on real local Pi-derived minitrace archives.
+
+**Inferred user intent:** Leave behind a credible set of advanced examples that authors can copy from and that prove the JS command system is useful for orchestration, reshaping, and analysis logic—not just for embedding one SQL string.
+
+### What I did
+- Added advanced analysis command files under:
+  - `testdata/query-repositories/js-showcase/analysis/workspace-lab.js`
+  - `testdata/query-repositories/js-showcase/analysis/tool-intelligence.js`
+  - `testdata/query-repositories/js-showcase/analysis/session-architectures.js`
+  - `testdata/query-repositories/js-showcase/analysis/lib/cookbook.js`
+- Added examples that demonstrate:
+  - multiple queries combined in JS
+  - JS-side joins between workspace, tool, and session aggregates
+  - JS-side scoring (`focus_score`, `complexity_score`)
+  - session-shape classification (`tool-orchestrator`, etc.)
+  - tool co-occurrence matrix generation entirely in JS from session/tool rows
+- Extended `README.md` in the showcase repo with the new groups and a real Pi validation workflow.
+- Extended catalog/runtime coverage in:
+  - `pkg/minitracecmd/catalog_test.go`
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+- Converted a temporary archive from a small subset of real files under:
+  - `~/.pi/agent/sessions`
+- Ran real CLI smoke commands against that converted archive.
+
+### Why
+- The original showcase proved the mechanics, but it did not yet demonstrate the higher-order cases where JS is the clearly better fit than SQL templates alone.
+- Real Pi traces make those examples more believable because they contain dense tool-call and turn structures that the advanced examples can actually mine.
+
+### What worked
+- The advanced example commands now produce useful results on real Pi-derived data, including:
+  - workspace leaderboard rows with `focus_score`, top tool, and representative session title
+  - tool intelligence rows with dominant operation and dominant workspace
+  - tool co-occurrence pairs such as `bash + read`
+  - session-shape rows with `complexity_score` and `shape_label`
+- The advanced runtime tests passed after the query fix:
+  - `go test ./pkg/minitracecmd ./cmd/go-minitrace/cmds/query -count=1`
+- Full repo tests also stayed green afterward.
+
+### What didn't work
+- The first real-data smoke run failed with a DuckDB conversion error in the advanced JS queries:
+  - `Error: GoError: executing js query: Conversion Error: Failed to cast value to numerical: { ... } when casting from source column call`
+  - failing clause location pointed at lines such as:
+    - `AND call->>'tool_name' IS NOT NULL`
+- I fixed this by changing those clauses to:
+  - `AND (call->>'tool_name') IS NOT NULL`
+- After that, the real-data smoke run succeeded.
+
+### What I learned
+- Real-data smoke runs are especially valuable for the JS path because the combination of interpolated SQL plus DuckDB JSON operators can expose precedence/casting quirks that small synthetic tests may miss.
+- Advanced JS examples are a good place to document private helper patterns, multi-query composition, and classification logic all at once.
+
+### What was tricky to build
+- The main tricky part was balancing portability with realism. I wanted examples that work on generic minitrace archives, but the most interesting ones rely on fields like `operational_context.working_directory`, `tool_calls[].tool_name`, and `turns[].role`. Those fields are present in the Pi-derived traces I used for validation, but they also needed to remain reasonable as general examples. The solution was to build examples around common top-level session, turn, and tool-call structures rather than Pi-only adapter metadata.
+
+### What warrants a second pair of eyes
+- Whether some of the heuristic classification labels in `session-architectures.js` should later move into dedicated documented helper functions or a small library once users start copying these patterns.
+- Whether we want a second advanced showcase focused specifically on mixed SQL+JS repositories next.
+
+### What should be done in the future
+- Consider adding one more advanced example that targets aliases over JS analysis commands.
+- If text-mode JS output is implemented later, extend the advanced showcase with a narrative/report-style writer example.
+
+### Code review instructions
+- Start with the new advanced showcase files under:
+  - `testdata/query-repositories/js-showcase/analysis/`
+- Then inspect the updated tests:
+  - `pkg/minitracecmd/catalog_test.go`
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+- Finally check the README and structured-command doc pointer:
+  - `testdata/query-repositories/js-showcase/README.md`
+  - `pkg/doc/structured-query-commands.md`
+
+### Technical details
+- Real-data validation flow included:
+  - `go run ./cmd/go-minitrace convert pi --source-dir ~/.pi/agent/sessions --output-dir /tmp/pi-minitrace-showcase`
+- Real CLI smoke commands included:
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase analysis workspace-lab workspace-scoreboard --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase analysis tool-intelligence toolbox-overview --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase analysis tool-intelligence tool-pair-matrix --archive-glob "$archive/active/*/*.minitrace.json" --limit 10 --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase analysis session-architectures session-shape-ranker --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+- Representative successful outputs included:
+  - `workspace-scoreboard` rows with `focus_score`, `top_tool`, and `sample_title`
+  - `tool-pair-matrix` rows such as `bash + read`
+  - `session-shape-ranker` rows with `shape_label = tool-orchestrator`

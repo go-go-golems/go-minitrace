@@ -462,6 +462,90 @@ func jsShowcaseRepoRoot(t *testing.T) string {
 	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "testdata", "query-repositories", "js-showcase"))
 }
 
+func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesAdvancedJSShowcaseCommands(t *testing.T) {
+	catalog := mustJSShowcaseCatalog(t)
+	archiveGlob := writeAdvancedFixtureArchive(t)
+
+	t.Run("workspace scoreboard joins multiple queries in JS", func(t *testing.T) {
+		command := catalog.ByPath["analysis/workspace-lab/workspace-scoreboard"]
+		if command == nil {
+			t.Fatalf("catalog missing workspace-scoreboard command")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			"filters": {
+				"limit": 5,
+			},
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) < 2 {
+			t.Fatalf("len(rows) = %d, want at least 2", len(gp.rows))
+		}
+		first := rowToMap(gp.rows[0])
+		if first["workspace_slug"] != "alpha/app" {
+			t.Fatalf("workspace_slug = %#v, want alpha/app", first["workspace_slug"])
+		}
+		if first["session_count"] != int64(2) && first["session_count"] != 2 {
+			t.Fatalf("session_count = %#v, want 2", first["session_count"])
+		}
+		if first["top_tool"] != "bash" {
+			t.Fatalf("top_tool = %#v, want bash", first["top_tool"])
+		}
+	})
+
+	t.Run("session shape ranker joins turn and tool aggregates", func(t *testing.T) {
+		command := catalog.ByPath["analysis/session-architectures/session-shape-ranker"]
+		if command == nil {
+			t.Fatalf("catalog missing session-shape-ranker command")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			"filters": {
+				"limit": 5,
+			},
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) < 3 {
+			t.Fatalf("len(rows) = %d, want at least 3", len(gp.rows))
+		}
+		first := rowToMap(gp.rows[0])
+		if first["shape_label"] == "" {
+			t.Fatalf("shape_label missing from first row: %#v", first)
+		}
+		if first["unique_tools"] == nil {
+			t.Fatalf("unique_tools missing from first row: %#v", first)
+		}
+	})
+}
+
 func writeFixtureArchive(t *testing.T) string {
 	t.Helper()
 	archiveRoot := t.TempDir()
@@ -489,6 +573,86 @@ func buildFixtureSession(t *testing.T) *minitrace.Session {
 	session.Quality = &quality
 	session.Metrics = minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, 0, nil)
 	return &session
+}
+
+func writeAdvancedFixtureArchive(t *testing.T) string {
+	t.Helper()
+	archiveRoot := t.TempDir()
+	for _, session := range buildAdvancedFixtureSessions(t) {
+		if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+			t.Fatalf("WriteSession returned error: %v", err)
+		}
+	}
+	return filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
+}
+
+func buildAdvancedFixtureSessions(t *testing.T) []*minitrace.Session {
+	t.Helper()
+	mkSession := func(sessionID, title, workingDir, model string, start time.Time, userTurns, assistantTurns int, toolNames []string) *minitrace.Session {
+		session := minitrace.BuildSessionSkeleton(sessionID, "pi", "fixture", "test")
+		session.Title = stringPtr(title)
+		session.Environment.Model = stringPtr(model)
+		session.OperationalContext.WorkingDirectory = stringPtr(workingDir)
+
+		turns := []minitrace.Turn{}
+		times := []time.Time{}
+		index := 0
+		for i := 0; i < userTurns; i++ {
+			ts := start.Add(time.Duration(index) * time.Minute)
+			formatted := minitrace.FormatTimestamp(ts)
+			turns = append(turns, minitrace.BuildTurn(index, &formatted, "user", stringPtr("human"), fmt.Sprintf("user turn %d", i+1)))
+			times = append(times, ts)
+			index++
+		}
+		for i := 0; i < assistantTurns; i++ {
+			ts := start.Add(time.Duration(index) * time.Minute)
+			formatted := minitrace.FormatTimestamp(ts)
+			turns = append(turns, minitrace.BuildTurn(index, &formatted, "assistant", stringPtr("model"), fmt.Sprintf("assistant turn %d", i+1)))
+			times = append(times, ts)
+			index++
+		}
+		session.Turns = turns
+
+		toolCalls := []minitrace.ToolCall{}
+		for i, toolName := range toolNames {
+			ts := start.Add(time.Duration(index+i) * time.Minute)
+			formatted := minitrace.FormatTimestamp(ts)
+			turnIndex := assistantTurns + userTurns - 1
+			toolCall := minitrace.BuildToolCall(
+				fmt.Sprintf("%s-tool-%02d", sessionID, i+1),
+				&turnIndex,
+				&formatted,
+				toolName,
+				"EXECUTE",
+				nil,
+				nil,
+				map[string]any{"example": true},
+				true,
+				"ok",
+				nil,
+				nil,
+				nil,
+				nil,
+				stringPtr("fixture"),
+				nil,
+			)
+			toolCalls = append(toolCalls, toolCall)
+			times = append(times, ts)
+		}
+		session.ToolCalls = toolCalls
+		session.Annotations = []minitrace.Annotation{}
+		session.Timing = minitrace.ComputeTiming(times)
+		quality := minitrace.AssignQualityTier(session.Turns, session.ToolCalls)
+		session.Quality = &quality
+		session.Metrics = minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, 0, nil)
+		return &session
+	}
+
+	return []*minitrace.Session{
+		mkSession("fixture-alpha-1", "Alpha planning", "~/projects/alpha/app", "gpt-5", time.Date(2026, 4, 1, 9, 0, 0, 0, time.UTC), 2, 6, []string{"bash", "bash", "bash", "read", "read", "edit"}),
+		mkSession("fixture-alpha-2", "Alpha follow-up", "~/projects/alpha/app", "gpt-5", time.Date(2026, 4, 1, 11, 0, 0, 0, time.UTC), 1, 4, []string{"bash", "bash", "write", "write"}),
+		mkSession("fixture-beta-1", "Beta vision", "~/projects/beta/lab", "claude-sonnet-4-6", time.Date(2026, 4, 2, 10, 0, 0, 0, time.UTC), 1, 3, []string{"understand_image", "understand_image", "read", "bash"}),
+	}
 }
 
 func stringPtr(value string) *string { return &value }
