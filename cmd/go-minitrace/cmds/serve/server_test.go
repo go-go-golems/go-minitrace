@@ -1014,6 +1014,71 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 }
 
+func TestHandleExecuteQueryCommandV2RenderOnlyUsesCallerOverrideThenAliasThenCommandDefaults(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = []minitracecmd.SourceRoot{{
+		Name: "test-root",
+		FS: fstest.MapFS{
+			"queries/overview/framework-summary.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+name: framework-summary
+short: Summarize sessions by framework
+flags:
+  - name: framework
+    type: stringList
+    help: Restrict to specific agent frameworks
+  - name: limit
+    type: int
+    default: 10
+    help: Maximum number of rows to return
+*/
+SELECT
+  environment->>'agent_framework' AS framework,
+  COUNT(*) AS session_count
+FROM {{TABLE_NAME}}
+WHERE 1=1
+{{ if .framework -}}
+AND environment->>'agent_framework' IN ({{ .framework | sqlStringIn }})
+{{ end -}}
+GROUP BY 1
+ORDER BY session_count DESC
+LIMIT {{ .limit }};`)},
+			"queries/overview/aliases/custom-framework-summary.alias.yaml": &fstest.MapFile{Data: []byte(`name: custom-framework-summary
+short: Summary using alias defaults
+aliasFor: framework-summary
+flags:
+  framework:
+    - pi
+`)},
+		},
+		RootDir:  "queries",
+		Readonly: true,
+	}}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/aliases/custom-framework-summary.alias.yaml/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
+	request.SetPathValue("path", "overview/aliases/custom-framework-summary.alias.yaml/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal precedence render-only response: %v", err)
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
+		t.Fatalf("rendered_sql missing caller override framework: %q", payload.GetRenderedSql())
+	}
+	if strings.Contains(payload.GetRenderedSql(), "IN ('pi')") {
+		t.Fatalf("rendered_sql should not keep alias framework once caller overrides it: %q", payload.GetRenderedSql())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "LIMIT 10") {
+		t.Fatalf("rendered_sql missing command default limit: %q", payload.GetRenderedSql())
+	}
+}
+
 func TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive(t *testing.T) {
 	archiveRoot := t.TempDir()
 	session := buildFixtureSession(t, "phase5-js-query-command")

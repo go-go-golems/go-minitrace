@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-21T16:06:00-04:00
+LastUpdated: 2026-04-21T16:15:00-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -1148,3 +1148,16 @@ The first draft of the new render-only test accidentally targeted the embedded `
 - Start in `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
 - Then inspect the new/updated tests in `cmd/go-minitrace/cmds/serve/server_test.go`
 - Finally confirm the follow-up task block in `tasks.md` and the changelog entry
+
+### Additional follow-up validation
+After landing the default-hydration fix, I added one more explicit serve test for precedence order. That test uses a tiny inline repository where:
+- the target SQL command defines a schema default (`limit: 10`),
+- the alias defines its own default (`framework: [pi]`),
+- and the request body supplies an override (`framework: [codex]`).
+
+The test asserts that the rendered SQL ends up with:
+- `IN ('codex')` from the caller override,
+- not `IN ('pi')` from the alias,
+- and `LIMIT 10` from the command default.
+
+That gives us a concrete regression test for the intended precedence model: caller override > alias defaults > command defaults.

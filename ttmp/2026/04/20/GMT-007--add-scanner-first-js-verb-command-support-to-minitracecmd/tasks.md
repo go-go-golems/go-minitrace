@@ -61,5 +61,6 @@
 - [x] Add serve tests for SQL render-only default hydration so missing request fields do not render as `<no value>`
 - [x] Add serve tests for direct SQL command execution with omitted defaults
 - [x] Add serve tests for direct JS command execution with omitted defaults
+- [x] Add a serve test that proves precedence order is caller override > alias defaults > command defaults
 - [x] Re-run focused serve tests plus full `go test ./...` and ticket doc validation after the parity fix
 
