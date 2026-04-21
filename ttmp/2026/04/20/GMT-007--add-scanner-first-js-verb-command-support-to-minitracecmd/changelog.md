@@ -10,4 +10,5 @@
 - Performed a dry-run bundled reMarkable upload, uploaded the final bundle, and verified the remote entry after correcting an initial `cloud ls` path mismatch
 - Broke the three remaining implementation tasks into a detailed engineering checklist covering catalog/model changes, JS runtime execution, and mixed SQL/JS validation work
 - Step 1 implementation landed in commit `bf7a787` (`Add scanner-first JS command catalog support`), covering JS source detection, command-model generalization, JS scan/adapter code, duplicate logical-path checks, and initial catalog tests
+- Step 2 implementation landed in commits `6d935a5` (`Add JS command runtime execution support`) and `e9db41e` (`Harden JS command runtime error handling`), covering CLI/serve JS execution, alias-default propagation, Promise support, explicit text-mode deferral, and runtime failure-path tests
 

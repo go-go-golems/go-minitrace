@@ -427,3 +427,104 @@ This step produced the first real code commit for the ticket. It also surfaced t
   - `git commit -m "Add scanner-first JS command catalog support"`
 - Final commit hash:
   - `bf7a787`
+
+## Step 6: Implement the JS Runtime and Tighten Failure Handling
+
+The second implementation slice turned the newly scanned JS commands into executable commands. The key move was to keep archive loading exactly where it already was, then dispatch on command runtime kind after alias resolution. SQL-backed commands still render SQL and run it. JS-backed commands now build a Goja runtime, scan the relevant JS source root at invocation time, wire in a minimal `minitrace` host module, and invoke the scanned handler function with the same `pkg/jsverbs` runtime patterns that already existed upstream.
+
+This slice ended up landing in two commits rather than one. The first commit introduced the working runtime branch, the `minitrace` host API, CLI tests, and a serve execution path so JS commands would not catalog successfully but fail when executed through HTTP. The second commit tightened the edge cases that are easy to forget in an initial happy-path implementation: thrown JS errors, rejected Promises, and explicit rejection of text-mode JS commands in v1. Splitting the work that way kept the first review focused on architecture and the second focused on correctness hardening.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 5)
+
+**Assistant interpretation:** Continue implementing the next task as a coherent runtime slice, commit meaningful milestones, and keep the diary detailed.
+
+**Inferred user intent:** Make the scanned JS commands truly runnable, not just catalog-visible.
+
+**Commit (code):** `6d935a5` — `Add JS command runtime execution support`
+
+### What I did
+- Refactored `cmd/go-minitrace/cmds/query/command_runtime.go` into a runtime dispatcher.
+- Added `cmd/go-minitrace/cmds/query/js_runtime.go` with:
+  - JS command registry loading via `jsverbs.ScanFS`
+  - a Goja runtime builder
+  - a native `minitrace` host module exposing `query(...)`, `queryOne(...)`, runtime metadata, and SQL helper functions
+  - result normalization into Glazed rows
+- Updated value collection and override handling so sectioned JS command fields and alias defaults reach the handler correctly.
+- Extended the serve execution path in `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go` so HTTP execution works for JS commands as well as SQL commands.
+- Added runtime tests in `cmd/go-minitrace/cmds/query/command_runtime_js_test.go` for:
+  - direct JS command execution
+  - YAML alias defaults targeting a JS command
+  - Promise-returning JS handlers
+- Added an HTTP-level serve test in `cmd/go-minitrace/cmds/serve/server_test.go` for JS command execution against a loaded archive.
+- After the first runtime commit, added follow-up hardening for:
+  - thrown JS errors
+  - rejected Promises
+  - explicit v1 text-mode rejection
+
+### Why
+- The catalog slice made JS commands visible, but not runnable. This slice was necessary to turn the scanned metadata into working behavior.
+- Wiring the serve path in the same slice kept the system consistent: if a JS command appears in the query-command listing, it should also be executable through the same API surface.
+
+### What worked
+- The command runtime dispatch fit naturally after alias resolution and archive loading.
+- Reusing `jsverbs.ScanFS` at invocation time simplified helper-file and relative-require support because the entire source root is rescanned rather than trying to preserve a partial registry from catalog load time.
+- The minimal host `minitrace` module was enough to make real JS-backed commands useful without needing a larger API design.
+- Successful commits for this slice were:
+  - `6d935a5` — `Add JS command runtime execution support`
+  - `e9db41e` — `Harden JS command runtime error handling`
+- Successful validation commands included:
+  - `go test ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+  - `go test ./...`
+  - pre-commit `golangci-lint run -v`
+
+### What didn't work
+- The first serve integration compile failed because I guessed two `Server` fields that do not exist:
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go:145:20: s.dbPath undefined (type *Server has no field or method dbPath)`
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go:147:20: s.persistLoaded undefined (type *Server has no field or method persistLoaded)`
+- I fixed that by checking `server.go` and using runtime settings appropriate for the already-loaded server connection instead of trying to read nonexistent fields.
+
+### What I learned
+- The simplest reliable execution model is not to preserve a JS registry from catalog load, but to rescan the source root at invocation time and then locate the exact scanned verb by module path and function name.
+- Alias defaults for sectioned JS command fields need explicit value rebuilding; flat resolved maps are not enough unless they are projected back into section-aware parsed values.
+- It is better to reject unsupported text-mode commands explicitly than to let them degrade into confusing row output.
+
+### What was tricky to build
+- The hardest part of this slice was not Goja itself. It was keeping three representations aligned:
+  1. flat alias/default value maps,
+  2. section-aware Glazed parsed values,
+  3. `jsverbs` argument binding rules.
+  The solution was to rebuild parsed values against the preserved command schema before invoking the handler.
+- The second tricky point was serve integration. The query command HTTP endpoint was previously SQL-only, and it had to be upgraded carefully so SQL behavior stayed exactly the same while JS commands gained a parallel execution branch.
+
+### What warrants a second pair of eyes
+- Whether rescanning the source root on every JS command invocation is acceptable for v1 or should be cached after correctness is proven.
+- Whether the current temporary JS command path format (for example `overview/session-list.js:session-list`) should remain the external execution path or be normalized later.
+
+### What should be done in the future
+- Decide whether JS text output should become a proper writer-mode command in a follow-up slice or remain out of scope for `query commands`.
+- Add a small cache for scanned JS registries if repeated invocation cost becomes noticeable.
+- Continue with the remaining docs/help/smoke-validation work in task section 3.
+
+### Code review instructions
+- Start with:
+  - `cmd/go-minitrace/cmds/query/command_runtime.go`
+  - `cmd/go-minitrace/cmds/query/js_runtime.go`
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+- Then review tests in:
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+- Validate with:
+  - `go test ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+  - `go test ./...`
+
+### Technical details
+- Runtime commit:
+  - `git commit -m "Add JS command runtime execution support"`
+- Runtime hardening commit:
+  - `git commit -m "Harden JS command runtime error handling"`
+- Final commit hashes:
+  - `6d935a5`
+  - `e9db41e`
+- The explicit text-mode policy in this slice is: defer it and return a runtime error rather than silently coercing it into row output.

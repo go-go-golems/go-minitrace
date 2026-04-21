@@ -26,25 +26,25 @@
 
 ### 2) JS execution branch and host minitrace runtime API
 
-- [ ] Refactor `cmd/go-minitrace/cmds/query/command_runtime.go` into a runtime-kind dispatcher
-- [ ] Preserve the current SQL execution path unchanged for SQL-backed commands
-- [ ] Add a JS execution branch that runs after archive loading and alias resolution
-- [ ] Create or wire a Goja runtime builder for minitrace command execution
-- [ ] Expose a minimal host API for JS commands (at least `query(...)`, likely `queryOne(...)`, plus SQL helper functions)
-- [ ] Pass command/runtime/value context into JS handlers in a stable shape
-- [ ] Reuse `pkg/jsverbs/runtime.go` patterns for module loading, handler lookup, and Promise handling
-- [ ] Normalize JS results into Glazed rows for row-producing commands
-- [ ] Decide and document whether text-mode JS commands are deferred or supported in the first implementation slice
-- [ ] Add runtime tests for plain-object, array-of-object, primitive, and Promise-returning JS handlers
-- [ ] Add failure-path tests for missing handler functions, thrown JS errors, and rejected Promises
+- [x] Refactor `cmd/go-minitrace/cmds/query/command_runtime.go` into a runtime-kind dispatcher
+- [x] Preserve the current SQL execution path unchanged for SQL-backed commands
+- [x] Add a JS execution branch that runs after archive loading and alias resolution
+- [x] Create or wire a Goja runtime builder for minitrace command execution
+- [x] Expose a minimal host API for JS commands (at least `query(...)`, likely `queryOne(...)`, plus SQL helper functions)
+- [x] Pass command/runtime/value context into JS handlers in a stable shape
+- [x] Reuse `pkg/jsverbs/runtime.go` patterns for module loading, handler lookup, and Promise handling
+- [x] Normalize JS results into Glazed rows for row-producing commands
+- [x] Decide and document whether text-mode JS commands are deferred or supported in the first implementation slice
+- [x] Add runtime tests for plain-object, array-of-object, primitive, and Promise-returning JS handlers
+- [x] Add failure-path tests for missing handler functions, thrown JS errors, and rejected Promises
 
 ### 3) Tests, docs, and smoke validation for mixed SQL/JS command repositories
 
 - [x] Add parser/scanner tests for valid JS command files and invalid static metadata
 - [ ] Add command-group/help tests showing JS commands appear under `query commands`
-- [ ] Add alias tests proving YAML aliases can target JS-backed commands
+- [x] Add alias tests proving YAML aliases can target JS-backed commands
 - [ ] Add integration tests for a repository containing both SQL and JS command files
-- [ ] Add end-to-end execution tests using a loaded archive fixture and a JS-backed command
+- [x] Add end-to-end execution tests using a loaded archive fixture and a JS-backed command
 - [ ] Update `pkg/doc/structured-query-commands.md` to document `.js` / `.cjs` scanner-first command files
 - [ ] Update any command reference/help pages that describe supported repository source types
 - [ ] Add at least one worked JS command example to repo docs or testdata
