@@ -144,6 +144,109 @@ flags:
 	}
 }
 
+func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorReturnsThrownJSError(t *testing.T) {
+	catalog := mustJSCatalog(t, `
+function sessionList() {
+  throw new Error("boom");
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions"
+});
+`)
+
+	command := catalog.ByName["session-list"]
+	glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+	if err != nil {
+		t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+	}
+
+	archiveGlob := writeFixtureArchive(t)
+	parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+		QueryRuntimeSectionSlug: {
+			"archive-glob": []string{archiveGlob},
+		},
+	}))
+	if err != nil {
+		t.Fatalf("ParseCommandValues returned error: %v", err)
+	}
+
+	gp := &captureProcessor{}
+	if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err == nil {
+		t.Fatalf("RunIntoGlazeProcessor returned nil error, want thrown js error")
+	}
+}
+
+func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorReturnsRejectedPromiseError(t *testing.T) {
+	catalog := mustJSCatalog(t, `
+function sessionList() {
+  return Promise.reject(new Error("promise boom"));
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions"
+});
+`)
+
+	command := catalog.ByName["session-list"]
+	glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+	if err != nil {
+		t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+	}
+
+	archiveGlob := writeFixtureArchive(t)
+	parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+		QueryRuntimeSectionSlug: {
+			"archive-glob": []string{archiveGlob},
+		},
+	}))
+	if err != nil {
+		t.Fatalf("ParseCommandValues returned error: %v", err)
+	}
+
+	gp := &captureProcessor{}
+	if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err == nil {
+		t.Fatalf("RunIntoGlazeProcessor returned nil error, want rejected promise error")
+	}
+}
+
+func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorRejectsTextModeJSCommand(t *testing.T) {
+	catalog := mustJSCatalog(t, `
+function sessionList() {
+  return "hello";
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions",
+  output: "text"
+});
+`)
+
+	command := catalog.ByName["session-list"]
+	glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+	if err != nil {
+		t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+	}
+
+	archiveGlob := writeFixtureArchive(t)
+	parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+		QueryRuntimeSectionSlug: {
+			"archive-glob": []string{archiveGlob},
+		},
+	}))
+	if err != nil {
+		t.Fatalf("ParseCommandValues returned error: %v", err)
+	}
+
+	gp := &captureProcessor{}
+	if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err == nil {
+		t.Fatalf("RunIntoGlazeProcessor returned nil error, want text mode rejection")
+	}
+}
+
 func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesPromiseReturningJSCommand(t *testing.T) {
 	catalog := mustJSCatalog(t, `
 __section__("filters", {

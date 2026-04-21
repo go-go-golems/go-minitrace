@@ -34,6 +34,9 @@ func RunJSCommandIntoProcessor(
 	if command == nil || command.JS == nil {
 		return fmt.Errorf("js command metadata is missing")
 	}
+	if strings.TrimSpace(command.JS.OutputMode) == jsverbs.OutputModeText {
+		return fmt.Errorf("js text output mode is not supported in minitrace query commands yet")
+	}
 	if catalog == nil {
 		return fmt.Errorf("catalog is nil")
 	}
