@@ -78,6 +78,7 @@ Defined in `analysis/session-architectures.js`.
 This showcase now covers all of these patterns:
 
 - multi-verb files
+- JS aliases that target JS-backed analysis commands
 - relative helper modules
 - pure synthetic row generation with no DB query
 - async commands using `require("timer")`
@@ -87,6 +88,16 @@ This showcase now covers all of these patterns:
 - JS-side joins across independently queried aggregates
 - JS-side scoring/classification logic
 - per-session tool co-occurrence analysis in JS
+
+## Alias examples
+
+Additional alias examples live under:
+
+- `analysis/aliases/focus-top-workspaces.alias.yaml`
+- `analysis/aliases/core-tool-pairs.alias.yaml`
+- `analysis/aliases/heavy-session-shapes.alias.yaml`
+
+These show that aliases can target advanced JS-backed commands just like they already target SQL commands.
 
 ## Suggested smoke commands
 
@@ -110,6 +121,12 @@ go run ./cmd/go-minitrace query commands \
 go run ./cmd/go-minitrace query commands \
   --query-repository ./testdata/query-repositories/js-showcase \
   analysis session-architectures session-shape-ranker \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --output json
+
+go run ./cmd/go-minitrace query commands \
+  --query-repository ./testdata/query-repositories/js-showcase \
+  analysis aliases focus-top-workspaces \
   --archive-glob './output/active/*/*.minitrace.json' \
   --output json
 ```

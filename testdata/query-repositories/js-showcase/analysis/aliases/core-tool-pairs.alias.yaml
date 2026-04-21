@@ -1,0 +1,5 @@
+name: core-tool-pairs
+short: Top 5 tool pairs
+aliasFor: tool-pair-matrix
+flags:
+  limit: 5

@@ -421,6 +421,34 @@ func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesJSShowcaseTes
 			t.Fatalf("delayed = %#v, want true", row["delayed"])
 		}
 	})
+
+	t.Run("showcase aliases can target advanced JS commands", func(t *testing.T) {
+		command := catalog.ByPath["analysis/aliases/focus-top-workspaces.alias.yaml"]
+		if command == nil {
+			t.Fatalf("catalog missing focus-top-workspaces alias")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) == 0 {
+			t.Fatalf("expected alias to emit rows")
+		}
+	})
 }
 
 func mustJSCatalog(t *testing.T, source string) *minitracecmd.Catalog {

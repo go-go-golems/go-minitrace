@@ -1,0 +1,5 @@
+name: focus-top-workspaces
+short: Top 3 workspace scoreboard rows
+aliasFor: workspace-scoreboard
+flags:
+  limit: 3

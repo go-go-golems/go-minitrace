@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -297,9 +298,71 @@ SELECT 2 AS answer FROM {{TABLE_NAME}};`
 	}
 }
 
+func TestNewCommandsCommand_LoadsMixedSQLJSShowcaseRepo(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := mixedShowcaseRepoRoot(t)
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	cases := [][]string{
+		{"overview", "framework-summary"},
+		{"overview", "session-tools", "framework-share"},
+		{"overview", "aliases", "codex-framework-summary"},
+		{"analysis", "raw-workspace-stats"},
+		{"analysis", "workspace-lab", "workspace-scoreboard"},
+		{"analysis", "aliases", "top-workspaces"},
+	}
+	for _, args := range cases {
+		found, _, err := cmd.Find(args)
+		if err != nil {
+			t.Fatalf("Find(%v) returned error: %v", args, err)
+		}
+		if found == nil || found.Name() != args[len(args)-1] {
+			t.Fatalf("Find(%v) resolved to %#v", args, found)
+		}
+	}
+
+	buf := &bytes.Buffer{}
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs([]string{"overview", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("overview help returned error: %v\noutput:\n%s", err, buf.String())
+	}
+	output := buf.String()
+	for _, needle := range []string{"framework-summary", "session-tools", "aliases"} {
+		if !strings.Contains(output, needle) {
+			t.Fatalf("overview help missing %q\noutput:\n%s", needle, output)
+		}
+	}
+
+	buf.Reset()
+	cmd.SetArgs([]string{"analysis", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("analysis help returned error: %v\noutput:\n%s", err, buf.String())
+	}
+	output = buf.String()
+	for _, needle := range []string{"raw-workspace-stats", "workspace-lab", "aliases"} {
+		if !strings.Contains(output, needle) {
+			t.Fatalf("analysis help missing %q\noutput:\n%s", needle, output)
+		}
+	}
+}
+
 func setIsolatedConfigHome(t *testing.T) {
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+}
+
+func mixedShowcaseRepoRoot(t *testing.T) string {
+	t.Helper()
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "testdata", "query-repositories", "mixed-sql-js-showcase"))
 }

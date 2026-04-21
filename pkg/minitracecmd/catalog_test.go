@@ -167,6 +167,9 @@ func TestLoadCatalog_LoadsJSShowcaseTestdata(t *testing.T) {
 		"analysis/tool-intelligence/tool-pair-matrix",
 		"analysis/session-architectures/session-shape-ranker",
 		"analysis/session-architectures/session-spotlights",
+		"analysis/aliases/focus-top-workspaces.alias.yaml",
+		"analysis/aliases/core-tool-pairs.alias.yaml",
+		"analysis/aliases/heavy-session-shapes.alias.yaml",
 	}
 	for _, path := range wantPaths {
 		if catalog.ByPath[path] == nil {
@@ -182,6 +185,42 @@ func TestLoadCatalog_LoadsJSShowcaseTestdata(t *testing.T) {
 	}
 }
 
+func TestLoadCatalog_LoadsMixedSQLJSShowcaseTestdata(t *testing.T) {
+	root := mixedShowcaseTestdataRoot(t)
+	catalog, err := LoadCatalog([]SourceRoot{{
+		Name:     "mixed-showcase",
+		FS:       os.DirFS(root),
+		RootDir:  ".",
+		Readonly: true,
+	}})
+	if err != nil {
+		t.Fatalf("LoadCatalog returned error: %v", err)
+	}
+
+	wantPaths := []string{
+		"overview/framework-summary.sql",
+		"overview/session-tools/session-list",
+		"overview/session-tools/framework-share",
+		"overview/aliases/codex-framework-summary.alias.yaml",
+		"analysis/raw-workspace-stats.sql",
+		"analysis/workspace-lab/workspace-scoreboard",
+		"analysis/aliases/top-workspaces.alias.yaml",
+		"analysis/aliases/pi-raw-workspaces.alias.yaml",
+	}
+	for _, path := range wantPaths {
+		if catalog.ByPath[path] == nil {
+			t.Fatalf("catalog missing mixed showcase path %q", path)
+		}
+	}
+
+	if catalog.ByPath["overview/lib/transforms"] != nil {
+		t.Fatalf("mixed overview helper module unexpectedly registered as command")
+	}
+	if catalog.ByPath["analysis/lib/cookbook"] != nil {
+		t.Fatalf("mixed analysis helper module unexpectedly registered as command")
+	}
+}
+
 func jsShowcaseTestdataRoot(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)
@@ -189,4 +228,13 @@ func jsShowcaseTestdataRoot(t *testing.T) string {
 		t.Fatalf("runtime.Caller failed")
 	}
 	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "testdata", "query-repositories", "js-showcase"))
+}
+
+func mixedShowcaseTestdataRoot(t *testing.T) string {
+	t.Helper()
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "testdata", "query-repositories", "mixed-sql-js-showcase"))
 }

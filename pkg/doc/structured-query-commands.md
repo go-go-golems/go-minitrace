@@ -382,13 +382,15 @@ Important rules for JS command files:
 - helper modules can still be loaded with relative `require()` calls,
 - and text-output JS commands are currently deferred in `go-minitrace query commands`.
 
-For more realistic examples, see the checked-in showcase repository under:
+For more realistic examples, see the checked-in showcase repositories under:
 
 - `testdata/query-repositories/js-showcase/`
+- `testdata/query-repositories/mixed-sql-js-showcase/`
 
-That testdata demonstrates:
+Those testdata repositories demonstrate:
 
 - multi-verb files,
+- JS aliases targeting JS-backed commands,
 - relative helper modules,
 - pure synthetic row generation with no DB query,
 - async commands using `require("timer")`,
@@ -396,6 +398,7 @@ That testdata demonstrates:
 - query results post-processed in JavaScript before emission,
 - multiple SQL queries joined together in JS,
 - JS-side scoring and session classification logic,
+- side-by-side SQL leaves and JS file-group commands in one repository,
 - and real-data validation workflows using `go-minitrace convert pi --source-dir ~/.pi/agent/sessions ...`.
 
 ## Writing alias files

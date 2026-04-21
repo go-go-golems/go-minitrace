@@ -16,4 +16,5 @@
 - Adjusted JS command registration so each JS file becomes a command group and each scanned verb becomes a leaf command, updating parser behavior, CLI/serve tests, and user docs to prefer paths like `overview session-tools session-list`
 - Added a checked-in `testdata/query-repositories/js-showcase/` repository with realistic JS examples covering helper modules, multi-verb files, synthetic row generation, async commands, `queryOne`, and JS-side post-processing, plus tests and smoke validation proving the showcase runs end-to-end
 - Expanded the JS showcase with advanced analysis examples that combine multiple queries, perform JS-side joins/scoring/classification, compute tool co-occurrence pairs, and were smoke-validated against a temporary archive converted from real Pi sessions under `~/.pi/agent/sessions`
+- Added JS alias examples for advanced analysis commands plus a second checked-in `mixed-sql-js-showcase/` repository that demonstrates SQL leaves, JS file-group commands, SQL aliases, and JS aliases coexisting in one repository, all smoke-validated against real Pi-derived archive data
 

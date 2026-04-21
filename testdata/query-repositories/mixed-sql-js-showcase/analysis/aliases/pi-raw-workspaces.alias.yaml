@@ -1,0 +1,7 @@
+name: pi-raw-workspaces
+short: Raw SQL workspace stats for pi sessions
+aliasFor: raw-workspace-stats
+flags:
+  framework:
+    - pi
+  limit: 5

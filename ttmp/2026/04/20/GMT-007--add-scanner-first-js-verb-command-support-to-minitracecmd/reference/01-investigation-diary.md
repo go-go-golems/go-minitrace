@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-21T15:10:00-04:00
+LastUpdated: 2026-04-21T15:32:00-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -956,3 +956,100 @@ This step was especially useful because it exposed a real SQL/runtime quirk that
   - `workspace-scoreboard` rows with `focus_score`, `top_tool`, and `sample_title`
   - `tool-pair-matrix` rows such as `bash + read`
   - `session-shape-ranker` rows with `shape_label = tool-orchestrator`
+
+## Step 12: Add JS Aliases and a Mixed SQL + Advanced JS Showcase
+
+After the advanced showcase landed, the natural follow-up was to cover two remaining authoring stories explicitly: first, that aliases should work cleanly against sophisticated JS-backed commands, not just simple SQL or toy JS examples; and second, that a real repository may want SQL leaves and JS file-group commands side by side. The user asked for both, so I implemented them together as a documentation-and-testdata pass.
+
+I extended the existing JS showcase with alias examples targeting advanced analysis commands, and I added a second checked-in repository named `mixed-sql-js-showcase/` that combines SQL command files, JS file-group commands, SQL aliases, and JS aliases in one tree. I then validated both repositories in real CLI smoke runs against the same temporary Pi-derived archive used in the previous step.
+
+### Prompt Context
+
+**User prompt (verbatim):** "1. 2."
+
+**Assistant interpretation:** Implement both suggested follow-ups: JS alias examples and a mixed SQL + advanced JS showcase repository.
+
+**Inferred user intent:** Round out the example set so it covers both runtime-agnostic aliases and the practical repository layout where SQL and JS commands coexist.
+
+### What I did
+- Added JS alias examples under:
+  - `testdata/query-repositories/js-showcase/analysis/aliases/`
+- Added aliases:
+  - `focus-top-workspaces.alias.yaml`
+  - `core-tool-pairs.alias.yaml`
+  - `heavy-session-shapes.alias.yaml`
+- Added a second showcase repository:
+  - `testdata/query-repositories/mixed-sql-js-showcase/`
+- The mixed showcase includes:
+  - SQL leaf commands
+  - JS file-group commands
+  - SQL aliases
+  - JS aliases
+- Added/updated tests in:
+  - `pkg/minitracecmd/catalog_test.go`
+  - `cmd/go-minitrace/cmds/query/commands_test.go`
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+- Updated docs in:
+  - `pkg/doc/structured-query-commands.md`
+  - `testdata/query-repositories/js-showcase/README.md`
+  - `testdata/query-repositories/mixed-sql-js-showcase/README.md`
+- Performed real CLI smoke runs for:
+  - JS alias execution from the advanced showcase
+  - mixed repo overview/analysis help
+  - mixed SQL command execution
+  - mixed JS command execution
+  - mixed JS alias execution
+
+### Why
+- Aliases are part of the intended user model and should be shown to work across runtime kinds, not just in abstract tests.
+- A mixed repository is likely the most realistic long-term authoring pattern for users: straightforward aggregations can stay SQL, while richer orchestration can move into JS.
+
+### What worked
+- The JS alias showcase now exposes a clean `analysis aliases` group with advanced targets.
+- The mixed repo help output clearly shows the intended coexistence model:
+  - SQL leaves such as `framework-summary` and `raw-workspace-stats`
+  - JS groups such as `session-tools` and `workspace-lab`
+  - aliases under both `overview/aliases` and `analysis/aliases`
+- Real smoke execution succeeded for:
+  - `analysis aliases focus-top-workspaces`
+  - `overview framework-summary`
+  - `overview session-tools framework-share`
+  - `analysis aliases top-workspaces`
+
+### What didn't work
+- No new implementation blocker surfaced in this slice. The prior advanced-query fix around `(call->>'tool_name') IS NOT NULL` carried forward cleanly into the mixed showcase examples.
+
+### What I learned
+- The alias system really is runtime-agnostic now in practice, not just in design.
+- The mixed showcase is much easier to explain to users than an abstract statement like “SQL and JS commands share the same shell”—the help output makes the model obvious immediately.
+
+### What was tricky to build
+- The main subtlety was keeping the mixed showcase simple enough to read while still representative. I avoided copying the entire advanced showcase into the mixed repo; instead I selected a few commands that make the coexistence model obvious without turning the repository into a wall of examples.
+
+### What warrants a second pair of eyes
+- Whether we eventually want a naming convention recommendation for when a repository should keep an analysis in SQL versus when it should promote it into a JS file-group.
+
+### What should be done in the future
+- Consider adding one more mixed showcase example where a SQL command and a JS command intentionally answer the same analytical question at different abstraction levels.
+
+### Code review instructions
+- Start with the new files under:
+  - `testdata/query-repositories/js-showcase/analysis/aliases/`
+  - `testdata/query-repositories/mixed-sql-js-showcase/`
+- Then review the tests:
+  - `pkg/minitracecmd/catalog_test.go`
+  - `cmd/go-minitrace/cmds/query/commands_test.go`
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+- Finally confirm the doc pointer in:
+  - `pkg/doc/structured-query-commands.md`
+
+### Technical details
+- Representative real smoke commands included:
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase analysis aliases focus-top-workspaces --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/mixed-sql-js-showcase overview framework-summary --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/mixed-sql-js-showcase overview session-tools framework-share --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/mixed-sql-js-showcase analysis aliases top-workspaces --archive-glob "$archive/active/*/*.minitrace.json" --output json`
+- Representative successful outputs included:
+  - JS alias help listing `focus-top-workspaces`, `core-tool-pairs`, `heavy-session-shapes`
+  - mixed SQL output: `{ "framework": "pi", "session_count": 8, ... }`
+  - mixed JS output: `{ "framework": "pi", "share_percent": 100, ... }`
