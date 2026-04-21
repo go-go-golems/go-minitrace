@@ -1,6 +1,7 @@
 package minitracecmd
 
 import (
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -35,7 +36,8 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 	seenCommandPaths := map[string]string{}
 
 	for _, root := range roots {
-		catalog.SourceRoots[root.Name] = root
+		rootKey := uniqueSourceRootKey(root.Name, catalog.SourceRoots)
+		catalog.SourceRoots[rootKey] = root
 		rootDir := root.RootDir
 		if rootDir == "" {
 			rootDir = "."
@@ -89,7 +91,7 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 				cmd, err := compiler.Compile(entry.Spec, CompileOptions{
 					Folder:     folder,
 					Path:       entry.Path,
-					SourceRoot: root.Name,
+					SourceRoot: rootKey,
 					SourcePath: path,
 					Readonly:   root.Readonly,
 				})
@@ -167,6 +169,22 @@ func commandLogicalPath(cmd *MinitraceCommand) string {
 		return cmd.Name
 	}
 	return cmd.Folder + "/" + cmd.Name
+}
+
+func uniqueSourceRootKey(name string, roots map[string]SourceRoot) string {
+	base := strings.TrimSpace(name)
+	if base == "" {
+		base = "root"
+	}
+	if _, exists := roots[base]; !exists {
+		return base
+	}
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s#%d", base, i)
+		if _, exists := roots[candidate]; !exists {
+			return candidate
+		}
+	}
 }
 
 func resolveAliases(catalog *Catalog) error {

@@ -238,6 +238,42 @@ __verb__("sessionList", {
 	}
 }
 
+func TestNewCommandsCommand_RejectsLeafGroupNameCollision(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.sql"), []byte(`/* sqleton
+name: session-tools
+short: Leaf command that collides with a JS group
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
+		t.Fatalf("WriteFile(sql) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.js"), []byte(`
+function sessionList() {
+  const mt = require("minitrace");
+  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions from JS"
+});
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile(js) returned error: %v", err)
+	}
+
+	_, err := NewCommandsCommand([]string{repo})
+	if err == nil {
+		t.Fatalf("NewCommandsCommand returned nil error, want command tree collision")
+	}
+	if !strings.Contains(err.Error(), "session-tools") {
+		t.Fatalf("error = %v, want collision mentioning session-tools", err)
+	}
+}
+
 func TestNewCommandsCommand_XDGConfigOverridesHomeConfig(t *testing.T) {
 	setIsolatedConfigHome(t)
 	homeRepo := t.TempDir()

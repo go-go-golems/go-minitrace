@@ -54,16 +54,21 @@ Examples:
 		if err != nil {
 			return nil, err
 		}
-		parent := ensureCommandGroup(root, groups, command.Folder)
-		parent.AddCommand(cobraCommand)
+		parent, err := ensureCommandGroup(root, groups, command.Folder)
+		if err != nil {
+			return nil, err
+		}
+		if err := addCommandChild(parent, cobraCommand, command.Folder); err != nil {
+			return nil, err
+		}
 	}
 
 	return root, nil
 }
 
-func ensureCommandGroup(root *cobra.Command, groups map[string]*cobra.Command, folder string) *cobra.Command {
+func ensureCommandGroup(root *cobra.Command, groups map[string]*cobra.Command, folder string) (*cobra.Command, error) {
 	if strings.TrimSpace(folder) == "" {
-		return root
+		return root, nil
 	}
 
 	parent := root
@@ -82,6 +87,9 @@ func ensureCommandGroup(root *cobra.Command, groups map[string]*cobra.Command, f
 			parent = existing
 			continue
 		}
+		if existing := findCommandChild(parent, segment); existing != nil {
+			return nil, fmt.Errorf("%w: folder group %q collides with existing command %q", minitracecmd.ErrCommandTreeCollision, currentPath, existing.CommandPath())
+		}
 
 		group := &cobra.Command{
 			Use:   segment,
@@ -92,5 +100,31 @@ func ensureCommandGroup(root *cobra.Command, groups map[string]*cobra.Command, f
 		parent = group
 	}
 
-	return parent
+	return parent, nil
+}
+
+func addCommandChild(parent *cobra.Command, child *cobra.Command, folder string) error {
+	if parent == nil || child == nil {
+		return nil
+	}
+	if existing := findCommandChild(parent, child.Name()); existing != nil {
+		return fmt.Errorf("%w: command %q collides with existing command %q under %q", minitracecmd.ErrCommandTreeCollision, child.CommandPath(), existing.CommandPath(), folder)
+	}
+	parent.AddCommand(child)
+	return nil
+}
+
+func findCommandChild(parent *cobra.Command, use string) *cobra.Command {
+	if parent == nil {
+		return nil
+	}
+	for _, existing := range parent.Commands() {
+		if existing == nil {
+			continue
+		}
+		if strings.TrimSpace(existing.Name()) == strings.TrimSpace(use) {
+			return existing
+		}
+	}
+	return nil
 }

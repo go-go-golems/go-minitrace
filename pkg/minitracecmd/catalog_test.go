@@ -109,6 +109,59 @@ aliasFor: does-not-exist
 	}
 }
 
+func TestLoadCatalog_PreservesDistinctRootsWhenNamesCollide(t *testing.T) {
+	catalog, err := LoadCatalog([]SourceRoot{
+		{
+			Name: "embedded",
+			FS: fstest.MapFS{
+				"queries/overview/session-tools.js": &fstest.MapFile{Data: []byte(`
+function sessionList() {
+  const mt = require("minitrace");
+  return mt.query(` + "`" + `SELECT 1 AS answer FROM ${mt.tableName}` + "`" + `);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions"
+});
+`)},
+			},
+			RootDir:  "queries",
+			Readonly: true,
+		},
+		{
+			Name: "embedded",
+			FS: fstest.MapFS{
+				"queries/overview/framework-summary.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+name: framework-summary
+short: Summarize frameworks
+*/
+SELECT 1;
+`)},
+			},
+			RootDir:  "queries",
+			Readonly: true,
+		},
+	})
+	if err != nil {
+		t.Fatalf("LoadCatalog returned error: %v", err)
+	}
+
+	if len(catalog.SourceRoots) != 2 {
+		t.Fatalf("len(SourceRoots) = %d, want 2", len(catalog.SourceRoots))
+	}
+	command := catalog.ByPath["overview/session-tools/session-list"]
+	if command == nil {
+		t.Fatalf("missing js command for duplicate-root-name test")
+	}
+	if command.SourceRoot != "embedded" {
+		t.Fatalf("SourceRoot = %q, want first duplicate root to keep base name", command.SourceRoot)
+	}
+	if _, ok := catalog.SourceRoots["embedded#2"]; !ok {
+		t.Fatalf("expected second duplicate root key embedded#2 in %#v", catalog.SourceRoots)
+	}
+}
+
 func TestLoadCatalog_DerivesFolderAndPath(t *testing.T) {
 	catalog, err := LoadCatalog([]SourceRoot{{
 		Name: "embedded",

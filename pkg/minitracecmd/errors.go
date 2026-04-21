@@ -22,6 +22,7 @@ var (
 	ErrAliasTargetNotFound     = errors.New("minitrace alias target not found")
 	ErrCannotRenderAlias       = errors.New("minitrace alias command cannot be rendered directly")
 	ErrInvalidTableName        = errors.New("invalid minitrace render table name")
+	ErrCommandTreeCollision    = errors.New("minitrace query command tree collision")
 
 	ErrMissingPreamble       = errors.New("missing sqleton sql preamble")
 	ErrUnterminatedPreamble  = errors.New("unterminated sqleton sql preamble")

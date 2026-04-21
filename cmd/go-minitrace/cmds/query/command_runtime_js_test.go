@@ -147,6 +147,84 @@ flags:
 	}
 }
 
+func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorSupportsDuplicateSourceRootNames(t *testing.T) {
+	catalog, err := minitracecmd.LoadCatalog([]minitracecmd.SourceRoot{
+		{
+			Name: "embedded",
+			FS: fstest.MapFS{
+				"queries/overview/session-tools.js": &fstest.MapFile{Data: []byte(`
+__section__("filters", {
+  fields: {
+    limit: { type: "int", default: 10 }
+  }
+});
+
+function sessionList(filters) {
+  const mt = require("minitrace");
+  return mt.query(` + "`" + `
+    SELECT id
+    FROM ${mt.tableName}
+    LIMIT ${filters.limit}
+  ` + "`" + `);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List sessions",
+  fields: {
+    filters: { bind: "filters" }
+  }
+});
+`)},
+			},
+			RootDir:  "queries",
+			Readonly: true,
+		},
+		{
+			Name: "embedded",
+			FS: fstest.MapFS{
+				"queries/overview/framework-summary.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+name: framework-summary
+short: Summarize frameworks
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`)},
+			},
+			RootDir:  "queries",
+			Readonly: true,
+		},
+	})
+	if err != nil {
+		t.Fatalf("LoadCatalog returned error: %v", err)
+	}
+
+	command := catalog.ByPath["overview/session-tools/session-list"]
+	if command == nil {
+		t.Fatalf("catalog missing overview/session-tools/session-list command")
+	}
+	glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+	if err != nil {
+		t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+	}
+
+	archiveGlob := writeFixtureArchive(t)
+	parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+		QueryRuntimeSectionSlug: {
+			"archive-glob": []string{archiveGlob},
+		},
+	}))
+	if err != nil {
+		t.Fatalf("ParseCommandValues returned error: %v", err)
+	}
+
+	gp := &captureProcessor{}
+	if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+		t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+	}
+	if len(gp.rows) != 1 {
+		t.Fatalf("len(rows) = %d, want 1", len(gp.rows))
+	}
+}
+
 func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorReturnsThrownJSError(t *testing.T) {
 	catalog := mustJSCatalog(t, `
 function sessionList() {
