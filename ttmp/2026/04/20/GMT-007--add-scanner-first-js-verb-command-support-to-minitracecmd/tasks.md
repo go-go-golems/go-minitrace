@@ -53,3 +53,13 @@
 - [x] Perform CLI smoke runs for mixed SQL/JS command repos and capture example commands in docs or diary
 - [x] Re-run `docmgr doctor --ticket GMT-007 --stale-after 30` after implementation docs are updated
 
+### 4) API-side default hydration parity for direct query-command execution
+
+- [x] Confirm the serve/API path bypasses Glazed default hydration for direct command execution and capture the failing behavior in tests
+- [x] Route resolved API command values through Glazed parsing/default middleware before SQL render or JS execution
+- [x] Preserve alias-default merging first, then hydrate target-command defaults from the resolved command schema
+- [x] Add serve tests for SQL render-only default hydration so missing request fields do not render as `<no value>`
+- [x] Add serve tests for direct SQL command execution with omitted defaults
+- [x] Add serve tests for direct JS command execution with omitted defaults
+- [x] Re-run focused serve tests plus full `go test ./...` and ticket doc validation after the parity fix
+

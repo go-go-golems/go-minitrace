@@ -941,6 +941,31 @@ func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
 	}
 }
 
+func TestHandleExecuteQueryCommandV2RenderOnlyHydratesSQLDefaults(t *testing.T) {
+	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase")})
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"renderOnly":true}`))
+	request.SetPathValue("path", "overview/framework-summary.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command render-only defaults: %v", err)
+	}
+	if strings.Contains(payload.GetRenderedSql(), "<no value>") {
+		t.Fatalf("rendered_sql still contains missing placeholder: %q", payload.GetRenderedSql())
+	}
+	if !strings.Contains(payload.GetRenderedSql(), "LIMIT 10") {
+		t.Fatalf("rendered_sql missing hydrated default limit: %q", payload.GetRenderedSql())
+	}
+}
+
 func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing.T) {
 	archiveRoot := t.TempDir()
 	session := buildFixtureSession(t, "phase5-query-command")
@@ -1099,7 +1124,7 @@ func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseSQL(t *testing
 		fixtureSessionForQueryRepository(t, "phase6-mixed-sql", "/tmp/workspaces/mixed/project"),
 	)
 
-	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"values":{"limit":5}}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{}`))
 	request.SetPathValue("path", "overview/framework-summary.sql/execute")
 	response := httptest.NewRecorder()
 
@@ -1118,6 +1143,31 @@ func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseSQL(t *testing
 	}
 	if got := payload.GetRows()[0].GetFields()["framework"].GetStringValue(); got != "codex" {
 		t.Fatalf("expected framework codex, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseJSWithDefaults(t *testing.T) {
+	server := newLoadedQueryCommandServer(t, checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-js-default-a", "/tmp/workspaces/mixed/a"),
+		fixtureSessionForQueryRepository(t, "phase6-mixed-js-default-b", "/tmp/workspaces/mixed/b"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/session-tools/session-list/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "overview/session-tools/session-list/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute checked-in mixed js defaults response: %v", err)
+	}
+	if payload.GetRowCount() != 2 {
+		t.Fatalf("expected row_count=2, got %d", payload.GetRowCount())
 	}
 }
 

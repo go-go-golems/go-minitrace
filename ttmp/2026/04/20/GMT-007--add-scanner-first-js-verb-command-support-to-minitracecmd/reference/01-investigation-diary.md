@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-21T15:48:00-04:00
+LastUpdated: 2026-04-21T16:06:00-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -1096,3 +1096,55 @@ The first draft of the new serve tests surfaced two quirks that were worth docum
 
 ### Why this matters
 Before this step, we had strong CLI/runtime coverage and checked-in example repositories, but a new reader still had to infer which repository to copy from, and the serve/API tests were mostly proving the handler contract against embedded or inline examples. After this step, there is a clearer human entry point plus explicit API regression coverage for the checked-in showcase repos themselves.
+
+## Step 14: Normalize API-Side Default Hydration for Direct Query-Command Execution
+
+After I suggested a follow-up to normalize API behavior with CLI behavior, the user explicitly asked me to add tasks for that work and then implement it. The concrete issue was that `/api/v2/query-commands/.../execute` resolved aliases but then rendered/executed from a flat request-value map, which bypassed the normal Glazed default middleware used by CLI command parsing. In practice, that meant direct API execution could require explicit values like `limit` even when the command schema already declared a default.
+
+### What I changed
+- Added an explicit task block to `tasks.md` for API-side default hydration parity.
+- Updated:
+  - `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+- The serve handler now:
+  1. decodes request values,
+  2. resolves aliases first,
+  3. builds a Glazed command description for the resolved target command,
+  4. runs the resolved values through Glazed parsing/default middleware,
+  5. collects hydrated command values back out,
+  6. renders SQL or executes JS using the hydrated value set.
+
+### Why the order matters
+Alias defaults still need to win before target-command defaults are filled in. So the correct order is:
+
+1. request values
+2. alias default merge
+3. target schema default hydration
+4. render / execute
+
+That way:
+- alias-provided values remain effective,
+- explicit caller overrides still win,
+- and any still-missing fields get their command-schema defaults.
+
+### New tests added/updated
+- SQL render-only default hydration:
+  - verifies render-only execution of the checked-in mixed showcase SQL command no longer yields `<no value>` and instead renders `LIMIT 10`
+- Direct SQL execution with omitted defaults:
+  - verifies the checked-in mixed showcase SQL command executes successfully with `{}` as the request body
+- Direct JS execution with omitted defaults:
+  - verifies the checked-in mixed showcase JS `session-list` verb executes successfully with `{}` and uses its default `limit`
+
+### What worked
+- Focused serve tests passed after the implementation.
+- Full `go test ./...` passed.
+- `docmgr doctor --ticket GMT-007 --stale-after 30` passed.
+- The serve path now behaves much more like the CLI path for missing command values.
+
+### What was tricky
+The first draft of the new render-only test accidentally targeted the embedded `overview/framework-summary.sql`, which does not actually define a `limit` default. That made the failure look like the hydration code was still wrong when the test itself was simply using the wrong command. I corrected the test to target the checked-in `mixed-sql-js-showcase` SQL command, which really does declare `limit: 10`.
+
+### Review instructions
+- Start in `cmd/go-minitrace/cmds/serve/handlers_query_commands_v2.go`
+- Then inspect the new/updated tests in `cmd/go-minitrace/cmds/serve/server_test.go`
+- Finally confirm the follow-up task block in `tasks.md` and the changelog entry

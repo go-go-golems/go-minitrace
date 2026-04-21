@@ -10,6 +10,7 @@ import (
 	"time"
 
 	fields "github.com/go-go-golems/glazed/pkg/cmds/fields"
+	"github.com/go-go-golems/glazed/pkg/cmds/runner"
 	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	glazedvalues "github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/types"
@@ -71,6 +72,11 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 		writeError(w, status, err.Error())
 		return
 	}
+	parsedValues, hydratedValues, err := hydrateExecuteQueryCommandValues(catalog, resolvedCommand, resolvedValues)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	payload := &apiv1.ExecuteQueryCommandResponse{
 		Meta:       &apiv1.ApiMeta{SchemaVersion: apiSchemaVersion},
@@ -83,7 +89,7 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 	if resolvedCommand.Runtime == minitracecmd.CommandRuntimeSQL || resolvedCommand.Runtime == minitracecmd.CommandRuntimeUnknown {
 		sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
 			TableName: s.tableName,
-			Values:    resolvedValues,
+			Values:    hydratedValues,
 		})
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -146,8 +152,7 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 		TableName:     s.tableName,
 		PersistLoaded: false,
 	}
-	parsedValues := requestValuesToParsedValues(req.GetValues(), resolvedCommand.Schema)
-	if err := querycmd.RunJSCommandIntoProcessor(r.Context(), catalog, resolvedCommand, runtimeSettings, parsedValues, resolvedValues, s.conn, collector); err != nil {
+	if err := querycmd.RunJSCommandIntoProcessor(r.Context(), catalog, resolvedCommand, runtimeSettings, parsedValues, hydratedValues, s.conn, collector); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -276,13 +281,27 @@ func requestValuesToMap(values map[string]*structpb.Value) map[string]any {
 	return ret
 }
 
-func requestValuesToParsedValues(values map[string]*structpb.Value, commandSchema *schema.Schema) *glazedvalues.Values {
-	ret := glazedvalues.New()
-	if commandSchema == nil {
-		return ret
+func hydrateExecuteQueryCommandValues(catalog *minitracecmd.Catalog, command *minitracecmd.MinitraceCommand, values map[string]any) (*glazedvalues.Values, map[string]any, error) {
+	glazeCommand, err := querycmd.NewMinitraceCatalogGlazeCommand(command, catalog)
+	if err != nil {
+		return nil, nil, err
 	}
-	sectionsByField := map[string]schema.Section{}
-	commandSchema.ForEach(func(_ string, section schema.Section) {
+
+	parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(commandValuesToSectionMap(values, glazeCommand.Description().Schema)))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return parsedValues, collectParsedCommandValues(parsedValues, command), nil
+}
+
+func commandValuesToSectionMap(values map[string]any, commandSchema *schema.Schema) map[string]map[string]any {
+	if len(values) == 0 || commandSchema == nil {
+		return nil
+	}
+
+	sectionsByField := map[string]string{}
+	commandSchema.ForEach(func(slug string, section schema.Section) {
 		if section == nil {
 			return
 		}
@@ -293,25 +312,70 @@ func requestValuesToParsedValues(values map[string]*structpb.Value, commandSchem
 			if _, ok := sectionsByField[def.Name]; ok {
 				return
 			}
-			sectionsByField[def.Name] = section
+			sectionsByField[def.Name] = slug
 		})
 	})
+
+	ret := map[string]map[string]any{}
 	for key, value := range values {
-		section, ok := sectionsByField[key]
-		if !ok || section == nil || value == nil {
+		slug, ok := sectionsByField[key]
+		if !ok {
 			continue
 		}
-		definition, ok := section.GetDefinitions().Get(key)
-		if !ok || definition == nil {
-			continue
+		if _, ok := ret[slug]; !ok {
+			ret[slug] = map[string]any{}
 		}
-		sectionValues := ret.GetOrCreate(section)
-		fieldValue := &fields.FieldValue{Definition: definition.Clone()}
-		if err := fieldValue.Update(value.AsInterface()); err != nil {
-			continue
-		}
-		sectionValues.Fields.Set(key, fieldValue)
+		ret[slug][key] = value
 	}
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
+}
+
+func collectParsedCommandValues(vals *glazedvalues.Values, command *minitracecmd.MinitraceCommand) map[string]any {
+	ret := map[string]any{}
+	if vals == nil || command == nil {
+		return ret
+	}
+
+	allowedFields := map[string]struct{}{}
+	if command.Schema != nil {
+		command.Schema.ForEach(func(_ string, section schema.Section) {
+			if section == nil {
+				return
+			}
+			section.GetDefinitions().ForEach(func(def *fields.Definition) {
+				if def == nil {
+					return
+				}
+				allowedFields[def.Name] = struct{}{}
+			})
+		})
+	} else {
+		for _, def := range append(append([]*fields.Definition{}, command.Flags...), command.Arguments...) {
+			if def == nil {
+				continue
+			}
+			allowedFields[def.Name] = struct{}{}
+		}
+	}
+
+	vals.ForEach(func(_ string, sectionValues *glazedvalues.SectionValues) {
+		if sectionValues == nil {
+			return
+		}
+		sectionValues.Fields.ForEach(func(_ string, fieldValue *fields.FieldValue) {
+			if fieldValue == nil || fieldValue.Definition == nil {
+				return
+			}
+			if _, ok := allowedFields[fieldValue.Definition.Name]; !ok {
+				return
+			}
+			ret[fieldValue.Definition.Name] = fieldValue.Value
+		})
+	})
+
 	return ret
 }
 
