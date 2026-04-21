@@ -382,6 +382,19 @@ Important rules for JS command files:
 - helper modules can still be loaded with relative `require()` calls,
 - and text-output JS commands are currently deferred in `go-minitrace query commands`.
 
+For more realistic examples, see the checked-in showcase repository under:
+
+- `testdata/query-repositories/js-showcase/`
+
+That testdata demonstrates:
+
+- multi-verb files,
+- relative helper modules,
+- pure synthetic row generation with no DB query,
+- async commands using `require("timer")`,
+- `queryOne(...)` plus JS-side reshaping,
+- and query results post-processed in JavaScript before emission.
+
 ## Writing alias files
 
 Alias files let you publish a shortcut command that points at another command and supplies default values.

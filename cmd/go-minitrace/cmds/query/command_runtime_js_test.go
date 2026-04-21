@@ -2,7 +2,10 @@ package query
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -303,6 +306,123 @@ __verb__("sessionList", {
 	}
 }
 
+func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesJSShowcaseTestdata(t *testing.T) {
+	catalog := mustJSShowcaseCatalog(t)
+	archiveGlob := writeFixtureArchive(t)
+
+	t.Run("framework share uses helper module post-processing", func(t *testing.T) {
+		command := catalog.ByPath["overview/session-tools/framework-share"]
+		if command == nil {
+			t.Fatalf("catalog missing framework-share command")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			"filters": {
+				"limit": 5,
+			},
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) != 1 {
+			t.Fatalf("len(rows) = %d, want 1", len(gp.rows))
+		}
+		row := rowToMap(gp.rows[0])
+		if row["framework"] != "codex" {
+			t.Fatalf("framework = %#v, want codex", row["framework"])
+		}
+		if fmt.Sprint(row["share_percent"]) != "100" {
+			t.Fatalf("share_percent = %#v, want 100", row["share_percent"])
+		}
+	})
+
+	t.Run("runtime playground can emit synthetic rows without querying", func(t *testing.T) {
+		command := catalog.ByPath["overview/runtime-playground/build-synthetic-rows"]
+		if command == nil {
+			t.Fatalf("catalog missing build-synthetic-rows command")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			"options": {
+				"prefix": "ticket",
+				"tags":   []string{"review", "urgent"},
+			},
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) != 2 {
+			t.Fatalf("len(rows) = %d, want 2", len(gp.rows))
+		}
+		first := rowToMap(gp.rows[0])
+		if first["slug"] != "ticket-review" {
+			t.Fatalf("first slug = %#v, want ticket-review", first["slug"])
+		}
+	})
+
+	t.Run("async tools can await and queryOne", func(t *testing.T) {
+		command := catalog.ByPath["overview/async-tools/delayed-summary"]
+		if command == nil {
+			t.Fatalf("catalog missing delayed-summary command")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			"filters": {
+				"limit": 3,
+			},
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) != 1 {
+			t.Fatalf("len(rows) = %d, want 1", len(gp.rows))
+		}
+		row := rowToMap(gp.rows[0])
+		if row["first_id"] != "fixture-session" {
+			t.Fatalf("first_id = %#v, want fixture-session", row["first_id"])
+		}
+		if row["delayed"] != true {
+			t.Fatalf("delayed = %#v, want true", row["delayed"])
+		}
+	})
+}
+
 func mustJSCatalog(t *testing.T, source string) *minitracecmd.Catalog {
 	t.Helper()
 	catalog, err := minitracecmd.LoadCatalog([]minitracecmd.SourceRoot{{
@@ -317,6 +437,29 @@ func mustJSCatalog(t *testing.T, source string) *minitracecmd.Catalog {
 		t.Fatalf("LoadCatalog returned error: %v", err)
 	}
 	return catalog
+}
+
+func mustJSShowcaseCatalog(t *testing.T) *minitracecmd.Catalog {
+	t.Helper()
+	catalog, err := minitracecmd.LoadCatalog([]minitracecmd.SourceRoot{{
+		Name:     "showcase",
+		FS:       os.DirFS(jsShowcaseRepoRoot(t)),
+		RootDir:  ".",
+		Readonly: true,
+	}})
+	if err != nil {
+		t.Fatalf("LoadCatalog returned error: %v", err)
+	}
+	return catalog
+}
+
+func jsShowcaseRepoRoot(t *testing.T) string {
+	t.Helper()
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "testdata", "query-repositories", "js-showcase"))
 }
 
 func writeFixtureArchive(t *testing.T) string {

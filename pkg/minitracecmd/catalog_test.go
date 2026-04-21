@@ -2,6 +2,9 @@ package minitracecmd
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"testing/fstest"
 )
@@ -137,4 +140,44 @@ SELECT * FROM sessions_base
 	if cmd.SourcePath != "queries/core/session-list.sql" {
 		t.Fatalf("SourcePath = %q, want queries/core/session-list.sql", cmd.SourcePath)
 	}
+}
+
+func TestLoadCatalog_LoadsJSShowcaseTestdata(t *testing.T) {
+	root := jsShowcaseTestdataRoot(t)
+	catalog, err := LoadCatalog([]SourceRoot{{
+		Name:     "showcase",
+		FS:       os.DirFS(root),
+		RootDir:  ".",
+		Readonly: true,
+	}})
+	if err != nil {
+		t.Fatalf("LoadCatalog returned error: %v", err)
+	}
+
+	wantPaths := []string{
+		"overview/session-tools/session-list",
+		"overview/session-tools/framework-share",
+		"overview/runtime-playground/show-context",
+		"overview/runtime-playground/build-synthetic-rows",
+		"overview/async-tools/delayed-summary",
+		"overview/async-tools/top-session-cards",
+	}
+	for _, path := range wantPaths {
+		if catalog.ByPath[path] == nil {
+			t.Fatalf("catalog missing JS showcase command path %q", path)
+		}
+	}
+
+	if catalog.ByPath["overview/lib/transforms"] != nil {
+		t.Fatalf("helper module unexpectedly registered as command")
+	}
+}
+
+func jsShowcaseTestdataRoot(t *testing.T) string {
+	t.Helper()
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "testdata", "query-repositories", "js-showcase"))
 }

@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-20T23:04:50-04:00
+LastUpdated: 2026-04-21T14:32:00-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -753,3 +753,111 @@ This was a clean follow-up because the catalog already models commands in terms 
   - `go run ./cmd/go-minitrace query commands --query-repository "$tmp_repo" overview --help`
   - `go run ./cmd/go-minitrace query commands --query-repository "$tmp_repo" overview session-tools --help`
   - `go run ./cmd/go-minitrace query commands --query-repository "$tmp_repo" overview session-tools session-list --archive-glob "$archive_root/*.minitrace.json" --limit 1 --output json`
+
+## Step 10: Add a Real JS Showcase Repository Under testdata
+
+After the core JS support landed, the remaining weakness was discoverability. We had working code, focused tests, and a doc example, but most of the concrete JS examples still lived inside inline test strings. The user explicitly asked for a proper set of testdata that showcases what JS commands can do beyond simply wrapping a single database query, so I converted that request into a checked-in example repository under `testdata/query-repositories/js-showcase/`.
+
+The goal of this showcase is not to be a production catalog. It is to give future work and future users a reusable reference set that demonstrates the most important non-trivial JS capabilities in one place:
+
+- multiple verbs per file,
+- relative helper modules,
+- pure synthetic row generation with no query in the handler,
+- asynchronous commands using `require("timer")`,
+- `queryOne(...)` plus JS-side reshaping,
+- and query results that are further processed in JS before being emitted.
+
+This step also uncovered one subtle runtime behavior from `go-go-goja/pkg/jsverbs`: public top-level helper functions are auto-registered as verbs unless they are hidden. My first showcase layout used plainly named helper functions like `frameworkFilterSql` and `addSharePercent`, and the smoke run showed those helpers surfacing as CLI commands. That was not a bug in `go-minitrace`; it was an interaction with the underlying scanner’s `IncludePublicFunctions` behavior. I fixed it by renaming internal helper functions to `_...`, while still exporting the intended helper API through `exports.*` for relative `require()` use.
+
+### Prompt Context
+
+**User prompt (verbatim):** "yes, make a set of testdata that showcases the possibilities with JS instead of just wrapping db queries."
+
+**Assistant interpretation:** Add a reusable checked-in example repository that demonstrates richer JS command patterns and make sure it is covered by tests and at least one real CLI smoke run.
+
+**Inferred user intent:** Move beyond toy inline snippets and leave behind a durable example set that explains what JS-backed commands are actually good for.
+
+### What I did
+- Added a checked-in showcase repository:
+  - `testdata/query-repositories/js-showcase/`
+- Added files:
+  - `README.md`
+  - `overview/session-tools.js`
+  - `overview/runtime-playground.js`
+  - `overview/async-tools.js`
+  - `overview/lib/transforms.js`
+- The showcase covers:
+  - multi-verb files
+  - relative helper modules
+  - pure synthetic row generation
+  - async commands via `timer.sleep(...)`
+  - `queryOne(...)`
+  - JS-side post-processing after a query
+- Added catalog coverage in:
+  - `pkg/minitracecmd/catalog_test.go`
+- Added execution coverage in:
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+- Updated docs in:
+  - `pkg/doc/structured-query-commands.md`
+- Ran focused tests:
+  - `go test ./pkg/minitracecmd ./cmd/go-minitrace/cmds/query -count=1`
+- Performed a real CLI smoke run against the checked-in showcase repo.
+
+### Why
+- Inline test strings prove implementation details, but they are a poor long-term reference for authors trying to understand what JS commands can look like.
+- A checked-in repo gives us one place to point docs, smoke runs, and future contributors.
+- The examples specifically needed to demonstrate patterns where JS adds value beyond SQL templating.
+
+### What worked
+- The showcase commands loaded and executed successfully after I hid internal helper functions.
+- The real smoke run verified three distinct categories of behavior:
+  - query + JS post-processing (`framework-share`)
+  - pure JS synthetic output (`build-synthetic-rows`)
+  - async + `queryOne(...)` summary generation (`delayed-summary`)
+- The overview help output now cleanly lists only the intended groups:
+  - `async-tools`
+  - `runtime-playground`
+  - `session-tools`
+
+### What didn't work
+- My first showcase version accidentally exposed helper-only functions as CLI commands.
+- The smoke output showed unwanted groups and commands such as:
+  - `overview/lib/transforms/add-share-percent`
+  - `overview/session-tools/framework-filter-sql`
+- I traced that to `jsverbs` auto-registering public top-level functions, then fixed it by renaming helper functions to `_...`.
+
+### What I learned
+- The showcase examples need to follow the same public/private naming discipline users will need in real repositories.
+- A checked-in example repository is much better than scattered inline fixtures for communicating intended authoring patterns.
+
+### What was tricky to build
+- The subtle part was not writing the example commands themselves; it was remembering that helper modules are still scanned as JS sources. That means “private helper function” naming matters even in files that are meant only for `require()`.
+
+### What warrants a second pair of eyes
+- Whether we want to later add a second showcase repo specifically for cross-file package composition or `.cjs` compatibility.
+
+### What should be done in the future
+- Consider adding one more showcase repo focused on aliases targeting JS commands and mixed SQL/JS authoring in the same repository.
+- If text-output JS commands are later implemented, extend the showcase with a writer-mode example.
+
+### Code review instructions
+- Start with the checked-in showcase files under:
+  - `testdata/query-repositories/js-showcase/`
+- Then review the tests:
+  - `pkg/minitracecmd/catalog_test.go`
+  - `cmd/go-minitrace/cmds/query/command_runtime_js_test.go`
+- Finally review the short doc pointer in:
+  - `pkg/doc/structured-query-commands.md`
+
+### Technical details
+- Focused validation command:
+  - `go test ./pkg/minitracecmd ./cmd/go-minitrace/cmds/query -count=1`
+- Real CLI smoke commands included:
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase overview --help`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase overview session-tools framework-share --archive-glob "$archive_root/*.minitrace.json" --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase overview runtime-playground build-synthetic-rows --archive-glob "$archive_root/*.minitrace.json" --prefix demo --tags alpha,beta --output json`
+  - `go run ./cmd/go-minitrace query commands --query-repository ./testdata/query-repositories/js-showcase overview async-tools delayed-summary --archive-glob "$archive_root/*.minitrace.json" --output json`
+- Representative smoke outputs included:
+  - `framework-share` -> `{ "framework": "codex", "count": 1, "rank": 1, "share_percent": 100 }`
+  - `build-synthetic-rows` -> rows with slugs `demo-alpha` and `demo-beta`
+  - `delayed-summary` -> `{ "delayed": true, "first_id": "smoke-session", "session_count": 1 }`

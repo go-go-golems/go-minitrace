@@ -14,4 +14,5 @@
 - Step 3 validation and docs work added mixed SQL/JS help coverage, JS command documentation, focused `go-go-goja` regression coverage, successful CLI smoke runs for both JS-backed and SQL-backed commands from the same repository, and a final clean `docmgr doctor` pass after the implementation docs were updated
 - Uploaded a refreshed final reMarkable bundle named `GMT-007 scanner-first JS verb commands complete` and verified it under `/ai/2026/04/20/GMT-007/`
 - Adjusted JS command registration so each JS file becomes a command group and each scanned verb becomes a leaf command, updating parser behavior, CLI/serve tests, and user docs to prefer paths like `overview session-tools session-list`
+- Added a checked-in `testdata/query-repositories/js-showcase/` repository with realistic JS examples covering helper modules, multi-verb files, synthetic row generation, async commands, `queryOne`, and JS-side post-processing, plus tests and smoke validation proving the showcase runs end-to-end
 
