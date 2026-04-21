@@ -41,15 +41,15 @@
 ### 3) Tests, docs, and smoke validation for mixed SQL/JS command repositories
 
 - [x] Add parser/scanner tests for valid JS command files and invalid static metadata
-- [ ] Add command-group/help tests showing JS commands appear under `query commands`
+- [x] Add command-group/help tests showing JS commands appear under `query commands`
 - [x] Add alias tests proving YAML aliases can target JS-backed commands
-- [ ] Add integration tests for a repository containing both SQL and JS command files
+- [x] Add integration tests for a repository containing both SQL and JS command files
 - [x] Add end-to-end execution tests using a loaded archive fixture and a JS-backed command
-- [ ] Update `pkg/doc/structured-query-commands.md` to document `.js` / `.cjs` scanner-first command files
-- [ ] Update any command reference/help pages that describe supported repository source types
-- [ ] Add at least one worked JS command example to repo docs or testdata
+- [x] Update `pkg/doc/structured-query-commands.md` to document `.js` / `.cjs` scanner-first command files
+- [x] Update any command reference/help pages that describe supported repository source types
+- [x] Add at least one worked JS command example to repo docs or testdata
 - [x] Run `go test ./...` in `go-minitrace`
-- [ ] Run focused `go test ./...` coverage in `go-go-goja` for any touched JS runtime/scanner integration code
-- [ ] Perform CLI smoke runs for mixed SQL/JS command repos and capture example commands in docs or diary
-- [ ] Re-run `docmgr doctor --ticket GMT-007 --stale-after 30` after implementation docs are updated
+- [x] Run focused `go test ./...` coverage in `go-go-goja` for any touched JS runtime/scanner integration code
+- [x] Perform CLI smoke runs for mixed SQL/JS command repos and capture example commands in docs or diary
+- [x] Re-run `docmgr doctor --ticket GMT-007 --stale-after 30` after implementation docs are updated
 

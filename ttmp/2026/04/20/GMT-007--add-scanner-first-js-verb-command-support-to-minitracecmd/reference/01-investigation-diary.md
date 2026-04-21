@@ -528,3 +528,88 @@ This slice ended up landing in two commits rather than one. The first commit int
   - `6d935a5`
   - `e9db41e`
 - The explicit text-mode policy in this slice is: defer it and return a runtime error rather than silently coercing it into row output.
+
+## Step 7: Finish the Remaining Tests, Docs, and Smoke Validation
+
+With the catalog and runtime slices both committed, the last remaining work was to close the loop around usability and regression confidence. I added a command-help test that proves JS commands appear alongside SQL commands under `query commands`, updated the structured command documentation with a scanner-first JS section and worked example, ran focused `go-go-goja` regression tests even though that repo was not modified directly, and performed a manual mixed-repository smoke run so the diary contains actual CLI evidence rather than just unit-test evidence.
+
+This step also produced one small but instructive failure. My first command-help test used a JS command named `session-list` under `overview/`, which correctly collided with the embedded SQL command of the same logical path. The failure was not a bug in the feature; it was proof that the duplicate-command-path protection added in Step 1 was working. I fixed the test by renaming the JS command to `js-session-list` and reran the test and smoke flow successfully.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 5)
+
+**Assistant interpretation:** Finish the remaining validation, docs, and smoke work so the implementation ticket is complete and reviewable.
+
+**Inferred user intent:** Ship not just code, but the supporting tests, docs, and evidence that the mixed SQL/JS workflow really works.
+
+### What I did
+- Added a command-help/group test in `cmd/go-minitrace/cmds/query/commands_test.go` proving a configured repo can expose both SQL and JS commands under the same folder group.
+- Updated `pkg/doc/structured-query-commands.md` to document:
+  - `.js` / `.cjs` scanner-first command files
+  - the static metadata model
+  - a worked JS command example
+  - the current text-mode deferral behavior
+- Ran focused query/serve tests and full `go test ./...` in `go-minitrace`.
+- Ran focused regression coverage in `go-go-goja`:
+  - `go test ./pkg/jsverbs/... ./engine/... ./modules/...`
+- Performed a manual CLI smoke run against a temporary repository containing:
+  - one SQL command (`framework-summary.sql`)
+  - one JS command (`js-session-list.js`)
+- Captured successful help output plus successful execution output for both commands.
+
+### Why
+- The feature is not really done until a user can discover the JS command in help, run it from the CLI next to SQL commands, and find up-to-date authoring guidance in the docs.
+- Focused `go-go-goja` tests help confirm that the upstream scanner/runtime assumptions the integration relies on remain green.
+
+### What worked
+- The final validation commands succeeded:
+  - `go test ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+  - `go test ./...`
+  - `cd ../go-go-goja && go test ./pkg/jsverbs/... ./engine/... ./modules/...`
+  - `docmgr doctor --ticket GMT-007 --stale-after 30`
+- The manual smoke run showed:
+  - `overview --help` listing both `framework-summary` and `js-session-list`
+  - the JS command returning JSON rows with `smoke-session`
+  - the SQL command returning a grouped `framework = codex, count = 1` row
+
+### What didn't work
+- I first tried to include the markdown doc in a `gofmt` command, which failed as expected because `.md` files are not Go source files:
+  - `pkg/doc/structured-query-commands.md:1:1: expected 'package', found '--'`
+- I also wrote the first command-help test with a JS command named `session-list`, which collided with the embedded SQL command path and caused this expected catalog-load failure:
+  - `load catalog root "embedded": overview/session-list already defined by overview/session-list.js: duplicate minitrace command path`
+- I corrected the test and smoke command by renaming the JS command to `js-session-list`.
+
+### What I learned
+- The duplicate logical-command-path guard is doing useful work and should stay; the first failed test demonstrated a real footgun rather than a false positive.
+- The mixed SQL/JS command story is now understandable from three angles at once: code tests, docs, and real CLI output.
+
+### What was tricky to build
+- The final step was mostly straightforward, but it had one subtlety: once duplicate-path checks exist, example commands and tests must be chosen carefully so they do not accidentally collide with embedded commands. That is not a test annoyance; it is a real authoring constraint users will face too.
+
+### What warrants a second pair of eyes
+- Whether additional docs beyond `structured-query-commands.md` should explicitly mention the temporary `source.js:command-name` path style used by JS commands today.
+- Whether the worked JS example should also be copied into a more visible README or help page after the implementation is merged.
+
+### What should be done in the future
+- Consider normalizing external route-path semantics for JS commands if the current `file.js:command-name` style turns out to be awkward in the UI.
+- If text-mode JS commands become important, add a writer-mode runtime branch and corresponding docs/tests.
+
+### Code review instructions
+- Review the mixed SQL/JS help test in `cmd/go-minitrace/cmds/query/commands_test.go`.
+- Review the doc update in `pkg/doc/structured-query-commands.md`.
+- Re-run the smoke flow using a temporary repo with distinct SQL and JS command names under the same folder.
+
+### Technical details
+- Focused go-minitrace validation commands:
+  - `go test ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+  - `go test ./...`
+  - `docmgr doctor --ticket GMT-007 --stale-after 30`
+- Focused go-go-goja regression command:
+  - `cd /home/manuel/workspaces/2026-04-20/minitrace-js/go-go-goja && go test ./pkg/jsverbs/... ./engine/... ./modules/...`
+- Successful manual smoke output included:
+  - help listing with `framework-summary` and `js-session-list`
+  - JS command output:
+    - `{ "id": "smoke-session", "title": "Smoke Session" }`
+  - SQL command output:
+    - `{ "framework": "codex", "count": 1 }`

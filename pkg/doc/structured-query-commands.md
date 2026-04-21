@@ -23,9 +23,9 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-Structured query commands add a metadata layer on top of raw SQL. Instead of remembering a long `--sql` string or maintaining ad hoc `.sql` files with no parameter schema, you define a sqleton-style command file with a YAML preamble, let go-minitrace turn its flags into real CLI parameters and web-form fields, and then render read-only SQL against the loaded DuckDB table.
+Structured query commands add a metadata layer on top of raw SQL and JavaScript-backed analysis scripts. Instead of remembering a long `--sql` string or maintaining ad hoc files with no parameter schema, you define a scanner-first command source, let go-minitrace turn its fields into real CLI parameters and web-form fields, and then either render read-only SQL or invoke a JS handler against the loaded DuckDB table.
 
-This matters when a query becomes part of your team's repeatable analysis workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
+This matters when a query or analysis script becomes part of your team's repeatable workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
 
 ## What gets loaded
 
@@ -174,7 +174,7 @@ queryRepositories:
 
 ## Repository layout
 
-A repository is just a directory tree containing sqleton-style command SQL files and optional alias YAML files.
+A repository is just a directory tree containing scanner-first command files and optional alias YAML files.
 
 A small example looks like this:
 
@@ -182,6 +182,7 @@ A small example looks like this:
 query-commands/
 ├── overview/
 │   ├── session-list.sql
+│   ├── session-list.js
 │   ├── framework-summary.sql
 │   └── aliases/
 │       └── codex-framework-summary.alias.yaml
@@ -190,6 +191,12 @@ query-commands/
 └── tools/
     └── tool-failures.sql
 ```
+
+Those folders become nested CLI groups. The source file extension decides how the command is executed:
+
+- `.sql` -> sqleton-style SQL preamble + SQL template body
+- `.js` / `.cjs` -> scanner-first JS metadata (`__verb__`, `__section__`, `__package__`) + JS handler body
+- `.alias.yaml` / `.alias.yml` -> alias definition that targets a previously loaded command by name
 
 Those folders become nested CLI groups:
 
@@ -203,9 +210,9 @@ go-minitrace query commands tools tool-failures
 
 The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. The folder structure controls the command-group hierarchy and the source path shown in the UI/API.
 
-## Writing a sqleton-style command file
+## Writing a sqleton-style SQL command file
 
-A structured command is a `.sql` file whose first block is a `/* sqleton ... */` YAML preamble.
+A structured SQL command is a `.sql` file whose first block is a `/* sqleton ... */` YAML preamble.
 
 The preamble describes the command name, help text, and typed parameters. The rest of the file is the SQL template that will be rendered against the loaded table.
 
@@ -312,6 +319,60 @@ or:
 AND id IN ({{ .session_ids | sqlStringIn }})
 ```
 
+## Writing a scanner-first JS command file
+
+A structured JS command is a `.js` or `.cjs` file that exposes command metadata through static scanner markers and executes only when the command is invoked.
+
+A minimal example looks like this:
+
+```js
+__section__("filters", {
+  title: "Filters",
+  fields: {
+    framework: {
+      type: "stringList",
+      help: "Filter by agent framework",
+    },
+    limit: {
+      type: "int",
+      default: 25,
+      help: "Maximum number of rows",
+    },
+  },
+});
+
+function sessionList(filters) {
+  const mt = require("minitrace");
+  return mt.query(`
+    SELECT
+      id,
+      title,
+      environment->>'agent_framework' AS framework
+    FROM ${mt.tableName}
+    WHERE 1=1
+    ${filters.framework?.length ? `AND environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})` : ""}
+    ORDER BY timing->>'started_at' DESC
+    LIMIT ${filters.limit}
+  `);
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List minitrace sessions",
+  fields: {
+    filters: { bind: "filters" }
+  }
+});
+```
+
+Important rules for JS command files:
+
+- metadata must stay static and scanner-friendly,
+- `__verb__` must point at a top-level function,
+- one file may define multiple verbs,
+- helper modules can still be loaded with relative `require()` calls,
+- and text-output JS commands are currently deferred in `go-minitrace query commands`.
+
 ## Writing alias files
 
 Alias files let you publish a shortcut command that points at another command and supplies default values.
@@ -389,6 +450,8 @@ The two approaches are complementary. Structured commands are the reusable layer
 | A repository command does not override the embedded one | The higher-precedence repository was not mounted first, or the path/config source was wrong | Prefer explicit `--query-repository` during debugging and confirm the directory exists |
 | The browser form is missing a field | The field type is not currently rendered by the UI | Use a currently supported practical type or run the command through the CLI instead |
 | The rendered SQL fails read-only validation | The command template produced non-read-only SQL | Keep the command limited to `SELECT`-style analysis queries |
+| A JS command fails during execution | The handler threw, rejected a Promise, or called the host API with invalid SQL | Re-run through the CLI first, then check the exact JS runtime error and the handler source file |
+| A JS command with `output: "text"` does not run | Text-output JS commands are currently deferred in `go-minitrace query commands` | Return row-shaped data for now, or implement writer-mode support in a follow-up slice |
 | An alias does not behave as expected | The target command name is wrong, or the alias default shape does not match the target flag type | Verify `aliasFor`, then compare the alias `flags:` values to the target command's definitions |
 | `--query-repository` with commas behaves strangely | Shell quoting changed the argument before Cobra saw it | Wrap the comma-separated value in quotes or use repeated flags |
 

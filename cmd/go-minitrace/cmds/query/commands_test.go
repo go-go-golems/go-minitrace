@@ -171,6 +171,62 @@ SELECT 42 AS answer FROM {{TABLE_NAME}};`
 	}
 }
 
+func TestNewCommandsCommand_LoadsJSCommandsAndShowsThemInHelp(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "overview", "framework-summary.sql"), []byte(`/* sqleton
+name: framework-summary
+short: Summarize frameworks
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
+		t.Fatalf("WriteFile(sql) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "overview", "js-session-list.js"), []byte(`
+function sessionList() {
+  const mt = require("minitrace");
+  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+}
+
+__verb__("sessionList", {
+  name: "js-session-list",
+  short: "List sessions from JS"
+});
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile(js) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	found, _, err := cmd.Find([]string{"overview", "js-session-list"})
+	if err != nil {
+		t.Fatalf("Find returned error: %v", err)
+	}
+	if found == nil || found.Name() != "js-session-list" {
+		t.Fatalf("expected overview/js-session-list command, got %#v", found)
+	}
+
+	buf := &bytes.Buffer{}
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs([]string{"overview", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute returned error: %v\noutput:\n%s", err, buf.String())
+	}
+	output := buf.String()
+	if !strings.Contains(output, "js-session-list") {
+		t.Fatalf("help output missing js-session-list\noutput:\n%s", output)
+	}
+	if !strings.Contains(output, "framework-summary") {
+		t.Fatalf("help output missing framework-summary\noutput:\n%s", output)
+	}
+}
+
 func TestNewCommandsCommand_XDGConfigOverridesHomeConfig(t *testing.T) {
 	setIsolatedConfigHome(t)
 	homeRepo := t.TempDir()
