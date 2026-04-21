@@ -59,9 +59,10 @@ The CLI surface is:
 go-minitrace query commands <group...> <command-name> [command flags] [query runtime flags]
 ```
 
-Repository subdirectories become nested Cobra groups. For example:
+Repository subdirectories become nested Cobra groups. SQL files map directly to leaf commands, while JS files add one extra group level based on the file stem. For example:
 
 - `pkg/minitracecmd/core/overview/session-list.sql` → `go-minitrace query commands overview session-list`
+- `pkg/minitracecmd/core/overview/session-tools.js` with `name: session-list` → `go-minitrace query commands overview session-tools session-list`
 - `pkg/minitracecmd/core/nightly/session-inventory.sql` → `go-minitrace query commands nightly session-inventory`
 - `pkg/minitracecmd/core/overview/aliases/codex-framework-summary.alias.yaml` → `go-minitrace query commands overview aliases codex-framework-summary`
 
@@ -182,7 +183,7 @@ A small example looks like this:
 query-commands/
 ├── overview/
 │   ├── session-list.sql
-│   ├── session-list.js
+│   ├── session-tools.js
 │   ├── framework-summary.sql
 │   └── aliases/
 │       └── codex-framework-summary.alias.yaml
@@ -198,17 +199,18 @@ Those folders become nested CLI groups. The source file extension decides how th
 - `.js` / `.cjs` -> scanner-first JS metadata (`__verb__`, `__section__`, `__package__`) + JS handler body
 - `.alias.yaml` / `.alias.yml` -> alias definition that targets a previously loaded command by name
 
-Those folders become nested CLI groups:
+Those folders become nested CLI groups, and JS file stems become one more group level:
 
 ```bash
 go-minitrace query commands overview session-list
+go-minitrace query commands overview session-tools session-list
 go-minitrace query commands overview framework-summary
 go-minitrace query commands overview aliases codex-framework-summary
 go-minitrace query commands timing timing-analysis
 go-minitrace query commands tools tool-failures
 ```
 
-The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. The folder structure controls the command-group hierarchy and the source path shown in the UI/API.
+The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. For JS sources, the filename contributes a group and the scanned verb name contributes the final leaf command.
 
 ## Writing a sqleton-style SQL command file
 
@@ -365,11 +367,18 @@ __verb__("sessionList", {
 });
 ```
 
+If that file is stored as `overview/session-tools.js`, the resulting CLI path is:
+
+```bash
+go-minitrace query commands overview session-tools session-list
+```
+
 Important rules for JS command files:
 
 - metadata must stay static and scanner-friendly,
 - `__verb__` must point at a top-level function,
 - one file may define multiple verbs,
+- the JS file stem becomes a command group and each scanned verb name becomes a leaf command,
 - helper modules can still be loaded with relative `require()` calls,
 - and text-output JS commands are currently deferred in `go-minitrace query commands`.
 
@@ -402,8 +411,8 @@ A few rules are worth remembering:
 A practical authoring loop looks like this:
 
 1. create a repository directory
-2. add one sqleton-style `.sql` command file
-3. run `go-minitrace query commands <name> --help` to verify the parameter schema
+2. add one sqleton-style `.sql` command file or one scanner-first `.js` command file
+3. run `go-minitrace query commands <groups...> <name> --help` to verify the parameter schema
 4. run the command against a real archive glob
 5. optionally open `/query` in serve mode and verify the form/debug panels
 6. add alias files for repeated filters only after the base command works
@@ -411,15 +420,15 @@ A practical authoring loop looks like this:
 A concrete example:
 
 ```bash
-mkdir -p ./query-commands/aliases
-$EDITOR ./query-commands/session-list.sql
+mkdir -p ./query-commands/overview/aliases
+$EDITOR ./query-commands/overview/session-tools.js
 
-go-minitrace query commands overview session-list \
+go-minitrace query commands overview session-tools session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --help
 
-go-minitrace query commands overview session-list \
+go-minitrace query commands overview session-tools session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex

@@ -2,6 +2,7 @@ package minitracecmd
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	fields "github.com/go-go-golems/glazed/pkg/cmds/fields"
@@ -70,15 +71,34 @@ func ParseJSCommandSpecs(path string, contents []byte) ([]ParsedCommandSpec, err
 }
 
 func jsCommandPath(sourcePath, commandName string) string {
-	sourcePath = strings.TrimSpace(sourcePath)
+	groupPath := jsFileGroupPath(sourcePath)
 	commandName = strings.TrimSpace(commandName)
-	if sourcePath == "" {
+	if groupPath == "" {
 		return commandName
 	}
 	if commandName == "" {
-		return sourcePath
+		return groupPath
 	}
-	return sourcePath + ":" + commandName
+	return filepath.ToSlash(filepath.Join(groupPath, commandName))
+}
+
+func jsFileGroupPath(sourcePath string) string {
+	sourcePath = filepath.ToSlash(strings.TrimSpace(sourcePath))
+	if sourcePath == "" {
+		return ""
+	}
+
+	dir := filepath.ToSlash(filepath.Dir(sourcePath))
+	base := filepath.Base(sourcePath)
+	ext := filepath.Ext(base)
+	stem := strings.TrimSuffix(base, ext)
+	if dir == "." || dir == "" {
+		return stem
+	}
+	if stem == "" {
+		return dir
+	}
+	return filepath.ToSlash(filepath.Join(dir, stem))
 }
 
 func extractDefinitionsFromSchema(s *schema.Schema) ([]*fields.Definition, []*fields.Definition) {

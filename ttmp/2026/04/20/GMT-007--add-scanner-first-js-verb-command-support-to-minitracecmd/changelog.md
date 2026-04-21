@@ -13,4 +13,5 @@
 - Step 2 implementation landed in commits `6d935a5` (`Add JS command runtime execution support`) and `e9db41e` (`Harden JS command runtime error handling`), covering CLI/serve JS execution, alias-default propagation, Promise support, explicit text-mode deferral, and runtime failure-path tests
 - Step 3 validation and docs work added mixed SQL/JS help coverage, JS command documentation, focused `go-go-goja` regression coverage, successful CLI smoke runs for both JS-backed and SQL-backed commands from the same repository, and a final clean `docmgr doctor` pass after the implementation docs were updated
 - Uploaded a refreshed final reMarkable bundle named `GMT-007 scanner-first JS verb commands complete` and verified it under `/ai/2026/04/20/GMT-007/`
+- Adjusted JS command registration so each JS file becomes a command group and each scanned verb becomes a leaf command, updating parser behavior, CLI/serve tests, and user docs to prefer paths like `overview session-tools session-list`
 

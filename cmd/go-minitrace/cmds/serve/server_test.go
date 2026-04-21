@@ -1043,8 +1043,8 @@ __verb__("sessionList", {
 		Readonly: true,
 	}}
 
-	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/session-list.js:session-list/execute", strings.NewReader(`{"values":{"limit":1}}`))
-	request.SetPathValue("path", "overview/session-list.js:session-list/execute")
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/session-list/session-list/execute", strings.NewReader(`{"values":{"limit":1}}`))
+	request.SetPathValue("path", "overview/session-list/session-list/execute")
 	response := httptest.NewRecorder()
 
 	server.handleExecuteQueryCommandV2(response, request)

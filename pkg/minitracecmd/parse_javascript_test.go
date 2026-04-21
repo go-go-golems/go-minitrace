@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseJSCommandSpecs(t *testing.T) {
-	parsed, err := ParseJSCommandSpecs("overview/session-list.js", []byte(`
+	parsed, err := ParseJSCommandSpecs("overview/tools.js", []byte(`
 __section__("filters", {
   fields: {
     framework: { type: "stringList" },
@@ -33,8 +33,8 @@ __verb__("sessionList", {
 		t.Fatalf("len(parsed) = %d, want 1", len(parsed))
 	}
 	entry := parsed[0]
-	if entry.Path != "overview/session-list.js:session-list" {
-		t.Fatalf("Path = %q, want overview/session-list.js:session-list", entry.Path)
+	if entry.Path != "overview/tools/session-list" {
+		t.Fatalf("Path = %q, want overview/tools/session-list", entry.Path)
 	}
 	if entry.Spec == nil {
 		t.Fatalf("Spec = nil")
@@ -98,11 +98,11 @@ __verb__("frameworkSummary", {
 	if catalog.ByName["framework-summary"] == nil {
 		t.Fatalf("ByName missing framework-summary")
 	}
-	if catalog.ByPath["overview/multi.js:session-list"] == nil {
-		t.Fatalf("ByPath missing overview/multi.js:session-list")
+	if catalog.ByPath["overview/multi/session-list"] == nil {
+		t.Fatalf("ByPath missing overview/multi/session-list")
 	}
-	if catalog.ByPath["overview/multi.js:framework-summary"] == nil {
-		t.Fatalf("ByPath missing overview/multi.js:framework-summary")
+	if catalog.ByPath["overview/multi/framework-summary"] == nil {
+		t.Fatalf("ByPath missing overview/multi/framework-summary")
 	}
 }
 
@@ -110,13 +110,13 @@ func TestLoadCatalog_RejectsDuplicateLogicalCommandPathAcrossSQLAndJS(t *testing
 	_, err := LoadCatalog([]SourceRoot{{
 		Name: "embedded",
 		FS: fstest.MapFS{
-			"queries/overview/session-list.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+			"queries/overview/session-list/session-list.sql": &fstest.MapFile{Data: []byte(`/* sqleton
 name: session-list
 short: SQL list
 */
 SELECT 1
 `)},
-			"queries/overview/alternate.js": &fstest.MapFile{Data: []byte(`
+			"queries/overview/session-list.js": &fstest.MapFile{Data: []byte(`
 function sessionList() {
   return { ok: true };
 }

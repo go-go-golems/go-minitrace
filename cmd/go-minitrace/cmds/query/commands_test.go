@@ -171,7 +171,7 @@ SELECT 42 AS answer FROM {{TABLE_NAME}};`
 	}
 }
 
-func TestNewCommandsCommand_LoadsJSCommandsAndShowsThemInHelp(t *testing.T) {
+func TestNewCommandsCommand_LoadsJSCommandsAndShowsFileAsGroupInHelp(t *testing.T) {
 	setIsolatedConfigHome(t)
 	repo := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(repo, "overview"), 0o755); err != nil {
@@ -184,14 +184,14 @@ short: Summarize frameworks
 SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
 		t.Fatalf("WriteFile(sql) returned error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(repo, "overview", "js-session-list.js"), []byte(`
+	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.js"), []byte(`
 function sessionList() {
   const mt = require("minitrace");
   return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
 }
 
 __verb__("sessionList", {
-  name: "js-session-list",
+  name: "session-list",
   short: "List sessions from JS"
 });
 `), 0o644); err != nil {
@@ -203,12 +203,12 @@ __verb__("sessionList", {
 		t.Fatalf("NewCommandsCommand returned error: %v", err)
 	}
 
-	found, _, err := cmd.Find([]string{"overview", "js-session-list"})
+	found, _, err := cmd.Find([]string{"overview", "session-tools", "session-list"})
 	if err != nil {
 		t.Fatalf("Find returned error: %v", err)
 	}
-	if found == nil || found.Name() != "js-session-list" {
-		t.Fatalf("expected overview/js-session-list command, got %#v", found)
+	if found == nil || found.Name() != "session-list" {
+		t.Fatalf("expected overview/session-tools/session-list command, got %#v", found)
 	}
 
 	buf := &bytes.Buffer{}
@@ -219,11 +219,21 @@ __verb__("sessionList", {
 		t.Fatalf("Execute returned error: %v\noutput:\n%s", err, buf.String())
 	}
 	output := buf.String()
-	if !strings.Contains(output, "js-session-list") {
-		t.Fatalf("help output missing js-session-list\noutput:\n%s", output)
+	if !strings.Contains(output, "session-tools") {
+		t.Fatalf("help output missing session-tools group\noutput:\n%s", output)
 	}
 	if !strings.Contains(output, "framework-summary") {
 		t.Fatalf("help output missing framework-summary\noutput:\n%s", output)
+	}
+
+	buf.Reset()
+	cmd.SetArgs([]string{"overview", "session-tools", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute nested help returned error: %v\noutput:\n%s", err, buf.String())
+	}
+	output = buf.String()
+	if !strings.Contains(output, "session-list") {
+		t.Fatalf("nested help output missing session-list\noutput:\n%s", output)
 	}
 }
 

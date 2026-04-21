@@ -87,8 +87,8 @@ func TestCompiler_CompileJSVerb(t *testing.T) {
 		},
 		Kind: MinitraceCommandVerb,
 	}, CompileOptions{
-		Folder:     "queries/core",
-		Path:       "queries/core/session-list.js:session-list",
+		Folder:     "queries/core/session-list",
+		Path:       "queries/core/session-list/session-list",
 		SourceRoot: "embedded",
 		SourcePath: "queries/core/session-list.js",
 		Readonly:   true,

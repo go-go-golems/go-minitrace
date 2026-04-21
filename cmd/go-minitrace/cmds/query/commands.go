@@ -20,9 +20,13 @@ func NewCommandsCommand(flagPaths []string) (*cobra.Command, error) {
 		Short: "Run repository-backed MinitraceCommand queries",
 		Long: `Run repository-backed MinitraceCommand queries loaded from the embedded sqleton-style catalog plus any configured external query repositories.
 
-Subdirectories in the repository are exposed as nested CLI groups, so a file like
+Subdirectories in the repository are exposed as nested CLI groups. SQL files map directly to leaf commands, so a file like
 pkg/minitracecmd/core/overview/session-list.sql becomes:
   go-minitrace query commands overview session-list
+
+JS files add one more group level based on the file stem, so a file like
+pkg/minitracecmd/core/overview/session-tools.js with a verb named session-list becomes:
+  go-minitrace query commands overview session-tools session-list
 
 The nightly review commands live under the nightly subverb, so a file like
 pkg/minitracecmd/core/nightly/session-inventory.sql becomes:
@@ -35,7 +39,7 @@ Additional repositories can be provided through:
 
 Examples:
   go-minitrace query commands overview session-list --archive-glob './output/active/*/*.minitrace.json'
-  go-minitrace query commands overview session-list --query-repository ./query-commands/team
+  go-minitrace query commands overview session-tools session-list --query-repository ./query-commands/team
   GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team go-minitrace query commands overview framework-summary`,
 	}
 	groups := map[string]*cobra.Command{}

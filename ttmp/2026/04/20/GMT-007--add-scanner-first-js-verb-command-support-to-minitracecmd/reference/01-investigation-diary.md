@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Observed the existing catalog pipeline while gathering evidence
 ExternalSources: []
 Summary: Chronological diary for the scanner-first JS verb design ticket, including ticket setup, evidence gathering, document authoring, and delivery steps.
-LastUpdated: 2026-04-20T18:33:27.33008471-04:00
+LastUpdated: 2026-04-20T23:04:50-04:00
 WhatFor: Capture the work sequence and rationale behind the GMT-007 design deliverable.
 WhenToUse: Read this diary when reviewing how the design guide was assembled, validated, and delivered.
 ---
@@ -674,3 +674,82 @@ This final delivery refresh also needed one extra verification pass. The first p
 - Final verified remote listing:
   - `[f]\tGMT-007 scanner-first JS verb commands`
   - `[f]\tGMT-007 scanner-first JS verb commands complete`
+
+## Step 9: Make JS Files Behave Like Command Groups
+
+After the earlier implementation was finished, the user requested one more structural refinement: JS verbs should not be registered under a synthetic `source.js:verb-name` path. Instead, the JS file itself should become a command group in exactly the same way that directories already become command groups. That means a file like `overview/session-tools.js` with a scanned verb named `session-list` should surface as `go-minitrace query commands overview session-tools session-list`.
+
+This was a clean follow-up because the catalog already models commands in terms of `Folder`, `Name`, and `Path`, and the CLI group builder already knows how to turn nested folders into Cobra groups. The only real mismatch was the parser’s JS path encoder, which still produced a colon-delimited pseudo-path. Once I changed that encoder to build `dir/file-stem/verb-name` paths, the existing grouping machinery naturally produced the desired nested CLI and serve route shapes.
+
+### Prompt Context
+
+**User prompt (verbatim):** "register the verbs as $file $command (i.e., the file becomes a group, the same way directories become groups)."
+
+**Assistant interpretation:** Change JS command registration so the file stem becomes an intermediate command-group segment and the verb name remains the leaf command.
+
+**Inferred user intent:** Make JS-backed commands feel structurally identical to directory-grouped SQL commands, avoiding the awkward `file.js:verb` path encoding.
+
+### What I did
+- Changed `pkg/minitracecmd/parse_javascript.go` so JS command paths are now built as:
+  - `<dir>/<file-stem>/<verb-name>`
+- Added a helper that derives the JS file-group path from the relative source path.
+- Updated parser tests to assert paths like:
+  - `overview/tools/session-list`
+  - `overview/multi/framework-summary`
+- Updated the duplicate-path test to cover the new collision shape:
+  - `overview/session-list.js` + `overview/session-list/session-list.sql`
+- Updated CLI help tests to prove:
+  - `overview --help` lists the file-group command `session-tools`
+  - `overview session-tools --help` lists the leaf command `session-list`
+- Updated the serve execute-route test to use:
+  - `overview/session-list/session-list/execute`
+- Updated user-facing docs in `pkg/doc/structured-query-commands.md` and the query command help text to describe the new grouping semantics.
+- Ran a manual CLI smoke test against a temporary repo using:
+  - `go-minitrace query commands overview session-tools --help`
+  - `go-minitrace query commands overview session-tools session-list ...`
+
+### Why
+- The previous `source.js:verb-name` path shape was an implementation detail leaking into the user-facing command model.
+- Treating the file stem as a group makes JS commands easier to browse in CLI help and gives multi-verb files a natural namespace.
+
+### What worked
+- Focused tests passed after the path-shape change:
+  - `go test ./pkg/minitracecmd ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+- The manual smoke run showed the intended hierarchy:
+  - `overview --help` listed `session-tools` as a group
+  - `overview session-tools --help` listed `session-list` as the leaf command
+  - `overview session-tools session-list` executed successfully and returned the fixture row
+
+### What didn't work
+- No code-level blocker appeared in this follow-up slice. The main work was carefully updating all path-sensitive tests so they asserted the new hierarchy instead of the old colon-style path encoding.
+
+### What I learned
+- The existing folder/group machinery in `query commands` was already the right abstraction. The awkward part was only the JS parser’s emitted path shape.
+- Once JS paths were normalized into regular slash-separated segments, the rest of the system required very little additional logic.
+
+### What was tricky to build
+- The subtle part was the duplicate-path test. Because JS files now contribute a group segment, the SQL-vs-JS collision case changed shape too: a JS file collides with a SQL command only when the SQL command already lives under the same directory path the JS file stem would occupy.
+
+### What warrants a second pair of eyes
+- Whether any browser-side consumers depend on the old path strings persisting across sessions or cached state.
+
+### What should be done in the future
+- If we add more JS authoring docs, lead with the nested path form (`<folder> <file-stem> <verb-name>`) rather than the old colon-based form so new examples stay consistent.
+
+### Code review instructions
+- Review `pkg/minitracecmd/parse_javascript.go` first; that is the behavioral core of this follow-up.
+- Then review the path-sensitive tests in:
+  - `pkg/minitracecmd/parse_javascript_test.go`
+  - `cmd/go-minitrace/cmds/query/commands_test.go`
+  - `cmd/go-minitrace/cmds/serve/server_test.go`
+- Finally, verify the user docs in `pkg/doc/structured-query-commands.md` and the help text in `cmd/go-minitrace/cmds/query/commands.go`.
+
+### Technical details
+- Path mapping rule implemented:
+  - `overview/session-tools.js` + `name: session-list` -> `overview/session-tools/session-list`
+- Focused validation command:
+  - `go test ./pkg/minitracecmd ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+- Manual smoke commands included:
+  - `go run ./cmd/go-minitrace query commands --query-repository "$tmp_repo" overview --help`
+  - `go run ./cmd/go-minitrace query commands --query-repository "$tmp_repo" overview session-tools --help`
+  - `go run ./cmd/go-minitrace query commands --query-repository "$tmp_repo" overview session-tools session-list --archive-glob "$archive_root/*.minitrace.json" --limit 1 --output json`
