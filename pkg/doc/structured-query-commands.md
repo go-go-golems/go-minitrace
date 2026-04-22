@@ -18,7 +18,7 @@ Flags:
 - table-name
 - persist-loaded
 IsTemplate: false
-IsTopLevel: false
+IsTopLevel: true
 ShowPerDefault: true
 SectionType: GeneralTopic
 ---
