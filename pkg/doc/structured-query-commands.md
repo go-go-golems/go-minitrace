@@ -59,12 +59,18 @@ The CLI surface is:
 go-minitrace query commands <group...> <command-name> [command flags] [query runtime flags]
 ```
 
-Repository subdirectories become nested Cobra groups. SQL files map directly to leaf commands, while JS files add one extra group level based on the file stem. For example:
+Repository subdirectories become nested Cobra groups. SQL files map directly to leaf commands, while JS files usually add one extra group level based on the file stem. For example:
 
 - `pkg/minitracecmd/core/overview/session-list.sql` → `go-minitrace query commands overview session-list`
 - `pkg/minitracecmd/core/overview/session-tools.js` with `name: session-list` → `go-minitrace query commands overview session-tools session-list`
 - `pkg/minitracecmd/core/nightly/session-inventory.sql` → `go-minitrace query commands nightly session-inventory`
 - `pkg/minitracecmd/core/overview/aliases/codex-framework-summary.alias.yaml` → `go-minitrace query commands overview aliases codex-framework-summary`
+
+A special case avoids redundant doubled paths for self-named single-verb JS files. If `hardware-research/research-summary.js` defines exactly one verb named `research-summary`, the executable path is collapsed to:
+
+- `go-minitrace query commands hardware-research research-summary`
+
+instead of `hardware-research research-summary research-summary`.
 
 The command-specific flags come from the sqleton-style file metadata. The query-runtime flags are the same execution settings used by the DuckDB loader, such as `--archive-glob`, `--db-path`, `--table-name`, and `--persist-loaded`.
 
@@ -199,7 +205,7 @@ Those folders become nested CLI groups. The source file extension decides how th
 - `.js` / `.cjs` -> scanner-first JS metadata (`__verb__`, `__section__`, `__package__`) + JS handler body
 - `.alias.yaml` / `.alias.yml` -> alias definition that targets a previously loaded command by name
 
-Those folders become nested CLI groups, and JS file stems become one more group level:
+Those folders become nested CLI groups, and JS file stems usually become one more group level:
 
 ```bash
 go-minitrace query commands overview session-list
@@ -210,7 +216,7 @@ go-minitrace query commands timing timing-analysis
 go-minitrace query commands tools tool-failures
 ```
 
-The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. For JS sources, the filename contributes a group and the scanned verb name contributes the final leaf command.
+The CLI leaf command name still comes from the file metadata `name:` field, not from the filename alone. For JS sources, the filename usually contributes a group and the scanned verb name contributes the final leaf command. The exception is a self-named single-verb JS file, where go-minitrace collapses the redundant extra path level.
 
 ## Writing a sqleton-style SQL command file
 
@@ -378,7 +384,8 @@ Important rules for JS command files:
 - metadata must stay static and scanner-friendly,
 - `__verb__` must point at a top-level function,
 - one file may define multiple verbs,
-- the JS file stem becomes a command group and each scanned verb name becomes a leaf command,
+- the JS file stem usually becomes a command group and each scanned verb name becomes a leaf command,
+- if a JS file defines exactly one verb and that verb has the same name as the file stem, go-minitrace collapses the redundant extra path level,
 - helper modules can still be loaded with relative `require()` calls,
 - and text-output JS commands are currently deferred in `go-minitrace query commands`.
 
@@ -435,7 +442,7 @@ A practical authoring loop looks like this:
 
 1. create a repository directory
 2. add one sqleton-style `.sql` command file or one scanner-first `.js` command file
-3. run `go-minitrace query commands <groups...> <name> --help` to verify the parameter schema
+3. run `go-minitrace query commands <groups...> <leaf> --help` to verify the parameter schema
 4. run the command against a real archive glob
 5. optionally open `/query` in serve mode and verify the form/debug panels
 6. add alias files for repeated filters only after the base command works
@@ -455,6 +462,12 @@ go-minitrace query commands overview session-tools session-list \
   --query-repository ./query-commands \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex
+
+If your JS file is self-named and defines exactly one same-named verb, use the collapsed path instead. For example:
+
+go-minitrace query commands hardware-research research-summary \
+  --query-repository ./query-commands \
+  --archive-glob './output/active/*/*.minitrace.json'
 ```
 
 ## When to use structured commands vs raw SQL
@@ -483,6 +496,7 @@ The two approaches are complementary. Structured commands are the reusable layer
 | The browser form is missing a field | The field type is not currently rendered by the UI | Use a currently supported practical type or run the command through the CLI instead |
 | The rendered SQL fails read-only validation | The command template produced non-read-only SQL | Keep the command limited to `SELECT`-style analysis queries |
 | A JS command fails during execution | The handler threw, rejected a Promise, or called the host API with invalid SQL | Re-run through the CLI first, then check the exact JS runtime error and the handler source file |
+| `unknown flag: --archive-glob` on a JS command that should support runtime flags | You probably stopped at an intermediate JS group instead of the executable leaf, or you assumed a doubled path for a self-named single-verb JS file | Run `... --help` on the exact path you are invoking. Multi-verb JS files keep the extra file-stem group; self-named single-verb JS files collapse it |
 | A JS command with `output: "text"` does not run | Text-output JS commands are currently deferred in `go-minitrace query commands` | Return row-shaped data for now, or implement writer-mode support in a follow-up slice |
 | An alias does not behave as expected | The target command name is wrong, or the alias default shape does not match the target flag type | Verify `aliasFor`, then compare the alias `flags:` values to the target command's definitions |
 | `--query-repository` with commas behaves strangely | Shell quoting changed the argument before Cobra saw it | Wrap the comma-separated value in quotes or use repeated flags |

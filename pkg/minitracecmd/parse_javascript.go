@@ -29,16 +29,31 @@ func ParseJSCommandSpecs(path string, contents []byte) ([]ParsedCommandSpec, err
 		return nil, nil
 	}
 
-	ret := make([]ParsedCommandSpec, 0, len(verbs))
+	nonNilVerbs := make([]*jsverbs.VerbSpec, 0, len(verbs))
 	for _, verb := range verbs {
-		if verb == nil {
-			continue
+		if verb != nil {
+			nonNilVerbs = append(nonNilVerbs, verb)
 		}
+	}
+	if len(nonNilVerbs) == 0 {
+		return nil, nil
+	}
+
+	collapseSelfNamedSingleVerb := false
+	if len(nonNilVerbs) == 1 {
+		description, err := registry.CommandDescriptionForVerb(nonNilVerbs[0])
+		if err != nil {
+			return nil, fmt.Errorf("build js command description %s#%s: %w", path, nonNilVerbs[0].FunctionName, err)
+		}
+		collapseSelfNamedSingleVerb = jsFileStemMatchesCommandName(path, description.Name)
+	}
+
+	ret := make([]ParsedCommandSpec, 0, len(nonNilVerbs))
+	for _, verb := range nonNilVerbs {
 		description, err := registry.CommandDescriptionForVerb(verb)
 		if err != nil {
 			return nil, fmt.Errorf("build js command description %s#%s: %w", path, verb.FunctionName, err)
 		}
-
 		flags, arguments := extractDefinitionsFromSchema(description.Schema)
 		spec := &MinitraceCommandSpec{
 			Name:      description.Name,
@@ -63,14 +78,14 @@ func ParseJSCommandSpecs(path string, contents []byte) ([]ParsedCommandSpec, err
 
 		ret = append(ret, ParsedCommandSpec{
 			Spec: spec,
-			Path: jsCommandPath(path, description.Name),
+			Path: jsCommandPath(path, description.Name, collapseSelfNamedSingleVerb),
 		})
 	}
 
 	return ret, nil
 }
 
-func jsCommandPath(sourcePath, commandName string) string {
+func jsCommandPath(sourcePath, commandName string, collapseSelfNamedSingleVerb bool) string {
 	groupPath := jsFileGroupPath(sourcePath)
 	commandName = strings.TrimSpace(commandName)
 	if groupPath == "" {
@@ -79,7 +94,18 @@ func jsCommandPath(sourcePath, commandName string) string {
 	if commandName == "" {
 		return groupPath
 	}
+	if collapseSelfNamedSingleVerb {
+		return groupPath
+	}
 	return filepath.ToSlash(filepath.Join(groupPath, commandName))
+}
+
+func jsFileStemMatchesCommandName(sourcePath, commandName string) bool {
+	groupPath := jsFileGroupPath(sourcePath)
+	if groupPath == "" {
+		return false
+	}
+	return strings.TrimSpace(filepath.Base(groupPath)) == strings.TrimSpace(commandName)
 }
 
 func jsFileGroupPath(sourcePath string) string {

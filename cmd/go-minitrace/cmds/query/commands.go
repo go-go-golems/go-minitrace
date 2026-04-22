@@ -24,9 +24,14 @@ Subdirectories in the repository are exposed as nested CLI groups. SQL files map
 pkg/minitracecmd/core/overview/session-list.sql becomes:
   go-minitrace query commands overview session-list
 
-JS files add one more group level based on the file stem, so a file like
+JS files usually add one more group level based on the file stem, so a file like
 pkg/minitracecmd/core/overview/session-tools.js with a verb named session-list becomes:
   go-minitrace query commands overview session-tools session-list
+
+When a JS file defines exactly one verb and that verb has the same name as the file stem, go-minitrace collapses the redundant extra level. For example:
+  query-commands/hardware-research/research-summary.js
+with a single verb named research-summary becomes:
+  go-minitrace query commands hardware-research research-summary
 
 The nightly review commands live under the nightly subverb, so a file like
 pkg/minitracecmd/core/nightly/session-inventory.sql becomes:
