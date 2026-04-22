@@ -40,7 +40,7 @@ Executes a read-only SQL query against the loaded DuckDB table and returns all r
 const rows = mt.query(`
   SELECT id, title, environment->>'agent_framework' AS framework
   FROM ${mt.tableName}
-  WHERE timing->>'started_at' > '2026-01-01'
+  WHERE (timing->>'started_at') > '2026-01-01'
   LIMIT 100
 `);
 ```
@@ -73,6 +73,8 @@ The name of the DuckDB table the archive was loaded into. Use this in SQL FROM c
 ```
 
 - **Type**: `string`
+
+When your SQL uses DuckDB JSON arrow operators inside predicates, parenthesize the extraction. DuckDB gives `->` / `->>` low precedence, so a parenthesized predicate like `(timing->>'started_at') > '2026-01-01'` is safer and easier to read than relying on implicit grouping.
 
 ### mt.sql
 

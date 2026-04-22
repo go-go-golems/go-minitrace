@@ -176,7 +176,7 @@ The loaded table has these columns, all derived from the minitrace JSON schema:
 | `annotations` | JSON[] | Array: `UNNEST(annotations)` |
 | `metrics` | JSON | Nested: `metrics->>'turn_count'` |
 
-Use `->>'field'` to extract string values from JSON columns, then CAST to the appropriate type for numeric operations.
+Use `->>'field'` to extract string values from JSON columns, then CAST to the appropriate type for numeric operations. Inside predicates, parenthesize JSON-arrow extractions because DuckDB gives `->` / `->>` low precedence.
 
 For the array columns, the normal access pattern is:
 

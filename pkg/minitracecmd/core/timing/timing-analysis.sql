@@ -16,7 +16,7 @@ SELECT
   ROUND(MIN(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS min_duration_s,
   ROUND(MAX(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS max_duration_s
 FROM {{TABLE_NAME}}
-WHERE timing->>'duration_seconds' IS NOT NULL
+WHERE (timing->>'duration_seconds') IS NOT NULL
 {{ if .framework -}}
 AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
 {{ end -}}

@@ -9,8 +9,10 @@ __section__("filters", {
 });
 
 function _frameworkFilterSql(mt, filters) {
+  // Parenthesize DuckDB JSON-arrow predicates. The -> / ->> operators have low
+  // precedence, so the wrapped form is easier to read and less brittle.
   return filters.framework?.length
-    ? `AND environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})`
+    ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
     : "";
 }
 

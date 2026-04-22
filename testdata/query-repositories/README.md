@@ -111,6 +111,10 @@ go run ./cmd/go-minitrace query commands \
   --output json
 ```
 
+## DuckDB JSON predicate rule of thumb
+
+When your SQL or JS-backed SQL uses DuckDB JSON arrow operators (`->` / `->>`) inside predicates, parenthesize the extraction. For example, prefer `(environment->>'agent_framework') IN (...)` over `environment->>'agent_framework' IN (...)`. This makes the examples less brittle and avoids DuckDB's low-precedence arrow parsing surprises.
+
 ## Rule of thumb
 
 - If one SQL query is enough, start with `.sql`.

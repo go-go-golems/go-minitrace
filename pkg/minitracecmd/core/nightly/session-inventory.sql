@@ -43,7 +43,7 @@ WHERE 1=1
   AND CAST(timing->>'started_at' AS DATE) = CAST({{ .day | sqlDate }} AS DATE)
 {{ end -}}
 {{ if .framework -}}
-  AND environment->>'agent_framework' IN ({{ .framework | sqlStringIn }})
+  AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 {{ if .title_like -}}
   AND title LIKE {{ .title_like | sqlLike }}

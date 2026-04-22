@@ -166,7 +166,7 @@ go-minitrace query duckdb \
                CAST(metrics->>'turn_count' AS INT) AS turns,
                CAST(metrics->>'total_input_tokens' AS INT) AS input_tokens
         FROM sessions_base
-        WHERE environment->>'agent_framework' = 'pi'
+        WHERE (environment->>'agent_framework') = 'pi'
         ORDER BY tools DESC
         LIMIT 20"
 ```
@@ -222,7 +222,7 @@ function sessionList(filters) {
     FROM ${mt.tableName}
     WHERE 1=1
     ${filters.framework?.length
-      ? `AND environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})`
+      ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
       : ""}
     ORDER BY timing->>'started_at' DESC
     LIMIT ${filters.limit}
@@ -459,7 +459,7 @@ SELECT
   tc->'output'->>'error' AS error
 FROM sessions_base,
      UNNEST(tool_calls) AS t(tc)
-WHERE COALESCE(tc->'output'->>'success', 'true') = 'false'
+WHERE (COALESCE(tc->'output'->>'success', 'true')) = 'false'
 ORDER BY timing->>'started_at' DESC;
 ```
 

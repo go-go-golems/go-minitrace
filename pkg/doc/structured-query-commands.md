@@ -308,6 +308,8 @@ The SQL body is rendered locally by go-minitrace before execution. Two inputs ma
 
 The current helper functions are:
 
+One DuckDB parser rule is worth keeping in mind when authoring both SQL and JS-backed commands: JSON arrow operators (`->` / `->>`) have low precedence. Inside predicates, parenthesize the extraction so comparisons such as `LIKE`, `=`, and `IN` bind the way you intend.
+
 - `sqlString`
 - `sqlStringIn`
 - `sqlIntIn`
@@ -358,7 +360,7 @@ function sessionList(filters) {
       environment->>'agent_framework' AS framework
     FROM ${mt.tableName}
     WHERE 1=1
-    ${filters.framework?.length ? `AND environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})` : ""}
+    ${filters.framework?.length ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})` : ""}
     ORDER BY timing->>'started_at' DESC
     LIMIT ${filters.limit}
   `);

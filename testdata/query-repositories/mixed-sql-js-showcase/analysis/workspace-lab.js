@@ -10,9 +10,11 @@ __section__("filters", {
 });
 
 function _workspaceWhere(mt, filters) {
+  // Parenthesize DuckDB JSON-arrow predicates. The -> / ->> operators have low
+  // precedence, so the wrapped form is easier to read and less brittle.
   const clauses = ["1=1"];
   if (filters.framework?.length) {
-    clauses.push(`environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})`);
+    clauses.push(`(environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`);
   }
   if (filters.min_tool_calls) {
     clauses.push(`CAST(metrics->>'tool_call_count' AS BIGINT) >= ${filters.min_tool_calls}`);

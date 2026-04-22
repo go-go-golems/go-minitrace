@@ -10,12 +10,14 @@ __section__("filters", {
 });
 
 function _toolWhere(mt, filters) {
+  // Parenthesize DuckDB JSON-arrow predicates. The -> / ->> operators have low
+  // precedence, so the wrapped form is easier to read and less brittle.
   const clauses = ["1=1"];
   if (filters.framework?.length) {
-    clauses.push(`environment->>'agent_framework' IN (${mt.sql.stringIn(filters.framework)})`);
+    clauses.push(`(environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`);
   }
   if (filters.working_directory_like) {
-    clauses.push(`COALESCE(operational_context->>'working_directory', '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
+    clauses.push(`(COALESCE(operational_context->>'working_directory', '')) LIKE ${mt.sql.like(filters.working_directory_like)}`);
   }
   return clauses.join("\n    AND ");
 }

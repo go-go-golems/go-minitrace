@@ -32,7 +32,7 @@ WHERE 1=1
   AND CAST(timing->>'started_at' AS DATE) = CAST({{ .day | sqlDate }} AS DATE)
 {{ end -}}
 {{ if .framework -}}
-  AND environment->>'agent_framework' IN ({{ .framework | sqlStringIn }})
+  AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 GROUP BY working_directory
 ORDER BY hours DESC, tools DESC, working_directory ASC;

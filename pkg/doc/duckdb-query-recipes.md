@@ -183,7 +183,7 @@ SELECT
   END AS duration_bucket,
   COUNT(*) AS sessions
 FROM sessions_base
-WHERE timing->>'duration_seconds' IS NOT NULL
+WHERE (timing->>'duration_seconds') IS NOT NULL
 GROUP BY duration_bucket
 ORDER BY MIN(CAST(timing->>'duration_seconds' AS DOUBLE));
 ```
@@ -196,7 +196,7 @@ SELECT
   COUNT(*) AS sessions,
   ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools
 FROM sessions_base
-WHERE timing->>'hour_of_day' IS NOT NULL
+WHERE (timing->>'hour_of_day') IS NOT NULL
 GROUP BY hour
 ORDER BY hour;
 ```
@@ -216,7 +216,7 @@ SELECT
   END AS day,
   COUNT(*) AS sessions
 FROM sessions_base
-WHERE timing->>'day_of_week' IS NOT NULL
+WHERE (timing->>'day_of_week') IS NOT NULL
 GROUP BY day, CAST(timing->>'day_of_week' AS INT)
 ORDER BY CAST(timing->>'day_of_week' AS INT);
 ```
@@ -229,7 +229,7 @@ SELECT
   COUNT(*) AS sessions,
   SUM(CAST(metrics->>'tool_call_count' AS INT)) AS total_tools
 FROM sessions_base
-WHERE timing->>'started_at' IS NOT NULL
+WHERE (timing->>'started_at') IS NOT NULL
 GROUP BY day
 ORDER BY day;
 ```
@@ -241,7 +241,7 @@ ORDER BY day;
 ```sql
 SELECT
   CASE
-    WHEN provenance->>'source_format' LIKE '%subagent%' THEN 'subagent'
+    WHEN (provenance->>'source_format') LIKE '%subagent%' THEN 'subagent'
     ELSE 'main'
   END AS session_type,
   COUNT(*) AS sessions,
@@ -354,7 +354,7 @@ SELECT
   ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 1) AS read_ratio_bucket,
   COUNT(*) AS sessions
 FROM sessions_base
-WHERE metrics->>'read_ratio' IS NOT NULL
+WHERE (metrics->>'read_ratio') IS NOT NULL
 GROUP BY framework, read_ratio_bucket
 ORDER BY framework, read_ratio_bucket;
 ```

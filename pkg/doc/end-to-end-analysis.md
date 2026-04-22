@@ -152,7 +152,7 @@ go-minitrace query duckdb \
       COUNT(*) AS sessions,
       ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools
     FROM sessions_base
-    WHERE timing->>'hour_of_day' IS NOT NULL
+    WHERE (timing->>'hour_of_day') IS NOT NULL
     GROUP BY hour
     ORDER BY hour
   "
@@ -174,7 +174,7 @@ go-minitrace query duckdb \
       ROUND(CAST(timing->>'duration_seconds' AS DOUBLE) / 60, 1) AS minutes,
       quality
     FROM sessions_base
-    WHERE provenance->>'source_format' NOT LIKE '%subagent%'
+    WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
     ORDER BY tools DESC
     LIMIT 20
   "
@@ -197,7 +197,7 @@ go-minitrace query duckdb \
       ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools,
       ROUND(AVG(CAST(metrics->>'turn_count' AS INT)), 1) AS avg_turns
     FROM sessions_base
-    WHERE environment->>'agent_framework' = 'claude-code'
+    WHERE (environment->>'agent_framework') = 'claude-code'
     GROUP BY session_type
   "
 ```

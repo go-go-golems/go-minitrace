@@ -40,6 +40,22 @@ SELECT metrics->>'turn_count' AS turns FROM sessions_base;
 
 The `->` operator (single arrow) returns JSON; `->>` (double arrow) returns a string. For most queries you want `->>` because it gives you a plain value you can GROUP BY, filter, or display.
 
+One important DuckDB parser rule is easy to miss: `->` and `->>` have **low precedence** because DuckDB also uses arrow syntax in lambda-related contexts. Inside predicates, parenthesize JSON-arrow expressions so the parser groups the extraction the way you intend.
+
+For example, prefer:
+
+```sql
+WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
+```
+
+over:
+
+```sql
+WHERE provenance->>'source_format' NOT LIKE '%subagent%'
+```
+
+The parenthesized form is easier to read and avoids a class of confusing parse/coercion errors.
+
 ## Type casting
 
 JSON field extraction with `->>` always returns a string. To do math, you must CAST:
@@ -161,11 +177,17 @@ COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path')
 
 That `COALESCE(...)` pattern is the safest default when you are inspecting read/write/edit-style calls, because many adapters normalize the path to `input.file_path` while still preserving the raw original payload under `input.arguments`.
 
-One more DuckDB parser sharp edge is worth calling out explicitly: when using `->>` together with `LIKE`, wrap the extraction in parentheses.
+One more DuckDB parser sharp edge is worth calling out explicitly: when using `->` / `->>` inside predicates, wrap the extraction in parentheses. This matters especially for `LIKE`, but the same habit is useful for `=`, `IN`, `NOT LIKE`, and other boolean expressions too.
+
+Do not treat `CAST(... AS VARCHAR)` as the primary fix for these cases. If a naked arrow expression fails in a predicate, parenthesizing it is the more direct fix; `CAST(...)` sometimes works only because it also forces the extraction into a grouped subexpression.
 
 ```sql
 -- Safer than writing tc->'input'->>'command' LIKE ... directly
 WHERE (tc->'input'->>'command') LIKE '%docmgr%'
+
+-- Same rule for equality and membership checks
+WHERE (environment->>'agent_framework') = 'claude-code'
+AND (environment->>'agent_framework') IN ('claude-code', 'pi')
 ```
 
 ### Querying annotations
@@ -243,14 +265,14 @@ WHERE id = 'some-session-id';
 ### By framework
 
 ```sql
-WHERE environment->>'agent_framework' = 'claude-code'
-WHERE environment->>'agent_framework' IN ('claude-code', 'pi')
+WHERE (environment->>'agent_framework') = 'claude-code'
+WHERE (environment->>'agent_framework') IN ('claude-code', 'pi')
 ```
 
 ### By source format (exclude subagents)
 
 ```sql
-WHERE provenance->>'source_format' NOT LIKE '%subagent%'
+WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
 ```
 
 ### By quality tier
@@ -262,8 +284,8 @@ WHERE quality = 'A'
 ### By date range
 
 ```sql
-WHERE timing->>'started_at' >= '2026-03-01'
-  AND timing->>'started_at' < '2026-04-01'
+WHERE (timing->>'started_at') >= '2026-03-01'
+  AND (timing->>'started_at') < '2026-04-01'
 ```
 
 ### By session size
@@ -316,7 +338,7 @@ SELECT
   CAST(timing->>'started_at' AS DATE) AS day,
   COUNT(*) AS sessions
 FROM sessions_base
-WHERE timing->>'started_at' IS NOT NULL
+WHERE (timing->>'started_at') IS NOT NULL
 GROUP BY day
 ORDER BY day;
 ```

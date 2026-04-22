@@ -53,7 +53,7 @@ If discover reports 0 sessions, check the `--source-dir` path.
 **Solution**: This is expected behavior. Filter subagent sessions in queries:
 
 ```sql
-WHERE provenance->>'source_format' NOT LIKE '%subagent%'
+WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
 ```
 
 ## Query errors
@@ -148,7 +148,7 @@ ORDER BY uses DESC;
 - using `tool_calls[0]` as if lists were zero-based
 - applying JSON paths to the whole `tool_calls` container instead of unnested elements
 - guessing the wrong nested input field (`input.path` vs `input.file_path` vs `input.arguments.path`)
-- using `->>` together with `LIKE` without parentheses
+- using `->` / `->>` inside predicates without parentheses (this shows up most often with `LIKE`, but the same habit is safer for `=`, `IN`, and `NOT LIKE` too)
 
 **Solution**:
 
@@ -178,11 +178,11 @@ SELECT
   COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path') AS path
 FROM sessions_base,
      UNNEST(tool_calls) AS t(tc)
-WHERE tc->>'tool_name' IN ('read', 'write', 'edit')
+WHERE (tc->>'tool_name') IN ('read', 'write', 'edit')
 LIMIT 20;
 ```
 
-4. If you filter with `LIKE`, parenthesize the `->>` extraction:
+4. If you filter with a predicate, parenthesize the `->` / `->>` extraction:
 
 ```sql
 WHERE (tc->'input'->>'command') LIKE '%docmgr%'

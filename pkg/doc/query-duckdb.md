@@ -20,6 +20,8 @@ All examples assume an archive at `./output/active/*/*.minitrace.json`. Adjust t
 
 One annotation-specific nuance is worth stating up front: `go-minitrace query duckdb` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first so those annotation changes are present in the archive.
 
+One DuckDB-specific nuance is also worth stating before the examples: JSON arrow operators (`->` / `->>`) have low precedence. Inside predicates such as `WHERE`, `AND`, and `OR`, parenthesize JSON-arrow extractions so the expression is grouped the way you intend.
+
 ## Using built-in presets
 
 List all sessions sorted by start time:
@@ -107,7 +109,7 @@ go-minitrace query duckdb \
       CAST(timing->>'hour_of_day' AS INT) AS hour,
       COUNT(*) AS sessions
     FROM sessions_base
-    WHERE timing->>'hour_of_day' IS NOT NULL
+    WHERE (timing->>'hour_of_day') IS NOT NULL
     GROUP BY hour
     ORDER BY hour
   "
@@ -125,7 +127,7 @@ go-minitrace query duckdb \
       CAST(metrics->>'turn_count' AS INT) AS turns,
       CAST(metrics->>'tool_call_count' AS INT) AS tools
     FROM sessions_base
-    WHERE provenance->>'source_format' NOT LIKE '%subagent%'
+    WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
     ORDER BY hours DESC
     LIMIT 10
   "
@@ -139,7 +141,7 @@ go-minitrace query duckdb \
   --sql "
     SELECT COUNT(*) AS main_sessions
     FROM sessions_base
-    WHERE provenance->>'source_format' NOT LIKE '%subagent%'
+    WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
   "
 ```
 

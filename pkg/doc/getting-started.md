@@ -135,6 +135,8 @@ go-minitrace query duckdb \
 
 Once you are comfortable with the presets, write your own SQL. The converted sessions are loaded into a table called `sessions_base` with nested JSON columns that you access using DuckDB's `->>'field'` operator.
 
+When you use DuckDB JSON arrow operators (`->` / `->>`) inside predicates, parenthesize the extraction. The arrow operators have low precedence, so `(provenance->>'source_format') NOT LIKE '%subagent%'` is safer and clearer than relying on implicit grouping.
+
 Count your sessions:
 
 ```bash
