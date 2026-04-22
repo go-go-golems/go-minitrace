@@ -339,7 +339,11 @@ Types outside this set may work on the CLI but the web form will not render them
 
 ## See also
 
-- `go-minitrace help structured-query-commands` — authoring guide for JS command files
-- `go-minitrace help writing-duckdb-queries` — SQL patterns for the `sessions_base` schema
-- `testdata/query-repositories/js-showcase/` — worked examples
-- `testdata/query-repositories/mixed-sql-js-showcase/` — mixed SQL and JS repositories
+- `go-minitrace help structured-query-commands` — authoring guide: scanner markers, file-to-CLI path convention, repository layout, aliases
+- `go-minitrace help analysis-guide` — end-to-end workflow covering when to use JS vs SQL and the full authoring loop
+- `go-minitrace help writing-duckdb-queries` — SQL patterns for the `sessions_base` schema, JSON access, UNNEST, casting
+- `go-minitrace help duckdb-query-recipes` — ready-to-use SQL examples that can be ported to `mt.query()` in JS
+- `go-minitrace help query-duckdb` — preset list, `--sql-file`, archive loading flags for running ad hoc queries alongside JS commands
+- `go-minitrace help getting-started` — step-by-step tutorial from install through first query
+- `testdata/query-repositories/js-showcase/` — worked examples demonstrating every practical JS pattern
+- `testdata/query-repositories/mixed-sql-js-showcase/` — side-by-side SQL and JS equivalents for direct comparison

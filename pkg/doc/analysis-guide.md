@@ -453,11 +453,13 @@ See `go-minitrace help duckdb-query-recipes` for more ready-to-use patterns and 
 
 ## See also
 
-- `go-minitrace help getting-started` — step-by-step first-run tutorial
+- `go-minitrace help getting-started` — shorter step-by-step tutorial from install through first query
 - `go-minitrace help overview` — architecture, format, and supported sources
-- `go-minitrace help structured-query-commands` — author reusable .sql and .js query commands
-- `go-minitrace help js-api-reference` — JavaScript runtime API for .js command handlers
+- `go-minitrace help js-api-reference` — complete JS runtime API for `.js` command handlers
+- `go-minitrace help structured-query-commands` — authoring guide for `.sql` and `.js` command files, repository layout, aliases
+- `go-minitrace help writing-duckdb-queries` — SQL patterns: JSON access, UNNEST, casting, annotation joins
+- `go-minitrace help query-duckdb` — preset list, `--sql-file`, and archive loading flags
+- `go-minitrace help duckdb-query-recipes` — ready-to-use SQL examples for common analysis patterns
 - `go-minitrace help annotation-playbook` — annotation workflow in depth
-- `go-minitrace help minitrace-schema` — every field in a minitrace session
-- `go-minitrace help duckdb-query-recipes` — ready-to-use SQL examples
+- `go-minitrace help minitrace-schema` — every field in a minitrace session document
 - `go-minitrace help convert-commands` — detailed reference for each conversion subcommand

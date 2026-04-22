@@ -489,8 +489,11 @@ The two approaches are complementary. Structured commands are the reusable layer
 
 ## See also
 
+- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.query()`, `mt.queryOne()`, `mt.tableName`, `mt.sql.*`, `mt.runtime`, all built-in modules, scanner markers, field types
+- `go-minitrace help analysis-guide` — end-to-end workflow with JS command guidance, authoring loop, and when to use JS vs SQL
+- `go-minitrace help query-duckdb` — worked examples for `query duckdb` alongside structured commands
+- `go-minitrace help duckdb-query-recipes` — ready-to-use SQL examples for porting into JS handlers
+- `go-minitrace help writing-duckdb-queries` — SQL patterns for the `sessions_base` schema: JSON access, UNNEST, casting
 - `go-minitrace help query-commands` — the raw DuckDB query group, presets, and custom SQL modes
-- `go-minitrace help query-duckdb` — worked examples for `query duckdb`
-- `go-minitrace help writing-duckdb-queries` — custom SQL guidance for the `sessions_base` schema
 - `go-minitrace help getting-started` — end-to-end first-run tutorial
 - `README.md` — project overview and quick-start commands
