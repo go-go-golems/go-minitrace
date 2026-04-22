@@ -118,7 +118,7 @@ WHERE CAST(metrics->>'turn_count' AS INT) > 10
 
 **What happened**: A query using `UNNEST(tool_calls)` or `UNNEST(turns)` produces no output.
 
-**Cause**: All matched sessions have empty arrays for the unnested column.
+**Cause**: All matched sessions have empty arrays for the unnested column, or your WHERE clause filters out all unnested rows.
 
 **Solution**: Check that your filter includes sessions that actually have tool calls or turns:
 
@@ -127,6 +127,65 @@ SELECT id, CAST(metrics->>'tool_call_count' AS INT) AS tools
 FROM sessions_base
 WHERE CAST(metrics->>'tool_call_count' AS INT) > 0
 LIMIT 5;
+```
+
+If you are filtering on unnested tool-call fields, first verify the raw distribution without the extra WHERE clause:
+
+```sql
+SELECT tc->>'tool_name' AS tool, COUNT(*) AS uses
+FROM sessions_base,
+     UNNEST(tool_calls) AS t(tc)
+GROUP BY tool
+ORDER BY uses DESC;
+```
+
+### DuckDB JSON[] sharp edges with tool_calls
+
+**What happened**: `tool_calls` looks present in the archive, but ad hoc SQL still returns `NULL`, odd results, or parser/type errors.
+
+**Cause**: `tool_calls`, `turns`, and `annotations` are loaded as DuckDB `JSON[]` columns. The most common problems are:
+
+- using `tool_calls[0]` as if lists were zero-based
+- applying JSON paths to the whole `tool_calls` container instead of unnested elements
+- guessing the wrong nested input field (`input.path` vs `input.file_path` vs `input.arguments.path`)
+- using `->>` together with `LIKE` without parentheses
+
+**Solution**:
+
+1. Prefer this pattern first:
+
+```sql
+SELECT tc->>'tool_name' AS tool
+FROM sessions_base,
+     UNNEST(tool_calls) AS t(tc)
+LIMIT 20;
+```
+
+2. Remember that DuckDB list indexing is 1-based:
+
+```sql
+SELECT
+  tool_calls[1]->>'tool_name' AS first_tool,
+  tool_calls[0]->>'tool_name' AS zeroth_tool
+FROM sessions_base
+LIMIT 1;
+```
+
+3. For file-oriented tools, use a path fallback instead of assuming `input.path` exists:
+
+```sql
+SELECT
+  COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path') AS path
+FROM sessions_base,
+     UNNEST(tool_calls) AS t(tc)
+WHERE tc->>'tool_name' IN ('read', 'write', 'edit')
+LIMIT 20;
+```
+
+4. If you filter with `LIKE`, parenthesize the `->>` extraction:
+
+```sql
+WHERE (tc->'input'->>'command') LIKE '%docmgr%'
 ```
 
 ## Validation issues

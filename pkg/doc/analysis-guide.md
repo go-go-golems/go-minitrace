@@ -413,15 +413,24 @@ ORDER BY month, framework;
 
 ```sql
 SELECT
-  tc->>'operation' AS operation,
+  tc->>'tool_name' AS tool,
+  tc->>'operation_type' AS operation,
   COUNT(*) AS calls,
-  COUNT(DISTINCT tc->>'session_id') AS sessions
+  COUNT(DISTINCT id) AS sessions
 FROM sessions_base,
-  LATERAL UNNEST(tool_calls) AS t(tc)
-GROUP BY operation
-ORDER BY calls DESC
+     UNNEST(tool_calls) AS t(tc)
+GROUP BY tool, operation
+ORDER BY calls DESC, tool ASC
 LIMIT 20;
 ```
+
+If you want to inspect file-oriented tool calls, prefer a path fallback like:
+
+```sql
+COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path')
+```
+
+See `go-minitrace help writing-duckdb-queries` for the JSON[] caveats, 1-based list indexing, and additional nested-field examples.
 
 ### Sessions with highest tool-call density (tools per turn)
 
@@ -446,11 +455,11 @@ SELECT
   id,
   title,
   tc->>'tool_name' AS tool,
-  tc->>'operation' AS operation,
-  tc->>'error' AS error
+  tc->>'operation_type' AS operation,
+  tc->'output'->>'error' AS error
 FROM sessions_base,
-  LATERAL UNNEST(tool_calls) AS t(tc)
-WHERE tc->>'status' = 'error'
+     UNNEST(tool_calls) AS t(tc)
+WHERE COALESCE(tc->'output'->>'success', 'true') = 'false'
 ORDER BY timing->>'started_at' DESC;
 ```
 

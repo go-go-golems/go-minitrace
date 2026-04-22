@@ -72,37 +72,100 @@ GROUP BY framework;
 
 ## Working with arrays: UNNEST
 
-The `turns`, `tool_calls`, and `annotations` columns are JSON arrays. To query individual elements, use `UNNEST`:
+The `turns`, `tool_calls`, and `annotations` columns are loaded as DuckDB `JSON[]` columns. The normal way to query individual elements is to `UNNEST` the array first:
 
 ```sql
 -- Count tool calls by name across all sessions
 SELECT
-  REPLACE(CAST(json_extract(tc, '$.tool_name') AS VARCHAR), '"', '') AS tool_name,
+  tc->>'tool_name' AS tool_name,
   COUNT(*) AS invocations
 FROM sessions_base,
-UNNEST(tool_calls) AS t(tc)
+     UNNEST(tool_calls) AS t(tc)
 GROUP BY tool_name
 ORDER BY invocations DESC;
 ```
 
-The `UNNEST(tool_calls) AS t(tc)` clause expands each tool call array element into a row. The variable `tc` holds one JSON element that you can query with `json_extract()`.
+The `UNNEST(tool_calls) AS t(tc)` clause expands each tool call array element into a row. The variable `tc` holds one JSON element that you can query with either `->>` or `json_extract()`.
 
 ### Extracting fields from array elements
 
-Inside an unnested element, use `json_extract(element, '$.field')`:
+Once you have unnested into an element like `tc`, both of these patterns are valid:
 
 ```sql
--- Tool call details
-json_extract(tc, '$.tool_name')      -- tool name
-json_extract(tc, '$.operation_type') -- READ, MODIFY, etc.
-json_extract(tc, '$.output.success') -- whether it succeeded
-json_extract(tc, '$.timestamp')      -- when it ran
+-- Direct JSON extraction with ->>
+tc->>'tool_name'
+tc->>'operation_type'
+tc->'output'->>'error'
+```
+
+```sql
+-- Equivalent json_extract() style
+json_extract(tc, '$.tool_name')
+json_extract(tc, '$.operation_type')
+json_extract(tc, '$.output.success')
+json_extract(tc, '$.timestamp')
 ```
 
 For string extraction from within `json_extract`, wrap in `CAST(... AS VARCHAR)` and strip quotes:
 
 ```sql
 REPLACE(CAST(json_extract(tc, '$.tool_name') AS VARCHAR), '"', '') AS tool_name
+```
+
+### Important sharp edges: JSON[] container vs element access
+
+A few DuckDB behaviors are easy to miss when you are exploring ad hoc:
+
+1. **List indexing is 1-based**
+   - `tool_calls[1]` is the first element
+   - `tool_calls[0]` returns `NULL`
+2. **Prefer unnesting before applying JSON paths**
+   - `UNNEST(tool_calls) AS t(tc)` is the most reliable pattern
+   - container-level expressions like `json_extract(tool_calls, '$[0].tool_name')` are easy to misread and often do not behave the way users expect
+
+Examples:
+
+```sql
+-- First element by direct list indexing (1-based)
+SELECT
+  tool_calls[1]->>'tool_name' AS first_tool,
+  tool_calls[0]->>'tool_name' AS zeroth_tool
+FROM sessions_base
+LIMIT 1;
+```
+
+```sql
+-- Recommended pattern: unnest first, then query each element
+SELECT
+  tc->>'tool_name' AS tool_name,
+  tc->>'operation_type' AS operation_type
+FROM sessions_base,
+     UNNEST(tool_calls) AS t(tc)
+LIMIT 20;
+```
+
+### Querying tool-call inputs safely
+
+Tool input fields vary a bit by tool. A few patterns are especially useful in practice:
+
+```sql
+-- Normalized path when available, otherwise raw argument path
+COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path')
+
+-- Shell commands
+(tc->'input'->>'command')
+
+-- Search queries or other tool-specific arguments
+(tc->'input'->'arguments'->>'query')
+```
+
+That `COALESCE(...)` pattern is the safest default when you are inspecting read/write/edit-style calls, because many adapters normalize the path to `input.file_path` while still preserving the raw original payload under `input.arguments`.
+
+One more DuckDB parser sharp edge is worth calling out explicitly: when using `->>` together with `LIKE`, wrap the extraction in parentheses.
+
+```sql
+-- Safer than writing tc->'input'->>'command' LIKE ... directly
+WHERE (tc->'input'->>'command') LIKE '%docmgr%'
 ```
 
 ### Querying annotations
