@@ -151,7 +151,7 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `id` | string | Unique tool call identifier |
 | `emitting_turn_index` | int? | Index of the turn that triggered this call |
 | `timestamp` | string? | When the tool was invoked |
-| `tool_name` | string | Name of the tool: `Read`, `Edit`, `Bash`, `Write`, `Grep`, `Agent`, etc. |
+| `tool_name` | string | Name of the tool, for example `read`, `edit`, `bash`, `write`, `grep`, `agent`. Exact naming and casing can vary by adapter, so prefer checking real data instead of assuming one canonical case. |
 | `operation_type` | string | Normalized operation: `READ`, `MODIFY`, `NEW`, `EXECUTE`, `DELEGATE`, `OTHER` |
 | `input` | object | Tool input (see below) |
 | `output` | object | Tool output (see below) |
@@ -167,6 +167,26 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `command` | string? | Shell command if applicable |
 | `justification` | string? | Tool-use rationale if the source transcript provides one |
 | `arguments` | any? | Full arguments blob |
+
+A practical querying note: `input.file_path` is the normalized shared field when the adapter can provide one, while `input.arguments` preserves the tool-specific raw payload. In SQL, that often means the safest file-oriented pattern is:
+
+```sql
+COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path')
+```
+
+Likewise, shell tools often use:
+
+```sql
+(tc->'input'->>'command')
+```
+
+and tools such as web search may expose their key values under `input.arguments`, for example:
+
+```sql
+(tc->'input'->'arguments'->>'query')
+```
+
+Do not assume every tool uses the same nested keys. When in doubt, inspect a bounded preview of one unnested tool call first.
 
 ### Tool Call Output
 

@@ -236,7 +236,7 @@ __verb__("sessionList", {
 });
 ```
 
-The filename stem (`overview/session-tools`) becomes a CLI group, and each `__verb__` name (`session-list`) becomes a leaf command:
+The filename stem (`overview/session-tools`) usually becomes a CLI group, and each `__verb__` name (`session-list`) becomes a leaf command:
 
 ```bash
 go-minitrace query commands overview session-tools session-list \
@@ -278,10 +278,15 @@ go-minitrace query commands \
 
 1. Create a repository directory: `mkdir -p ./my-commands/overview`
 2. Write the `.js` file (copy from the showcase and adapt)
-3. Verify the command surface: `go-minitrace query commands <group> <name> --help`
-4. Run it: `go-minitrace query commands <group> <name> --archive-glob ...`
+3. Verify the command surface: `go-minitrace query commands <group...> <leaf> --help`
+4. Run it: `go-minitrace query commands <group...> <leaf> --archive-glob ...`
 5. Open `go-minitrace serve --archive-glob ...` and use the Commands sidebar and debug panels in `/query`
 6. Add an alias (`.alias.yaml`) only after the base command is solid
+
+For JS files, remember the path rule precisely:
+
+- multi-verb or differently named JS files keep the extra file-stem level, e.g. `overview session-tools session-list`
+- self-named single-verb JS files collapse the redundant extra level, e.g. `hardware-research/research-summary.js` with a single `research-summary` verb runs as `hardware-research research-summary`
 
 ### Multi-framework analysis
 
@@ -408,15 +413,24 @@ ORDER BY month, framework;
 
 ```sql
 SELECT
-  tc->>'operation' AS operation,
+  tc->>'tool_name' AS tool,
+  tc->>'operation_type' AS operation,
   COUNT(*) AS calls,
-  COUNT(DISTINCT tc->>'session_id') AS sessions
+  COUNT(DISTINCT id) AS sessions
 FROM sessions_base,
-  LATERAL UNNEST(tool_calls) AS t(tc)
-GROUP BY operation
-ORDER BY calls DESC
+     UNNEST(tool_calls) AS t(tc)
+GROUP BY tool, operation
+ORDER BY calls DESC, tool ASC
 LIMIT 20;
 ```
+
+If you want to inspect file-oriented tool calls, prefer a path fallback like:
+
+```sql
+COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path')
+```
+
+See `go-minitrace help writing-duckdb-queries` for the JSON[] caveats, 1-based list indexing, and additional nested-field examples.
 
 ### Sessions with highest tool-call density (tools per turn)
 
@@ -441,11 +455,11 @@ SELECT
   id,
   title,
   tc->>'tool_name' AS tool,
-  tc->>'operation' AS operation,
-  tc->>'error' AS error
+  tc->>'operation_type' AS operation,
+  tc->'output'->>'error' AS error
 FROM sessions_base,
-  LATERAL UNNEST(tool_calls) AS t(tc)
-WHERE tc->>'status' = 'error'
+     UNNEST(tool_calls) AS t(tc)
+WHERE COALESCE(tc->'output'->>'success', 'true') = 'false'
 ORDER BY timing->>'started_at' DESC;
 ```
 

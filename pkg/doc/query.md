@@ -178,6 +178,20 @@ The loaded table has these columns, all derived from the minitrace JSON schema:
 
 Use `->>'field'` to extract string values from JSON columns, then CAST to the appropriate type for numeric operations.
 
+For the array columns, the normal access pattern is:
+
+```sql
+SELECT tc->>'tool_name'
+FROM sessions_base,
+     UNNEST(tool_calls) AS t(tc)
+LIMIT 20;
+```
+
+Two small but important DuckDB details:
+
+- these array columns are loaded as `JSON[]`, so unnesting first is usually the clearest approach
+- DuckDB list indexing is **1-based**, so `tool_calls[1]` is the first element, not `tool_calls[0]`
+
 ### Querying annotations correctly
 
 The `annotations` column is a JSON array in the loaded archive. To work with it, unnest the array and then extract fields from each annotation object.

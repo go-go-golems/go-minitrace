@@ -7,6 +7,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
 
 func TestNewCommandsCommand_IncludesEmbeddedCommandsAsFolderGroups(t *testing.T) {
@@ -238,6 +241,148 @@ __verb__("sessionList", {
 	}
 }
 
+func TestNewCommandsCommand_SelfNamedSingleVerbJSCommandUsesCollapsedPath(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "hardware-research"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
+__section__("filters", {
+  fields: {
+    limit: { type: "int", default: 5 }
+  }
+});
+
+function researchSummary(filters) {
+  const mt = require("minitrace");
+  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT ${filters.limit}`+"`"+`);
+}
+
+__verb__("researchSummary", {
+  name: "research-summary",
+  short: "Generate summary",
+  fields: {
+    filters: { bind: "filters" }
+  }
+});
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile(js) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+	found, _, err := cmd.Find([]string{"hardware-research", "research-summary"})
+	if err != nil {
+		t.Fatalf("Find collapsed path returned error: %v", err)
+	}
+	if found == nil || found.Name() != "research-summary" || !found.Runnable() {
+		t.Fatalf("expected runnable collapsed command, got %#v", found)
+	}
+
+	archiveGlob := writeCommandsFixtureArchive(t)
+	buf := &bytes.Buffer{}
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs([]string{"hardware-research", "research-summary", "--archive-glob", archiveGlob, "--limit", "1"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute collapsed path returned error: %v\noutput:\n%s", err, buf.String())
+	}
+	// Execution success is the main contract here; glazed's processor output is not guaranteed to honor cmd.SetOut.
+}
+
+func TestNewCommandsCommand_SelfNamedSingleVerbJSCommandKeepsExpandedPathWhenSiblingDirectoryHasNestedCommands(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "hardware-research", "research-summary"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
+function researchSummary() {
+  const mt = require("minitrace");
+  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+}
+
+__verb__("researchSummary", {
+  name: "research-summary",
+  short: "Generate summary"
+});
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile(js) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary", "extra.sql"), []byte(`/* sqleton
+name: extra
+short: Nested extra command
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
+		t.Fatalf("WriteFile(sql) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	// The JS command must fall back to the pre-collapse path so the sibling directory
+	// can remain a command group.
+	found, _, err := cmd.Find([]string{"hardware-research", "research-summary", "research-summary"})
+	if err != nil {
+		t.Fatalf("Find expanded JS path returned error: %v", err)
+	}
+	if found == nil || found.Name() != "research-summary" {
+		t.Fatalf("expected expanded JS command under hardware-research/research-summary/research-summary, got %#v", found)
+	}
+
+	found, _, err = cmd.Find([]string{"hardware-research", "research-summary", "extra"})
+	if err != nil {
+		t.Fatalf("Find nested SQL path returned error: %v", err)
+	}
+	if found == nil || found.Name() != "extra" {
+		t.Fatalf("expected nested SQL command under hardware-research/research-summary/extra, got %#v", found)
+	}
+}
+
+func TestNewCommandsCommand_SelfNamedSingleChildGroupHelpShowsRuntimeFlags(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "hardware-research"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
+function researchSummary() {
+  const mt = require("minitrace");
+  return mt.query(`+"`"+`SELECT 1 AS ok FROM ${mt.tableName} LIMIT 1`+"`"+`);
+}
+
+__verb__("researchSummary", {
+  name: "research-summary",
+  short: "Generate summary"
+});
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile(js) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+	buf := &bytes.Buffer{}
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs([]string{"hardware-research", "research-summary", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute shorthand help returned error: %v\noutput:\n%s", err, buf.String())
+	}
+	output := buf.String()
+	for _, needle := range []string{"Generate summary", "archive-glob", "db-path", "table-name", "persist-loaded", "hardware-research research-summary"} {
+		if !strings.Contains(output, needle) {
+			t.Fatalf("shorthand help missing %q\noutput:\n%s", needle, output)
+		}
+	}
+}
+
 func TestNewCommandsCommand_RejectsLeafGroupNameCollision(t *testing.T) {
 	setIsolatedConfigHome(t)
 	repo := t.TempDir()
@@ -386,6 +531,37 @@ func TestNewCommandsCommand_LoadsMixedSQLJSShowcaseRepo(t *testing.T) {
 		}
 	}
 }
+
+func writeCommandsFixtureArchive(t *testing.T) string {
+	t.Helper()
+	archiveRoot := t.TempDir()
+	session := buildCommandsFixtureSession(t)
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+	return filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
+}
+
+func buildCommandsFixtureSession(t *testing.T) *minitrace.Session {
+	t.Helper()
+	ts := time.Date(2026, 4, 1, 9, 30, 0, 0, time.UTC)
+	formatted := minitrace.FormatTimestamp(ts)
+	turn := minitrace.BuildTurn(0, &formatted, "user", commandsStringPtr("human"), "hello from fixture")
+
+	session := minitrace.BuildSessionSkeleton("fixture-session", "codex", "fixture", "test")
+	session.Title = commandsStringPtr("Fixture Session")
+	session.Environment.Model = commandsStringPtr("gpt-5")
+	session.Turns = []minitrace.Turn{turn}
+	session.ToolCalls = []minitrace.ToolCall{}
+	session.Annotations = []minitrace.Annotation{}
+	session.Timing = minitrace.ComputeTiming([]time.Time{ts})
+	quality := minitrace.AssignQualityTier(session.Turns, session.ToolCalls)
+	session.Quality = &quality
+	session.Metrics = minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, 0, nil)
+	return &session
+}
+
+func commandsStringPtr(value string) *string { return &value }
 
 func setIsolatedConfigHome(t *testing.T) {
 	t.Helper()

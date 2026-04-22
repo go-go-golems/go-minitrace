@@ -106,11 +106,33 @@ __verb__("frameworkSummary", {
 	}
 }
 
-func TestLoadCatalog_RejectsDuplicateLogicalCommandPathAcrossSQLAndJS(t *testing.T) {
+func TestParseJSCommandSpecs_CollapsesSelfNamedSingleVerbPath(t *testing.T) {
+	parsed, err := ParseJSCommandSpecs("overview/research-summary.js", []byte(`
+function researchSummary() {
+  return { ok: true };
+}
+
+__verb__("researchSummary", {
+  name: "research-summary",
+  short: "Generate summary"
+});
+`))
+	if err != nil {
+		t.Fatalf("ParseJSCommandSpecs returned error: %v", err)
+	}
+	if len(parsed) != 1 {
+		t.Fatalf("len(parsed) = %d, want 1", len(parsed))
+	}
+	if parsed[0].Path != "overview/research-summary" {
+		t.Fatalf("Path = %q, want overview/research-summary", parsed[0].Path)
+	}
+}
+
+func TestLoadCatalog_RejectsDuplicateLogicalCommandPathAcrossSQLAndCollapsedSelfNamedJS(t *testing.T) {
 	_, err := LoadCatalog([]SourceRoot{{
 		Name: "embedded",
 		FS: fstest.MapFS{
-			"queries/overview/session-list/session-list.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+			"queries/overview/session-list.sql": &fstest.MapFile{Data: []byte(`/* sqleton
 name: session-list
 short: SQL list
 */
