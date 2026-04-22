@@ -293,6 +293,57 @@ __verb__("researchSummary", {
 	// Execution success is the main contract here; glazed's processor output is not guaranteed to honor cmd.SetOut.
 }
 
+func TestNewCommandsCommand_SelfNamedSingleVerbJSCommandKeepsExpandedPathWhenSiblingDirectoryHasNestedCommands(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "hardware-research", "research-summary"), 0o755); err != nil {
+		t.Fatalf("MkdirAll returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
+function researchSummary() {
+  const mt = require("minitrace");
+  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+}
+
+__verb__("researchSummary", {
+  name: "research-summary",
+  short: "Generate summary"
+});
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile(js) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary", "extra.sql"), []byte(`/* sqleton
+name: extra
+short: Nested extra command
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
+		t.Fatalf("WriteFile(sql) returned error: %v", err)
+	}
+
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+
+	// The JS command must fall back to the pre-collapse path so the sibling directory
+	// can remain a command group.
+	found, _, err := cmd.Find([]string{"hardware-research", "research-summary", "research-summary"})
+	if err != nil {
+		t.Fatalf("Find expanded JS path returned error: %v", err)
+	}
+	if found == nil || found.Name() != "research-summary" {
+		t.Fatalf("expected expanded JS command under hardware-research/research-summary/research-summary, got %#v", found)
+	}
+
+	found, _, err = cmd.Find([]string{"hardware-research", "research-summary", "extra"})
+	if err != nil {
+		t.Fatalf("Find nested SQL path returned error: %v", err)
+	}
+	if found == nil || found.Name() != "extra" {
+		t.Fatalf("expected nested SQL command under hardware-research/research-summary/extra, got %#v", found)
+	}
+}
+
 func TestNewCommandsCommand_SelfNamedSingleChildGroupHelpShowsRuntimeFlags(t *testing.T) {
 	setIsolatedConfigHome(t)
 	repo := t.TempDir()

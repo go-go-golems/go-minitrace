@@ -74,6 +74,9 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 			if err != nil {
 				return err
 			}
+			if kind == SourceJSCommand {
+				parsed = expandCollapsedSelfNamedJSPathIfNestedSources(root.FS, path, rel, parsed)
+			}
 			if len(parsed) == 0 {
 				return nil
 			}
@@ -169,6 +172,46 @@ func commandLogicalPath(cmd *MinitraceCommand) string {
 		return cmd.Name
 	}
 	return cmd.Folder + "/" + cmd.Name
+}
+
+func expandCollapsedSelfNamedJSPathIfNestedSources(fsys fs.FS, sourcePath, rel string, parsed []ParsedCommandSpec) []ParsedCommandSpec {
+	if len(parsed) != 1 || parsed[0].Spec == nil || parsed[0].Spec.Runtime != CommandRuntimeJS {
+		return parsed
+	}
+
+	spec := parsed[0].Spec
+	collapsedPath := jsCommandPath(rel, spec.Name, true)
+	expandedPath := jsCommandPath(rel, spec.Name, false)
+	if collapsedPath == expandedPath || parsed[0].Path != collapsedPath {
+		return parsed
+	}
+
+	siblingDir := strings.TrimSuffix(filepath.ToSlash(sourcePath), filepath.Ext(sourcePath))
+	if !hasNestedCommandSources(fsys, siblingDir) {
+		return parsed
+	}
+
+	ret := append([]ParsedCommandSpec(nil), parsed...)
+	ret[0].Path = expandedPath
+	return ret
+}
+
+func hasNestedCommandSources(fsys fs.FS, dir string) bool {
+	found := false
+	_ = fs.WalkDir(fsys, dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if DetectSourceKind(path) != SourceUnknown {
+			found = true
+			return fs.SkipAll
+		}
+		return nil
+	})
+	return found
 }
 
 func uniqueSourceRootKey(name string, roots map[string]SourceRoot) string {
