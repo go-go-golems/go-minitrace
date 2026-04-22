@@ -187,7 +187,11 @@ go-minitrace query duckdb \
 
 ## See also
 
+- `go-minitrace help js-api-reference` — run the same SQL patterns inside `mt.query()` in JS command handlers
+- `go-minitrace help analysis-guide` — end-to-end workflow with preset guidance and output format examples
+- `go-minitrace help structured-query-commands` — promote useful queries into named, reusable structured commands with typed flags
+- `go-minitrace help duckdb-query-recipes` — more ready-to-use query examples
+- `go-minitrace help writing-duckdb-queries` — DuckDB JSON syntax, UNNEST, casting, and annotation joins
 - `go-minitrace help query-commands` — full flag reference
-- `go-minitrace help writing-duckdb-queries` — DuckDB JSON syntax and query patterns
-- `go-minitrace help duckdb-query-recipes` — more query recipes
 - `go-minitrace help annotation-playbook` — correct sync-first workflow when querying annotations created through the CLI
+- `go-minitrace help getting-started` — step-by-step tutorial that uses `query duckdb` from the start

@@ -205,11 +205,15 @@ go-minitrace help annotation-playbook
 
 ## Next steps
 
+- `go-minitrace help analysis-guide` — comprehensive end-to-end workflow: discover, convert, query, annotate, serve
+- `go-minitrace help js-api-reference` — JavaScript runtime API for `.js` command handlers
+- `go-minitrace help structured-query-commands` — author reusable `.sql` and `.js` query commands with typed flags
+- `go-minitrace help duckdb-query-recipes` — ready-to-use queries for common questions
+- `go-minitrace help writing-duckdb-queries` — learn DuckDB JSON operators and query patterns
+- `go-minitrace help query-duckdb` — preset list, `--sql-file`, and archive loading flags reference
 - `go-minitrace help annotation-playbook` — step-by-step workflow for adding, syncing, and querying annotations correctly
 - `go-minitrace help minitrace-schema` — understand every field in a session
-- `go-minitrace help writing-duckdb-queries` — learn DuckDB JSON operators and query patterns
 - `go-minitrace help convert-commands` — detailed reference for each conversion subcommand
-- `go-minitrace help duckdb-query-recipes` — ready-to-use queries for common questions
 - `go-minitrace help troubleshooting` — solutions for common errors
 
 ## Troubleshooting
