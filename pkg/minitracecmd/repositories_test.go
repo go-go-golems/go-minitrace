@@ -2,6 +2,7 @@ package minitracecmd
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -18,7 +19,7 @@ func TestLoadAppConfigFromPath_LoadsQueryRepositories(t *testing.T) {
 		t.Fatalf("loadAppConfigFromPath returned error: %v", err)
 	}
 
-	want := []string{"./queries/team", "./queries/shared"}
+	want := []string{filepath.Join(dir, "queries/team"), filepath.Join(dir, "queries/shared")}
 	if len(cfg.QueryRepositories) != len(want) {
 		t.Fatalf("QueryRepositories length = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
 	}
@@ -45,7 +46,7 @@ func TestCollectRepositoryPaths_PrioritizesFlagsThenEnvThenConfig(t *testing.T) 
 	}
 
 	got := collectRepositoryPaths(cfg, flagPaths)
-	want := []string{"flag-a", "shared", "env-a", "config-a"}
+	want := []string{"flag-a", "shared", "env-a", filepath.Join(dir, "config-a"), filepath.Join(dir, "shared")}
 	if len(got) != len(want) {
 		t.Fatalf("len(got) = %d, want %d (%#v)", len(got), len(want), got)
 	}
@@ -72,7 +73,7 @@ func TestLoadAppConfigFromPaths_OverlaysLaterFiles(t *testing.T) {
 		t.Fatalf("loadAppConfigFromPaths returned error: %v", err)
 	}
 
-	want := []string{"user-a", "shared"}
+	want := []string{filepath.Join(dir, "user-a"), filepath.Join(dir, "shared")}
 	if len(cfg.QueryRepositories) != len(want) {
 		t.Fatalf("len(cfg.QueryRepositories) = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
 	}
@@ -99,13 +100,113 @@ func TestLoadAppConfigFromPaths_KeepsEarlierValuesWhenLaterFileOmitsField(t *tes
 		t.Fatalf("loadAppConfigFromPaths returned error: %v", err)
 	}
 
-	want := []string{"base-a", "shared"}
+	want := []string{filepath.Join(dir, "base-a"), filepath.Join(dir, "shared")}
 	if len(cfg.QueryRepositories) != len(want) {
 		t.Fatalf("len(cfg.QueryRepositories) = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
 	}
 	for i, path := range want {
 		if cfg.QueryRepositories[i] != path {
 			t.Fatalf("cfg.QueryRepositories[%d] = %q, want %q", i, cfg.QueryRepositories[i], path)
+		}
+	}
+}
+
+func TestLoadAppConfigFromPath_KeepsEnvAndHomeRelativePathsUnresolved(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(configPath, []byte("queryRepositories:\n  - $HOME/queries\n  - ~/queries\n  - /absolute/queries\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+
+	cfg, err := loadAppConfigFromPath(configPath)
+	if err != nil {
+		t.Fatalf("loadAppConfigFromPath returned error: %v", err)
+	}
+
+	want := []string{"$HOME/queries", "~/queries", "/absolute/queries"}
+	if len(cfg.QueryRepositories) != len(want) {
+		t.Fatalf("QueryRepositories length = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
+	}
+	for i, path := range want {
+		if cfg.QueryRepositories[i] != path {
+			t.Fatalf("QueryRepositories[%d] = %q, want %q", i, cfg.QueryRepositories[i], path)
+		}
+	}
+}
+
+func TestResolveAppConfigPaths_IncludesGitRootAndWorkingDirLocalConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+
+	repoRoot := t.TempDir()
+	if err := exec.Command("git", "-C", repoRoot, "init").Run(); err != nil {
+		t.Fatalf("git init returned error: %v", err)
+	}
+	subdir := filepath.Join(repoRoot, "subdir")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(subdir) returned error: %v", err)
+	}
+	gitRootConfig := filepath.Join(repoRoot, LocalOverrideFileName)
+	cwdOverrideConfig := filepath.Join(subdir, LocalProjectOverrideFileName)
+	if err := os.WriteFile(gitRootConfig, []byte("queryRepositories:\n  - ./repo-queries\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(gitRootConfig) returned error: %v", err)
+	}
+	if err := os.WriteFile(cwdOverrideConfig, []byte("queryRepositories:\n  - ./cwd-private\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(cwdOverrideConfig) returned error: %v", err)
+	}
+
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(subdir); err != nil {
+		t.Fatalf("Chdir returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(oldwd) })
+
+	paths, err := resolveAppConfigPaths("go-minitrace")
+	if err != nil {
+		t.Fatalf("resolveAppConfigPaths returned error: %v", err)
+	}
+	want := []string{gitRootConfig, cwdOverrideConfig}
+	if len(paths) != len(want) {
+		t.Fatalf("len(paths) = %d, want %d (%#v)", len(paths), len(want), paths)
+	}
+	for i, path := range want {
+		if paths[i] != filepath.Clean(path) {
+			t.Fatalf("paths[%d] = %q, want %q (all=%#v)", i, paths[i], filepath.Clean(path), paths)
+		}
+	}
+}
+
+func TestLoadAppConfigFromPaths_LocalOverrideReplacesGitRootRepositories(t *testing.T) {
+	repoRoot := t.TempDir()
+	subdir := filepath.Join(repoRoot, "subdir")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(subdir) returned error: %v", err)
+	}
+	gitRootConfig := filepath.Join(repoRoot, LocalOverrideFileName)
+	cwdOverrideConfig := filepath.Join(subdir, LocalProjectOverrideFileName)
+	if err := os.WriteFile(gitRootConfig, []byte("queryRepositories:\n  - ./repo-queries\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(gitRootConfig) returned error: %v", err)
+	}
+	if err := os.WriteFile(cwdOverrideConfig, []byte("queryRepositories:\n  - ./cwd-private\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(cwdOverrideConfig) returned error: %v", err)
+	}
+
+	cfg, err := loadAppConfigFromPaths([]string{gitRootConfig, cwdOverrideConfig})
+	if err != nil {
+		t.Fatalf("loadAppConfigFromPaths returned error: %v", err)
+	}
+
+	want := []string{filepath.Join(subdir, "cwd-private")}
+	if len(cfg.QueryRepositories) != len(want) {
+		t.Fatalf("QueryRepositories length = %d, want %d (%#v)", len(cfg.QueryRepositories), len(want), cfg.QueryRepositories)
+	}
+	for i, path := range want {
+		if cfg.QueryRepositories[i] != path {
+			t.Fatalf("QueryRepositories[%d] = %q, want %q", i, cfg.QueryRepositories[i], path)
 		}
 	}
 }
