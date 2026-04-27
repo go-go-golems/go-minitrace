@@ -1,45 +1,71 @@
 # go-minitrace
 
-> **Turn months of AI agent sessions into answers — without drowning in JSON.**
+A transcript analysis toolkit that converts AI agent sessions into queryable archives and lets you build reusable analysis tooling with SQL and JavaScript.
 
-**go-minitrace** is a Glazed-based Go port of [minitrace](https://github.com/fukami/minitrace) that converts session stores from Claude Code, Codex, Pi, claude.ai, ChatGPT, and Geppetto/Pinocchio into structured, queryable archives — then gives you SQL, JavaScript, and a web UI to actually make sense of them.
-
-If you've ever tried to answer "what changed?" by scrolling through raw transcripts, you already know the problem. go-minitrace treats transcript analysis as a **reduction pipeline**, not a reading task.
+**The core problem it solves:** when something breaks in a codebase you've worked on for months, the question is rarely "what changed?" — it's "what did this look like when it worked, and which sessions show the transition?" go-minitrace treats transcript analysis as a **reduction pipeline**, not a reading task.
 
 ---
 
-## What it looks like
+## What it does
 
-### Browse every session you've ever had
+go-minitrace converts raw session stores into structured `.minitrace.json` archives, then provides DuckDB-backed querying, reusable structured commands, and a web UI to explore the results.
 
-![Sessions list](screenshot-1-sessions-list.png)
+Supported sources: Claude Code, Codex, Pi, claude.ai, ChatGPT, Geppetto/Pinocchio.
 
-### Drill into a single conversation — complete with tool calls, annotations, and turns
+## Installation
 
-![Session detail](screenshot-2-session-detail.png)
+```bash
+# Homebrew
+brew tap go-go-golems/go-go-go
+brew install go-minitrace
 
-### Query with SQL, run reusable commands, and explore your history programmatically
+# Go install
+go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
 
-![Query editor](screenshot-3-query-editor.png)
+# From source
+git clone https://github.com/go-go-golems/go-minitrace.git
+cd go-minitrace
+go generate ./...
+go build ./...
+```
 
-### Get results in milliseconds
+## Quick start
 
-![Query results](screenshot-4-query-results.png)
+```bash
+# Convert sessions into queryable archives
+go-minitrace convert claude-code --output-dir ./output
+go-minitrace convert pi --output-dir ./output
+
+# Query with built-in presets (no SQL required)
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --preset session-list
+
+# Run a structured command
+go-minitrace query commands overview session-list \
+  --archive-glob './output/active/*/*.minitrace.json'
+
+# Start the web UI
+go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
+```
 
 ---
 
-## The three-layer funnel
+## Why this exists
 
-The most effective way to use go-minitrace is not as "DuckDB over JSON" but as a **three-stage reduction pipeline**. Every stage should reduce entropy:
+A common mistake when debugging with historical sessions is treating every transcript as equally important. That leads to two failures:
+
+1. **Token waste** — too much raw material, too little structure.
+2. **Reasoning waste** — the investigator spends time rediscovering the same filters, archive globs, and path patterns instead of asking progressively better questions.
+
+go-minitrace is most effective when treated as a **small analysis framework**, not a one-off SQL runner. The recommended workflow is a three-layer reduction funnel:
 
 ```
-┌─────────────────────┐     ┌──────────────────┐     ┌──────────────┐
-│  Native session     │────▶│  .minitrace.json │────▶│  DuckDB      │
-│  stores (noisy)     │     │  archives        │     │  table       │
-└─────────────────────┘     └──────────────────┘     └──────────────┘
-                                                              │
-                              ┌─────────────────┐             │
-                              │  SQL leaves     │◀────────────┘
+Native session stores    →    .minitrace.json archives    →    DuckDB table
+                                (queryable)                     (structured)
+                                                                 │
+                              ┌─────────────────┐                │
+                              │  SQL leaves     │◀───────────────┘
                               │  (filter/search)│
                               └────────┬────────┘
                                        │
@@ -56,159 +82,88 @@ The most effective way to use go-minitrace is not as "DuckDB over JSON" but as a
                               └─────────────────┘
 ```
 
-1. **Inventory** — Find the 4 sessions that matter, not the 400 that don't.
-2. **Extract** — Pull only the tool calls that carry evidence (bash logs, file touches, git history).
-3. **Summarize** — Turn raw rows into a chronological narrative a human can act on.
+1. **Session inventory** — find the 4 sessions that matter, not the 400 that don't.
+2. **Evidence extraction** — pull only the tool calls that carry actual signal (bash output, file touches, git history).
+3. **Summarization** — turn raw rows into a chronological narrative a human can act on.
 
-This is how you answer questions like:
-
-- *"Did this transport stack ever work before?"*
-- *"Which files were touched when behavior changed?"*
-- *"What did the earlier investigator believe, and what evidence did they use?"*
+Every stage reduces entropy. The end result is not a dump — it's a report.
 
 ---
 
-## Install
+## The three query layers
 
-### Homebrew
+### 1. Built-in presets (no SQL required)
 
-```bash
-brew tap go-go-golems/go-go-go
-brew install go-minitrace
-```
+Six presets ship with go-minitrace for common questions:
 
-### Go install (from source)
-
-```bash
-go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
-```
-
-### Building from a checkout
-
-The embedded web UI is refreshed via `go generate` — no separate manual frontend step.
-
-```bash
-go generate ./...
-go build ./...
-```
-
----
-
-## Quick start
-
-### 1. Discover what you have
-
-```bash
-# Find Claude Code sessions
-go-minitrace discover claude-code --source-dir ~/.claude/projects
-
-# Find Codex sessions
-go-minitrace discover codex --source-dir ~/.codex
-
-# Find Pi sessions
-go-minitrace discover pi --source-dir ~/.pi/agent/sessions
-```
-
-### 2. Convert to queryable archives
-
-```bash
-go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./output
-go-minitrace convert codex --source-dir ~/.codex --output-dir ./output
-go-minitrace convert pi --source-dir ~/.pi/agent/sessions --output-dir ./output
-go-minitrace convert claude-ai --source ~/Downloads/data-2026-03-29-11-53-11-batch-0000.zip --output-dir ./output
-go-minitrace convert chatgpt --source ~/Downloads/chatgpt-export.zip --output-dir ./output
-go-minitrace convert turnsdb --source /tmp/turns.db --output-dir ./output
-```
-
-### 3. Query with built-in commands
-
-```bash
-go-minitrace query commands overview session-list \
-  --archive-glob './output/active/*/*.minitrace.json'
-
-go-minitrace query commands overview framework-summary \
-  --archive-glob './output/active/*/*.minitrace.json'
-```
-
-### 4. Start the web UI
-
-```bash
-go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
-# open http://localhost:8080
-```
-
-### 5. Run ad-hoc DuckDB SQL
+| Preset | Description |
+|--------|-------------|
+| `session-list` | One row per session: framework, model, turns, tools, duration |
+| `framework-summary` | Aggregate stats grouped by framework |
+| `tool-operation-breakdown` | Tool call counts by framework and operation type |
+| `timing-analysis` | Duration, active time, TTFA, and idle ratio by framework |
+| `read-ratio-distribution` | Read/write/execute breakdown per session |
+| `annotations` | All annotations across sessions |
 
 ```bash
 go-minitrace query duckdb \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --preset session-list
-
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql 'SELECT COUNT(*) AS sessions FROM sessions_base'
+  --preset framework-summary
 ```
 
----
+### 2. Custom SQL
 
-## Why this exists: a real case study
+When a preset doesn't fit, write SQL directly. The table schema exposes the full session structure:
 
-A recent Loupedeck investigation showed why raw transcript reading fails and how go-minitrace succeeds.
+```sql
+-- Sessions with highest tool-call density (tools per turn)
+SELECT id, title,
+       CAST(metrics->>'tool_call_count' AS INT) AS tools,
+       CAST(metrics->>'turn_count' AS INT) AS turns,
+       CAST(metrics->>'tool_call_count' AS DOUBLE) /
+         CAST(metrics->>'turn_count' AS DOUBLE) AS density
+FROM sessions_base
+WHERE CAST(metrics->>'turn_count' AS INT) > 0
+ORDER BY density DESC
+LIMIT 10;
 
-**The symptom:** a runtime failure late in the startup sequence:
+-- Tool failures across all sessions
+SELECT id, title,
+       tc->>'tool_name' AS tool,
+       tc->'output'->>'error' AS error
+FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+WHERE (COALESCE(tc->'output'->>'success', 'true')) = 'false';
 
-```text
-INFO Connect successful resp="... Status:101 Switching Protocols ..."
-INFO Sending reset.
-...
-WARN Read error, exiting error="websocket: bad opcode 4"
+-- Bash output containing a specific keyword (e.g. a runtime error)
+SELECT id AS session_id, title, timing->>'started_at' AS started_at,
+       tc->>'id' AS call_id,
+       json_extract_string(tc, '$.input.command') AS bash_command,
+       json_extract_string(tc, '$.output.result') AS bash_output
+FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+WHERE (tc->>'tool_name') = 'bash'
+  AND json_extract_string(tc, '$.output.result') LIKE '%Connect successful%'
+ORDER BY started_at, session_id
+LIMIT 50;
 ```
-
-The error was *late enough* to imply partial success — the device was found, the handshake completed, reset and brightness setup happened, and only then the read loop died. The question was not "did anything ever work?" but "what changed after it did?"
-
-By converting only the relevant sessions and applying the three-layer funnel:
-
-1. **Inventory** surfaced 4 high-signal sessions from dozens of candidates.
-2. **Bash keyword search** recovered an older successful runtime log showing the exact sequence that used to work.
-3. **File-touch search** narrowed the problem to `pkg/device/listen.go`, `pkg/device/display.go`, and `cmd/loupedeck/cmds/run/*`.
-4. **JS timeline builder** produced a compact chronological narrative without forcing anyone to re-read hundreds of turns.
-
-The result: a bounded set of files and sessions to investigate, instead of a vague sense that "something happened over a week."
-
-> *"A transcript cannot directly prove the precise runtime cause of today's bug. What it can do very well is establish a historical baseline, identify the sessions where code was actively changed, surface the key files and commit neighborhoods, and rule out large classes of wrong assumptions."*
-
----
-
-## Structured query commands (the good stuff)
-
-Beyond ad-hoc SQL, go-minitrace supports **repository-backed structured query commands**. Your repository layout becomes your CLI:
-
-```text
-query-commands/
-└── loupedeck/
-    ├── bash-keyword-search.sql
-    ├── file-touch-search.sql
-    └── analysis/
-        └── protocol-timeline.js
-```
-
-These become:
 
 ```bash
-go-minitrace query commands loupedeck bash-keyword-search --keyword 'websocket'
-go-minitrace query commands loupedeck analysis protocol-timeline --session-id 114cf5a5
+go-minitrace query duckdb \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --sql "SELECT id, title,
+               CAST(metrics->>'tool_call_count' AS INT) AS tools
+        FROM sessions_base
+        WHERE (environment->>'agent_framework') = 'pi'
+        ORDER BY tools DESC
+        LIMIT 20"
 ```
 
-SQL files become leaves directly. JS files add one grouping level based on the filename stem. This means your investigation's command repo is its own reproducible toolkit.
+Output formats: `--output table` (default), `--output json`, `--output csv`.
 
-### Working rules that actually help
+### 3. Structured query commands (reusable tooling)
 
-- **Every investigation gets a ticket-local `scripts/query-commands/` repository.** Don't leave useful commands in shell history.
-- **Start with two SQL leaves before writing any JS:** a bash keyword search and a file-touch search.
-- **Use JS only for summary-shaped outputs.** If it's basically a single query, keep it in SQL.
-- **Prefix helper-only top-level JS functions with `_`** to prevent the scanner from treating them as command surfaces.
+When an analysis task becomes part of your repeatable workflow, promote it to a structured command. Structured commands give you named, typed parameters, alias support, and work identically in CLI, web UI, and API.
 
-### Minimal SQL command
+A command file is a `.sql` or `.js` file with metadata:
 
 ```sql
 /* sqleton
@@ -226,7 +181,9 @@ flags:
 SELECT
   id,
   environment->>'agent_framework' AS framework,
-  title
+  title,
+  CAST(metrics->>'turn_count' AS INT) AS turns,
+  CAST(metrics->>'tool_call_count' AS INT) AS tools
 FROM {{TABLE_NAME}}
 WHERE 1=1
 {{ if .framework -}}
@@ -236,76 +193,175 @@ ORDER BY timing->>'started_at' DESC
 LIMIT {{ .limit }};
 ```
 
-For full usage and authoring, run:
+Repository layout maps directly to CLI structure:
+
+```
+query-commands/
+└── overview/
+    ├── session-list.sql           → go-minitrace query commands overview session-list
+    └── framework-summary.sql     → go-minitrace query commands overview framework-summary
+```
+
+Run with typed parameters:
 
 ```bash
-go-minitrace help structured-query-commands
-go-minitrace help js-api-reference
-go-minitrace help writing-duckdb-queries
-go-minitrace help duckdb-query-recipes
-go-minitrace help analysis-guide
+go-minitrace query commands overview session-list \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --framework codex,pi \
+  --limit 50
 ```
+
+Load external repositories for team or investigation-specific commands:
+
+```bash
+go-minitrace query commands overview session-list \
+  --query-repository ./my-commands \
+  --archive-glob './output/active/*/*.minitrace.json'
+```
+
+Configure repositories via `GO_MINITRACE_QUERY_REPOSITORIES` or in the app config:
+
+```yaml
+queryRepositories:
+  - ./query-commands/team
+  - ~/.config/go-minitrace/query-commands
+```
+
+---
+
+## JavaScript command handlers
+
+For analysis tasks that go beyond what SQL can express conveniently — multi-query joins, JS-side scoring, classification logic, async control — write a JS handler.
+
+JS handlers run in a Goja-powered runtime with access to:
+
+- `require("minitrace")` — DuckDB queries (`mt.query()`, `mt.queryOne()`)
+- `require("timer")` — `setTimeout`, `setInterval` for async commands
+- `require("fs")`, `require("exec")`, `require("path")` — file system and shell access
+- `require("console")` — debug output to server logs
+
+```js
+// overview/session-tools.js
+__section__("filters", {
+  title: "Filters",
+  fields: {
+    framework: {
+      type: "stringList",
+      help: "Filter by agent framework",
+    },
+    limit: {
+      type: "int",
+      default: 25,
+      help: "Maximum number of rows",
+    },
+  },
+});
+
+function sessionList(filters) {
+  const mt = require("minitrace");
+
+  // Run multiple queries and combine in JS
+  const rows = mt.query(`
+    SELECT
+      id,
+      title,
+      environment->>'agent_framework' AS framework,
+      CAST(metrics->>'tool_call_count' AS INT) AS tools,
+      CAST(metrics->>'turn_count' AS INT) AS turns
+    FROM ${mt.tableName}
+    WHERE 1=1
+    ${filters.framework?.length
+      ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
+      : ""}
+    ORDER BY timing->>'started_at' DESC
+    LIMIT ${filters.limit}
+  `);
+
+  // Post-process in JS: compute density, classify session type
+  return rows.map(row => ({
+    ...row,
+    density: row.turns > 0 ? (row.tools / row.turns).toFixed(2) : 0,
+    type: row.tools / row.turns > 2 ? "tool-heavy" : "balanced",
+  }));
+}
+
+__verb__("sessionList", {
+  name: "session-list",
+  short: "List minitrace sessions",
+  fields: { filters: { bind: "filters" } },
+});
+```
+
+This becomes:
+
+```bash
+go-minitrace query commands overview session-tools session-list \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --framework codex \
+  --limit 25 \
+  --output json
+```
+
+**When to use JS instead of SQL:**
+
+| SQL is the right tool | JS is the right tool |
+|-----------------------|----------------------|
+| Single-query filtering and grouping | Multi-query joins: run several queries and combine in JS |
+| Aggregations (`COUNT`, `AVG`, `GROUP BY`) | JS-side scoring and classification |
+| Simple predicates | Async logic with `require("timer")` |
+| Row-oriented questions | Reusable helper modules shared across commands |
+| Single-column transformations | Output shapes richer than flat SQL rows |
+
+See `go-minitrace help js-api-reference` for the complete `require("minitrace")` API.
+
+---
+
+## The web UI
+
+`go-minitrace serve` starts an HTTP server that loads the archive into an in-memory DuckDB table and exposes:
+
+- **Sessions** (`/sessions`) — sortable session list with framework, model, turns, tools, duration, active %, and annotation badges
+- **Query** (`/query`) — interactive query editor with structured command forms, SQL rendering, and result tables
+- **REST API** — structured command execution under `/api/v2/query-commands`
+
+![Sessions list](screenshot-1.png)
+
+![Session detail](screenshot-2.png)
+
+![Query editor with results](screenshot-3-query.png)
 
 ---
 
 ## Annotations
 
-Minitrace sessions support an `annotations` array for human-authored metadata on sessions, turns, and tool calls. Annotations live in a parallel SQLite database and can be written via CLI or HTTP API, then synced back to `.minitrace.json` source files.
-
-### Storage model
-
-- **Working store**: `outputDir/annotations.db` (SQLite, WAL mode)
-- **Source of truth**: `.minitrace.json` files (modified only via `annotate sync`)
-- **DuckDB integration**: annotations attached live via DuckDB's `sqlite_scanner` extension
-
-### CLI
+Add human review notes to sessions and turns. Annotations live in `output/annotations.db` and sync back into `.minitrace.json` files.
 
 ```bash
-# Add annotation
 go-minitrace annotate add \
   --output-dir ./output \
-  --session sess-001 \
-  --category ai-failure \
-  --title "Authentication failure in tool call" \
-  --taxonomy-minitrace F-AUT \
-  --tags auth,regression
+  --session <session-id> \
+  --category observation \
+  --title "Session worth revisiting for context"
 
-# List / edit / delete / sync
-go-minitrace annotate list --output-dir ./output
-go-minitrace annotate edit --id <id> --title "Updated title"
-go-minitrace annotate delete --id <id>
 go-minitrace annotate sync --output-dir ./output
-go-minitrace annotate sync --output-dir ./output --dry-run
 ```
 
-### Categories
+Categories: `observation`, `ai-failure`, `user-error`, `environment-issue`, `success`, `question`, `to-discuss`, `to-improve`
 
-`observation`, `ai-failure`, `user-error`, `environment-issue`, `success`, `question`, `to-discuss`, `to-improve`
-
-### Serve + HTTP API
-
-When `serve` is started with an `--archive-glob`, it automatically attaches the annotations database.
-
-```bash
-go-minitrace serve --archive-glob './output/active/*/*.minitrace.json'
-```
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v2/sessions/{id}/annotations` | List annotations for session |
-| POST | `/api/v2/sessions/{id}/annotations` | Create annotation |
-| GET | `/api/v2/annotations` | List all (filter: `?session=&category=&annotator=`) |
-| PUT | `/api/v2/annotations/{annId}` | Patch annotation |
-| DELETE | `/api/v2/annotations/{annId}` | Delete annotation |
-| POST | `/api/v2/annotations/sync` | Sync SQLite → .minitrace.json |
-
-For a full operator workflow, see:
-
-```bash
-go-minitrace help annotation-playbook
-```
+Full workflow: `go-minitrace help annotation-playbook`.
 
 ---
+
+## Supported sources
+
+| Source | Format | Command |
+|--------|--------|---------|
+| Claude Code | JSON (dir-v1, subagent transcripts) | `convert claude-code` |
+| Codex | JSONL (sessions + exec) | `convert codex` |
+| Pi | JSONL | `convert pi` |
+| claude.ai | ZIP export | `convert claude-ai` |
+| ChatGPT | ZIP export / JSON | `convert chatgpt`, `convert chatgpt-json` |
+| Geppetto / Pinocchio | `turns.db` | `convert turnsdb` |
 
 ## Development
 
@@ -315,30 +371,22 @@ make test
 make build
 ```
 
-Pre-commit hooks via `lefthook`:
+Pre-commit hooks:
 
 ```bash
 lefthook install
 ```
 
-Snapshot release:
+Release:
 
 ```bash
 make goreleaser
 ```
 
----
+## Security
 
-## Security notes
-
-Treat CLI output, logs, and exported data as sensitive until you've reviewed what the tool emits.
-
----
+CLI output, logs, and exported data may contain sensitive information from your session history. Review tool output before sharing it.
 
 ## License
 
-MIT. See `LICENSE`.
-
----
-
-> *"The investigator who succeeds is not the one who can stare at the most JSON. It is the one who can build the smallest trustworthy set of tools that turns historical noise into current leverage."*
+MIT
