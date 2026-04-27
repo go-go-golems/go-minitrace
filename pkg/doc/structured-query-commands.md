@@ -134,10 +134,17 @@ External repositories are discovered with this precedence:
 
 1. repeated `--query-repository` flags
 2. `GO_MINITRACE_QUERY_REPOSITORIES`
-3. `queryRepositories` in the app config file
+3. `queryRepositories` in app and local config files, resolved from lower to higher layers:
+   - `/etc/go-minitrace/config.yaml`
+   - `~/.go-minitrace/config.yaml`
+   - `$XDG_CONFIG_HOME/go-minitrace/config.yaml`
+   - `<git-root>/.go-minitrace.yml`
+   - `<git-root>/.go-minitrace.override.yml`
+   - `<cwd>/.go-minitrace.yml`
+   - `<cwd>/.go-minitrace.override.yml`
 4. the embedded catalog last
 
-Higher-precedence repositories are mounted first so they can override embedded commands without changing loader behavior.
+Higher-precedence repositories are mounted first so they can override embedded commands without changing loader behavior. If multiple config files contain `queryRepositories`, the later/higher layer replaces the earlier config-file list. CLI flags and environment repositories are then prepended ahead of the config-derived repositories.
 
 ### CLI flag
 
@@ -169,7 +176,7 @@ go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
-### App config
+### App config and local config
 
 Add repository roots to the go-minitrace app config:
 
@@ -178,6 +185,26 @@ queryRepositories:
   - ./query-commands/team
   - ~/.config/go-minitrace/query-commands
 ```
+
+App config files are read from `/etc/go-minitrace/config.yaml`, `~/.go-minitrace/config.yaml`, and `$XDG_CONFIG_HOME/go-minitrace/config.yaml`. Relative paths inside config files are resolved relative to the config file directory.
+
+For project-local query commands, add a git-root or current-working-directory config file:
+
+```yaml
+# .go-minitrace.yml
+queryRepositories:
+  - ./query-commands
+```
+
+Use `.go-minitrace.override.yml` for machine-local or private overrides that should take precedence over `.go-minitrace.yml` in the same git root or current working directory:
+
+```yaml
+# .go-minitrace.override.yml
+queryRepositories:
+  - ./private-query-commands
+```
+
+When both git-root and current-working-directory files exist, the current-working-directory files are higher precedence. If the current working directory is also the git root, duplicate paths are deduped.
 
 ## Repository layout
 

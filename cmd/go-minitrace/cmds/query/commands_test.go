@@ -3,6 +3,7 @@ package query
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -172,6 +173,54 @@ SELECT 42 AS answer FROM {{TABLE_NAME}};`
 	}
 	if found.Short != "App config override session list" {
 		t.Fatalf("found.Short = %q, want app-config override short description", found.Short)
+	}
+}
+
+func TestNewCommandsCommand_LoadsConfiguredRepositoryFromGitRootConfig(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repoRoot := t.TempDir()
+	if err := runGitInit(repoRoot); err != nil {
+		t.Fatalf("git init returned error: %v", err)
+	}
+	queryRepo := filepath.Join(repoRoot, "query-commands")
+	if err := os.MkdirAll(filepath.Join(queryRepo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(query repo) returned error: %v", err)
+	}
+	content := `/* sqleton
+name: git-root-session-list
+short: Git-root configured session list
+*/
+SELECT 1 AS answer FROM {{TABLE_NAME}};`
+	if err := os.WriteFile(filepath.Join(queryRepo, "overview", "git-root-session-list.sql"), []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile(query command) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(repoRoot, ".go-minitrace.yml"), []byte("queryRepositories:\n  - ./query-commands\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(.go-minitrace.yml) returned error: %v", err)
+	}
+	subdir := filepath.Join(repoRoot, "nested")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(subdir) returned error: %v", err)
+	}
+
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(subdir); err != nil {
+		t.Fatalf("Chdir returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(oldwd) })
+
+	cmd, err := NewCommandsCommand(nil)
+	if err != nil {
+		t.Fatalf("NewCommandsCommand returned error: %v", err)
+	}
+	found, _, err := cmd.Find([]string{"overview", "git-root-session-list"})
+	if err != nil {
+		t.Fatalf("Find returned error: %v", err)
+	}
+	if found == nil || found.Name() != "git-root-session-list" {
+		t.Fatalf("expected git-root configured overview/git-root-session-list command, got %#v", found)
 	}
 }
 
@@ -530,6 +579,11 @@ func TestNewCommandsCommand_LoadsMixedSQLJSShowcaseRepo(t *testing.T) {
 			t.Fatalf("analysis help missing %q\noutput:\n%s", needle, output)
 		}
 	}
+}
+
+func runGitInit(dir string) error {
+	cmd := exec.Command("git", "-C", dir, "init")
+	return cmd.Run()
 }
 
 func writeCommandsFixtureArchive(t *testing.T) string {

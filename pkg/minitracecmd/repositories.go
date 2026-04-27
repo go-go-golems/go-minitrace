@@ -15,6 +15,9 @@ import (
 const (
 	QueryRepositoriesEnvVar = "GO_MINITRACE_QUERY_REPOSITORIES"
 	QueryRepositoryFlagName = "query-repository"
+
+	LocalOverrideFileName        = ".go-minitrace.yml"
+	LocalProjectOverrideFileName = ".go-minitrace.override.yml"
 )
 
 type AppConfig struct {
@@ -32,12 +35,21 @@ func loadAppConfig(appName string) (*AppConfig, error) {
 
 func resolveAppConfigPaths(appName string) ([]string, error) {
 	files, _, err := glazedconfig.NewPlan(
-		glazedconfig.WithLayerOrder(glazedconfig.LayerSystem, glazedconfig.LayerUser),
+		glazedconfig.WithLayerOrder(
+			glazedconfig.LayerSystem,
+			glazedconfig.LayerUser,
+			glazedconfig.LayerRepo,
+			glazedconfig.LayerCWD,
+		),
 		glazedconfig.WithDedupePaths(),
 	).Add(
 		glazedconfig.SystemAppConfig(appName).Named("system-app-config").Kind("app-config"),
 		glazedconfig.HomeAppConfig(appName).Named("home-app-config").Kind("app-config"),
 		glazedconfig.XDGAppConfig(appName).Named("xdg-app-config").Kind("app-config"),
+		glazedconfig.GitRootFile(LocalOverrideFileName).Named("git-root-local-go-minitrace").Kind("query-repository-overlay"),
+		glazedconfig.GitRootFile(LocalProjectOverrideFileName).Named("git-root-local-go-minitrace-override").Kind("query-repository-overlay"),
+		glazedconfig.WorkingDirFile(LocalOverrideFileName).Named("cwd-local-go-minitrace").Kind("query-repository-overlay"),
+		glazedconfig.WorkingDirFile(LocalProjectOverrideFileName).Named("cwd-local-go-minitrace-override").Kind("query-repository-overlay"),
 	).Resolve(context.Background())
 	if err != nil {
 		return nil, errors.Wrap(err, "could not resolve app config files")
@@ -89,7 +101,7 @@ func loadAppConfigFromPath(configPath string) (*AppConfig, error) {
 	}
 
 	if _, ok := raw["queryRepositories"]; ok {
-		cfg.QueryRepositories = normalizeRepositoryPaths(cfg.QueryRepositories)
+		cfg.QueryRepositories = normalizeRepositoryPathsRelativeTo(cfg.QueryRepositories, filepath.Dir(configPath))
 	} else {
 		cfg.QueryRepositories = nil
 	}
@@ -124,6 +136,14 @@ func repositoriesFromEnv() []string {
 }
 
 func normalizeRepositoryPaths(paths []string) []string {
+	return normalizeRepositoryPathsWithBase(paths, "")
+}
+
+func normalizeRepositoryPathsRelativeTo(paths []string, baseDir string) []string {
+	return normalizeRepositoryPathsWithBase(paths, strings.TrimSpace(baseDir))
+}
+
+func normalizeRepositoryPathsWithBase(paths []string, baseDir string) []string {
 	ret := make([]string, 0, len(paths))
 	seen := map[string]struct{}{}
 
@@ -131,6 +151,11 @@ func normalizeRepositoryPaths(paths []string) []string {
 		path = strings.TrimSpace(path)
 		if path == "" {
 			continue
+		}
+		if baseDir != "" && shouldResolveRelativeToConfig(path) {
+			path = filepath.Clean(filepath.Join(baseDir, path))
+		} else if filepath.IsAbs(path) {
+			path = filepath.Clean(path)
 		}
 		if _, ok := seen[path]; ok {
 			continue
@@ -140,6 +165,13 @@ func normalizeRepositoryPaths(paths []string) []string {
 	}
 
 	return ret
+}
+
+func shouldResolveRelativeToConfig(path string) bool {
+	if filepath.IsAbs(path) {
+		return false
+	}
+	return !strings.HasPrefix(path, "$") && !strings.HasPrefix(path, "~")
 }
 
 func CommandSourceRoots(appName string, flagPaths []string) ([]SourceRoot, error) {
