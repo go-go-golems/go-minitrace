@@ -16,6 +16,11 @@ const (
 )
 
 func main() {
+	if os.Getenv("SKIP_DAGGER") != "" {
+		fmt.Println("SKIP_DAGGER set, skipping Dagger frontend build")
+		os.Exit(0)
+	}
+
 	if err := buildAndExportFrontend(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
