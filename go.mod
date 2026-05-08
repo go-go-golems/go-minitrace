@@ -2,7 +2,7 @@ module github.com/go-go-golems/go-minitrace
 
 go 1.26.1
 
-toolchain go1.26.2
+toolchain go1.26.3
 
 require (
 	dagger.io/dagger v0.20.5
