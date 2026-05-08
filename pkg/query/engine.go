@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/duckdb/duckdb-go/v2"
 	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
 	"github.com/go-go-golems/glazed/pkg/types"
@@ -213,6 +215,18 @@ func NormalizeValue(value any) any {
 		return string(typed)
 	case time.Time:
 		return typed.UTC().Format(time.RFC3339Nano)
+	case *big.Int:
+		// DuckDB SUM() over integers returns *big.Int, which Goja maps to JS BigInt.
+		// BigInt cannot participate in arithmetic with JS Number, so convert to int64.
+		// This is safe for session metrics (counts, sums) which never exceed int64 range.
+		if typed.IsInt64() {
+			return typed.Int64()
+		}
+		// Fallback for truly huge values: convert to float64 (loses precision above 2^53)
+		r, _ := new(big.Float).SetInt(typed).Float64()
+		return r
+	case duckdb.Decimal:
+		return typed.Float64()
 	default:
 		return typed
 	}
