@@ -15,17 +15,18 @@ Supported sources: Claude Code, Codex, Pi, claude.ai, ChatGPT, Geppetto/Pinocchi
 ## Installation
 
 ```bash
-# Homebrew
+# Homebrew (recommended — includes the embedded web UI)
 brew tap go-go-golems/go-go-go
 brew install go-minitrace
 
-# Go install
+# Go install (NOTE: the embedded web UI will be missing;
+# use Homebrew or build from source for the full experience)
 go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
 
-# From source
+# From source (includes the embedded web UI)
 git clone https://github.com/go-go-golems/go-minitrace.git
 cd go-minitrace
-go generate ./...
+go generate ./...   # builds the frontend with Dagger (requires Docker)
 go build ./...
 ```
 
