@@ -52,3 +52,20 @@ All code changes done. Two commits:
 The `.goreleaser.yaml` before hooks remain unchanged — `go generate ./...` will hit the SKIP_DAGGER check and exit 0 in CI, while still working fully for local builds.
 
 Remaining: user needs to push and test via workflow_dispatch or a new tag.
+
+### 2026-05-08 — go install missing frontend
+
+User reported that `go install` produces a binary with no embedded frontend.
+
+Root cause: `go install` does NOT run `go generate`. The `frontend/` directory
+is gitignored (except `.gitkeep`), so the embed picks up an empty dir.
+
+Fixes applied:
+1. Added `init()` check in `embed.go` that logs a clear error at startup if
+   `index.html` is missing from the embedded FS — so `go install` users see a
+   helpful message instead of a mystery broken site.
+2. Updated README.md to warn that `go install` produces a binary without the
+   web UI, and recommend Homebrew or building from source.
+
+These are UX guardrails — the real fix for `go install` would require either
+committing built frontend assets or a different distribution approach.

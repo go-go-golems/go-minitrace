@@ -22,3 +22,13 @@ Rewrote release.yaml: added build-frontend job, modified linux/darwin jobs to do
 
 - /home/manuel/code/wesen/corporate-headquarters/go-minitrace/.github/workflows/release.yaml — Separated Dagger frontend build into dedicated job
 
+
+## 2026-05-08
+
+Add runtime check in embed.go for missing frontend, update README to warn about go install
+
+### Related Files
+
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/README.md — Added warning about go install missing web UI
+- /home/manuel/code/wesen/corporate-headquarters/go-minitrace/cmd/go-minitrace/cmds/serve/embed.go — Added init() check for missing index.html
+
