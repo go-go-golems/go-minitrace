@@ -58,6 +58,78 @@ WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
 
 ## Query errors
 
+### TypeError: Cannot mix BigInt and other types
+
+**What happened**: A JS command handler threw `TypeError: Cannot mix BigInt and other types, use explicit conversions`.
+
+**Cause**: DuckDB aggregates (`COUNT`, `SUM`, `AVG`) and integer columns cast with `CAST(... AS INT)` return BigInt values in the Goja JS runtime. Goja does not auto-coerce BigInt to Number. Any arithmetic, comparison, or string interpolation between a BigInt and a Number triggers this TypeError.
+
+**Solution**: Wrap all numeric query results in `Number()` before using them in JS arithmetic:
+
+```js
+const total = Number(r.total_calls);
+const success = Number(r.success_count);
+const rate = total > 0 ? (success / total * 100).toFixed(1) + "%" : "N/A";
+```
+
+See also: `go-minitrace help js-api-reference` — BigInt handling section.
+
+### Conversion Error: Failed to cast value to numerical when using ->>
+
+**What happened**: A SQL query using `tc->>'tool_name'` or `tc->'input'->>'command'` on an UNNESTed tool_calls column throws:
+
+```
+Conversion Error: Failed to cast value to numerical: {"id":"toolu_...","emitting_t...}
+```
+
+**Cause**: The `tc` column produced by `UNNEST(tool_calls) AS t(tc)` may be a DuckDB struct rather than a JSON string. Arrow operators (`->>`) on a struct attempt to cast the struct to a number, which fails.
+
+**Solution**: Use `json_extract_string()` instead of arrow operators on UNNESTed elements:
+
+```sql
+-- WRONG: arrow operators on struct
+SELECT tc->>'tool_name' FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+
+-- RIGHT: json_extract_string on struct
+SELECT json_extract_string(tc, '$.tool_name') FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+```
+
+Which representation you get (struct vs JSON) depends on the DuckDB version and how the archive was loaded. The `json_extract_string()` function works in both cases; arrow operators only work when the column is a JSON string.
+
+### Accessing bash command text in tool_calls
+
+**What happened**: You want to query the shell command from bash tool calls, but `tc->'input'->>'command'` returns NULL.
+
+**Cause**: Pi's bash tool stores the command in `input.arguments.command`, not `input.command`. Other tools use `input.file_path` or `input.command`. The exact path varies by adapter.
+
+**Solution**: Inspect a sample tool call first to find the right JSON path:
+
+```sql
+SELECT tc FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+WHERE json_extract_string(tc, '$.tool_name') = 'bash'
+LIMIT 1
+```
+
+Then use the correct path. For Pi sessions:
+
+```sql
+SELECT json_extract_string(tc, '$.input.arguments.command') AS cmd
+FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+WHERE json_extract_string(tc, '$.tool_name') = 'bash'
+  AND json_extract_string(tc, '$.input.arguments.command') ILIKE '%remarquee%'
+```
+
+For a safe fallback that works across adapters:
+
+```sql
+SELECT COALESCE(
+  json_extract_string(tc, '$.input.command'),
+  json_extract_string(tc, '$.input.arguments.command')
+) AS cmd
+FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+WHERE json_extract_string(tc, '$.tool_name') = 'bash'
+```
+
 ### Query returns 0 rows
 
 **What happened**: A query ran successfully but returned no results.

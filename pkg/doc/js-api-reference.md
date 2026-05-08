@@ -259,6 +259,28 @@ __verb__("myCommand", {
 });
 ```
 
+## BigInt handling: always wrap aggregates in Number()
+
+DuckDB aggregates (`COUNT`, `SUM`, `AVG`) return BigInt values. The Goja JS runtime does not auto-coerce BigInt to Number. Any arithmetic or comparison between a BigInt and a Number throws:
+
+```
+TypeError: Cannot mix BigInt and other types, use explicit conversions
+```
+
+This is the single most common runtime error in JS command handlers. Wrap all aggregate results in `Number()` before using them in arithmetic, comparisons, or string interpolation:
+
+```js
+// WRONG: BigInt arithmetic throws TypeError
+const rate = r.success_count / r.total_calls * 100;
+
+// RIGHT: cast first
+const total = Number(r.total_calls);
+const success = Number(r.success_count);
+const rate = total > 0 ? (success / total * 100).toFixed(1) + "%" : "N/A";
+```
+
+The pattern applies to any column that DuckDB produces as an integer: `COUNT(*)`, `SUM(...)`, `AVG(...)`, and even `metrics->>'tool_call_count'` when cast to `INT` in SQL. If you do arithmetic on a query result in JS, wrap it in `Number()` first.
+
 ## Read-only query validation
 
 Every `mt.query()` and `mt.queryOne()` call is validated before execution. Only `SELECT` statements and read-only functions are allowed. Any write operation (`INSERT`, `UPDATE`, `DELETE`, `COPY`, etc.) will be rejected with an error.
