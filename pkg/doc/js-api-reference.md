@@ -259,27 +259,35 @@ __verb__("myCommand", {
 });
 ```
 
-## BigInt handling: always wrap aggregates in Number()
+## BigInt handling
 
-DuckDB aggregates (`COUNT`, `SUM`, `AVG`) return BigInt values. The Goja JS runtime does not auto-coerce BigInt to Number. Any arithmetic or comparison between a BigInt and a Number throws:
+**Update (v0.4+):** `NormalizeValue()` now converts `*big.Int` (DuckDB `SUM` over integers) to `int64` and `duckdb.Decimal` to `float64` before values reach Goja. This eliminates the BigInt/Number mixing error for all query results. No `Number()` wrapping is needed in JS command handlers.
+
+If you are running an older version (pre-v0.4), or if you construct `*big.Int` values in Go code that flows into Goja, you may still hit the error:
 
 ```
 TypeError: Cannot mix BigInt and other types, use explicit conversions
 ```
 
-This is the single most common runtime error in JS command handlers. Wrap all aggregate results in `Number()` before using them in arithmetic, comparisons, or string interpolation:
+In that case, wrap values in `Number()` before using them in arithmetic, comparisons, or string interpolation:
 
 ```js
-// WRONG: BigInt arithmetic throws TypeError
-const rate = r.success_count / r.total_calls * 100;
-
-// RIGHT: cast first
+// Pre-v0.4 workaround: wrap aggregates in Number()
 const total = Number(r.total_calls);
 const success = Number(r.success_count);
 const rate = total > 0 ? (success / total * 100).toFixed(1) + "%" : "N/A";
 ```
 
-The pattern applies to any column that DuckDB produces as an integer: `COUNT(*)`, `SUM(...)`, `AVG(...)`, and even `metrics->>'tool_call_count'` when cast to `INT` in SQL. If you do arithmetic on a query result in JS, wrap it in `Number()` first.
+The underlying type mapping:
+
+| DuckDB expression | Go type | Goja JS type |
+|---|---|---|
+| `COUNT(*)` | `int64` | `number` |
+| `SUM(integer)` | `*big.Int` → `int64` | `number` (since v0.4) |
+| `AVG()` | `float64` | `number` |
+| `MIN/MAX` | `int32` | `number` |
+| `SUM(double)` | `float64` | `number` |
+| `DECIMAL` / `NUMERIC` | `duckdb.Decimal` → `float64` | `number` (since v0.4) |
 
 ## Read-only query validation
 

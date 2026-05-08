@@ -62,9 +62,11 @@ WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
 
 **What happened**: A JS command handler threw `TypeError: Cannot mix BigInt and other types, use explicit conversions`.
 
-**Cause**: DuckDB aggregates (`COUNT`, `SUM`, `AVG`) and integer columns cast with `CAST(... AS INT)` return BigInt values in the Goja JS runtime. Goja does not auto-coerce BigInt to Number. Any arithmetic, comparison, or string interpolation between a BigInt and a Number triggers this TypeError.
+**Cause**: DuckDB `SUM()` over integers returns `*big.Int` in Go, which Goja maps to JS `BigInt`. BigInt cannot participate in arithmetic with JS `Number`.
 
-**Solution**: Wrap all numeric query results in `Number()` before using them in JS arithmetic:
+**Solution (v0.4+)**: Upgrade to go-minitrace v0.4 or later. `NormalizeValue()` now converts `*big.Int` → `int64` and `duckdb.Decimal` → `float64` before values reach Goja, eliminating this error entirely.
+
+**Solution (pre-v0.4)**: Wrap all numeric query results in `Number()` before using them in JS arithmetic:
 
 ```js
 const total = Number(r.total_calls);
