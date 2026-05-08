@@ -10,8 +10,8 @@ require (
 	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14
 	github.com/duckdb/duckdb-go/v2 v2.10501.0
 	github.com/go-go-golems/clay v0.4.7
-	github.com/go-go-golems/glazed v1.2.3
-	github.com/go-go-golems/go-go-goja v0.4.8
+	github.com/go-go-golems/glazed v1.2.5
+	github.com/go-go-golems/go-go-goja v0.4.15
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pkg/errors v0.9.1

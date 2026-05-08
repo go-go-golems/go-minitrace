@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/duckdb/duckdb-go/v2"
-	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
 	"github.com/go-go-golems/glazed/pkg/types"
 )

@@ -60,8 +60,8 @@ func RunJSCommandIntoProcessor(
 
 	factory, err := gggengine.NewBuilder().
 		WithRequireOptions(noderequire.WithLoader(registry.RequireLoader())).
+		UseModuleMiddleware(gggengine.Pipeline()).
 		WithModules(
-			gggengine.DefaultRegistryModules(),
 			gggengine.NativeModuleSpec{
 				ModuleID:   "minitrace-runtime",
 				ModuleName: "minitrace",

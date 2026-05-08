@@ -21,8 +21,8 @@ func TestNormalizeValue(t *testing.T) {
 		{"nil", nil, "<nil>", nil},
 		{"[]byte", []byte("hello"), "string", "hello"},
 		{"time.Time", now, "string", now.Format(time.RFC3339Nano)},
-		{"int64", int64(42), "int64", int64(42)},           // COUNT(*) — already JS number
-		{"int32", int32(42), "int32", int32(42)},           // literal integer
+		{"int64", int64(42), "int64", int64(42)}, // COUNT(*) — already JS number
+		{"int32", int32(42), "int32", int32(42)}, // literal integer
 		{"float64", float64(3.14), "float64", float64(3.14)},
 		{"string", "hello", "string", "hello"},
 		// The key fix: *big.Int from DuckDB SUM() is converted to int64
