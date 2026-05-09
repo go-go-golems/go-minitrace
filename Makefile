@@ -64,6 +64,7 @@ bump-glazed:
 	go mod tidy
 
 install:
+	go generate ./...
 	go install $(CMD_DIR)
 
 # ── Dev environment ─────────────────────────────────────────────────────────
