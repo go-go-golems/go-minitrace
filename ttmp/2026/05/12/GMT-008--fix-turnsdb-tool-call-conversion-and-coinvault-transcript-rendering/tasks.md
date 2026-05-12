@@ -20,3 +20,4 @@
 - [ ] Design a minitrace ordered transcript-event model/API if exact interleaving cannot be represented by current turns
 - [x] Evaluate optional Pinocchio semantic_hash or stable_block_key export only after go-minitrace consumes existing block_id and ordinal fields
 - [x] Audit real turnsdb archives for any missing block_id or missing tool payload id failures after fail-fast semantic identity lands
+- [x] Expose generic tool arguments clearly in the transcript UI for non-bash/non-file tools

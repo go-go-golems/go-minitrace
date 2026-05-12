@@ -83,3 +83,12 @@ Refactored turnsdb conversion to process delta blocks in source order, added ord
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — One-pass ordered delta processing and tool attachment logic.
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Ordered interleaving
 
+
+## 2026-05-12
+
+Updated the transcript UI generic tool-call detail renderer to show tool call ID and structured arguments before output, fixing missing SQL tool arguments in the expanded row (commit 45bb2c0). Rebuilt embedded frontend and restarted the 8092 validation server; skipped Playwright because another user is using it.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/web/src/components/TranscriptViewer/ToolCallRow.tsx — Shows generic tool call identity and arguments in expanded details.
+

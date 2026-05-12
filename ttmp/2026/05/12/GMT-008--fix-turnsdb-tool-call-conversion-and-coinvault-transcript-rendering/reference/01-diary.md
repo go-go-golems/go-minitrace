@@ -607,3 +607,74 @@ go run ./cmd/go-minitrace convert turnsdb \
 - Full archive smoke output directory: `/tmp/gmt-008-all-minitrace-output`.
 - Full archive count: 31 converted sessions.
 - Aggregate tool counts after refactor: 143 tools, 140 linked turn references, 0 pending no-result errors.
+
+## Step 7: Show generic tool arguments in the transcript UI
+
+This step addressed the UI symptom where expanded SQL tool rows showed the tool name and output but not the structured input arguments. The API already returned `input.arguments`; the problem was the React fallback renderer for non-specialized tools only displayed a generic command summary and output.
+
+I updated the generic tool-call detail renderer to show the tool call ID and a pretty-printed JSON arguments block before the output. This should make SQL tools such as `sql_query` and `sql_doc` inspectable without using devtools or raw API responses.
+
+### Prompt Context
+
+**User prompt (verbatim):** "I also seem to be missing the tool arguments in the web UI? /tmp/pi-clipboard-92167d18-0065-44d2-9161-a4eb1410dc80.png and maybe the block ids too or so? (http://127.0.0.1:8092/sessions/79f7e9b2-8478-4a07-ba62-5efafbcab975)"
+
+**Assistant interpretation:** Investigate why expanded generic SQL tool rows do not show input arguments and improve the UI, while considering whether some stable ID should be visible too.
+
+**Inferred user intent:** Make the transcript UI self-contained for validating converted tool calls, including what was called and with which arguments.
+
+**Commit (code):** 45bb2c0 — "fix: show generic tool arguments in transcript UI"
+
+### What I did
+
+- Read the screenshot and inspected the `/api/v2/sessions/79f7.../blocks` JSON.
+- Confirmed the API already returns `toolCallsInTurn[].input.arguments` for the SQL tools.
+- Updated `web/src/components/TranscriptViewer/ToolCallRow.tsx`:
+  - added a reusable JSON code block renderer,
+  - added a tool call ID display in the generic detail path,
+  - changed the generic fallback to show `Tool`, `Arguments`, and then `Output`.
+- Rebuilt the embedded frontend with `go generate ./cmd/go-minitrace/cmds/serve`.
+- Restarted the local validation server on port 8092.
+- Skipped Playwright/browser automation because the user said someone else is using it.
+
+### Why
+
+- The converter was preserving arguments correctly, so this was a presentation bug.
+- Showing the tool call ID gives at least a stable identifier in the UI without adding a new API/protobuf field for source block IDs.
+
+### What worked
+
+- The embedded frontend rebuilt successfully.
+- The server restarted on port 8092 and serves the updated UI.
+- Code commit: `45bb2c0`.
+
+### What didn't work
+
+- I did not run Playwright validation by request.
+- The UI currently shows the tool call ID, not the original turns.db source block ID. Exposing source block IDs would require carrying `framework_metadata` or an explicit source-block-id field through the API/proto layer.
+
+### What I learned
+
+- The web API shape for this session already includes structured arguments; the missing display was isolated to `ToolCallRow`'s generic fallback.
+
+### What was tricky to build
+
+- The specialized renderers for bash/edit/write already have custom input displays. The missing case was the generic fallback, which covers SQL tools. I kept the change scoped there to avoid changing behavior for specialized tools.
+
+### What warrants a second pair of eyes
+
+- Decide whether the UI should expose original `block_id` separately from tool call ID. For `tool_call` blocks these are often the same, but tool result block IDs are different and are currently not surfaced in the minitrace API.
+
+### What should be done in the future
+
+- If source block IDs are needed, add explicit API support rather than overloading tool call ID.
+- Consider truncation/collapse behavior for very large argument JSON.
+
+### Code review instructions
+
+- Review `web/src/components/TranscriptViewer/ToolCallRow.tsx`, specifically the generic fallback in `ToolCallDetail`.
+- Validate manually at `http://127.0.0.1:8092/sessions/79f7e9b2-8478-4a07-ba62-5efafbcab975` by expanding a `sql_query` row and checking for the `Arguments` section.
+
+### Technical details
+
+- API evidence: `/api/v2/sessions/79f7e9b2-8478-4a07-ba62-5efafbcab975/blocks` includes `input.arguments` on tool calls.
+- Validation server remains on port `8092`.
