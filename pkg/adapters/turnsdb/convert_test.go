@@ -117,6 +117,112 @@ func TestLCSDeltaSkipsCarriedForwardBlocksEvenWhenOneIsRemoved(t *testing.T) {
 	}
 }
 
+func TestConvertConversationSnapshotsLinksToolCallsAndNormalizesBlankText(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-tools",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
+				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "\n"}, Metadata: map[string]any{}},
+				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "bash", "args": map[string]any{"command": "echo hi"}}, Metadata: map[string]any{"stream_seq": float64(1)}},
+				{ID: "tu1-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-1", "result": "hi\n"}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	if got := len(session.ToolCalls); got != 1 {
+		t.Fatalf("expected 1 tool call, got %d", got)
+	}
+	if !session.ToolCalls[0].Output.Success {
+		t.Fatalf("expected successful tool call, got %+v", session.ToolCalls[0].Output)
+	}
+	if session.ToolCalls[0].Output.Result == nil || *session.ToolCalls[0].Output.Result != "hi\n" {
+		t.Fatalf("unexpected tool result: %+v", session.ToolCalls[0].Output.Result)
+	}
+	if got := session.Turns[2].Content; got != "\n" {
+		t.Fatalf("expected blank text payload to unwrap to newline, got %q", got)
+	}
+	if got := session.Turns[2].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-1" {
+		t.Fatalf("expected assistant turn to link tc-1, got %#v", got)
+	}
+}
+
+func TestConvertConversationSnapshotsDoesNotDuplicateToolCallsWhenMetadataChanges(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-tools",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
+				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "running tool"}, Metadata: map[string]any{}},
+				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "bash", "args": map[string]any{"command": "echo hi"}}, Metadata: map[string]any{"stream_seq": float64(1)}},
+				{ID: "tu1-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-1", "result": "hi\n"}, Metadata: map[string]any{}},
+			},
+		},
+		{
+			ConvID:              "conv-tools",
+			SessionID:           "sess-1",
+			TurnID:              "turn-2",
+			TurnCreatedAtMS:     2000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-2",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 2010,
+			Blocks: []Block{
+				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
+				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "running tool"}, Metadata: map[string]any{}},
+				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "bash", "args": map[string]any{"command": "echo hi"}}, Metadata: map[string]any{"stream_seq": float64(99)}},
+				{ID: "tu1-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-1", "result": "hi\n"}, Metadata: map[string]any{}},
+				{ID: "b4", Kind: "user", Role: "user", Payload: map[string]any{"text": "again"}, Metadata: map[string]any{}},
+				{ID: "b5", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "done"}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	if got := len(session.ToolCalls); got != 1 {
+		t.Fatalf("expected 1 deduplicated tool call, got %d: %#v", got, session.ToolCalls)
+	}
+	if !session.ToolCalls[0].Output.Success {
+		t.Fatalf("expected successful tool call not to be downgraded by metadata churn, got %+v", session.ToolCalls[0].Output)
+	}
+	if session.ToolCalls[0].EmittingTurnIndex == nil || *session.ToolCalls[0].EmittingTurnIndex != 2 {
+		t.Fatalf("expected original emitting turn index 2, got %+v", session.ToolCalls[0].EmittingTurnIndex)
+	}
+	if got := session.Turns[2].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-1" {
+		t.Fatalf("expected only original assistant turn to link tc-1, got %#v", got)
+	}
+}
+
 func TestConvertConversationSnapshotsEmitsOnlyNewTurnContent(t *testing.T) {
 	snapshots := []CanonicalTurnSnapshot{
 		{

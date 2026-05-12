@@ -429,7 +429,12 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			emittingTurnIndex = len(turns) - 1
 		}
 		deltaToolCalls, deltaAnnotations := buildToolCallsFromBlocks(deltaBlocks, timestampPtr, emittingTurnIndex)
-		toolCalls = append(toolCalls, deltaToolCalls...)
+		if emittingTurnIndex >= 0 && emittingTurnIndex < len(turns) {
+			for _, toolCall := range deltaToolCalls {
+				turns[emittingTurnIndex].ToolCallsInTurn = appendUniqueString(turns[emittingTurnIndex].ToolCallsInTurn, toolCall.ID)
+			}
+		}
+		toolCalls = mergeToolCalls(toolCalls, deltaToolCalls)
 		annotations = append(annotations, deltaAnnotations...)
 
 		detail := mustJSON(map[string]any{
@@ -482,6 +487,9 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 
 func blockFingerprint(block Block) string {
 	payload, _ := json.Marshal(block.Payload)
+	if block.Kind == "tool_call" || block.Kind == "tool_use" {
+		return fmt.Sprintf("%s|%s|%s|%s", block.Kind, block.Role, block.ID, payload)
+	}
 	metadata, _ := json.Marshal(block.Metadata)
 	return fmt.Sprintf("%s|%s|%s|%s|%s", block.Kind, block.Role, block.ID, payload, metadata)
 }
@@ -678,8 +686,8 @@ func stringifyBlockPayload(payload map[string]any) string {
 	if payload == nil {
 		return "{}"
 	}
-	if text := stringValue(payload["text"]); strings.TrimSpace(text) != "" {
-		return text
+	if text, ok := payload["text"]; ok {
+		return stringValue(text)
 	}
 	return stringifyAny(payload)
 }
@@ -698,6 +706,58 @@ func stringifyAny(value any) string {
 		}
 		return string(payload)
 	}
+}
+
+func mergeToolCalls(existing []minitrace.ToolCall, incoming []minitrace.ToolCall) []minitrace.ToolCall {
+	if len(incoming) == 0 {
+		return existing
+	}
+	indexes := make(map[string]int, len(existing)+len(incoming))
+	for i, toolCall := range existing {
+		indexes[toolCall.ID] = i
+	}
+	for _, toolCall := range incoming {
+		if idx, ok := indexes[toolCall.ID]; ok {
+			existing[idx] = mergeToolCall(existing[idx], toolCall)
+			continue
+		}
+		indexes[toolCall.ID] = len(existing)
+		existing = append(existing, toolCall)
+	}
+	return existing
+}
+
+func mergeToolCall(existing, incoming minitrace.ToolCall) minitrace.ToolCall {
+	if isPendingToolCall(existing) && !isPendingToolCall(incoming) {
+		if incoming.EmittingTurnIndex == nil {
+			incoming.EmittingTurnIndex = existing.EmittingTurnIndex
+		}
+		return incoming
+	}
+	if !isPendingToolCall(existing) && isPendingToolCall(incoming) {
+		return existing
+	}
+	if existing.Output.Result == nil && incoming.Output.Result != nil {
+		existing.Output = incoming.Output
+		existing.Timestamp = incoming.Timestamp
+	}
+	if existing.EmittingTurnIndex == nil {
+		existing.EmittingTurnIndex = incoming.EmittingTurnIndex
+	}
+	return existing
+}
+
+func isPendingToolCall(toolCall minitrace.ToolCall) bool {
+	return !toolCall.Output.Success && toolCall.Output.Result == nil && toolCall.Output.Error != nil && *toolCall.Output.Error == "no tool result received"
+}
+
+func appendUniqueString(values []string, value string) []string {
+	for _, existing := range values {
+		if existing == value {
+			return values
+		}
+	}
+	return append(values, value)
 }
 
 func uniqueToolNames(toolCalls []minitrace.ToolCall) []string {
