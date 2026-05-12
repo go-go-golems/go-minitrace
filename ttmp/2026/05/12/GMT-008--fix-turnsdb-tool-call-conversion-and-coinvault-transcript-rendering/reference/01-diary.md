@@ -312,3 +312,96 @@ go run ./cmd/go-minitrace convert turnsdb \
 
 - Generated archive: `/tmp/gmt-008-minitrace-output/active/2026-05/8730fef8-2f37-40bb-96e3-73687c55f6ab.minitrace.json`.
 - Source DB: `/home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite`.
+
+## Step 4: Capture Geppetto identity research and seed follow-up tasks
+
+This step turned the ad-hoc repository research into a durable GMT-008 analysis guide. The research verified that the first go-minitrace turnsdb converter predates Geppetto's current canonical event correlation contract, but current Geppetto/Pinocchio turns persistence already exposes stable block IDs, tool payload IDs, content hashes, snapshot phases, and membership ordinals.
+
+The main outcome is a sharper follow-up direction: simplify go-minitrace turnsdb handling by separating semantic block identity from exact content versions, then process ordered delta blocks in one pass. Producer-side changes such as a Pinocchio `semantic_hash` can wait until go-minitrace consumes the existing `block_id` and `ordinal` fields well.
+
+### Prompt Context
+
+**User prompt (verbatim):** "save all this research you did in its own design guide / analysis and upload to remarkable. Then, add tasks to improve and simplify go-minitrace 's handling of turns."
+
+**Assistant interpretation:** Write a standalone guide summarizing the Geppetto/Pinocchio identity research, upload it to reMarkable, and expand the go-minitrace ticket backlog with concrete turns handling improvements.
+
+**Inferred user intent:** Preserve the reasoning behind the next architecture step and make it easy to review away from the terminal, while turning the research into implementation tasks.
+
+**Commit (code):** N/A — documentation/task update only.
+
+### What I did
+
+- Created `analysis/01-geppetto-turns-identity-and-minitrace-delta-handling-guide.md`.
+- Documented the timeline of go-minitrace turnsdb support versus Geppetto canonical correlation IDs.
+- Documented current Geppetto `Block.ID` behavior and Pinocchio SQLite `block_id` / `content_hash` / `ordinal` export.
+- Explained why metadata-sensitive content hashes caused duplicate semantic tool calls.
+- Added follow-up tasks for semantic block identity, LCS/delta simplification, ordered one-pass conversion, ordered transcript fixtures, and possible future transcript-event APIs.
+- Updated the changelog and related the guide to relevant go-minitrace, Geppetto, and Pinocchio files.
+
+### Why
+
+- The research changes the likely follow-up: go-minitrace should first consume existing source identity better rather than changing Geppetto or Pinocchio producers.
+- The guide gives future implementation sessions concrete file references and design constraints.
+- The new tasks keep the just-discovered architecture work visible after the initial GMT-008 bug fix.
+
+### What worked
+
+- The new analysis doc captures the relevant commit dates and source files.
+- The new tasks now distinguish immediate converter simplification from optional producer-side `semantic_hash` work.
+
+### What didn't work
+
+- N/A for the documentation step. Upload is recorded separately by the command output in the session.
+
+### What I learned
+
+- Geppetto's typed event correlation was introduced after the initial go-minitrace turnsdb converter, but block IDs are older and are already persisted by Pinocchio.
+- Pinocchio's `content_hash` is an exact block-version key, not a stable semantic identity key, because it includes metadata.
+
+### What was tricky to build
+
+- The subtle point is that `content_hash` is not wrong; it is just the wrong abstraction for go-minitrace semantic delta matching. The guide therefore recommends keeping exact version tracking but adding semantic identity at the converter layer.
+
+### What warrants a second pair of eyes
+
+- Review whether the recommended semantic key priority is correct: tool payload ID first for tools, block ID first for normal blocks, then content fallback.
+- Review whether ordered transcript events should be designed now or after a one-pass converter refactor proves the current model's limits.
+
+### What should be done in the future
+
+- Implement the newly added tasks or split them into a follow-up ticket if GMT-008 should stay focused on the original bug fix.
+
+### Code review instructions
+
+- Start with `analysis/01-geppetto-turns-identity-and-minitrace-delta-handling-guide.md`.
+- Review the new open tasks in `tasks.md` after the completed GMT-008 bug-fix tasks.
+- No code validation is required for this documentation-only step.
+
+### Technical details
+
+- Key source files referenced:
+  - `go-minitrace/pkg/adapters/turnsdb/convert.go`
+  - `geppetto/pkg/turns/types.go`
+  - `geppetto/pkg/turns/helpers_blocks.go`
+  - `geppetto/pkg/events/correlation.go`
+  - `pinocchio/pkg/persistence/chatstore/turn_store_sqlite.go`
+  - `pinocchio/pkg/persistence/chatstore/block_hash.go`
+
+### Upload note
+
+Uploaded the guide to reMarkable with:
+
+```bash
+remarquee upload bundle \
+  ttmp/2026/05/12/GMT-008--fix-turnsdb-tool-call-conversion-and-coinvault-transcript-rendering/analysis/01-geppetto-turns-identity-and-minitrace-delta-handling-guide.md \
+  --name "GMT-008 Geppetto Turns Identity Guide" \
+  --remote-dir "/ai/2026/05/12/GMT-008" \
+  --toc-depth 2 \
+  --non-interactive
+```
+
+Result:
+
+```text
+OK: uploaded GMT-008_Geppetto_Turns_Identity_Guide.pdf -> /ai/2026/05/12/GMT-008
+```

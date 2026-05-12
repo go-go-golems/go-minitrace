@@ -11,3 +11,11 @@
 - [x] Evaluate and document ordered text/tool/text interleaving behavior after the converter fix
 - [x] Run gofmt and targeted go test ./pkg/adapters/turnsdb
 - [x] Regenerate or smoke-check Coinvault archives/API if local fixture data is available
+- [ ] Define a turnsdb semantic block identity helper that prefers block_id and tool payload IDs over metadata-sensitive content hashes
+- [ ] Refactor turnsdb LCS/delta matching to compare semantic block keys while tracking content/version updates separately
+- [ ] Add regression tests for metadata-only block version changes on non-tool blocks and tool blocks
+- [ ] Add regression tests for cumulative snapshots where framework/control blocks disappear but stable block IDs should prevent duplicate transcript output
+- [ ] Refactor turnsdb conversion to process ordered delta blocks in one pass instead of separate text and tool phases
+- [ ] Add an ordered text/tool/text fixture and document whether turns plus ToolCallsInTurn is sufficient
+- [ ] Design a minitrace ordered transcript-event model/API if exact interleaving cannot be represented by current turns
+- [ ] Evaluate optional Pinocchio semantic_hash or stable_block_key export only after go-minitrace consumes existing block_id and ordinal fields

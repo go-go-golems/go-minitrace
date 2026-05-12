@@ -34,3 +34,22 @@ Smoke-checked real Coinvault conversion for session 8730... using local turns.sq
 - /home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite — Local source fixture used for GMT-008 smoke validation.
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — Smoke-checked converter behavior against a real Coinvault turns.db session.
 
+
+## 2026-05-12
+
+Added Geppetto/Pinocchio turns identity research guide and follow-up tasks for simplifying go-minitrace turnsdb delta handling with semantic block identities and ordered conversion.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — Follow-up implementation target for semantic block identity and ordered delta processing.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/ttmp/2026/05/12/GMT-008--fix-turnsdb-tool-call-conversion-and-coinvault-transcript-rendering/analysis/01-geppetto-turns-identity-and-minitrace-delta-handling-guide.md — New research guide.
+
+
+## 2026-05-12
+
+Uploaded the Geppetto turns identity guide to reMarkable as GMT-008_Geppetto_Turns_Identity_Guide.pdf under /ai/2026/05/12/GMT-008.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/ttmp/2026/05/12/GMT-008--fix-turnsdb-tool-call-conversion-and-coinvault-transcript-rendering/analysis/01-geppetto-turns-identity-and-minitrace-delta-handling-guide.md — Uploaded guide source.
+
