@@ -368,6 +368,61 @@ func TestConvertConversationSnapshotsAttachesLeadingToolsToNextAssistant(t *test
 	}
 }
 
+func TestConvertConversationSnapshotsDoesNotAttachNewTurnLeadingToolToPreviousAssistant(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-leading-tool-after-previous",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "sys-1", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u1", Kind: "user", Role: "user", Payload: map[string]any{"text": "first"}, Metadata: map[string]any{}},
+				{ID: "a1", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "first answer"}, Metadata: map[string]any{}},
+			},
+		},
+		{
+			ConvID:              "conv-leading-tool-after-previous",
+			SessionID:           "sess-1",
+			TurnID:              "turn-2",
+			TurnCreatedAtMS:     2000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-2",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 2010,
+			Blocks: []Block{
+				{ID: "sys-2", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u2", Kind: "user", Role: "user", Payload: map[string]any{"text": "second"}, Metadata: map[string]any{}},
+				{ID: "tc2-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-2", "name": "lookup", "args": map[string]any{"q": "second"}}, Metadata: map[string]any{}},
+				{ID: "tu2-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-2", "result": "result"}, Metadata: map[string]any{}},
+				{ID: "a2", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "second answer"}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	if got := session.Turns[2].ToolCallsInTurn; len(got) != 0 {
+		t.Fatalf("expected previous assistant to have no new-turn tools, got %#v", got)
+	}
+	if got := session.Turns[4].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-2" {
+		t.Fatalf("expected following assistant turn to link tc-2, got %#v", got)
+	}
+	if session.ToolCalls[0].EmittingTurnIndex == nil || *session.ToolCalls[0].EmittingTurnIndex != 4 {
+		t.Fatalf("expected tool call emitting turn 4, got %+v", session.ToolCalls[0].EmittingTurnIndex)
+	}
+}
+
 func TestConvertConversationSnapshotsAttachesInterleavedToolsToNearestAssistant(t *testing.T) {
 	snapshots := []CanonicalTurnSnapshot{
 		{

@@ -370,7 +370,7 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 		}
 
 		reasoningPending := []string{}
-		lastAssistantTurnIndex := findLastAssistantTurnIndex(turns)
+		currentAssistantTurnIndex := -1
 		deltaToolCalls := []minitrace.ToolCall{}
 		deltaAnnotations := []minitrace.Annotation{}
 		pendingToolCalls := map[string]int{}
@@ -406,12 +406,12 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 				continue
 			}
 			if block.Kind == "tool_call" {
-				toolCall := buildToolCallFromBlock(block, timestampPtr, lastAssistantTurnIndex)
+				toolCall := buildToolCallFromBlock(block, timestampPtr, currentAssistantTurnIndex)
 				toolCallIndex := len(deltaToolCalls)
 				pendingToolCalls[toolCall.ID] = toolCallIndex
 				deltaToolCalls = append(deltaToolCalls, toolCall)
-				if lastAssistantTurnIndex >= 0 && lastAssistantTurnIndex < len(turns) {
-					turns[lastAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[lastAssistantTurnIndex].ToolCallsInTurn, toolCall.ID)
+				if currentAssistantTurnIndex >= 0 && currentAssistantTurnIndex < len(turns) {
+					turns[currentAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[currentAssistantTurnIndex].ToolCallsInTurn, toolCall.ID)
 				} else {
 					pendingToolAttachments = append(pendingToolAttachments, toolCallIndex)
 				}
@@ -464,11 +464,11 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			}
 			turns = append(turns, turn)
 			if role == "assistant" {
-				lastAssistantTurnIndex = turn.Index
+				currentAssistantTurnIndex = turn.Index
 				if len(pendingToolAttachments) > 0 {
 					for _, toolCallIndex := range pendingToolAttachments {
-						deltaToolCalls[toolCallIndex].EmittingTurnIndex = minitraceIntPtr(lastAssistantTurnIndex)
-						turns[lastAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[lastAssistantTurnIndex].ToolCallsInTurn, deltaToolCalls[toolCallIndex].ID)
+						deltaToolCalls[toolCallIndex].EmittingTurnIndex = minitraceIntPtr(currentAssistantTurnIndex)
+						turns[currentAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[currentAssistantTurnIndex].ToolCallsInTurn, deltaToolCalls[toolCallIndex].ID)
 					}
 					pendingToolAttachments = nil
 				}
@@ -579,15 +579,6 @@ func blockFingerprint(block Block) (string, error) {
 		}
 		return fmt.Sprintf("%s|%s|%s", block.Kind, block.Role, blockID), nil
 	}
-}
-
-func findLastAssistantTurnIndex(turns []minitrace.Turn) int {
-	for i := len(turns) - 1; i >= 0; i-- {
-		if turns[i].Role == "assistant" {
-			return turns[i].Index
-		}
-	}
-	return -1
 }
 
 func classifyTurnBlock(block Block) (string, string, string) {
