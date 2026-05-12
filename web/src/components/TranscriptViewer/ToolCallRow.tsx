@@ -94,6 +94,34 @@ function ContentBlock({ content }: { content: string }) {
   );
 }
 
+function JsonBlock({ value, color = "primary.light" }: { value: unknown; color?: string }) {
+  return (
+    <Box
+      component="pre"
+      sx={{
+        m: 0, mb: 1, p: 1,
+        bgcolor: "#0d1117", borderRadius: 1,
+        overflow: "auto", maxHeight: 300,
+        whiteSpace: "pre-wrap", wordBreak: "break-word",
+        fontSize: "0.7rem", color,
+      }}
+    >
+      {typeof value === "string" ? value : JSON.stringify(value ?? {}, null, 2)}
+    </Box>
+  );
+}
+
+function ToolCallIdentity({ tc }: { tc: ToolCall }) {
+  return (
+    <Box sx={{ mb: 1 }}>
+      <Typography variant="overline" color="text.secondary">Tool call ID</Typography>
+      <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", display: "block" }}>
+        {tc.id}
+      </Typography>
+    </Box>
+  );
+}
+
 /** Render the expanded detail section, specialized by tool type */
 function ToolCallDetail({ tc, cmd }: { tc: ToolCall; cmd: string }) {
   const args = tc.input.arguments;
@@ -203,22 +231,18 @@ function ToolCallDetail({ tc, cmd }: { tc: ToolCall; cmd: string }) {
     );
   }
 
-  // Generic fallback: command + output
+  // Generic fallback: show identity, arguments, command summary, and output.
   return (
     <>
-      <Typography variant="overline" color="text.secondary">Command</Typography>
-      <Box
-        component="pre"
-        sx={{
-          m: 0, mb: 1, p: 1,
-          bgcolor: "#0d1117", borderRadius: 1,
-          overflow: "auto", maxHeight: 200,
-          whiteSpace: "pre-wrap", wordBreak: "break-all",
-          fontSize: "0.7rem", color: "primary.light",
-        }}
-      >
-        {cmd}
-      </Box>
+      <ToolCallIdentity tc={tc} />
+      <Typography variant="overline" color="text.secondary">Tool</Typography>
+      <JsonBlock value={cmd} />
+      {args && Object.keys(args).length > 0 && (
+        <>
+          <Typography variant="overline" color="text.secondary">Arguments</Typography>
+          <JsonBlock value={args} />
+        </>
+      )}
       {tc.output.result && (
         <>
           <Typography variant="overline" color="text.secondary">Output</Typography>
