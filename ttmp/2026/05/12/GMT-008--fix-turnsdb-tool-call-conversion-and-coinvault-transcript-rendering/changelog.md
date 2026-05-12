@@ -92,3 +92,12 @@ Updated the transcript UI generic tool-call detail renderer to show tool call ID
 
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/web/src/components/TranscriptViewer/ToolCallRow.tsx — Shows generic tool call identity and arguments in expanded details.
 
+
+## 2026-05-12
+
+Step 8: folded long system prompts by default in the transcript UI and validated the rebuilt frontend bundle (commit e5b733c).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/web/src/components/TranscriptViewer/BlockBody.tsx — Added reusable folded text rendering and default-collapsed system prompts.
+

@@ -27,12 +27,15 @@ RelatedFiles:
         Added regression tests in commit ce2d48f.
     - Path: ttmp/2026/05/12/GMT-008--fix-turnsdb-tool-call-conversion-and-coinvault-transcript-rendering/design-doc/01-turnsdb-tool-call-conversion-fix-design.md
       Note: Ported root-cause analysis and implementation plan.
+    - Path: web/src/components/TranscriptViewer/BlockBody.tsx
+      Note: Transcript body renderer changed in commit e5b733c to fold system prompt content by default via a reusable folded text component.
 ExternalSources: []
 Summary: Chronological implementation diary for GMT-008 turnsdb tool-call conversion fixes.
 LastUpdated: 2026-05-12T00:00:00Z
 WhatFor: Record what changed, why, validation commands, failures, commits, and review guidance while implementing GMT-008.
 WhenToUse: Read before resuming the GMT-008 implementation or reviewing its commits.
 ---
+
 
 
 
@@ -678,3 +681,88 @@ I updated the generic tool-call detail renderer to show the tool call ID and a p
 
 - API evidence: `/api/v2/sessions/79f7e9b2-8478-4a07-ba62-5efafbcab975/blocks` includes `input.arguments` on tool calls.
 - Validation server remains on port `8092`.
+
+## Step 8: Validate the rebuilt frontend and fold system prompts by default
+
+This step handled two UI follow-ups after the SQL tool argument display change. First, I investigated why the user still saw the old expanded tool-call layout and found that the old compiled `go-minitrace` child process, not the `go run` parent PID recorded in the pid file, was still listening on port 8092 and serving the stale embedded bundle.
+
+After restarting the actual listener, I added default folding for system prompt content. Long CoinVault system prompts now render as a short `⚙️ System prompt` disclosure with a one-line preview, matching the existing folded thinking style and keeping transcript blocks readable by default.
+
+### Prompt Context
+
+**User prompt (verbatim):** "also, fold system prompts by default..."
+
+**Assistant interpretation:** Make system-role transcript turns collapsed initially so long prompts do not dominate the transcript, and continue recording the work in the GMT-008 diary.
+
+**Inferred user intent:** Improve transcript scanability after fixing tool-call visibility, while preserving detailed system prompts behind an explicit expand action.
+
+**Commit (code):** e5b733c — "fix: fold system prompts in transcript UI"
+
+### What I did
+
+- Used Playwright to inspect the running session UI at `http://127.0.0.1:8092/sessions/79f7e9b2-8478-4a07-ba62-5efafbcab975`.
+- Confirmed the stale UI was caused by the old process on `:8092` serving `/static/index-B1qCVKmz.js`, while the rebuilt frontend was available as `/static/index-2-0I75Qv.js`.
+- Killed the actual listening process and restarted `go run ./cmd/go-minitrace serve --archive-glob '/tmp/gmt-008-all-minitrace-output/active/*/*.minitrace.json' --port 8092`.
+- Updated `web/src/components/TranscriptViewer/BlockBody.tsx`:
+  - extracted the thinking fold UI into reusable `FoldedTextBlock`,
+  - kept thinking collapsed by default,
+  - added `SystemPromptBlock`, also collapsed by default,
+  - rendered `t.role === "system"` content through `SystemPromptBlock` instead of the normal user text path.
+- Ran `pnpm install --frozen-lockfile` because `web/node_modules` was absent locally.
+- Ran `pnpm build` successfully.
+- Ran `go generate ./cmd/go-minitrace/cmds/serve` successfully to refresh the ignored embedded frontend directory.
+- Restarted the port 8092 validation server again and confirmed it serves `/static/index-W38BX5-C.js`.
+- Validated in Playwright that block `#1` shows a collapsed `⚙️ System prompt` row with a one-line preview and expands to the full CoinVault prompt when clicked.
+
+### Why
+
+- System prompts in the CoinVault sessions are very long and currently obscure the transcript unless manually scrolling past them.
+- Folding by default preserves the data while making the transcript-first review workflow faster.
+- Reusing the same fold component keeps behavior consistent with thinking blocks and avoids adding a separate one-off collapse implementation.
+
+### What worked
+
+- `pnpm build` completed successfully after local dependencies were installed.
+- `go generate ./cmd/go-minitrace/cmds/serve` rebuilt the production frontend bundle.
+- Playwright confirmed the new system prompt disclosure renders collapsed and expands on click.
+- The validation server now serves the new bundle hash `index-W38BX5-C.js`.
+
+### What didn't work
+
+- Initial `pnpm build` failed because `node_modules` was missing:
+  - Command: `cd go-minitrace/web && pnpm build`
+  - Error: `sh: 1: tsc: not found` and `Local package.json exists, but node_modules missing, did you mean to install?`
+- The earlier server restart had only restarted the recorded parent PID; the old compiled child binary continued to listen on `:8092` and served stale assets.
+- `go generate` emitted a transient Docker registry `HTTP HEAD` error line while resolving `node:22-bookworm`, but Dagger used the cached image and the build/export completed successfully.
+
+### What I learned
+
+- For `go run`-hosted validation servers, the pid file can point at the parent wrapper while the compiled child process owns the socket; use `lsof -ti :8092` before assuming a restart replaced served assets.
+- The system prompt turns are present in the API as `role: "system"`, so this was purely a frontend rendering behavior change.
+
+### What was tricky to build
+
+- The existing transcript body treated all non-assistant turns as plain expanded text. The safe change was to branch specifically on `t.role === "system"` and leave user turns untouched.
+- The previous thinking collapse implementation had local state and markup embedded directly in `ThinkingBlock`; extracting a shared component required keeping the same style and state ownership without changing thinking behavior.
+
+### What warrants a second pair of eyes
+
+- Confirm the preview length for system prompts is useful in dense sessions. It is currently 160 characters, while thinking previews remain 120 characters.
+- Decide whether system turns should use a distinct icon from assistant turns in the turn header; this step only folds content and leaves the existing non-user icon behavior unchanged.
+
+### What should be done in the future
+
+- Consider adding Storybook coverage for a system turn with a long prompt so the default-collapsed behavior is visually regression-tested.
+- If transcript-event modeling is added later, preserve the same default-collapsed system prompt behavior in the new renderer.
+
+### Code review instructions
+
+- Review `web/src/components/TranscriptViewer/BlockBody.tsx`, especially `FoldedTextBlock`, `ThinkingBlock`, `SystemPromptBlock`, and the `t.role === "system"` branch in content rendering.
+- Validate with `cd go-minitrace/web && pnpm build`.
+- Validate manually at `http://127.0.0.1:8092/sessions/79f7e9b2-8478-4a07-ba62-5efafbcab975`: block `#1` should show `⚙️ System prompt` collapsed by default, and clicking the label should expand the full prompt.
+
+### Technical details
+
+- Validation bundle after this step: `/static/index-W38BX5-C.js`.
+- Validation server command: `go run ./cmd/go-minitrace serve --archive-glob '/tmp/gmt-008-all-minitrace-output/active/*/*.minitrace.json' --port 8092`.
+- Code commit: `e5b733c`.
