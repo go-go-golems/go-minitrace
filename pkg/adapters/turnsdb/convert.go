@@ -38,11 +38,12 @@ type SnapshotSummary struct {
 }
 
 type Block struct {
-	ID       string
-	Kind     string
-	Role     string
-	Payload  map[string]any
-	Metadata map[string]any
+	ID          string
+	ContentHash string
+	Kind        string
+	Role        string
+	Payload     map[string]any
+	Metadata    map[string]any
 }
 
 type CanonicalTurnSnapshot struct {
@@ -268,6 +269,7 @@ func loadSnapshotBlocks(db *sql.DB, convID, sessionID, turnID, phase string, sna
 		SELECT
 		  m.ordinal,
 		  b.block_id,
+		  m.content_hash,
 		  b.kind,
 		  b.role,
 		  COALESCE(b.payload_json, '{}') AS payload_json,
@@ -291,16 +293,17 @@ func loadSnapshotBlocks(db *sql.DB, convID, sessionID, turnID, phase string, sna
 	ret := []Block{}
 	for rows.Next() {
 		var ordinal int
-		var blockID, kind, role, payloadJSON, metadataJSON string
-		if err := rows.Scan(&ordinal, &blockID, &kind, &role, &payloadJSON, &metadataJSON); err != nil {
+		var blockID, contentHash, kind, role, payloadJSON, metadataJSON string
+		if err := rows.Scan(&ordinal, &blockID, &contentHash, &kind, &role, &payloadJSON, &metadataJSON); err != nil {
 			return nil, errors.Wrap(err, "scanning turns.db block")
 		}
 		ret = append(ret, Block{
-			ID:       blockID,
-			Kind:     kind,
-			Role:     role,
-			Payload:  parseJSONObject(payloadJSON),
-			Metadata: parseJSONObject(metadataJSON),
+			ID:          blockID,
+			ContentHash: contentHash,
+			Kind:        kind,
+			Role:        role,
+			Payload:     parseJSONObject(payloadJSON),
+			Metadata:    parseJSONObject(metadataJSON),
 		})
 	}
 	if err := rows.Err(); err != nil {
@@ -548,6 +551,12 @@ func blockFingerprint(block Block) (string, error) {
 			return "", fmt.Errorf("%s block %q missing payload id", block.Kind, block.ID)
 		}
 		return fmt.Sprintf("%s|%s", block.Kind, toolID), nil
+	case "system":
+		contentHash := strings.TrimSpace(block.ContentHash)
+		if contentHash == "" {
+			return "", fmt.Errorf("system block %q missing content_hash", block.ID)
+		}
+		return fmt.Sprintf("%s|%s|%s", block.Kind, block.Role, contentHash), nil
 	default:
 		blockID := strings.TrimSpace(block.ID)
 		if blockID == "" {

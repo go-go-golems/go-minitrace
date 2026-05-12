@@ -93,13 +93,13 @@ func TestChooseCanonicalPrefersFinal(t *testing.T) {
 
 func TestLCSDeltaSkipsCarriedForwardBlocksEvenWhenOneIsRemoved(t *testing.T) {
 	previous := []Block{
-		{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
+		{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
 		{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "<currentMode>old</currentMode>"}, Metadata: map[string]any{}},
 		{ID: "b3", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 		{ID: "b4", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 	}
 	current := []Block{
-		{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
+		{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
 		{ID: "b3", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 		{ID: "b4", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 		{ID: "b5", Kind: "user", Role: "user", Payload: map[string]any{"text": "new question"}, Metadata: map[string]any{}},
@@ -137,6 +137,36 @@ func TestLCSDeltaFailsWhenBlockIdentityIsMissing(t *testing.T) {
 	if got := err.Error(); got == "" || !strings.Contains(got, "missing payload id") {
 		t.Fatalf("expected missing payload id error, got %v", err)
 	}
+
+	_, err = lcsDelta(nil, []Block{{ID: "sys-block", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}}})
+	if err == nil {
+		t.Fatalf("expected missing system content_hash to fail")
+	}
+	if got := err.Error(); got == "" || !strings.Contains(got, "missing content_hash") {
+		t.Fatalf("expected missing content_hash error, got %v", err)
+	}
+}
+
+func TestLCSDeltaTreatsRegeneratedSystemBlockIDsAsSamePrompt(t *testing.T) {
+	previous := []Block{
+		{ID: "sys-turn-1", ContentHash: "same-system-prompt", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
+		{ID: "user-1", Kind: "user", Role: "user", Payload: map[string]any{"text": "first"}, Metadata: map[string]any{}},
+	}
+	current := []Block{
+		{ID: "sys-turn-2", ContentHash: "same-system-prompt", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
+		{ID: "user-2", Kind: "user", Role: "user", Payload: map[string]any{"text": "second"}, Metadata: map[string]any{}},
+	}
+
+	delta, err := lcsDelta(previous, current)
+	if err != nil {
+		t.Fatalf("lcsDelta returned error: %v", err)
+	}
+	if got := len(delta); got != 1 {
+		t.Fatalf("expected only the new user block, got %d: %#v", got, delta)
+	}
+	if got := delta[0].Payload["text"]; got != "second" {
+		t.Fatalf("unexpected delta text: %v", got)
+	}
 }
 
 func TestConvertConversationSnapshotsLinksToolCallsAndNormalizesBlankText(t *testing.T) {
@@ -153,7 +183,7 @@ func TestConvertConversationSnapshotsLinksToolCallsAndNormalizesBlankText(t *tes
 			Phase:               "final",
 			SnapshotCreatedAtMS: 1010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "\n"}, Metadata: map[string]any{}},
 				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "bash", "args": map[string]any{"command": "echo hi"}}, Metadata: map[string]any{"stream_seq": float64(1)}},
@@ -197,7 +227,7 @@ func TestConvertConversationSnapshotsDoesNotDuplicateNonToolBlocksWhenMetadataCh
 			Phase:               "final",
 			SnapshotCreatedAtMS: 1010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{"seen": float64(1)}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 			},
@@ -214,7 +244,7 @@ func TestConvertConversationSnapshotsDoesNotDuplicateNonToolBlocksWhenMetadataCh
 			Phase:               "final",
 			SnapshotCreatedAtMS: 2010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{"seen": float64(2)}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 				{ID: "b4", Kind: "user", Role: "user", Payload: map[string]any{"text": "again"}, Metadata: map[string]any{}},
@@ -248,7 +278,7 @@ func TestConvertConversationSnapshotsDoesNotDuplicateToolCallsWhenMetadataChange
 			Phase:               "final",
 			SnapshotCreatedAtMS: 1010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "running tool"}, Metadata: map[string]any{}},
 				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "bash", "args": map[string]any{"command": "echo hi"}}, Metadata: map[string]any{"stream_seq": float64(1)}},
@@ -267,7 +297,7 @@ func TestConvertConversationSnapshotsDoesNotDuplicateToolCallsWhenMetadataChange
 			Phase:               "final",
 			SnapshotCreatedAtMS: 2010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "running tool"}, Metadata: map[string]any{}},
 				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "bash", "args": map[string]any{"command": "echo hi"}}, Metadata: map[string]any{"stream_seq": float64(99)}},
@@ -343,7 +373,7 @@ func TestConvertConversationSnapshotsAttachesInterleavedToolsToNearestAssistant(
 			Phase:               "final",
 			SnapshotCreatedAtMS: 1010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "inspect inventory"}, Metadata: map[string]any{}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "First I will list coins."}, Metadata: map[string]any{}},
 				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "list_coins", "args": map[string]any{"kind": "gold"}}, Metadata: map[string]any{}},
@@ -388,7 +418,7 @@ func TestConvertConversationSnapshotsEmitsOnlyNewTurnContent(t *testing.T) {
 			Phase:               "final",
 			SnapshotCreatedAtMS: 1010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 			},
@@ -405,7 +435,7 @@ func TestConvertConversationSnapshotsEmitsOnlyNewTurnContent(t *testing.T) {
 			Phase:               "final",
 			SnapshotCreatedAtMS: 2010,
 			Blocks: []Block{
-				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
 				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
 				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 				{ID: "b4", Kind: "user", Role: "user", Payload: map[string]any{"text": "again"}, Metadata: map[string]any{}},
