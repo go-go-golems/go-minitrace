@@ -21,3 +21,6 @@
 - [x] Evaluate optional Pinocchio semantic_hash or stable_block_key export only after go-minitrace consumes existing block_id and ordinal fields
 - [x] Audit real turnsdb archives for any missing block_id or missing tool payload id failures after fail-fast semantic identity lands
 - [x] Expose generic tool arguments clearly in the transcript UI for non-bash/non-file tools
+- [x] Replace turnsdb LCS delta reconstruction with chronological canonical snapshots plus a global first-seen semantic block filter
+- [x] Add regression coverage for mixed cumulative and non-cumulative per-turn snapshots
+- [x] Re-run CoinVault full archive smoke validation after no-LCS conversion

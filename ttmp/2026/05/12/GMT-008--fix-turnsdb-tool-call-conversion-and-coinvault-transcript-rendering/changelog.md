@@ -111,3 +111,13 @@ Step 9: diagnosed duplicate system prompt at turn #10 as regenerated system bloc
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — System blocks now require content_hash for delta identity.
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Regression tests for regenerated system block IDs.
 
+
+## 2026-05-12
+
+Step 10: replaced turnsdb LCS delta reconstruction with chronological canonical snapshots and global first-seen semantic block filtering (commit 0f4a196).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — No-LCS first-seen conversion implementation.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Mixed source-shape regression fixtures.
+
