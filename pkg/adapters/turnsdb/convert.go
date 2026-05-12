@@ -361,7 +361,10 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			modelsSeen = append(modelsSeen, snapshot.RuntimeKey)
 		}
 
-		deltaBlocks := lcsDelta(previousBlocks, snapshot.Blocks)
+		deltaBlocks, err := lcsDelta(previousBlocks, snapshot.Blocks)
+		if err != nil {
+			return nil, errors.Wrapf(err, "computing turns.db block delta conv_id=%s turn_id=%s", snapshot.ConvID, snapshot.TurnID)
+		}
 		previousBlocks = snapshot.Blocks
 
 		reasoningPending := []string{}
@@ -485,23 +488,39 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 	return &session, nil
 }
 
-func blockFingerprint(block Block) string {
-	payload, _ := json.Marshal(block.Payload)
-	if block.Kind == "tool_call" || block.Kind == "tool_use" {
-		return fmt.Sprintf("%s|%s|%s|%s", block.Kind, block.Role, block.ID, payload)
+func blockFingerprint(block Block) (string, error) {
+	switch block.Kind {
+	case "tool_call", "tool_use":
+		toolID := strings.TrimSpace(stringValue(block.Payload["id"]))
+		if toolID == "" {
+			return "", fmt.Errorf("%s block %q missing payload id", block.Kind, block.ID)
+		}
+		return fmt.Sprintf("%s|%s", block.Kind, toolID), nil
+	default:
+		blockID := strings.TrimSpace(block.ID)
+		if blockID == "" {
+			return "", fmt.Errorf("%s block missing block_id", block.Kind)
+		}
+		return fmt.Sprintf("%s|%s|%s", block.Kind, block.Role, blockID), nil
 	}
-	metadata, _ := json.Marshal(block.Metadata)
-	return fmt.Sprintf("%s|%s|%s|%s|%s", block.Kind, block.Role, block.ID, payload, metadata)
 }
 
-func lcsDelta(previousBlocks, currentBlocks []Block) []Block {
+func lcsDelta(previousBlocks, currentBlocks []Block) ([]Block, error) {
 	prevFP := make([]string, len(previousBlocks))
 	currFP := make([]string, len(currentBlocks))
 	for i, block := range previousBlocks {
-		prevFP[i] = blockFingerprint(block)
+		fp, err := blockFingerprint(block)
+		if err != nil {
+			return nil, errors.Wrapf(err, "previous block index=%d", i)
+		}
+		prevFP[i] = fp
 	}
 	for i, block := range currentBlocks {
-		currFP[i] = blockFingerprint(block)
+		fp, err := blockFingerprint(block)
+		if err != nil {
+			return nil, errors.Wrapf(err, "current block index=%d", i)
+		}
+		currFP[i] = fp
 	}
 
 	m := len(prevFP)
@@ -543,7 +562,7 @@ func lcsDelta(previousBlocks, currentBlocks []Block) []Block {
 			ret = append(ret, block)
 		}
 	}
-	return ret
+	return ret, nil
 }
 
 func classifyTurnBlock(block Block) (string, string, string) {

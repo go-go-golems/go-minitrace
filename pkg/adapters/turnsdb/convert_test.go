@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -92,20 +93,23 @@ func TestChooseCanonicalPrefersFinal(t *testing.T) {
 
 func TestLCSDeltaSkipsCarriedForwardBlocksEvenWhenOneIsRemoved(t *testing.T) {
 	previous := []Block{
-		{Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
-		{Kind: "user", Role: "user", Payload: map[string]any{"text": "<currentMode>old</currentMode>"}, Metadata: map[string]any{}},
-		{Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
-		{Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
+		{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
+		{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "<currentMode>old</currentMode>"}, Metadata: map[string]any{}},
+		{ID: "b3", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
+		{ID: "b4", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
 	}
 	current := []Block{
-		{Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
-		{Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
-		{Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
-		{Kind: "user", Role: "user", Payload: map[string]any{"text": "new question"}, Metadata: map[string]any{}},
-		{Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "new answer"}, Metadata: map[string]any{}},
+		{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
+		{ID: "b3", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{}},
+		{ID: "b4", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
+		{ID: "b5", Kind: "user", Role: "user", Payload: map[string]any{"text": "new question"}, Metadata: map[string]any{}},
+		{ID: "b6", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "new answer"}, Metadata: map[string]any{}},
 	}
 
-	delta := lcsDelta(previous, current)
+	delta, err := lcsDelta(previous, current)
+	if err != nil {
+		t.Fatalf("lcsDelta returned error: %v", err)
+	}
 	if len(delta) != 2 {
 		t.Fatalf("expected 2 delta blocks, got %d", len(delta))
 	}
@@ -114,6 +118,24 @@ func TestLCSDeltaSkipsCarriedForwardBlocksEvenWhenOneIsRemoved(t *testing.T) {
 	}
 	if text := delta[1].Payload["text"]; text != "new answer" {
 		t.Fatalf("unexpected second delta text: %v", text)
+	}
+}
+
+func TestLCSDeltaFailsWhenBlockIdentityIsMissing(t *testing.T) {
+	_, err := lcsDelta(nil, []Block{{Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}}})
+	if err == nil {
+		t.Fatalf("expected missing block_id to fail")
+	}
+	if got := err.Error(); got == "" || !strings.Contains(got, "missing block_id") {
+		t.Fatalf("expected missing block_id error, got %v", err)
+	}
+
+	_, err = lcsDelta(nil, []Block{{ID: "tc-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"name": "bash"}}})
+	if err == nil {
+		t.Fatalf("expected missing tool payload id to fail")
+	}
+	if got := err.Error(); got == "" || !strings.Contains(got, "missing payload id") {
+		t.Fatalf("expected missing payload id error, got %v", err)
 	}
 }
 
