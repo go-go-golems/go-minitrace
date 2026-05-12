@@ -13,10 +13,10 @@
 - [x] Regenerate or smoke-check Coinvault archives/API if local fixture data is available
 - [x] Define a turnsdb semantic block identity helper that prefers block_id and tool payload IDs over metadata-sensitive content hashes
 - [x] Refactor turnsdb LCS/delta matching to compare semantic block keys while tracking content/version updates separately
-- [ ] Add regression tests for metadata-only block version changes on non-tool blocks and tool blocks
-- [ ] Add regression tests for cumulative snapshots where framework/control blocks disappear but stable block IDs should prevent duplicate transcript output
-- [ ] Refactor turnsdb conversion to process ordered delta blocks in one pass instead of separate text and tool phases
-- [ ] Add an ordered text/tool/text fixture and document whether turns plus ToolCallsInTurn is sufficient
+- [x] Add regression tests for metadata-only block version changes on non-tool blocks and tool blocks
+- [x] Add regression tests for cumulative snapshots where framework/control blocks disappear but stable block IDs should prevent duplicate transcript output
+- [x] Refactor turnsdb conversion to process ordered delta blocks in one pass instead of separate text and tool phases
+- [x] Add an ordered text/tool/text fixture and document whether turns plus ToolCallsInTurn is sufficient
 - [ ] Design a minitrace ordered transcript-event model/API if exact interleaving cannot be represented by current turns
-- [ ] Evaluate optional Pinocchio semantic_hash or stable_block_key export only after go-minitrace consumes existing block_id and ordinal fields
-- [ ] Audit real turnsdb archives for any missing block_id or missing tool payload id failures after fail-fast semantic identity lands
+- [x] Evaluate optional Pinocchio semantic_hash or stable_block_key export only after go-minitrace consumes existing block_id and ordinal fields
+- [x] Audit real turnsdb archives for any missing block_id or missing tool payload id failures after fail-fast semantic identity lands

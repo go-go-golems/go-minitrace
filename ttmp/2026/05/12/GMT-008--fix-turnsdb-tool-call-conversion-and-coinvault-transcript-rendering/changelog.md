@@ -73,3 +73,13 @@ Committed strict turnsdb identity requirement: non-tool blocks must have block_i
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — Strict semantic identity implementation.
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Missing-identity regression coverage.
 
+
+## 2026-05-12
+
+Refactored turnsdb conversion to process delta blocks in source order, added ordered text/tool fixtures, kept strict IDs, and audited the full local Coinvault turns.db. Full conversion succeeds for 31 sessions with 143 tool calls, 140 turn links, 0 pending no-result calls; the remaining 3 unlinked calls have no reliable assistant segment context and are documented as a model/data-shape caveat (commit f8bc060).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — One-pass ordered delta processing and tool attachment logic.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Ordered interleaving
+

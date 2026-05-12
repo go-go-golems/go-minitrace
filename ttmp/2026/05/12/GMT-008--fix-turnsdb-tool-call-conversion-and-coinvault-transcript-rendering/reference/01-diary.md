@@ -498,3 +498,112 @@ go run ./cmd/go-minitrace convert turnsdb \
   --conv-id 8730fef8-2f37-40bb-96e3-73687c55f6ab \
   --output-dir /tmp/gmt-008-minitrace-output
 ```
+
+## Step 6: Process turnsdb delta blocks in source order
+
+This step continued from the strict identity cleanup and removed the old text-first/tool-second conversion shape. The converter now walks each computed delta block list once, in source order, emitting turns and creating/completing tool calls as it encounters blocks.
+
+This materially improves interleaving. In the representative Coinvault session `8730...`, the six tool calls now attach to six separate assistant newline segments instead of all being dumped onto the final assistant answer. A full local Coinvault conversion still has three unlinked tool calls in one session where those calls lack a reliable assistant segment context; I left those unlinked rather than inventing a synthetic/legacy fallback.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, go ahead"
+
+**Assistant interpretation:** Continue implementing the simplified turnsdb handling tasks after strict identity landed.
+
+**Inferred user intent:** Move beyond planning into the ordered conversion refactor and validate it against the local Coinvault archive.
+
+**Commit (code):** f8bc060 — "refactor: process turnsdb delta blocks in order"
+
+### What I did
+
+- Refactored `convertConversationSnapshots` so each `deltaBlocks` list is processed in source order.
+- Removed the old `buildToolCallsFromBlocks` second pass.
+- Added `buildToolCallFromBlock` for single tool-call creation.
+- Tool calls now attach to the current/nearest assistant turn while scanning ordered blocks.
+- Tool calls encountered before any assistant in the current context are held for the next assistant segment if one appears.
+- Added `findLastAssistantTurnIndex` so tool-only deltas can use the previous assistant context when appropriate.
+- Added tests for:
+  - non-tool metadata churn with stable block IDs,
+  - leading tool calls attaching to the following assistant segment,
+  - interleaved assistant/tool/assistant/tool/assistant sequences attaching tools to the nearest assistant segments.
+- Ran `go test ./pkg/adapters/turnsdb` successfully.
+- Converted the full local Coinvault turns DB successfully.
+
+### Why
+
+- The old converter first emitted all text turns and only then built tool calls, which lost source ordering even though `turn_block_membership.ordinal` preserves it.
+- Processing blocks once in source order better matches the Geppetto/Pinocchio turns model and avoids an additional interpretation layer.
+
+### What worked
+
+- Targeted package tests pass.
+- Full local Coinvault conversion succeeds for all 31 sessions.
+- Aggregate smoke after the refactor:
+
+```text
+files 31 tools 143 linked 140 unlinked_unique 3 pending 0
+```
+
+- Representative session `8730...` now links tools to separate assistant newline segments:
+
+```text
+tool_calls 6
+linked 6
+pending_no_result 0
+2 \n ['call_6233864ef1c94883a0296580']
+3 \n ['call_7d5a617c9e3740c6bd719df7']
+4 \n ['call_8f355fa09c564573bd28f6b9']
+5 \n ['call_14d6a9fd086748be9219a99e']
+6 \n ['call_6b187fd8504643fa85b10d27']
+7 \n ['call_83fad0bdd4f543fe9552ab92']
+```
+
+### What didn't work
+
+- Full archive audit still finds 3 unlinked successful tool calls in session `4f3d4f22-1527-4f7b-8945-93a718a91178`.
+- Those calls have no reliable assistant segment context in the converted turn stream. I did not attach them to an arbitrary later assistant answer because that would reintroduce heuristic behavior.
+
+### What I learned
+
+- Ordered single-pass conversion improves the original Coinvault symptom significantly without producer changes.
+- `turns[] + ToolCallsInTurn` can represent many interleaving cases well enough, but it cannot represent orphan/tool-only contexts without either synthetic turns or a richer transcript-event model.
+
+### What was tricky to build
+
+- Tool calls may appear before an assistant text segment in the same delta. The converter now temporarily holds those tool indices and attaches them to the next assistant segment if one appears. This is still source-order aware and avoids guessing from text content.
+- Tool result pairing and tool turn attachment are separate concerns. A tool call can be successfully completed by a `tool_use` block but still lack a reliable assistant turn context.
+
+### What warrants a second pair of eyes
+
+- Review whether carrying previous assistant context for tool-only deltas is correct, or whether such deltas should become explicit synthetic assistant/tool container turns.
+- Review the three unlinked tool calls in `4f3d4f22...` before deciding whether an ordered transcript-event model is needed.
+
+### What should be done in the future
+
+- Task 16 remains open: design a minitrace ordered transcript-event model/API if exact interleaving and orphan/tool-only contexts must be represented explicitly.
+- Consider a small audit/query command that reports unlinked tool calls after conversion.
+
+### Code review instructions
+
+- Start in `pkg/adapters/turnsdb/convert.go`, inside `convertConversationSnapshots`.
+- Then read the new tests in `pkg/adapters/turnsdb/convert_test.go` around leading tools and interleaved tool fixtures.
+- Validate with:
+
+```bash
+go test ./pkg/adapters/turnsdb
+```
+
+- Optional full local smoke:
+
+```bash
+go run ./cmd/go-minitrace convert turnsdb \
+  --source /home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite \
+  --output-dir /tmp/gmt-008-all-minitrace-output
+```
+
+### Technical details
+
+- Full archive smoke output directory: `/tmp/gmt-008-all-minitrace-output`.
+- Full archive count: 31 converted sessions.
+- Aggregate tool counts after refactor: 143 tools, 140 linked turn references, 0 pending no-result errors.
