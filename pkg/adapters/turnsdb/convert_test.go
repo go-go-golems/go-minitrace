@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -91,7 +92,7 @@ func TestChooseCanonicalPrefersFinal(t *testing.T) {
 	}
 }
 
-func TestLCSDeltaSkipsCarriedForwardBlocksEvenWhenOneIsRemoved(t *testing.T) {
+func TestFirstSeenBlocksSkipsPreviouslySeenBlocks(t *testing.T) {
 	previous := []Block{
 		{ID: "b1", ContentHash: "sys-hash", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
 		{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "<currentMode>old</currentMode>"}, Metadata: map[string]any{}},
@@ -106,23 +107,27 @@ func TestLCSDeltaSkipsCarriedForwardBlocksEvenWhenOneIsRemoved(t *testing.T) {
 		{ID: "b6", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "new answer"}, Metadata: map[string]any{}},
 	}
 
-	delta, err := lcsDelta(previous, current)
+	seen := map[string]struct{}{}
+	if _, err := firstSeenBlocks(previous, seen); err != nil {
+		t.Fatalf("firstSeenBlocks previous returned error: %v", err)
+	}
+	newBlocks, err := firstSeenBlocks(current, seen)
 	if err != nil {
-		t.Fatalf("lcsDelta returned error: %v", err)
+		t.Fatalf("firstSeenBlocks current returned error: %v", err)
 	}
-	if len(delta) != 2 {
-		t.Fatalf("expected 2 delta blocks, got %d", len(delta))
+	if len(newBlocks) != 2 {
+		t.Fatalf("expected 2 new blocks, got %d", len(newBlocks))
 	}
-	if text := delta[0].Payload["text"]; text != "new question" {
+	if text := newBlocks[0].Payload["text"]; text != "new question" {
 		t.Fatalf("unexpected first delta text: %v", text)
 	}
-	if text := delta[1].Payload["text"]; text != "new answer" {
+	if text := newBlocks[1].Payload["text"]; text != "new answer" {
 		t.Fatalf("unexpected second delta text: %v", text)
 	}
 }
 
-func TestLCSDeltaFailsWhenBlockIdentityIsMissing(t *testing.T) {
-	_, err := lcsDelta(nil, []Block{{Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}}})
+func TestFirstSeenBlocksFailsWhenBlockIdentityIsMissing(t *testing.T) {
+	_, err := firstSeenBlocks([]Block{{Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}}}, map[string]struct{}{})
 	if err == nil {
 		t.Fatalf("expected missing block_id to fail")
 	}
@@ -130,7 +135,7 @@ func TestLCSDeltaFailsWhenBlockIdentityIsMissing(t *testing.T) {
 		t.Fatalf("expected missing block_id error, got %v", err)
 	}
 
-	_, err = lcsDelta(nil, []Block{{ID: "tc-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"name": "bash"}}})
+	_, err = firstSeenBlocks([]Block{{ID: "tc-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"name": "bash"}}}, map[string]struct{}{})
 	if err == nil {
 		t.Fatalf("expected missing tool payload id to fail")
 	}
@@ -138,7 +143,7 @@ func TestLCSDeltaFailsWhenBlockIdentityIsMissing(t *testing.T) {
 		t.Fatalf("expected missing payload id error, got %v", err)
 	}
 
-	_, err = lcsDelta(nil, []Block{{ID: "sys-block", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}}})
+	_, err = firstSeenBlocks([]Block{{ID: "sys-block", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}}}, map[string]struct{}{})
 	if err == nil {
 		t.Fatalf("expected missing system content_hash to fail")
 	}
@@ -147,7 +152,7 @@ func TestLCSDeltaFailsWhenBlockIdentityIsMissing(t *testing.T) {
 	}
 }
 
-func TestLCSDeltaTreatsRegeneratedSystemBlockIDsAsSamePrompt(t *testing.T) {
+func TestFirstSeenBlocksTreatsRegeneratedSystemBlockIDsAsSamePrompt(t *testing.T) {
 	previous := []Block{
 		{ID: "sys-turn-1", ContentHash: "same-system-prompt", Kind: "system", Role: "system", Payload: map[string]any{"text": "sys"}, Metadata: map[string]any{}},
 		{ID: "user-1", Kind: "user", Role: "user", Payload: map[string]any{"text": "first"}, Metadata: map[string]any{}},
@@ -157,14 +162,18 @@ func TestLCSDeltaTreatsRegeneratedSystemBlockIDsAsSamePrompt(t *testing.T) {
 		{ID: "user-2", Kind: "user", Role: "user", Payload: map[string]any{"text": "second"}, Metadata: map[string]any{}},
 	}
 
-	delta, err := lcsDelta(previous, current)
+	seen := map[string]struct{}{}
+	if _, err := firstSeenBlocks(previous, seen); err != nil {
+		t.Fatalf("firstSeenBlocks previous returned error: %v", err)
+	}
+	newBlocks, err := firstSeenBlocks(current, seen)
 	if err != nil {
-		t.Fatalf("lcsDelta returned error: %v", err)
+		t.Fatalf("firstSeenBlocks current returned error: %v", err)
 	}
-	if got := len(delta); got != 1 {
-		t.Fatalf("expected only the new user block, got %d: %#v", got, delta)
+	if got := len(newBlocks); got != 1 {
+		t.Fatalf("expected only the new user block, got %d: %#v", got, newBlocks)
 	}
-	if got := delta[0].Payload["text"]; got != "second" {
+	if got := newBlocks[0].Payload["text"]; got != "second" {
 		t.Fatalf("unexpected delta text: %v", got)
 	}
 }
@@ -401,6 +410,129 @@ func TestConvertConversationSnapshotsAttachesInterleavedToolsToNearestAssistant(
 	}
 	if got := session.Turns[4].ToolCallsInTurn; len(got) != 0 {
 		t.Fatalf("expected final assistant segment to have no tool links, got %#v", got)
+	}
+}
+
+func TestConvertConversationSnapshotsPreservesNonCumulativeStoredTurns(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-noncumulative",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "sys-1", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u1", Kind: "user", Role: "user", Payload: map[string]any{"text": "first question"}, Metadata: map[string]any{}},
+				{ID: "a1", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "first answer"}, Metadata: map[string]any{}},
+			},
+		},
+		{
+			ConvID:              "conv-noncumulative",
+			SessionID:           "sess-1",
+			TurnID:              "turn-2",
+			TurnCreatedAtMS:     2000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-2",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 2010,
+			Blocks: []Block{
+				{ID: "sys-2", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u2", Kind: "user", Role: "user", Payload: map[string]any{"text": "second question"}, Metadata: map[string]any{}},
+				{ID: "a2", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "second answer"}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	contents := []string{}
+	for _, turn := range session.Turns {
+		contents = append(contents, turn.Content)
+	}
+	expected := []string{"You are an assistant", "first question", "first answer", "second question", "second answer"}
+	if !reflect.DeepEqual(contents, expected) {
+		t.Fatalf("unexpected contents:\ngot  %#v\nwant %#v", contents, expected)
+	}
+}
+
+func TestConvertConversationSnapshotsHandlesMixedCumulativeAndNonCumulativeStoredTurns(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-mixed",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "sys-1", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u1", Kind: "user", Role: "user", Payload: map[string]any{"text": "first question"}, Metadata: map[string]any{}},
+				{ID: "a1", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "first answer"}, Metadata: map[string]any{}},
+			},
+		},
+		{
+			ConvID:              "conv-mixed",
+			SessionID:           "sess-1",
+			TurnID:              "turn-2",
+			TurnCreatedAtMS:     2000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-2",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 2010,
+			Blocks: []Block{
+				{ID: "sys-2", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u1", Kind: "user", Role: "user", Payload: map[string]any{"text": "first question"}, Metadata: map[string]any{}},
+				{ID: "a1", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "first answer"}, Metadata: map[string]any{}},
+				{ID: "u2", Kind: "user", Role: "user", Payload: map[string]any{"text": "second question"}, Metadata: map[string]any{}},
+				{ID: "a2", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "second answer"}, Metadata: map[string]any{}},
+			},
+		},
+		{
+			ConvID:              "conv-mixed",
+			SessionID:           "sess-1",
+			TurnID:              "turn-3",
+			TurnCreatedAtMS:     3000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-3",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 3010,
+			Blocks: []Block{
+				{ID: "sys-3", ContentHash: "same-system", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "u3", Kind: "user", Role: "user", Payload: map[string]any{"text": "third question"}, Metadata: map[string]any{}},
+				{ID: "a3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "third answer"}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	contents := []string{}
+	for _, turn := range session.Turns {
+		contents = append(contents, turn.Content)
+	}
+	expected := []string{"You are an assistant", "first question", "first answer", "second question", "second answer", "third question", "third answer"}
+	if !reflect.DeepEqual(contents, expected) {
+		t.Fatalf("unexpected contents:\ngot  %#v\nwant %#v", contents, expected)
 	}
 }
 

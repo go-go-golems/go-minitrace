@@ -347,8 +347,8 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 	annotations := []minitrace.Annotation{}
 	allTimestamps := []time.Time{}
 	modelsSeen := []string{}
-	previousBlocks := []Block{}
 	seenSessions := map[string]struct{}{}
+	seenBlockIdentities := map[string]struct{}{}
 
 	for _, snapshot := range conversationTurns {
 		var timestampPtr *string
@@ -364,11 +364,10 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			modelsSeen = append(modelsSeen, snapshot.RuntimeKey)
 		}
 
-		deltaBlocks, err := lcsDelta(previousBlocks, snapshot.Blocks)
+		newBlocks, err := firstSeenBlocks(snapshot.Blocks, seenBlockIdentities)
 		if err != nil {
-			return nil, errors.Wrapf(err, "computing turns.db block delta conv_id=%s turn_id=%s", snapshot.ConvID, snapshot.TurnID)
+			return nil, errors.Wrapf(err, "filtering turns.db snapshot blocks conv_id=%s turn_id=%s", snapshot.ConvID, snapshot.TurnID)
 		}
-		previousBlocks = snapshot.Blocks
 
 		reasoningPending := []string{}
 		lastAssistantTurnIndex := findLastAssistantTurnIndex(turns)
@@ -398,7 +397,7 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			}
 		}
 
-		for _, block := range deltaBlocks {
+		for _, block := range newBlocks {
 			text := stringifyBlockPayload(block.Payload)
 			if block.Kind == "reasoning" {
 				if strings.TrimSpace(text) != "" {
@@ -501,7 +500,7 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			"turn_id":                snapshot.TurnID,
 			"phase":                  snapshot.Phase,
 			"snapshot_created_at_ms": snapshot.SnapshotCreatedAtMS,
-			"delta_block_count":      len(deltaBlocks),
+			"new_block_count":        len(newBlocks),
 		})
 		annotations = append(annotations, minitrace.BuildAnnotation(
 			fmt.Sprintf("ann-snapshot-%d", len(annotations)),
@@ -543,6 +542,22 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 	return &session, nil
 }
 
+func firstSeenBlocks(blocks []Block, seen map[string]struct{}) ([]Block, error) {
+	ret := []Block{}
+	for idx, block := range blocks {
+		identity, err := blockFingerprint(block)
+		if err != nil {
+			return nil, errors.Wrapf(err, "block index=%d", idx)
+		}
+		if _, ok := seen[identity]; ok {
+			continue
+		}
+		seen[identity] = struct{}{}
+		ret = append(ret, block)
+	}
+	return ret, nil
+}
+
 func blockFingerprint(block Block) (string, error) {
 	switch block.Kind {
 	case "tool_call", "tool_use":
@@ -564,66 +579,6 @@ func blockFingerprint(block Block) (string, error) {
 		}
 		return fmt.Sprintf("%s|%s|%s", block.Kind, block.Role, blockID), nil
 	}
-}
-
-func lcsDelta(previousBlocks, currentBlocks []Block) ([]Block, error) {
-	prevFP := make([]string, len(previousBlocks))
-	currFP := make([]string, len(currentBlocks))
-	for i, block := range previousBlocks {
-		fp, err := blockFingerprint(block)
-		if err != nil {
-			return nil, errors.Wrapf(err, "previous block index=%d", i)
-		}
-		prevFP[i] = fp
-	}
-	for i, block := range currentBlocks {
-		fp, err := blockFingerprint(block)
-		if err != nil {
-			return nil, errors.Wrapf(err, "current block index=%d", i)
-		}
-		currFP[i] = fp
-	}
-
-	m := len(prevFP)
-	n := len(currFP)
-	dp := make([][]int, m+1)
-	for i := range dp {
-		dp[i] = make([]int, n+1)
-	}
-
-	for i := m - 1; i >= 0; i-- {
-		for j := n - 1; j >= 0; j-- {
-			if prevFP[i] == currFP[j] {
-				dp[i][j] = dp[i+1][j+1] + 1
-			} else if dp[i+1][j] >= dp[i][j+1] {
-				dp[i][j] = dp[i+1][j]
-			} else {
-				dp[i][j] = dp[i][j+1]
-			}
-		}
-	}
-
-	matchedCurrent := map[int]struct{}{}
-	i, j := 0, 0
-	for i < m && j < n {
-		if prevFP[i] == currFP[j] {
-			matchedCurrent[j] = struct{}{}
-			i++
-			j++
-		} else if dp[i+1][j] >= dp[i][j+1] {
-			i++
-		} else {
-			j++
-		}
-	}
-
-	ret := []Block{}
-	for idx, block := range currentBlocks {
-		if _, ok := matchedCurrent[idx]; !ok {
-			ret = append(ret, block)
-		}
-	}
-	return ret, nil
 }
 
 func findLastAssistantTurnIndex(turns []minitrace.Turn) int {
