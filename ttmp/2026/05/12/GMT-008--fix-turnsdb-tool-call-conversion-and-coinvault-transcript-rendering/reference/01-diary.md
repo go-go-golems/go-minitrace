@@ -1046,3 +1046,96 @@ I did not mutate the original CoinVault `turns.sqlite` source file. The filterin
 - Filtered validation archive: `/tmp/gmt-008-all-minitrace-output`.
 - Filter list: `/tmp/gmt-008-filtered-broken-session-ids.txt`.
 - Validation server: `http://127.0.0.1:8092/`.
+
+## Step 12: Fix leading tool attachment after previous assistant turns
+
+This step addressed a review comment from the ChatGPT Codex connector about tool calls that appear before the next assistant `llm_text` in a later stored turn. The reviewer was right: the converter initialized tool attachment with the last assistant turn from the entire transcript, so a new turn that started with a user block and then a tool call before assistant text could incorrectly attach that tool to the previous assistant response.
+
+I changed the attachment state to be local to the currently processed canonical snapshot. Tool calls now attach only to an assistant turn already emitted in the same snapshot; otherwise they are deferred until the next assistant turn in that snapshot.
+
+### Prompt Context
+
+**User prompt (verbatim):** "@chatgpt-codex-connector
+chatgpt-codex-connector Bot
+1 minute ago
+
+P2 Badge Avoid attaching leading tools to the previous turn
+
+When a later snapshot starts a new user turn and the assistant performs a tool before emitting any llm_text, lastAssistantTurnIndex still points at the previous assistant response, so this branch links the new tool call to the prior turn instead of deferring it to the upcoming assistant turn. The existing leading-tool test only covers the first turn with no previous assistant; in multi-turn transcripts this misplaces tool rows and leaves the actual assistant response without its tool context.
+
+Useful? React with 👍 / 👎.
+
+
+pkg/adapters/turnsdb/convert.go
+Comment on lines +413 to +416
+                if lastAssistantTurnIndex >= 0 && lastAssistantTurnIndex < len(turns) {
+                    turns[lastAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[lastAssistantTurnIndex].ToolCallsInTurn, toolCall.ID)
+                } else {
+                    pendingToolAttachm"
+
+**Assistant interpretation:** Evaluate the review comment, fix the attachment bug if valid, add regression coverage, and validate the turnsdb converter.
+
+**Inferred user intent:** Ensure the no-LCS converter does not misplace leading tool calls in multi-turn transcripts.
+
+**Commit (code):** 8fb7447 — "fix: defer leading tools to current assistant turn"
+
+### What I did
+
+- Confirmed the review comment was valid.
+- Updated `pkg/adapters/turnsdb/convert.go`:
+  - replaced transcript-wide `lastAssistantTurnIndex` initialization with per-snapshot `currentAssistantTurnIndex := -1`,
+  - made tool calls attach only when an assistant turn has already appeared in the current snapshot,
+  - kept pre-assistant tool calls in `pendingToolAttachments` until the next assistant turn in the same snapshot,
+  - removed the now-unused `findLastAssistantTurnIndex` helper.
+- Added `TestConvertConversationSnapshotsDoesNotAttachNewTurnLeadingToolToPreviousAssistant` in `pkg/adapters/turnsdb/convert_test.go`.
+- Ran `gofmt` and `go test ./pkg/adapters/turnsdb` successfully.
+- Re-ran full CoinVault conversion smoke; tool-call health remained unchanged:
+  - `files 31`
+  - `tools 143`
+  - `linked 140`
+  - `unlinked_unique 3`
+  - `pending 0`
+
+### Why
+
+- In a later stored turn, a leading tool belongs to the assistant response being built for that turn, not to the previous assistant response in the transcript.
+- The current transcript representation attaches tools to turns, so wrong attachment would make the previous answer show unrelated tool rows and leave the actual answer without its context.
+
+### What worked
+
+- The targeted regression test reproduces the multi-turn case not covered by the older first-turn leading-tool test.
+- Targeted tests passed.
+- Real CoinVault smoke metrics did not regress.
+
+### What didn't work
+
+- I did not run the full repository test suite for this small fix because the known unrelated config-discovery failures remain documented from earlier steps.
+- I committed with `LEFTHOOK=0` after targeted validation.
+
+### What I learned
+
+- After moving to chronological first-seen snapshots, attachment state should be scoped to the current stored turn/snapshot rather than inherited from the whole transcript.
+
+### What was tricky to build
+
+- The converter still needs to support tools after an assistant segment in the same snapshot and tools before an assistant segment in the same snapshot. The fix preserves both by using `currentAssistantTurnIndex` plus `pendingToolAttachments`.
+
+### What warrants a second pair of eyes
+
+- Review whether an orphan annotation would be better than pending attachment if no later assistant turn appears in the same snapshot. Current behavior matches the existing first-turn leading-tool policy.
+
+### What should be done in the future
+
+- The ordered transcript-event model would make this association explicit rather than inferring it from `turns[] + ToolCallsInTurn`.
+
+### Code review instructions
+
+- Review `pkg/adapters/turnsdb/convert.go` around tool-call handling in `convertConversationSnapshots`.
+- Review `TestConvertConversationSnapshotsDoesNotAttachNewTurnLeadingToolToPreviousAssistant`.
+- Validate with `go test ./pkg/adapters/turnsdb`.
+
+### Technical details
+
+- Review commit: `8fb7447`.
+- Targeted test command: `go test ./pkg/adapters/turnsdb`.
+- Smoke conversion command output was summarized in this step.

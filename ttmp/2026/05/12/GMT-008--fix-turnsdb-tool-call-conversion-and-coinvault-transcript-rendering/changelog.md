@@ -131,3 +131,13 @@ Step 11: reconverted the CoinVault turnsdb archive, filtered seven broken-histor
 - /tmp/gmt-008-all-minitrace-output — Temporary filtered validation archive served by trace web.
 - /tmp/gmt-008-filtered-broken-session-ids.txt — List of filtered confusing sessions.
 
+
+## 2026-05-12
+
+Step 12: fixed reviewer-identified leading tool attachment so tools before current assistant text no longer attach to the previous assistant turn (commit 8fb7447).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — Scoped tool attachment to current snapshot assistant turns.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Added multi-turn leading-tool regression test.
+
