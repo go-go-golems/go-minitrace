@@ -183,6 +183,57 @@ func TestConvertConversationSnapshotsLinksToolCallsAndNormalizesBlankText(t *tes
 	}
 }
 
+func TestConvertConversationSnapshotsDoesNotDuplicateNonToolBlocksWhenMetadataChanges(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-metadata",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{"seen": float64(1)}},
+				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
+			},
+		},
+		{
+			ConvID:              "conv-metadata",
+			SessionID:           "sess-1",
+			TurnID:              "turn-2",
+			TurnCreatedAtMS:     2000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-2",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 2010,
+			Blocks: []Block{
+				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "hello"}, Metadata: map[string]any{"seen": float64(2)}},
+				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "hi"}, Metadata: map[string]any{}},
+				{ID: "b4", Kind: "user", Role: "user", Payload: map[string]any{"text": "again"}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	if got := len(session.Turns); got != 4 {
+		t.Fatalf("expected only one new non-tool turn despite metadata churn, got %d", got)
+	}
+	if got := session.Turns[3].Content; got != "again" {
+		t.Fatalf("expected only new turn content, got %q", got)
+	}
+}
+
 func TestConvertConversationSnapshotsDoesNotDuplicateToolCallsWhenMetadataChanges(t *testing.T) {
 	snapshots := []CanonicalTurnSnapshot{
 		{
@@ -242,6 +293,84 @@ func TestConvertConversationSnapshotsDoesNotDuplicateToolCallsWhenMetadataChange
 	}
 	if got := session.Turns[2].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-1" {
 		t.Fatalf("expected only original assistant turn to link tc-1, got %#v", got)
+	}
+}
+
+func TestConvertConversationSnapshotsAttachesLeadingToolsToNextAssistant(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-leading-tool",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "lookup", "args": map[string]any{"q": "x"}}, Metadata: map[string]any{}},
+				{ID: "tu1-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-1", "result": "result"}, Metadata: map[string]any{}},
+				{ID: "b1", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "I found it."}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	if got := session.Turns[0].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-1" {
+		t.Fatalf("expected following assistant turn to link tc-1, got %#v", got)
+	}
+	if session.ToolCalls[0].EmittingTurnIndex == nil || *session.ToolCalls[0].EmittingTurnIndex != 0 {
+		t.Fatalf("expected tool call emitting turn 0, got %+v", session.ToolCalls[0].EmittingTurnIndex)
+	}
+}
+
+func TestConvertConversationSnapshotsAttachesInterleavedToolsToNearestAssistant(t *testing.T) {
+	snapshots := []CanonicalTurnSnapshot{
+		{
+			ConvID:              "conv-interleaved",
+			SessionID:           "sess-1",
+			TurnID:              "turn-1",
+			TurnCreatedAtMS:     1000,
+			RuntimeKey:          "gpt-5-nano",
+			InferenceID:         "inf-1",
+			TurnMetadata:        map[string]any{},
+			TurnData:            map[string]any{},
+			Phase:               "final",
+			SnapshotCreatedAtMS: 1010,
+			Blocks: []Block{
+				{ID: "b1", Kind: "system", Role: "system", Payload: map[string]any{"text": "You are an assistant"}, Metadata: map[string]any{}},
+				{ID: "b2", Kind: "user", Role: "user", Payload: map[string]any{"text": "inspect inventory"}, Metadata: map[string]any{}},
+				{ID: "b3", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "First I will list coins."}, Metadata: map[string]any{}},
+				{ID: "tc1-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-1", "name": "list_coins", "args": map[string]any{"kind": "gold"}}, Metadata: map[string]any{}},
+				{ID: "tu1-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-1", "result": "coins"}, Metadata: map[string]any{}},
+				{ID: "b4", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "Now I will price them."}, Metadata: map[string]any{}},
+				{ID: "tc2-block", Kind: "tool_call", Role: "assistant", Payload: map[string]any{"id": "tc-2", "name": "price_coins", "args": map[string]any{"currency": "USD"}}, Metadata: map[string]any{}},
+				{ID: "tu2-block", Kind: "tool_use", Role: "tool", Payload: map[string]any{"id": "tc-2", "result": "prices"}, Metadata: map[string]any{}},
+				{ID: "b5", Kind: "llm_text", Role: "assistant", Payload: map[string]any{"text": "Done."}, Metadata: map[string]any{}},
+			},
+		},
+	}
+
+	session, err := convertConversationSnapshots(snapshots, "/tmp/fake.db")
+	if err != nil {
+		t.Fatalf("convertConversationSnapshots returned error: %v", err)
+	}
+	if got := len(session.ToolCalls); got != 2 {
+		t.Fatalf("expected 2 tool calls, got %d", got)
+	}
+	if got := session.Turns[2].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-1" {
+		t.Fatalf("expected first assistant segment to link tc-1, got %#v", got)
+	}
+	if got := session.Turns[3].ToolCallsInTurn; len(got) != 1 || got[0] != "tc-2" {
+		t.Fatalf("expected second assistant segment to link tc-2, got %#v", got)
+	}
+	if got := session.Turns[4].ToolCallsInTurn; len(got) != 0 {
+		t.Fatalf("expected final assistant segment to have no tool links, got %#v", got)
 	}
 }
 
