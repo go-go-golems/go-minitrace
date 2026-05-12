@@ -38,11 +38,12 @@ type SnapshotSummary struct {
 }
 
 type Block struct {
-	ID       string
-	Kind     string
-	Role     string
-	Payload  map[string]any
-	Metadata map[string]any
+	ID          string
+	ContentHash string
+	Kind        string
+	Role        string
+	Payload     map[string]any
+	Metadata    map[string]any
 }
 
 type CanonicalTurnSnapshot struct {
@@ -268,6 +269,7 @@ func loadSnapshotBlocks(db *sql.DB, convID, sessionID, turnID, phase string, sna
 		SELECT
 		  m.ordinal,
 		  b.block_id,
+		  m.content_hash,
 		  b.kind,
 		  b.role,
 		  COALESCE(b.payload_json, '{}') AS payload_json,
@@ -291,16 +293,17 @@ func loadSnapshotBlocks(db *sql.DB, convID, sessionID, turnID, phase string, sna
 	ret := []Block{}
 	for rows.Next() {
 		var ordinal int
-		var blockID, kind, role, payloadJSON, metadataJSON string
-		if err := rows.Scan(&ordinal, &blockID, &kind, &role, &payloadJSON, &metadataJSON); err != nil {
+		var blockID, contentHash, kind, role, payloadJSON, metadataJSON string
+		if err := rows.Scan(&ordinal, &blockID, &contentHash, &kind, &role, &payloadJSON, &metadataJSON); err != nil {
 			return nil, errors.Wrap(err, "scanning turns.db block")
 		}
 		ret = append(ret, Block{
-			ID:       blockID,
-			Kind:     kind,
-			Role:     role,
-			Payload:  parseJSONObject(payloadJSON),
-			Metadata: parseJSONObject(metadataJSON),
+			ID:          blockID,
+			ContentHash: contentHash,
+			Kind:        kind,
+			Role:        role,
+			Payload:     parseJSONObject(payloadJSON),
+			Metadata:    parseJSONObject(metadataJSON),
 		})
 	}
 	if err := rows.Err(); err != nil {
@@ -344,8 +347,8 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 	annotations := []minitrace.Annotation{}
 	allTimestamps := []time.Time{}
 	modelsSeen := []string{}
-	previousBlocks := []Block{}
 	seenSessions := map[string]struct{}{}
+	seenBlockIdentities := map[string]struct{}{}
 
 	for _, snapshot := range conversationTurns {
 		var timestampPtr *string
@@ -361,11 +364,17 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			modelsSeen = append(modelsSeen, snapshot.RuntimeKey)
 		}
 
-		deltaBlocks := lcsDelta(previousBlocks, snapshot.Blocks)
-		previousBlocks = snapshot.Blocks
+		newBlocks, err := firstSeenBlocks(snapshot.Blocks, seenBlockIdentities)
+		if err != nil {
+			return nil, errors.Wrapf(err, "filtering turns.db snapshot blocks conv_id=%s turn_id=%s", snapshot.ConvID, snapshot.TurnID)
+		}
 
 		reasoningPending := []string{}
-		startTurnIndex := len(turns)
+		currentAssistantTurnIndex := -1
+		deltaToolCalls := []minitrace.ToolCall{}
+		deltaAnnotations := []minitrace.Annotation{}
+		pendingToolCalls := map[string]int{}
+		pendingToolAttachments := []int{}
 		if _, ok := seenSessions[snapshot.SessionID]; !ok {
 			seenSessions[snapshot.SessionID] = struct{}{}
 			if len(seenSessions) > 1 {
@@ -388,11 +397,43 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			}
 		}
 
-		for _, block := range deltaBlocks {
+		for _, block := range newBlocks {
 			text := stringifyBlockPayload(block.Payload)
 			if block.Kind == "reasoning" {
 				if strings.TrimSpace(text) != "" {
 					reasoningPending = append(reasoningPending, text)
+				}
+				continue
+			}
+			if block.Kind == "tool_call" {
+				toolCall := buildToolCallFromBlock(block, timestampPtr, currentAssistantTurnIndex)
+				toolCallIndex := len(deltaToolCalls)
+				pendingToolCalls[toolCall.ID] = toolCallIndex
+				deltaToolCalls = append(deltaToolCalls, toolCall)
+				if currentAssistantTurnIndex >= 0 && currentAssistantTurnIndex < len(turns) {
+					turns[currentAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[currentAssistantTurnIndex].ToolCallsInTurn, toolCall.ID)
+				} else {
+					pendingToolAttachments = append(pendingToolAttachments, toolCallIndex)
+				}
+				continue
+			}
+			if block.Kind == "tool_use" {
+				toolCallID := stringValue(block.Payload["id"])
+				if pendingIndex, ok := pendingToolCalls[toolCallID]; ok {
+					applyToolResult(&deltaToolCalls[pendingIndex], block.Payload["result"], stringValue(block.Payload["error"]), timestampPtr)
+					delete(pendingToolCalls, toolCallID)
+				} else {
+					deltaAnnotations = append(deltaAnnotations, minitrace.BuildAnnotation(
+						fmt.Sprintf("ann-tool-use-orphan-%d", len(annotations)+len(deltaAnnotations)),
+						"adapter",
+						"session",
+						"session",
+						"observation",
+						"Orphan tool_use block",
+						mustJSON(block.Payload),
+						[]string{"pinocchio", "tool_use", "orphan"},
+						nil,
+					))
 				}
 				continue
 			}
@@ -422,14 +463,35 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 				reasoningPending = nil
 			}
 			turns = append(turns, turn)
+			if role == "assistant" {
+				currentAssistantTurnIndex = turn.Index
+				if len(pendingToolAttachments) > 0 {
+					for _, toolCallIndex := range pendingToolAttachments {
+						deltaToolCalls[toolCallIndex].EmittingTurnIndex = minitraceIntPtr(currentAssistantTurnIndex)
+						turns[currentAssistantTurnIndex].ToolCallsInTurn = appendUniqueString(turns[currentAssistantTurnIndex].ToolCallsInTurn, deltaToolCalls[toolCallIndex].ID)
+					}
+					pendingToolAttachments = nil
+				}
+			}
 		}
 
-		emittingTurnIndex := -1
-		if len(turns) > 0 && len(turns)-1 >= startTurnIndex {
-			emittingTurnIndex = len(turns) - 1
+		for toolCallID, idx := range pendingToolCalls {
+			errorText := "no tool result received"
+			deltaToolCalls[idx].Output.Success = false
+			deltaToolCalls[idx].Output.Error = &errorText
+			deltaAnnotations = append(deltaAnnotations, minitrace.BuildAnnotation(
+				fmt.Sprintf("ann-tool-call-pending-%d", len(annotations)+len(deltaAnnotations)),
+				"adapter",
+				"tool_call",
+				toolCallID,
+				"observation",
+				"Tool call never received result",
+				toolCallID,
+				[]string{"pinocchio", "tool_call", "orphan"},
+				nil,
+			))
 		}
-		deltaToolCalls, deltaAnnotations := buildToolCallsFromBlocks(deltaBlocks, timestampPtr, emittingTurnIndex)
-		toolCalls = append(toolCalls, deltaToolCalls...)
+		toolCalls = mergeToolCalls(toolCalls, deltaToolCalls)
 		annotations = append(annotations, deltaAnnotations...)
 
 		detail := mustJSON(map[string]any{
@@ -438,7 +500,7 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 			"turn_id":                snapshot.TurnID,
 			"phase":                  snapshot.Phase,
 			"snapshot_created_at_ms": snapshot.SnapshotCreatedAtMS,
-			"delta_block_count":      len(deltaBlocks),
+			"new_block_count":        len(newBlocks),
 		})
 		annotations = append(annotations, minitrace.BuildAnnotation(
 			fmt.Sprintf("ann-snapshot-%d", len(annotations)),
@@ -480,62 +542,43 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 	return &session, nil
 }
 
-func blockFingerprint(block Block) string {
-	payload, _ := json.Marshal(block.Payload)
-	metadata, _ := json.Marshal(block.Metadata)
-	return fmt.Sprintf("%s|%s|%s|%s|%s", block.Kind, block.Role, block.ID, payload, metadata)
+func firstSeenBlocks(blocks []Block, seen map[string]struct{}) ([]Block, error) {
+	ret := []Block{}
+	for idx, block := range blocks {
+		identity, err := blockFingerprint(block)
+		if err != nil {
+			return nil, errors.Wrapf(err, "block index=%d", idx)
+		}
+		if _, ok := seen[identity]; ok {
+			continue
+		}
+		seen[identity] = struct{}{}
+		ret = append(ret, block)
+	}
+	return ret, nil
 }
 
-func lcsDelta(previousBlocks, currentBlocks []Block) []Block {
-	prevFP := make([]string, len(previousBlocks))
-	currFP := make([]string, len(currentBlocks))
-	for i, block := range previousBlocks {
-		prevFP[i] = blockFingerprint(block)
-	}
-	for i, block := range currentBlocks {
-		currFP[i] = blockFingerprint(block)
-	}
-
-	m := len(prevFP)
-	n := len(currFP)
-	dp := make([][]int, m+1)
-	for i := range dp {
-		dp[i] = make([]int, n+1)
-	}
-
-	for i := m - 1; i >= 0; i-- {
-		for j := n - 1; j >= 0; j-- {
-			if prevFP[i] == currFP[j] {
-				dp[i][j] = dp[i+1][j+1] + 1
-			} else if dp[i+1][j] >= dp[i][j+1] {
-				dp[i][j] = dp[i+1][j]
-			} else {
-				dp[i][j] = dp[i][j+1]
-			}
+func blockFingerprint(block Block) (string, error) {
+	switch block.Kind {
+	case "tool_call", "tool_use":
+		toolID := strings.TrimSpace(stringValue(block.Payload["id"]))
+		if toolID == "" {
+			return "", fmt.Errorf("%s block %q missing payload id", block.Kind, block.ID)
 		}
-	}
-
-	matchedCurrent := map[int]struct{}{}
-	i, j := 0, 0
-	for i < m && j < n {
-		if prevFP[i] == currFP[j] {
-			matchedCurrent[j] = struct{}{}
-			i++
-			j++
-		} else if dp[i+1][j] >= dp[i][j+1] {
-			i++
-		} else {
-			j++
+		return fmt.Sprintf("%s|%s", block.Kind, toolID), nil
+	case "system":
+		contentHash := strings.TrimSpace(block.ContentHash)
+		if contentHash == "" {
+			return "", fmt.Errorf("system block %q missing content_hash", block.ID)
 		}
-	}
-
-	ret := []Block{}
-	for idx, block := range currentBlocks {
-		if _, ok := matchedCurrent[idx]; !ok {
-			ret = append(ret, block)
+		return fmt.Sprintf("%s|%s|%s", block.Kind, block.Role, contentHash), nil
+	default:
+		blockID := strings.TrimSpace(block.ID)
+		if blockID == "" {
+			return "", fmt.Errorf("%s block missing block_id", block.Kind)
 		}
+		return fmt.Sprintf("%s|%s|%s", block.Kind, block.Role, blockID), nil
 	}
-	return ret
 }
 
 func classifyTurnBlock(block Block) (string, string, string) {
@@ -559,81 +602,33 @@ func classifyTurnBlock(block Block) (string, string, string) {
 	}
 }
 
-func buildToolCallsFromBlocks(deltaBlocks []Block, timestamp *string, emittingTurnIndex int) ([]minitrace.ToolCall, []minitrace.Annotation) {
-	toolCalls := []minitrace.ToolCall{}
-	annotations := []minitrace.Annotation{}
-	pending := map[string]int{}
-
-	for _, block := range deltaBlocks {
-		switch block.Kind {
-		case "tool_call":
-			toolCallID := firstNonEmpty(stringValue(block.Payload["id"]), fmt.Sprintf("tool-call-%d", len(toolCalls)))
-			var turnIndexPtr *int
-			if emittingTurnIndex >= 0 {
-				turnIndexPtr = &emittingTurnIndex
-			}
-			toolCall := minitrace.BuildToolCall(
-				toolCallID,
-				turnIndexPtr,
-				timestamp,
-				firstNonEmpty(stringValue(block.Payload["name"]), "unknown"),
-				"EXECUTE",
-				nil,
-				nil,
-				block.Payload["args"],
-				false,
-				nil,
-				nil,
-				nil,
-				map[string]any{
-					"pinocchio_kind": block.Kind,
-					"payload":        block.Payload,
-				},
-				nil,
-				minitracePtr("local_exec"),
-				nil,
-			)
-			pending[toolCallID] = len(toolCalls)
-			toolCalls = append(toolCalls, toolCall)
-		case "tool_use":
-			toolCallID := stringValue(block.Payload["id"])
-			if pendingIndex, ok := pending[toolCallID]; ok {
-				applyToolResult(&toolCalls[pendingIndex], block.Payload["result"], stringValue(block.Payload["error"]), timestamp)
-				delete(pending, toolCallID)
-			} else {
-				annotations = append(annotations, minitrace.BuildAnnotation(
-					fmt.Sprintf("ann-tool-use-orphan-%d", len(annotations)),
-					"adapter",
-					"session",
-					"session",
-					"observation",
-					"Orphan tool_use block",
-					mustJSON(block.Payload),
-					[]string{"pinocchio", "tool_use", "orphan"},
-					nil,
-				))
-			}
-		}
+func buildToolCallFromBlock(block Block, timestamp *string, emittingTurnIndex int) minitrace.ToolCall {
+	toolCallID := stringValue(block.Payload["id"])
+	var turnIndexPtr *int
+	if emittingTurnIndex >= 0 {
+		turnIndexPtr = &emittingTurnIndex
 	}
-
-	for toolCallID, idx := range pending {
-		errorText := "no tool result received"
-		toolCalls[idx].Output.Success = false
-		toolCalls[idx].Output.Error = &errorText
-		annotations = append(annotations, minitrace.BuildAnnotation(
-			fmt.Sprintf("ann-tool-call-pending-%d", len(annotations)),
-			"adapter",
-			"tool_call",
-			toolCallID,
-			"observation",
-			"Tool call never received result",
-			toolCallID,
-			[]string{"pinocchio", "tool_call", "orphan"},
-			nil,
-		))
-	}
-
-	return toolCalls, annotations
+	return minitrace.BuildToolCall(
+		toolCallID,
+		turnIndexPtr,
+		timestamp,
+		firstNonEmpty(stringValue(block.Payload["name"]), "unknown"),
+		"EXECUTE",
+		nil,
+		nil,
+		block.Payload["args"],
+		false,
+		nil,
+		nil,
+		nil,
+		map[string]any{
+			"pinocchio_kind": block.Kind,
+			"payload":        block.Payload,
+		},
+		nil,
+		minitracePtr("local_exec"),
+		nil,
+	)
 }
 
 func applyToolResult(toolCall *minitrace.ToolCall, result any, errorText string, timestamp *string) {
@@ -678,8 +673,8 @@ func stringifyBlockPayload(payload map[string]any) string {
 	if payload == nil {
 		return "{}"
 	}
-	if text := stringValue(payload["text"]); strings.TrimSpace(text) != "" {
-		return text
+	if text, ok := payload["text"]; ok {
+		return stringValue(text)
 	}
 	return stringifyAny(payload)
 }
@@ -698,6 +693,58 @@ func stringifyAny(value any) string {
 		}
 		return string(payload)
 	}
+}
+
+func mergeToolCalls(existing []minitrace.ToolCall, incoming []minitrace.ToolCall) []minitrace.ToolCall {
+	if len(incoming) == 0 {
+		return existing
+	}
+	indexes := make(map[string]int, len(existing)+len(incoming))
+	for i, toolCall := range existing {
+		indexes[toolCall.ID] = i
+	}
+	for _, toolCall := range incoming {
+		if idx, ok := indexes[toolCall.ID]; ok {
+			existing[idx] = mergeToolCall(existing[idx], toolCall)
+			continue
+		}
+		indexes[toolCall.ID] = len(existing)
+		existing = append(existing, toolCall)
+	}
+	return existing
+}
+
+func mergeToolCall(existing, incoming minitrace.ToolCall) minitrace.ToolCall {
+	if isPendingToolCall(existing) && !isPendingToolCall(incoming) {
+		if incoming.EmittingTurnIndex == nil {
+			incoming.EmittingTurnIndex = existing.EmittingTurnIndex
+		}
+		return incoming
+	}
+	if !isPendingToolCall(existing) && isPendingToolCall(incoming) {
+		return existing
+	}
+	if existing.Output.Result == nil && incoming.Output.Result != nil {
+		existing.Output = incoming.Output
+		existing.Timestamp = incoming.Timestamp
+	}
+	if existing.EmittingTurnIndex == nil {
+		existing.EmittingTurnIndex = incoming.EmittingTurnIndex
+	}
+	return existing
+}
+
+func isPendingToolCall(toolCall minitrace.ToolCall) bool {
+	return !toolCall.Output.Success && toolCall.Output.Result == nil && toolCall.Output.Error != nil && *toolCall.Output.Error == "no tool result received"
+}
+
+func appendUniqueString(values []string, value string) []string {
+	for _, existing := range values {
+		if existing == value {
+			return values
+		}
+	}
+	return append(values, value)
 }
 
 func uniqueToolNames(toolCalls []minitrace.ToolCall) []string {
@@ -762,6 +809,10 @@ func sessionEnvironmentModel(session minitrace.Session) string {
 		return ""
 	}
 	return *session.Environment.Model
+}
+
+func minitraceIntPtr(value int) *int {
+	return &value
 }
 
 func minitracePtr(value string) *string {

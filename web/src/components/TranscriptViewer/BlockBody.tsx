@@ -82,9 +82,51 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
   const [open, setOpen] = useState(false);
   const preview = thinking.length > 120 ? thinking.slice(0, 120) + "…" : thinking;
   return (
+    <FoldedTextBlock
+      open={open}
+      onToggle={() => setOpen(!open)}
+      title="💭 Thinking"
+      preview={preview}
+      content={thinking}
+      maxHeight={300}
+    />
+  );
+}
+
+function SystemPromptBlock({ content }: { content: string }) {
+  const [open, setOpen] = useState(false);
+  const preview = content.length > 160 ? content.slice(0, 160) + "…" : content;
+  return (
+    <FoldedTextBlock
+      open={open}
+      onToggle={() => setOpen(!open)}
+      title="⚙️ System prompt"
+      preview={preview}
+      content={content}
+      maxHeight={420}
+    />
+  );
+}
+
+function FoldedTextBlock({
+  open,
+  onToggle,
+  title,
+  preview,
+  content,
+  maxHeight,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  title: string;
+  preview: string;
+  content: string;
+  maxHeight: number;
+}) {
+  return (
     <Box sx={{ ml: 3, mb: 0.5 }}>
       <Stack direction="row" spacing={0.5} alignItems="center">
-        <IconButton size="small" sx={{ p: 0 }} onClick={() => setOpen(!open)}>
+        <IconButton size="small" sx={{ p: 0 }} onClick={onToggle}>
           <ExpandMoreIcon
             sx={{
               fontSize: 14,
@@ -102,9 +144,9 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
             color: "text.secondary",
             cursor: "pointer",
           }}
-          onClick={() => setOpen(!open)}
+          onClick={onToggle}
         >
-          💭 Thinking
+          {title}
         </Typography>
       </Stack>
       <Collapse in={open} unmountOnExit>
@@ -117,7 +159,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
             borderRadius: 1,
             borderLeft: "2px solid",
             borderColor: "divider",
-            maxHeight: 300,
+            maxHeight,
             overflow: "auto",
           }}
         >
@@ -132,7 +174,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
               lineHeight: 1.5,
             }}
           >
-            {thinking}
+            {content}
           </Typography>
         </Box>
       </Collapse>
@@ -290,6 +332,8 @@ function BlockBodyImpl({
                 <Box sx={{ ml: 3, mb: 1, "& p": { mt: 0, mb: 1 }, "& pre": { bgcolor: "background.default", p: 1, borderRadius: 1, overflow: "auto", fontSize: "0.8rem" }, "& code": { fontFamily: "monospace", fontSize: "0.85em" }, "& ul, & ol": { ml: 2 }, "& h1, & h2, & h3, & h4": { mt: 1, mb: 0.5 } }}>
                   <Markdown>{t.content}</Markdown>
                 </Box>
+              ) : t.role === "system" ? (
+                <SystemPromptBlock content={t.content} />
               ) : (
                 <Typography
                   variant="body2"
