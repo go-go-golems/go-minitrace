@@ -405,3 +405,96 @@ Result:
 ```text
 OK: uploaded GMT-008_Geppetto_Turns_Identity_Guide.pdf -> /ai/2026/05/12/GMT-008
 ```
+
+## Step 5: Simplify turnsdb semantic identity and fail fast on missing IDs
+
+This step removed the layered fallback idea from the semantic identity plan. The converter now treats identity as a hard contract: normal transcript blocks need a `block_id`, and tool blocks need a payload `id`. If either is missing, delta computation fails with context instead of guessing from content or metadata.
+
+This keeps the turnsdb path honest. Pinocchio already normalizes missing source block IDs to `turnID#ordinal` at export time, so go-minitrace should not add another fallback layer. If real archives fail this check, that is useful data and should be fixed at the producer/export boundary or audited explicitly.
+
+### Prompt Context
+
+**User prompt (verbatim):** "simplify the chain, if there is no block_id / payload_id, fail. We don't want layers upon layers of legacy hacks."
+
+**Assistant interpretation:** Change the converter and the plan to require stable IDs instead of adding semantic fallback chains.
+
+**Inferred user intent:** Avoid accumulating legacy heuristics in go-minitrace and make missing identity an explicit data-quality failure.
+
+**Commit (code):** a0e2a9c — "fix: require stable turnsdb block identities"
+
+### What I did
+
+- Changed `blockFingerprint` to return `(string, error)` and enforce identity requirements.
+- For `tool_call` and `tool_use`, the semantic key is now `kind|payload.id`; missing payload ID is an error.
+- For all other blocks, the semantic key is `kind|role|block.ID`; missing block ID is an error.
+- Changed `lcsDelta` to return `([]Block, error)` and propagate missing-identity errors with previous/current block index context.
+- Updated `convertConversationSnapshots` to fail conversion if delta computation fails.
+- Updated the LCS tests to provide explicit block IDs.
+- Added `TestLCSDeltaFailsWhenBlockIdentityIsMissing`.
+- Ran `gofmt` and `go test ./pkg/adapters/turnsdb` successfully.
+- Re-ran the representative Coinvault conversion for session `8730...`; it still produces 6 tool calls, 6 linked calls, and 0 pending no-result calls.
+- Marked tasks 10 and 11 complete and added a follow-up audit task for real archives.
+
+### Why
+
+- The previous guide proposed a fallback chain for semantic identity. The user correctly called out that this would create layers of legacy hacks.
+- The turns DB export already has `block_id`, and tool calls/results already have payload IDs. Missing identity should be exceptional and visible.
+
+### What worked
+
+- Targeted tests pass:
+
+```text
+ok github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb 0.017s
+```
+
+- Representative Coinvault smoke still passes:
+
+```text
+tool_calls 6
+linked 6
+pending_no_result 0
+```
+
+### What didn't work
+
+- N/A in this step.
+
+### What I learned
+
+- The current test fixtures were the only place immediately relying on missing block IDs. Real Pinocchio exports should have normalized IDs even when source blocks were missing IDs.
+
+### What was tricky to build
+
+- `lcsDelta` was previously pure and infallible. Making identity strict required threading errors through the converter without swallowing context. The error now identifies whether the missing identity was in a previous or current block and includes the index.
+
+### What warrants a second pair of eyes
+
+- Confirm that `tool_use` should key only on payload `id`. If multiple tool result blocks can validly share the same tool ID as updates, that is an update/finalization case, not a new semantic event.
+- Confirm whether role should remain part of the non-tool semantic key. It protects against accidental ID reuse across roles, but block IDs should already be unique.
+
+### What should be done in the future
+
+- Audit a broader set of real turnsdb archives for missing identity failures.
+- Adjust the analysis guide wording to remove fallback-chain recommendations if we keep this strict policy.
+
+### Code review instructions
+
+- Review `pkg/adapters/turnsdb/convert.go` around `blockFingerprint`, `lcsDelta`, and the call site in `convertConversationSnapshots`.
+- Review `pkg/adapters/turnsdb/convert_test.go` for the new missing-identity failure test.
+- Validate with:
+
+```bash
+go test ./pkg/adapters/turnsdb
+```
+
+### Technical details
+
+Representative smoke command:
+
+```bash
+go run ./cmd/go-minitrace convert turnsdb \
+  --source /home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite \
+  --conv-id 8730fef8-2f37-40bb-96e3-73687c55f6ab \
+  --output-dir /tmp/gmt-008-minitrace-output
+```

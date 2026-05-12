@@ -53,3 +53,23 @@ Uploaded the Geppetto turns identity guide to reMarkable as GMT-008_Geppetto_Tur
 
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/ttmp/2026/05/12/GMT-008--fix-turnsdb-tool-call-conversion-and-coinvault-transcript-rendering/analysis/01-geppetto-turns-identity-and-minitrace-delta-handling-guide.md — Uploaded guide source.
 
+
+## 2026-05-12
+
+Simplified turnsdb semantic identity: non-tool blocks now require block_id, tool blocks require payload id, and LCS delta fails fast instead of falling back through legacy content/metadata heuristics. Targeted turnsdb tests and representative Coinvault conversion pass.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — Fail-fast semantic block identity and LCS error propagation.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Updated tests to require IDs and added missing-identity failures.
+
+
+## 2026-05-12
+
+Committed strict turnsdb identity requirement: non-tool blocks must have block_id and tool blocks must have payload id; no content/metadata fallback chain (commit a0e2a9c).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — Strict semantic identity implementation.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Missing-identity regression coverage.
+

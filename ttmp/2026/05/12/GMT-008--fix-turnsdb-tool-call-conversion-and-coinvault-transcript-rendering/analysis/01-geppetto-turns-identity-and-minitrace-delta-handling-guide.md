@@ -315,33 +315,30 @@ The remaining issue is not that go-minitrace computes deltas. The issue is that 
 
 ## Recommended go-minitrace direction
 
-### 1. Introduce a semantic block identity helper
+### 1. Introduce a strict semantic block identity helper
 
-Add a helper in the turnsdb adapter, conceptually:
+Add a helper in the turnsdb adapter that treats identity as a hard contract, not a fallback chain:
 
 ```go
-type blockIdentity struct {
-    Kind string
-    Role string
-    StableID string
-}
-
-func semanticBlockKey(block Block) string {
+func semanticBlockKey(block Block) (string, error) {
     switch block.Kind {
-    case "tool_call":
-        return "tool_call:" + firstNonEmpty(stringValue(block.Payload["id"]), block.ID)
-    case "tool_use":
-        return "tool_use:" + firstNonEmpty(stringValue(block.Payload["id"]), block.ID)
-    default:
-        if strings.TrimSpace(block.ID) != "" {
-            return block.Kind + ":" + block.Role + ":" + block.ID
+    case "tool_call", "tool_use":
+        toolID := strings.TrimSpace(stringValue(block.Payload["id"]))
+        if toolID == "" {
+            return "", fmt.Errorf("%s block %q missing payload id", block.Kind, block.ID)
         }
-        return semanticContentFallback(block)
+        return block.Kind + ":" + toolID, nil
+    default:
+        blockID := strings.TrimSpace(block.ID)
+        if blockID == "" {
+            return "", fmt.Errorf("%s block missing block_id", block.Kind)
+        }
+        return block.Kind + ":" + block.Role + ":" + blockID, nil
     }
 }
 ```
 
-The key point: separate semantic identity from exact content version.
+The key point: separate semantic identity from exact content version, and fail when the source/export does not provide identity. Do not guess from text payloads or metadata. Pinocchio already normalizes missing source block IDs to `turnID#ordinal` at SQLite export time, so go-minitrace does not need a second legacy fallback layer.
 
 ### 2. Keep exact content/version tracking separately
 
@@ -414,8 +411,8 @@ This would make downstream consumers simpler, but it is not required for the nex
 
 ## Practical follow-up tasks
 
-1. Refactor go-minitrace turnsdb delta matching to use semantic block keys.
-2. Add tests for metadata-only block version changes.
+1. Refactor go-minitrace turnsdb delta matching to use strict semantic block keys.
+2. Add tests for missing block IDs / missing tool payload IDs and metadata-only block version changes.
 3. Add tests for repeated snapshots with removed control blocks and stable block IDs.
 4. Add tests for ordered text/tool/text/tool/text source blocks.
 5. Refactor conversion to process delta blocks in one ordered pass.
