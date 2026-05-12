@@ -101,3 +101,13 @@ Step 8: folded long system prompts by default in the transcript UI and validated
 
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/web/src/components/TranscriptViewer/BlockBody.tsx — Added reusable folded text rendering and default-collapsed system prompts.
 
+
+## 2026-05-12
+
+Step 9: diagnosed duplicate system prompt at turn #10 as regenerated system block IDs in turns.db and deduped system prompts by strict content_hash identity (commit c48124a).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — System blocks now require content_hash for delta identity.
+- /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Regression tests for regenerated system block IDs.
+
