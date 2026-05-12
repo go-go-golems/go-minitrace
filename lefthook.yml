@@ -2,10 +2,10 @@ pre-commit:
   commands:
     lint:
       glob: '*.go'
-      run: make lint
+      run: unset $(git rev-parse --local-env-vars); make lint
     test:
       glob: '*.go'
-      run: make test
+      run: unset $(git rev-parse --local-env-vars); make test
   parallel: true
 
 pre-push:
@@ -13,7 +13,7 @@ pre-push:
     release:
       run: make goreleaser
     lint:
-      run: make lint
+      run: unset $(git rev-parse --local-env-vars); make lint
     test:
-      run: make test
+      run: unset $(git rev-parse --local-env-vars); make test
   parallel: true
