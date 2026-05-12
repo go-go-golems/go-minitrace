@@ -8,6 +8,6 @@
 - [x] Deduplicate and merge top-level tool calls by ID without downgrading successful results to pending failures
 - [x] Populate turns[].ToolCallsInTurn while converting tool calls
 - [x] Unwrap payload["text"] even when empty or whitespace-only
-- [ ] Evaluate and document ordered text/tool/text interleaving behavior after the converter fix
+- [x] Evaluate and document ordered text/tool/text interleaving behavior after the converter fix
 - [x] Run gofmt and targeted go test ./pkg/adapters/turnsdb
-- [ ] Regenerate or smoke-check Coinvault archives/API if local fixture data is available
+- [x] Regenerate or smoke-check Coinvault archives/API if local fixture data is available

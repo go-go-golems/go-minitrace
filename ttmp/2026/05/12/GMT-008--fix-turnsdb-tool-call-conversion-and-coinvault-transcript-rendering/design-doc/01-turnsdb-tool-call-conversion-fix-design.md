@@ -357,3 +357,27 @@ Recommended implementation refinement:
 2. Deduplicate top-level tool calls by ID, merging later information carefully rather than overwriting success with pending.
 3. Populate `ToolCallsInTurn` while processing blocks in order, not as an afterthought.
 4. Consider representing tool calls as ordered transcript events if minitrace's current `ToolCallsInTurn` model cannot express interleaving cleanly.
+
+## GMT-008 implementation validation notes
+
+After implementing the first converter fix set in commit `ce2d48f0e120c79034f6b324362ef34678fe2f1b`, the targeted package test passes:
+
+```bash
+go test ./pkg/adapters/turnsdb
+```
+
+A real-session smoke check against `/home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite` for conversation `8730fef8-2f37-40bb-96e3-73687c55f6ab` produced:
+
+```text
+turns 18
+tool_calls 6
+linked 6
+ids 6
+json_blank_artifacts 0
+tool_outputs_success 6
+pending_no_result 0
+```
+
+This confirms the implemented fixes address the primary GMT-008 data-shape failures: duplicate pending tool calls, missing `ToolCallsInTurn` links, and JSON-looking blank assistant text.
+
+The remaining limitation is exact interleaving. The representative generated session links all six tool calls to assistant turn 8. That is materially better than missing or pending tool rows, but it does not reconstruct a first-class ordered text/tool/text event stream. Treat exact interleaving as a follow-up model/design question if the UI needs tool rows placed between individual assistant text fragments.
