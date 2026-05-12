@@ -121,3 +121,13 @@ Step 10: replaced turnsdb LCS delta reconstruction with chronological canonical 
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert.go — No-LCS first-seen conversion implementation.
 - /home/manuel/workspaces/2026-05-12/proper-minitrace-export-coinvault/go-minitrace/pkg/adapters/turnsdb/convert_test.go — Mixed source-shape regression fixtures.
 
+
+## 2026-05-12
+
+Step 11: reconverted the CoinVault turnsdb archive, filtered seven broken-history sessions from the temporary web validation archive, and restarted trace web on port 8092.
+
+### Related Files
+
+- /tmp/gmt-008-all-minitrace-output — Temporary filtered validation archive served by trace web.
+- /tmp/gmt-008-filtered-broken-session-ids.txt — List of filtered confusing sessions.
+

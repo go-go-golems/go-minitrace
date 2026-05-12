@@ -964,3 +964,85 @@ This preserves sessions where later snapshots are non-cumulative because every s
 - Full smoke source: `/home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite`.
 - Full smoke output: `/tmp/gmt-008-all-minitrace-output`.
 - Validation server: `http://127.0.0.1:8092/`.
+
+## Step 11: Rebuild the trace web archive and filter confusing broken-history sessions
+
+This step rebuilt the CoinVault turnsdb archive after the no-LCS converter refactor and restarted the local trace web server against the fresh output. To avoid confusing future UI validation with sessions from the known source-history-loss window, I filtered the affected sessions out of the temporary converted archive used by the web server.
+
+I did not mutate the original CoinVault `turns.sqlite` source file. The filtering happened only in `/tmp/gmt-008-all-minitrace-output`, which is disposable and can be recreated by rerunning conversion.
+
+### Prompt Context
+
+**User prompt (verbatim):** "run the trace web onece again after converting the db. delete the broken sessions from the db, as well, so we don't get further confused"
+
+**Assistant interpretation:** Reconvert the turns.db fixture, remove known confusing broken-history sessions from the validation data set, restart the web UI, and verify the session list no longer includes them.
+
+**Inferred user intent:** Keep the browser validation set focused on trustworthy sessions so old source/exporter-loss artifacts do not keep derailing review.
+
+**Commit (code):** N/A — operational validation and temporary archive filtering only.
+
+### What I did
+
+- Rebuilt `/tmp/gmt-008-all-minitrace-output` from the CoinVault turns DB with `go run ./cmd/go-minitrace convert turnsdb`.
+- Removed the broken-history/confusing sessions from the temporary converted archive:
+  - `66a02646-7b85-47ca-a252-a99a7e296370`
+  - `fa86d620-73a5-4509-8942-9603bc1f99f7`
+  - `496665a1-fb75-4982-b6c3-f5b686c4421d`
+  - `79f7e9b2-8478-4a07-ba62-5efafbcab975`
+  - `f3199a38-6ff3-409c-909e-5d00870b6342`
+  - `7ae821b5-7abd-4fe9-a198-f4dbdea36bb9`
+  - `8730fef8-2f37-40bb-96e3-73687c55f6ab`
+- Wrote the filtered ID list to `/tmp/gmt-008-filtered-broken-session-ids.txt`.
+- Deleted matching JSON session files from `/tmp/gmt-008-all-minitrace-output/active/**`.
+- Updated archive manifest JSON files best-effort so filtered IDs do not remain in metadata.
+- Deleted matching rows from the temporary output `annotations.db` if present.
+- Restarted the trace web server on port `8092` with the filtered archive glob.
+- Opened `http://127.0.0.1:8092/` in Playwright and verified the UI reports `24 sessions loaded`.
+- Verified via API that filtered session `79f7e9b2...` is absent.
+
+### Why
+
+- The filtered sessions came from the date range where direct inspection showed last-turn-only would lose earlier user/assistant/tool content.
+- Even though the no-LCS converter now preserves what is available across stored turns, removing these known-confusing sessions keeps the validation UI focused.
+- Avoiding mutation of the original source DB keeps this operation reversible.
+
+### What worked
+
+- Conversion completed and initially produced 31 session JSON files.
+- Filtering removed 7 session JSON files, leaving 24 sessions.
+- The restarted web UI shows `24 sessions loaded`.
+- The API confirmed `79f7e9b2-8478-4a07-ba62-5efafbcab975` is no longer served.
+
+### What didn't work
+
+- N/A. I intentionally avoided editing the original source SQLite DB because that would be destructive and unnecessary for this validation pass.
+
+### What I learned
+
+- The trace web server only needs the filtered JSON archive glob for this validation workflow; source DB cleanup is not necessary to avoid UI confusion.
+
+### What was tricky to build
+
+- The user said “delete from the db”; the safest interpretation for this workspace was to delete from the temporary converted archive/database used by trace web, not from the original CoinVault source fixture.
+- The archive includes JSON files plus manifests and an annotations SQLite DB, so I cleaned all temporary output locations that could surface filtered sessions.
+
+### What warrants a second pair of eyes
+
+- Confirm whether these seven sessions should be permanently excluded from the source fixture or merely hidden in this temporary validation archive.
+
+### What should be done in the future
+
+- Add a first-class filter/exclude option to `go-minitrace convert turnsdb` or `serve` if this workflow becomes common.
+
+### Code review instructions
+
+- N/A for code. Validate operationally with:
+  - `curl -fsS http://127.0.0.1:8092/api/v2/sessions | jq '.sessions | length'`
+  - open `http://127.0.0.1:8092/` and confirm `24 sessions loaded`.
+
+### Technical details
+
+- Source DB: `/home/manuel/code/gec/2026-03-16--gec-rag/k3s-recovery/clean/coinvault-turns.sqlite`.
+- Filtered validation archive: `/tmp/gmt-008-all-minitrace-output`.
+- Filter list: `/tmp/gmt-008-filtered-broken-session-ids.txt`.
+- Validation server: `http://127.0.0.1:8092/`.
