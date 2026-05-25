@@ -18,6 +18,7 @@ import (
 	gggengine "github.com/go-go-golems/go-go-goja/engine"
 	"github.com/go-go-golems/go-go-goja/pkg/jsverbs"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 )
 
@@ -64,8 +65,13 @@ func RunJSCommandIntoProcessor(
 		WithModules(
 			gggengine.NativeModuleSpec{
 				ModuleID:   "minitrace-runtime",
-				ModuleName: "minitrace",
-				Loader:     minitraceModuleLoader(ctx, conn, command, runtimeSettings),
+				ModuleName: minitracejs.ModuleName,
+				Loader: minitracejs.NewLoader(ctx, conn, command.Name, minitracejs.RuntimeSettings{
+					ArchiveGlob:   runtimeSettings.ArchiveGlob,
+					DBPath:        runtimeSettings.DBPath,
+					TableName:     runtimeSettings.TableName,
+					PersistLoaded: runtimeSettings.PersistLoaded,
+				}),
 			},
 		).Build()
 	if err != nil {
