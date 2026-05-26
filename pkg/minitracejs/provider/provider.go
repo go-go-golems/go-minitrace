@@ -5,9 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/dop251/goja_nodejs/require"
+	glazedcli "github.com/go-go-golems/glazed/pkg/cli"
+	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/go-go-golems/go-go-goja/pkg/xgoja/providerapi"
+	querycmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query"
+	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 )
 
@@ -19,6 +24,11 @@ type HostServices interface {
 	CommandName() string
 }
 
+type queriesCommandProviderConfig struct {
+	AppName           string   `json:"appName,omitempty"`
+	QueryRepositories []string `json:"queryRepositories,omitempty"`
+}
+
 var configSchema = json.RawMessage(`{
   "type": "object",
   "description": "The first provider version is host-services only. Static config is reserved for a future read-only DB opening mode.",
@@ -26,25 +36,60 @@ var configSchema = json.RawMessage(`{
 }`)
 
 func Register(registry *providerapi.Registry) error {
-	return registry.Package(PackageID, providerapi.Module{
-		Name:         minitracejs.ModuleName,
-		DefaultAs:    minitracejs.ModuleName,
-		Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
-		ConfigSchema: configSchema,
-		New: func(ctx providerapi.ModuleContext) (require.ModuleLoader, error) {
-			host, ok := ctx.Host.(HostServices)
-			if !ok || host == nil {
-				return nil, fmt.Errorf("go-minitrace provider requires minitrace HostServices")
-			}
-			conn := host.Conn()
-			if conn == nil {
-				return nil, fmt.Errorf("go-minitrace provider host returned nil SQL connection")
-			}
-			baseCtx := ctx.Context
-			if baseCtx == nil {
-				baseCtx = context.Background()
-			}
-			return minitracejs.NewLoader(baseCtx, conn, host.CommandName(), host.RuntimeSettings()), nil
+	return registry.Package(PackageID,
+		providerapi.Module{
+			Name:         minitracejs.ModuleName,
+			DefaultAs:    minitracejs.ModuleName,
+			Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
+			ConfigSchema: configSchema,
+			New: func(ctx providerapi.ModuleContext) (require.ModuleLoader, error) {
+				host, ok := ctx.Host.(HostServices)
+				if !ok || host == nil {
+					return nil, fmt.Errorf("go-minitrace provider requires minitrace HostServices")
+				}
+				conn := host.Conn()
+				if conn == nil {
+					return nil, fmt.Errorf("go-minitrace provider host returned nil SQL connection")
+				}
+				baseCtx := ctx.Context
+				if baseCtx == nil {
+					baseCtx = context.Background()
+				}
+				return minitracejs.NewLoader(baseCtx, conn, host.CommandName(), host.RuntimeSettings()), nil
+			},
 		},
-	})
+		providerapi.CommandSetProvider{
+			Name:         "queries",
+			DefaultMount: "minitrace",
+			Description:  "Run repository-backed go-minitrace query commands",
+			New:          newQueriesCommandSet,
+		},
+	)
+}
+
+func newQueriesCommandSet(ctx providerapi.CommandSetContext) (*providerapi.CommandSet, error) {
+	cfg := queriesCommandProviderConfig{AppName: "go-minitrace"}
+	if len(ctx.Config) > 0 {
+		if err := json.Unmarshal(ctx.Config, &cfg); err != nil {
+			return nil, fmt.Errorf("decode go-minitrace queries command provider config: %w", err)
+		}
+	}
+	appName := strings.TrimSpace(cfg.AppName)
+	if appName == "" {
+		appName = "go-minitrace"
+	}
+	catalog, err := minitracecmd.LoadConfiguredCatalog(appName, cfg.QueryRepositories)
+	if err != nil {
+		return nil, fmt.Errorf("load go-minitrace query catalog: %w", err)
+	}
+	commands, err := querycmd.NewMinitraceCatalogCommands(catalog)
+	if err != nil {
+		return nil, fmt.Errorf("build go-minitrace query commands: %w", err)
+	}
+	return &providerapi.CommandSet{
+		Commands: commands,
+		ParserConfig: &glazedcli.CobraParserConfig{
+			ShortHelpSections: []string{schema.DefaultSlug, querycmd.QueryRuntimeSectionSlug, schema.GlobalDefaultSlug},
+		},
+	}, nil
 }

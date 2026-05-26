@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"testing"
 
 	"github.com/dop251/goja"
@@ -39,6 +40,63 @@ func TestProviderRequiresHostServices(t *testing.T) {
 	mod := resolveModule(t)
 	if _, err := mod.New(providerapi.ModuleContext{}); err == nil {
 		t.Fatalf("expected missing host services error")
+	}
+}
+
+func TestRegisterQueriesCommandProvider(t *testing.T) {
+	registry := providerapi.NewRegistry()
+	if err := Register(registry); err != nil {
+		t.Fatalf("register provider: %v", err)
+	}
+	provider, ok := registry.ResolveCommandSetProvider(PackageID, "queries")
+	if !ok {
+		t.Fatalf("missing command provider %s.queries", PackageID)
+	}
+	if provider.DefaultMount != "minitrace" {
+		t.Fatalf("default mount = %q, want minitrace", provider.DefaultMount)
+	}
+}
+
+func TestQueriesCommandProviderBuildsCatalogCommands(t *testing.T) {
+	registry := providerapi.NewRegistry()
+	if err := Register(registry); err != nil {
+		t.Fatalf("register provider: %v", err)
+	}
+	provider, ok := registry.ResolveCommandSetProvider(PackageID, "queries")
+	if !ok {
+		t.Fatalf("missing command provider")
+	}
+	config, err := json.Marshal(map[string]any{"appName": "go-minitrace-test"})
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+	set, err := provider.New(providerapi.CommandSetContext{
+		Context:        context.Background(),
+		PackageID:      PackageID,
+		Name:           "queries",
+		Mount:          "traces",
+		RuntimeProfile: "main",
+		Config:         config,
+		Providers:      registry,
+	})
+	if err != nil {
+		t.Fatalf("create command set: %v", err)
+	}
+	if set == nil || len(set.Commands) == 0 {
+		t.Fatalf("expected embedded catalog commands")
+	}
+	foundNested := false
+	for _, command := range set.Commands {
+		if command == nil || command.Description() == nil {
+			continue
+		}
+		if len(command.Description().Parents) > 0 {
+			foundNested = true
+			break
+		}
+	}
+	if !foundNested {
+		t.Fatalf("expected at least one catalog command to preserve folder parents")
 	}
 }
 
