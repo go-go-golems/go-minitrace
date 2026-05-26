@@ -78,7 +78,7 @@ func RunJSCommandIntoProcessor(
 		return err
 	}
 
-	runtime, err := factory.NewRuntime(ctx)
+	runtime, err := factory.NewRuntime(gggengine.WithStartupContext(ctx), gggengine.WithLifetimeContext(ctx))
 	if err != nil {
 		return err
 	}
