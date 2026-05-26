@@ -1,0 +1,16 @@
+{
+  "id": "smoke-b",
+  "title": "Write Markdown from a JavaScript minitrace command",
+  "summary": "A report-writing smoke session",
+  "classification": "validation",
+  "profile": "test",
+  "provenance": {"source": "xgoja-smoke"},
+  "flags": {},
+  "environment": {"agent_framework": "codex", "model": "gpt-5.5"},
+  "operational_context": {"working_directory": "/workspaces/xgoja-smoke"},
+  "timing": {"started_at": "2026-05-25T21:05:00Z", "active_duration_seconds": 90},
+  "turns": [{"role": "user"}, {"role": "assistant"}, {"role": "assistant"}],
+  "tool_calls": [{"tool_name": "bash", "operation_type": "test"}, {"tool_name": "write", "operation_type": "create"}, {"tool_name": "bash", "operation_type": "verify"}],
+  "annotations": [],
+  "metrics": {"tool_call_count": 3, "turn_count": 3}
+}

@@ -1,0 +1,34 @@
+name: minitrace-command-provider
+target:
+  kind: xgoja
+  output: dist/minitrace-command-provider
+packages:
+  - id: go-minitrace
+    import: github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider
+    version: v0.0.0
+    replace: ../../..
+runtimes:
+  main:
+    modules:
+      - package: go-minitrace
+        name: minitrace
+        as: minitrace
+commands:
+  eval:
+    enabled: false
+  run:
+    enabled: false
+  repl:
+    enabled: false
+  jsverbs:
+    enabled: false
+commandProviders:
+  - id: minitrace-queries
+    package: go-minitrace
+    name: queries
+    mount: traces
+    runtimeProfile: main
+    config:
+      appName: minitrace-command-provider-smoke
+      queryRepositories:
+        - ./queries
