@@ -1,6 +1,7 @@
 package query
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -16,6 +17,10 @@ func NewMinitraceCatalogCommands(catalog *minitracecmd.Catalog) ([]cmds.Command,
 	if catalog == nil {
 		return nil, nil
 	}
+	if err := validateCatalogCommandTree(catalog.Commands); err != nil {
+		return nil, err
+	}
+
 	commands := make([]cmds.Command, 0, len(catalog.Commands))
 	for _, command := range catalog.Commands {
 		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
@@ -28,6 +33,42 @@ func NewMinitraceCatalogCommands(catalog *minitracecmd.Catalog) ([]cmds.Command,
 		commands = append(commands, glazeCommand)
 	}
 	return commands, nil
+}
+
+func validateCatalogCommandTree(commands []*minitracecmd.MinitraceCommand) error {
+	paths := map[string]string{}
+	for _, command := range commands {
+		if command == nil {
+			continue
+		}
+		parents := commandParents(command.Folder)
+		current := ""
+		for _, parent := range parents {
+			if current == "" {
+				current = parent
+			} else {
+				current += "/" + parent
+			}
+			if existing := paths[current]; existing == "leaf" {
+				return fmt.Errorf("%w: folder group %q collides with existing command", minitracecmd.ErrCommandTreeCollision, current)
+			}
+			paths[current] = "group"
+		}
+
+		name := strings.TrimSpace(command.Name)
+		if name == "" {
+			continue
+		}
+		leafPath := name
+		if current != "" {
+			leafPath = current + "/" + name
+		}
+		if existing := paths[leafPath]; existing != "" {
+			return fmt.Errorf("%w: command %q collides with existing %s", minitracecmd.ErrCommandTreeCollision, leafPath, existing)
+		}
+		paths[leafPath] = "leaf"
+	}
+	return nil
 }
 
 func commandParents(folder string) []string {
