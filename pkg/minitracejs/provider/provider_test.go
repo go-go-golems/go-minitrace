@@ -36,10 +36,14 @@ func TestRegisterProvider(t *testing.T) {
 	}
 }
 
-func TestProviderRequiresHostServices(t *testing.T) {
+func TestProviderAllowsModuleWithoutHostServices(t *testing.T) {
 	mod := resolveModule(t)
-	if _, err := mod.New(providerapi.ModuleContext{}); err == nil {
-		t.Fatalf("expected missing host services error")
+	loader, err := mod.New(providerapi.ModuleContext{})
+	if err != nil {
+		t.Fatalf("create loader without host services: %v", err)
+	}
+	if loader == nil {
+		t.Fatalf("expected loader")
 	}
 }
 

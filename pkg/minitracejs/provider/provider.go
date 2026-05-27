@@ -43,19 +43,19 @@ func Register(registry *providerapi.Registry) error {
 			Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
 			ConfigSchema: configSchema,
 			New: func(ctx providerapi.ModuleContext) (require.ModuleLoader, error) {
-				host, ok := ctx.Host.(HostServices)
-				if !ok || host == nil {
-					return nil, fmt.Errorf("go-minitrace provider requires minitrace HostServices")
-				}
-				conn := host.Conn()
-				if conn == nil {
-					return nil, fmt.Errorf("go-minitrace provider host returned nil SQL connection")
+				var conn *sql.Conn
+				var commandName string
+				settings := minitracejs.RuntimeSettings{}
+				if host, ok := ctx.Host.(HostServices); ok && host != nil {
+					conn = host.Conn()
+					commandName = host.CommandName()
+					settings = host.RuntimeSettings()
 				}
 				baseCtx := ctx.Context
 				if baseCtx == nil {
 					baseCtx = context.Background()
 				}
-				return minitracejs.NewLoader(baseCtx, conn, host.CommandName(), host.RuntimeSettings()), nil
+				return minitracejs.NewLoader(baseCtx, conn, commandName, settings), nil
 			},
 		},
 		providerapi.CommandSetProvider{
