@@ -1,0 +1,16 @@
+{
+  "id": "smoke-a",
+  "title": "Wire command providers into generated binaries",
+  "summary": "A compact smoke session",
+  "classification": "implementation",
+  "profile": "test",
+  "provenance": {"source": "xgoja-smoke"},
+  "flags": {},
+  "environment": {"agent_framework": "pi", "model": "gpt-5.5"},
+  "operational_context": {"working_directory": "/workspaces/xgoja-smoke"},
+  "timing": {"started_at": "2026-05-25T21:00:00Z", "active_duration_seconds": 120},
+  "turns": [{"role": "user"}, {"role": "assistant"}],
+  "tool_calls": [{"tool_name": "read", "operation_type": "inspect"}, {"tool_name": "edit", "operation_type": "modify"}],
+  "annotations": [],
+  "metrics": {"tool_call_count": 2, "turn_count": 2}
+}
