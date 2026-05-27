@@ -29,10 +29,27 @@ type queriesCommandProviderConfig struct {
 	QueryRepositories []string `json:"queryRepositories,omitempty"`
 }
 
-var configSchema = json.RawMessage(`{
+var moduleConfigSchema = json.RawMessage(`{
   "type": "object",
-  "description": "The first provider version is host-services only. Static config is reserved for a future read-only DB opening mode.",
+  "description": "Optional minitrace module settings. Query execution requires HostServices to provide a SQL connection.",
   "additionalProperties": false
+}`)
+
+var queriesConfigSchema = json.RawMessage(`{
+  "type": "object",
+  "description": "Configuration for the go-minitrace queries command provider.",
+  "additionalProperties": false,
+  "properties": {
+    "appName": {
+      "type": "string",
+      "description": "Application config namespace used when loading configured query repositories."
+    },
+    "queryRepositories": {
+      "type": "array",
+      "description": "Additional query repository directories to load.",
+      "items": { "type": "string" }
+    }
+  }
 }`)
 
 func Register(registry *providerapi.Registry) error {
@@ -41,7 +58,7 @@ func Register(registry *providerapi.Registry) error {
 			Name:         minitracejs.ModuleName,
 			DefaultAs:    minitracejs.ModuleName,
 			Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
-			ConfigSchema: configSchema,
+			ConfigSchema: moduleConfigSchema,
 			New: func(ctx providerapi.ModuleContext) (require.ModuleLoader, error) {
 				var conn *sql.Conn
 				var commandName string
@@ -62,6 +79,7 @@ func Register(registry *providerapi.Registry) error {
 			Name:         "queries",
 			DefaultMount: "minitrace",
 			Description:  "Run repository-backed go-minitrace query commands",
+			ConfigSchema: queriesConfigSchema,
 			New:          newQueriesCommandSet,
 		},
 	)

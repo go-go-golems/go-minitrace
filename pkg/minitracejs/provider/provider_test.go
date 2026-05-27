@@ -59,6 +59,12 @@ func TestRegisterQueriesCommandProvider(t *testing.T) {
 	if provider.DefaultMount != "minitrace" {
 		t.Fatalf("default mount = %q, want minitrace", provider.DefaultMount)
 	}
+	if !json.Valid(provider.ConfigSchema) {
+		t.Fatalf("command provider config schema is not valid JSON: %s", string(provider.ConfigSchema))
+	}
+	if !containsJSONField(provider.ConfigSchema, "appName") || !containsJSONField(provider.ConfigSchema, "queryRepositories") {
+		t.Fatalf("command provider config schema does not describe accepted fields: %s", string(provider.ConfigSchema))
+	}
 }
 
 func TestQueriesCommandProviderBuildsCatalogCommands(t *testing.T) {
@@ -141,6 +147,16 @@ func TestModuleLoaderQueriesHostConnection(t *testing.T) {
 	if got := row.Get("ok").ToInteger(); got != 1 {
 		t.Fatalf("ok = %d, want 1", got)
 	}
+}
+
+func containsJSONField(raw json.RawMessage, field string) bool {
+	var decoded map[string]any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return false
+	}
+	properties, _ := decoded["properties"].(map[string]any)
+	_, ok := properties[field]
+	return ok
 }
 
 func resolveModule(t *testing.T) providerapi.Module {
