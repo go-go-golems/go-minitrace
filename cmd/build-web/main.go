@@ -1,5 +1,7 @@
 package main
 
+//glazedclilint:file-ignore build helper reads environment variables outside the user-facing Glazed command surface
+
 import (
 	"context"
 	"fmt"

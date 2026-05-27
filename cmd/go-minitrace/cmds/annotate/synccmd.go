@@ -1,5 +1,7 @@
 package annotate
 
+//glazedclilint:file-ignore legacy annotate command uses Cobra flags pending Glazed field migration
+
 import (
 	"context"
 	"encoding/json"

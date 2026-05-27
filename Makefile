@@ -7,8 +7,8 @@ MODULE ?= github.com/go-go-golems/go-minitrace
 GLAZED_LINT_BIN ?= /tmp/glazed-lint
 GLAZED_LINT_PKG ?= github.com/go-go-golems/glazed/cmd/tools/glazed-lint
 GLAZED_VERSION ?= $(shell GOWORK=off go list -m -f '{{.Version}}' github.com/go-go-golems/glazed 2>/dev/null)
-GLAZED_LINT_TOOL_VERSION ?= v1.3.4
-GLAZED_LINT_FLAGS ?= -glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/,cmd/build-web/,cmd/go-minitrace/cmds/annotate/,cmd/go-minitrace/cmds/query/commands.go,cmd/go-minitrace/cmds/serve/serve.go
+GLAZED_LINT_TOOL_VERSION ?= v1.3.5
+GLAZED_LINT_FLAGS ?= -glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/
 GLAZED_LINT_DIRS ?= ./cmd/... ./pkg/...
 CMD_DIR ?= ./cmd/$(BINARY)
 
