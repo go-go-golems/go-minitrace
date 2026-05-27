@@ -1,9 +1,15 @@
-.PHONY: all lint test build goreleaser release frontend dev dev-serve dev-logs dev-test dev-annotate dev-clean
+.PHONY: all lint test build goreleaser release frontend dev dev-serve dev-logs dev-test dev-annotate dev-clean glazed-lint-build glazed-lint
 
 all: lint test build
 
 BINARY ?= go-minitrace
 MODULE ?= github.com/go-go-golems/go-minitrace
+GLAZED_LINT_BIN ?= /tmp/glazed-lint
+GLAZED_LINT_PKG ?= github.com/go-go-golems/glazed/cmd/tools/glazed-lint
+GLAZED_VERSION ?= $(shell GOWORK=off go list -m -f '{{.Version}}' github.com/go-go-golems/glazed 2>/dev/null)
+GLAZED_LINT_TOOL_VERSION ?= v1.3.5
+GLAZED_LINT_FLAGS ?= -glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/
+GLAZED_LINT_DIRS ?= ./cmd/... ./pkg/...
 CMD_DIR ?= ./cmd/$(BINARY)
 
 VERSION ?= v0.0.0
@@ -12,12 +18,22 @@ GORELEASER_TARGET ?= --single-target
 
 docker-lint:
 	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run -v
+glazed-lint-build:
+	@echo "Building glazed-lint from pinned tool module..."
+	@echo "Installing $(GLAZED_LINT_PKG)@$(GLAZED_LINT_TOOL_VERSION)"
+	@GOBIN=$(dir $(GLAZED_LINT_BIN)) GOWORK=off go install $(GLAZED_LINT_PKG)@$(GLAZED_LINT_TOOL_VERSION)
 
-lint:
+glazed-lint: glazed-lint-build
+	GOWORK=off go vet -vettool=$(GLAZED_LINT_BIN) $(GLAZED_LINT_FLAGS) $(GLAZED_LINT_DIRS)
+
+
+lint: glazed-lint-build
 	golangci-lint run -v
+	GOWORK=off go vet -vettool=$(GLAZED_LINT_BIN) $(GLAZED_LINT_FLAGS) $(GLAZED_LINT_DIRS)
 
-lintmax:
+lintmax: glazed-lint-build
 	golangci-lint run -v --max-same-issues=100
+	GOWORK=off go vet -vettool=$(GLAZED_LINT_BIN) $(GLAZED_LINT_FLAGS) $(GLAZED_LINT_DIRS)
 
 gosec:
 	go install github.com/securego/gosec/v2/cmd/gosec@latest

@@ -1,5 +1,7 @@
 package serve
 
+//glazedclilint:file-ignore legacy serve command exposes output flags pending row processor migration
+
 import (
 	"context"
 	stderrors "errors"

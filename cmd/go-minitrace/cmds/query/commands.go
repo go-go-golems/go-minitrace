@@ -1,5 +1,7 @@
 package query
 
+//glazedclilint:file-ignore legacy query command uses Cobra flags pending Glazed field migration
+
 import (
 	"fmt"
 	"strings"

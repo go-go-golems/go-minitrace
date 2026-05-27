@@ -1,5 +1,7 @@
 package annotate
 
+//glazedclilint:file-ignore legacy annotate command uses Cobra flags pending Glazed field migration
+
 import (
 	"github.com/spf13/cobra"
 )
