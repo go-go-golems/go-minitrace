@@ -1,0 +1,3 @@
+package minitrace
+
+//go:generate go tool logcopter-gen -area-prefix go-go-golems.go-minitrace -strip-prefix github.com/go-go-golems/go-minitrace ./cmd/... ./pkg/...

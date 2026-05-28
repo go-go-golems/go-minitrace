@@ -9,7 +9,6 @@ import (
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 )
 
 var protoAnnotationScopeTypeToString = map[apiv1.AnnotationScopeType]string{
@@ -57,7 +56,7 @@ func (s *Server) handleGetSessionAnnotationsV2(w http.ResponseWriter, r *http.Re
 
 	anns, err := s.annoStore.GetAnnotationsForSession(ctx, sessionID)
 	if err != nil {
-		log.Err(err).Str("session_id", sessionID).Msg("fetching annotations v2")
+		log.Error().Err(err).Str("session_id", sessionID).Msg("fetching annotations v2")
 		writeError(w, http.StatusInternalServerError, "fetching annotations")
 		return
 	}
@@ -146,7 +145,7 @@ func (s *Server) handleCreateAnnotationV2(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := s.annoStore.AddAnnotation(ctx, ann, sessionID); err != nil {
-		log.Err(err).Str("session_id", sessionID).Msg("creating annotation v2")
+		log.Error().Err(err).Str("session_id", sessionID).Msg("creating annotation v2")
 		writeError(w, http.StatusInternalServerError, "creating annotation")
 		return
 	}
@@ -181,7 +180,7 @@ func (s *Server) handleListAnnotationsV2(w http.ResponseWriter, r *http.Request)
 
 	rows, err := s.annoStore.List(ctx, opts)
 	if err != nil {
-		log.Err(err).Msg("listing annotations v2")
+		log.Error().Err(err).Msg("listing annotations v2")
 		writeError(w, http.StatusInternalServerError, "listing annotations")
 		return
 	}
@@ -252,7 +251,7 @@ func (s *Server) handleUpdateAnnotationV2(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err != nil {
-		log.Err(err).Str("id", annID).Msg("updating annotation v2")
+		log.Error().Err(err).Str("id", annID).Msg("updating annotation v2")
 		writeError(w, http.StatusInternalServerError, "updating annotation")
 		return
 	}
@@ -280,7 +279,7 @@ func (s *Server) handleDeleteAnnotationV2(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err != nil {
-		log.Err(err).Str("id", annID).Msg("deleting annotation v2")
+		log.Error().Err(err).Str("id", annID).Msg("deleting annotation v2")
 		writeError(w, http.StatusInternalServerError, "deleting annotation")
 		return
 	}
@@ -312,7 +311,7 @@ func (s *Server) handleSyncAnnotationsV2(w http.ResponseWriter, r *http.Request)
 		SessionID: req.GetSessionId(),
 	})
 	if err != nil {
-		log.Err(err).Msg("sync annotations v2")
+		log.Error().Err(err).Msg("sync annotations v2")
 		writeError(w, http.StatusInternalServerError, "sync failed")
 		return
 	}

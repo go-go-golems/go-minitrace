@@ -189,3 +189,11 @@ bump-go-go-golems:
 		for dep in $$deps; do GOWORK=off go get "$${dep}@latest"; done; \
 	fi
 	GOWORK=off go mod tidy
+
+.PHONY: logcopter-generate
+logcopter-generate:
+	GOWORK=off go generate ./...
+
+.PHONY: logcopter-check
+logcopter-check:
+	GOWORK=off go tool logcopter-gen -area-prefix go-go-golems.go-minitrace -strip-prefix github.com/go-go-golems/go-minitrace -check ./cmd/... ./pkg/...

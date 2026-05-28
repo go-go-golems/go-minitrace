@@ -3,8 +3,6 @@ package serve
 import (
 	"embed"
 	"io/fs"
-
-	"github.com/rs/zerolog/log"
 )
 
 //go:embed all:frontend

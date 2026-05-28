@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )

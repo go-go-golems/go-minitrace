@@ -21,7 +21,6 @@ import (
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
