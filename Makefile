@@ -177,3 +177,15 @@ dev-clean:
 	tmux kill-session -t $(DEV_TMUX) 2>/dev/null && echo "Killed tmux session '$(DEV_TMUX)'" || echo "No tmux session '$(DEV_TMUX)' running"
 	rm -f $(DEV_DB)
 	rm -f ./serve.log
+
+.PHONY: bump-go-go-golems
+bump-go-go-golems:
+	@deps="$$(awk '/^require[[:space:]]+github\.com\/go-go-golems\// { print $$2 } /^[[:space:]]*github\.com\/go-go-golems\// { print $$1 }' go.mod | sort -u)"; \
+	if [ -z "$$deps" ]; then \
+		echo "No github.com/go-go-golems dependencies in go.mod"; \
+	else \
+		echo "Bumping go-go-golems dependencies:"; \
+		echo "$$deps"; \
+		for dep in $$deps; do GOWORK=off go get "$${dep}@latest"; done; \
+	fi
+	GOWORK=off go mod tidy
