@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/dop251/goja"
 	"github.com/go-go-golems/go-go-goja/pkg/xgoja/providerapi"
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -167,6 +170,96 @@ func TestModuleLoaderProvidesDBBuilder(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderDBBuilderLoadsNativeFile(t *testing.T) {
+	path := writeNativeSessionFixture(t)
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("fixturePath", path)
+	value, err := vm.RunString(`
+		const db = mt.db().File(fixturePath).SQLiteMemory().Build();
+		const summary = {
+			sessions: db.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
+			turns: db.queryOne("SELECT COUNT(*) AS n FROM turns").n,
+			tools: db.queryOne("SELECT COUNT(*) AS n FROM tool_calls").n,
+			file: db.queryOne("SELECT path FROM files").path,
+			sources: db.sources().length
+		};
+		db.close();
+		JSON.stringify(summary);
+	`)
+	if err != nil {
+		t.Fatalf("run file db builder script: %v", err)
+	}
+	var got struct {
+		Sessions int    `json:"sessions"`
+		Turns    int    `json:"turns"`
+		Tools    int    `json:"tools"`
+		File     string `json:"file"`
+		Sources  int    `json:"sources"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal file result: %v", err)
+	}
+	if got.Sessions != 1 || got.Turns != 2 || got.Tools != 1 || got.File != "app.go" || got.Sources != 1 {
+		t.Fatalf("unexpected file load result: %#v", got)
+	}
+}
+
+func TestModuleLoaderDBBuilderLoadsNativeDirAndGlob(t *testing.T) {
+	path := writeNativeSessionFixture(t)
+	dir := filepath.Dir(path)
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("fixtureDir", dir)
+	_ = vm.Set("fixtureGlob", filepath.Join(dir, "*.minitrace.json"))
+	value, err := vm.RunString(`
+		const byDir = mt.db().Dir(fixtureDir).Build();
+		const byGlob = mt.db().Glob(fixtureGlob).Build();
+		const result = {
+			dirSessions: byDir.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
+			globSessions: byGlob.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
+			dirSources: byDir.sources().length,
+			globSources: byGlob.sources().length
+		};
+		byDir.close();
+		byGlob.close();
+		JSON.stringify(result);
+	`)
+	if err != nil {
+		t.Fatalf("run dir/glob db builder script: %v", err)
+	}
+	var got struct {
+		DirSessions  int `json:"dirSessions"`
+		GlobSessions int `json:"globSessions"`
+		DirSources   int `json:"dirSources"`
+		GlobSources  int `json:"globSources"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal dir/glob result: %v", err)
+	}
+	if got.DirSessions != 1 || got.GlobSessions != 1 || got.DirSources != 1 || got.GlobSources != 1 {
+		t.Fatalf("unexpected dir/glob result: %#v", got)
+	}
+}
+
 func TestModuleLoaderDBBuilderValidation(t *testing.T) {
 	mod := resolveModule(t)
 	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
@@ -193,6 +286,26 @@ func TestModuleLoaderDBBuilderValidation(t *testing.T) {
 	if got.Valid || len(got.Errors) == 0 {
 		t.Fatalf("expected validation errors, got %#v", got)
 	}
+}
+
+func writeNativeSessionFixture(t *testing.T) string {
+	t.Helper()
+	session := minitrace.BuildSessionSkeleton("session-file-1", "pi", "minitrace-json-v1", "test")
+	session.Turns = []minitrace.Turn{{Index: 0, Role: "user", Content: "Read app.go"}, {Index: 1, Role: "assistant", Content: "Done", ToolCallsInTurn: []string{"tool-1"}}}
+	path := "app.go"
+	result := "package main"
+	emittingTurn := 1
+	session.ToolCalls = []minitrace.ToolCall{{ID: "tool-1", EmittingTurnIndex: &emittingTurn, ToolName: "Read", OperationType: "read", Input: minitrace.ToolCallInput{FilePath: &path}, Output: minitrace.ToolCallOutput{Success: true, Result: &result}}}
+	session.Metrics = minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, len(session.Annotations), nil)
+	payload, err := json.MarshalIndent(session, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal fixture: %v", err)
+	}
+	filePath := filepath.Join(t.TempDir(), "session.minitrace.json")
+	if err := os.WriteFile(filePath, payload, 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	return filePath
 }
 
 func TestModuleLoaderQueriesHostConnection(t *testing.T) {
