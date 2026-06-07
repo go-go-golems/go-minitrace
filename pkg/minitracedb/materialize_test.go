@@ -140,6 +140,123 @@ func TestMaterializeSessionPopulatesPhaseThreeFields(t *testing.T) {
 	assertValue(t, metricsRow, "model_switches", int64(1))
 }
 
+func TestMaterializeSessionGoldenRowsMatchFixture(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+	ctx := context.Background()
+	if err := CreateSchema(ctx, db); err != nil {
+		t.Fatalf("CreateSchema: %v", err)
+	}
+	session := richFixtureSession()
+	if err := MaterializeSession(ctx, db, session, MaterializeOptions{SourcePath: "/tmp/golden.minitrace.json"}); err != nil {
+		t.Fatalf("MaterializeSession: %v", err)
+	}
+
+	toolLinkedTurns := 0
+	fileTouches := 0
+	for _, turn := range session.Turns {
+		toolLinkedTurns += len(turn.ToolCallsInTurn)
+	}
+	for _, toolCall := range session.ToolCalls {
+		if toolCall.Input.FilePath != nil && *toolCall.Input.FilePath != "" {
+			fileTouches++
+		}
+	}
+	wantCounts := map[string]int{
+		"sessions":        1,
+		"turns":           len(session.Turns),
+		"tool_calls":      len(session.ToolCalls),
+		"turn_tool_calls": toolLinkedTurns,
+		"files":           fileTouches,
+		"annotations":     len(session.Annotations),
+		"handovers":       2,
+		"metrics":         1,
+		"events":          len(session.Turns) + len(session.ToolCalls) + len(session.Annotations),
+	}
+	for table, want := range wantCounts {
+		assertCount(t, db, table, want)
+	}
+
+	runner, err := NewQueryRunner(db, AllowedTableNames(), QueryOptions{})
+	if err != nil {
+		t.Fatalf("NewQueryRunner: %v", err)
+	}
+
+	sessionRow, err := runner.QueryOne(ctx, `SELECT session_id, title, source_path, converter_version, model_version, agent_version, privacy_level, hour_of_day, concurrent_sessions, outcome_notes, raw_json FROM sessions`)
+	if err != nil {
+		t.Fatalf("query golden session row: %v", err)
+	}
+	assertValue(t, sessionRow, "session_id", session.ID)
+	assertValue(t, sessionRow, "title", *session.Title)
+	assertValue(t, sessionRow, "source_path", "/tmp/golden.minitrace.json")
+	assertValue(t, sessionRow, "converter_version", session.Provenance.ConverterVersion)
+	assertValue(t, sessionRow, "model_version", *session.Environment.ModelVersion)
+	assertValue(t, sessionRow, "agent_version", *session.Environment.AgentVersion)
+	assertValue(t, sessionRow, "privacy_level", session.Timing.PrivacyLevel)
+	assertValue(t, sessionRow, "hour_of_day", int64(*session.Timing.HourOfDay))
+	assertValue(t, sessionRow, "concurrent_sessions", int64(*session.Coordination.ConcurrentSessions))
+	assertValue(t, sessionRow, "outcome_notes", *session.Outcome.OutcomeNotes)
+	assertContains(t, sessionRow, "raw_json", session.ID)
+
+	turn := session.Turns[1]
+	turnRow, err := runner.QueryOne(ctx, `SELECT turn_index, role, content, input_tokens, output_tokens, reasoning_tokens, raw_json FROM turns WHERE turn_index = 1`)
+	if err != nil {
+		t.Fatalf("query golden turn row: %v", err)
+	}
+	assertValue(t, turnRow, "turn_index", int64(turn.Index))
+	assertValue(t, turnRow, "role", turn.Role)
+	assertValue(t, turnRow, "content", turn.Content)
+	assertValue(t, turnRow, "input_tokens", int64(*turn.Usage.InputTokens))
+	assertValue(t, turnRow, "output_tokens", int64(*turn.Usage.OutputTokens))
+	assertValue(t, turnRow, "reasoning_tokens", int64(*turn.Usage.ReasoningTokens))
+	assertContains(t, turnRow, "raw_json", turn.Content)
+
+	toolCall := session.ToolCalls[0]
+	toolRow, err := runner.QueryOne(ctx, `SELECT tool_call_id, emitting_turn_index, tool_name, operation_type, file_path, result, duration_ms, full_bytes, tools_before_json, raw_json FROM tool_calls`)
+	if err != nil {
+		t.Fatalf("query golden tool_call row: %v", err)
+	}
+	assertValue(t, toolRow, "tool_call_id", toolCall.ID)
+	assertValue(t, toolRow, "emitting_turn_index", int64(*toolCall.EmittingTurnIndex))
+	assertValue(t, toolRow, "tool_name", toolCall.ToolName)
+	assertValue(t, toolRow, "operation_type", toolCall.OperationType)
+	assertValue(t, toolRow, "file_path", *toolCall.Input.FilePath)
+	assertValue(t, toolRow, "result", *toolCall.Output.Result)
+	assertValue(t, toolRow, "duration_ms", int64(*toolCall.Output.DurationMS))
+	assertValue(t, toolRow, "full_bytes", int64(*toolCall.Output.FullBytes))
+	assertContains(t, toolRow, "tools_before_json", toolCall.Context.ToolsBefore[0])
+	assertContains(t, toolRow, "raw_json", toolCall.ID)
+
+	annotation := session.Annotations[0]
+	annotationRow, err := runner.QueryOne(ctx, `SELECT annotation_id, annotator, scope_type, target_id, title, detail, raw_json FROM annotations`)
+	if err != nil {
+		t.Fatalf("query golden annotation row: %v", err)
+	}
+	assertValue(t, annotationRow, "annotation_id", annotation.ID)
+	assertValue(t, annotationRow, "annotator", annotation.Annotator)
+	assertValue(t, annotationRow, "scope_type", annotation.Scope.Type)
+	assertValue(t, annotationRow, "target_id", annotation.Scope.TargetID)
+	assertValue(t, annotationRow, "title", annotation.Content.Title)
+	assertValue(t, annotationRow, "detail", annotation.Content.Detail)
+	assertContains(t, annotationRow, "raw_json", annotation.ID)
+
+	metricsRow, err := runner.QueryOne(ctx, `SELECT turn_count, tool_call_count, read_count, delegate_count, total_input_tokens, session_cost, max_response_tokens, raw_json FROM metrics`)
+	if err != nil {
+		t.Fatalf("query golden metrics row: %v", err)
+	}
+	assertValue(t, metricsRow, "turn_count", int64(session.Metrics.TurnCount))
+	assertValue(t, metricsRow, "tool_call_count", int64(session.Metrics.ToolCallCount))
+	assertValue(t, metricsRow, "read_count", int64(session.Metrics.ReadCount))
+	assertValue(t, metricsRow, "delegate_count", int64(session.Metrics.DelegateCount))
+	assertValue(t, metricsRow, "total_input_tokens", int64(*session.Metrics.TotalInputTokens))
+	assertValue(t, metricsRow, "session_cost", *session.Metrics.SessionCost)
+	assertValue(t, metricsRow, "max_response_tokens", int64(*session.Metrics.MaxResponseTokens))
+	assertContains(t, metricsRow, "raw_json", "total_input_tokens")
+}
+
 func assertCount(t *testing.T, db *sql.DB, table string, want int) {
 	t.Helper()
 	var got int
@@ -264,6 +381,7 @@ func richFixtureSession() *minitrace.Session {
 	session.Turns[1].IntentMarkers = &minitrace.IntentMarkers{Requested: true, Inferred: true, Proactive: false}
 	session.Turns[1].FrameworkMetadata = map[string]any{"turn-meta": true}
 	session.Turns[1].Usage = &minitrace.Usage{InputTokens: &inputTokens, OutputTokens: &outputTokens, CacheReadTokens: &cacheReadTokens, CacheCreationTokens: &cacheCreationTokens, ReasoningTokens: &reasoningTokens, ToolTokens: &toolTokens}
+	durationMS := 250
 	fullBytes := 123
 	fullHash := "sha256:abc"
 	fullReference := "artifact://tool-1"
@@ -272,6 +390,7 @@ func richFixtureSession() *minitrace.Session {
 	position := 0.5
 	timeSinceUser := 1.25
 	subSessionID := "sub-1"
+	session.ToolCalls[0].Output.DurationMS = &durationMS
 	session.ToolCalls[0].Output.FullBytes = &fullBytes
 	session.ToolCalls[0].Output.FullHash = &fullHash
 	session.ToolCalls[0].Output.FullReference = &fullReference
