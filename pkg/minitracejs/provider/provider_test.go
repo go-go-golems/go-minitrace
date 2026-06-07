@@ -354,6 +354,75 @@ func TestModuleLoaderDBBuilderExposesCacheKeyAndCacheInfo(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderDBBuilderDiskCacheBuildsAndReusesSQLiteFile(t *testing.T) {
+	cacheDir := t.TempDir()
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "disk-cache-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "hello"}}}},
+	}))
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	_ = vm.Set("cacheDir", cacheDir)
+	value, err := vm.RunString(`
+		const first = mt.db().Content(jsonlContent, "disk-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).Build();
+		const firstInfo = first.cacheInfo();
+		const firstCount = first.queryOne("SELECT COUNT(*) AS n FROM sessions").n;
+		const rejected = first.queryResult("INSERT INTO sessions(session_id) VALUES ('bad')").error;
+		first.close();
+		const second = mt.db().Content(jsonlContent, "disk-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).Build();
+		const secondInfo = second.cacheInfo();
+		second.close();
+		const rebuilt = mt.db().Content(jsonlContent, "disk-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).ForceRebuild().Build();
+		const rebuiltInfo = rebuilt.cacheInfo();
+		rebuilt.close();
+		JSON.stringify({
+			firstHit: firstInfo.hit,
+			secondHit: secondInfo.hit,
+			rebuiltHit: rebuiltInfo.hit,
+			mode: firstInfo.mode,
+			path: firstInfo.path,
+			samePath: firstInfo.path === secondInfo.path && secondInfo.path === rebuiltInfo.path,
+			firstCount,
+			rejected
+		});
+	`)
+	if err != nil {
+		t.Fatalf("run disk cache script: %v", err)
+	}
+	var got struct {
+		FirstHit   bool   `json:"firstHit"`
+		SecondHit  bool   `json:"secondHit"`
+		RebuiltHit bool   `json:"rebuiltHit"`
+		Mode       string `json:"mode"`
+		Path       string `json:"path"`
+		SamePath   bool   `json:"samePath"`
+		FirstCount int    `json:"firstCount"`
+		Rejected   string `json:"rejected"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal disk cache result: %v", err)
+	}
+	if got.FirstHit || !got.SecondHit || got.RebuiltHit || got.Mode != "disk" || !got.SamePath || got.FirstCount != 1 || got.Rejected == "" {
+		t.Fatalf("unexpected disk cache result: %#v", got)
+	}
+	if got.Path == "" {
+		t.Fatalf("expected disk cache path: %#v", got)
+	}
+	if _, err := os.Stat(got.Path); err != nil {
+		t.Fatalf("expected disk cache file %s: %v", got.Path, err)
+	}
+}
+
 func TestModuleLoaderDBBuilderMemoryCacheReusesByCacheKey(t *testing.T) {
 	content := string(writeJSONLFixture(t, []map[string]any{
 		{"type": "session", "id": "memory-cache-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
