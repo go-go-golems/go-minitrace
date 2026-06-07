@@ -45,6 +45,7 @@ type DBHandle struct {
 	schema      minitracedb.SchemaDescriptor
 	sources     []dbSource
 	diagnostics []minitracedb.ConversionDiagnostic
+	cacheKey    minitracedb.CacheKey
 }
 
 func NewDBBuilder(ctx context.Context) *DBBuilder {
@@ -164,6 +165,13 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		return builderObject(vm, b)
 	})
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(b.sources) })
+	_ = obj.Set("CacheKey", func() (map[string]any, error) {
+		key, err := b.CacheKey()
+		if err != nil {
+			return nil, err
+		}
+		return toPlainMap(key), nil
+	})
 	_ = obj.Set("Validate", func() ValidationResult { return b.Validate() })
 	_ = obj.Set("Build", func() (*goja.Object, error) {
 		h, err := b.Build()
@@ -252,10 +260,41 @@ func (b *DBBuilder) Validate() ValidationResult {
 	return ValidationResult{Valid: len(errs) == 0, Errors: errs}
 }
 
+func (b *DBBuilder) CacheKey() (minitracedb.CacheKey, error) {
+	validation := b.Validate()
+	if !validation.Valid {
+		return minitracedb.CacheKey{}, fmt.Errorf("minitrace.db: %v", validation.Errors)
+	}
+	fingerprints := make([]minitracedb.SourceFingerprint, 0, len(b.sources))
+	for _, source := range b.sources {
+		switch source.Kind {
+		case "file":
+			fp, err := minitracedb.FingerprintFile(source.Path)
+			if err != nil {
+				return minitracedb.CacheKey{}, err
+			}
+			fingerprints = append(fingerprints, fp)
+		case "content":
+			fingerprints = append(fingerprints, minitracedb.FingerprintContent(source.Name, []byte(source.Content)))
+		default:
+			return minitracedb.CacheKey{}, fmt.Errorf("unsupported source kind %q", source.Kind)
+		}
+	}
+	opts := minitracedb.DefaultCacheKeyOptions()
+	opts.Backend = b.backend
+	opts.Storage = b.storage
+	opts.AutoConvert = b.autoConvert
+	return minitracedb.ComputeCacheKey(fingerprints, opts)
+}
+
 func (b *DBBuilder) Build() (*DBHandle, error) {
 	validation := b.Validate()
 	if !validation.Valid {
 		return nil, fmt.Errorf("minitrace.db: %v", validation.Errors)
+	}
+	cacheKey, err := b.CacheKey()
+	if err != nil {
+		return nil, err
 	}
 	db, err := minitracedb.OpenSQLiteMemory(b.ctx, "minitrace")
 	if err != nil {
@@ -288,7 +327,7 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics}, nil
+	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey}, nil
 }
 
 func (b *DBBuilder) loadSource(source dbSource) (*minitracedb.LoadedSession, error) {
@@ -330,6 +369,7 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	})
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(h.sources) })
 	_ = obj.Set("diagnostics", func() []map[string]any { return toPlainSlice(h.diagnostics) })
+	_ = obj.Set("cacheInfo", func() map[string]any { return toPlainMap(h.cacheKey) })
 	_ = obj.Set("close", func() error {
 		if h == nil || h.db == nil {
 			return nil

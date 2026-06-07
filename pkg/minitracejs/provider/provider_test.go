@@ -290,6 +290,70 @@ func TestModuleLoaderDBBuilderAutoConvertsJSONLContent(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderDBBuilderExposesCacheKeyAndCacheInfo(t *testing.T) {
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "cache-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "hello"}}}},
+	}))
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	value, err := vm.RunString(`
+		const builder = mt.db().Content(jsonlContent, "cache-content.jsonl").AutoConvert(true);
+		const builderKey = builder.CacheKey();
+		const db = builder.Build();
+		const handleKey = db.cacheInfo();
+		const result = {
+			builderKey: builderKey.key,
+			handleKey: handleKey.key,
+			schemaVersion: handleKey.options.schemaVersion,
+			importerVersion: handleKey.options.importerVersion,
+			converterVersion: handleKey.options.converterVersion,
+			autoConvert: handleKey.options.autoConvert,
+			sourceKind: handleKey.sources[0].kind,
+			sourceName: handleKey.sources[0].name,
+			sourceHash: handleKey.sources[0].sha256
+		};
+		db.close();
+		JSON.stringify(result);
+	`)
+	if err != nil {
+		t.Fatalf("run cache key script: %v", err)
+	}
+	var got struct {
+		BuilderKey       string `json:"builderKey"`
+		HandleKey        string `json:"handleKey"`
+		SchemaVersion    string `json:"schemaVersion"`
+		ImporterVersion  string `json:"importerVersion"`
+		ConverterVersion string `json:"converterVersion"`
+		AutoConvert      bool   `json:"autoConvert"`
+		SourceKind       string `json:"sourceKind"`
+		SourceName       string `json:"sourceName"`
+		SourceHash       string `json:"sourceHash"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal cache key result: %v", err)
+	}
+	if got.BuilderKey == "" || got.BuilderKey != got.HandleKey {
+		t.Fatalf("unexpected cache keys: %#v", got)
+	}
+	if got.SchemaVersion == "" || got.ImporterVersion == "" || got.ConverterVersion == "" || !got.AutoConvert {
+		t.Fatalf("cache versions/options missing: %#v", got)
+	}
+	if got.SourceKind != "content" || got.SourceName != "cache-content.jsonl" || got.SourceHash == "" {
+		t.Fatalf("source fingerprint missing: %#v", got)
+	}
+}
+
 func TestModuleLoaderDBBuilderNonStrictConversionKeepsValidSources(t *testing.T) {
 	path := writeNativeSessionFixture(t)
 	mod := resolveModule(t)
