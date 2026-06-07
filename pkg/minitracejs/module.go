@@ -26,6 +26,9 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 	}
 	return func(vm *goja.Runtime, moduleObj *goja.Object) {
 		exports := moduleObj.Get("exports").(*goja.Object)
+		_ = exports.Set("db", func() *goja.Object {
+			return builderObject(vm, NewDBBuilder(ctx))
+		})
 		_ = exports.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
 			return Query(ctx, conn, sqlText, args...)
 		})

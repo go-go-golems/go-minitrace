@@ -110,6 +110,91 @@ func TestQueriesCommandProviderBuildsCatalogCommands(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderProvidesDBBuilder(t *testing.T) {
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	if err := moduleObj.Set("exports", exports); err != nil {
+		t.Fatalf("set exports: %v", err)
+	}
+	loader(vm, moduleObj)
+	if err := vm.Set("mt", exports); err != nil {
+		t.Fatalf("set mt: %v", err)
+	}
+
+	value, err := vm.RunString(`
+		const db = mt.db().SQLiteMemory().MaxRows(5).Build();
+		const stats = db.stats();
+		const tables = db.tables().map(t => t.name).sort();
+		const row = db.queryOne("SELECT COUNT(*) AS n FROM sessions");
+		const rejected = db.queryResult("INSERT INTO sessions(session_id) VALUES ('bad')");
+		db.close();
+		JSON.stringify({ stats, tables, row, rejectedError: rejected.error });
+	`)
+	if err != nil {
+		t.Fatalf("run db builder script: %v", err)
+	}
+	var got struct {
+		Stats struct {
+			SchemaVersion string `json:"schemaVersion"`
+			Dialect       string `json:"dialect"`
+			Tables        int    `json:"tables"`
+		} `json:"stats"`
+		Tables        []string       `json:"tables"`
+		Row           map[string]any `json:"row"`
+		RejectedError string         `json:"rejectedError"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal result: %v", err)
+	}
+	if got.Stats.Dialect != "sqlite" || got.Stats.Tables == 0 {
+		t.Fatalf("unexpected stats: %#v", got.Stats)
+	}
+	if len(got.Tables) == 0 || got.Tables[0] == "" {
+		t.Fatalf("expected table names, got %#v", got.Tables)
+	}
+	if got.Row["n"] == nil {
+		t.Fatalf("expected count row, got %#v", got.Row)
+	}
+	if got.RejectedError == "" {
+		t.Fatalf("expected rejected write error")
+	}
+}
+
+func TestModuleLoaderDBBuilderValidation(t *testing.T) {
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	value, err := vm.RunString(`JSON.stringify(mt.db().MaxRows(-1).Validate())`)
+	if err != nil {
+		t.Fatalf("run validation script: %v", err)
+	}
+	var got struct {
+		Valid  bool     `json:"valid"`
+		Errors []string `json:"errors"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal validation: %v", err)
+	}
+	if got.Valid || len(got.Errors) == 0 {
+		t.Fatalf("expected validation errors, got %#v", got)
+	}
+}
+
 func TestModuleLoaderQueriesHostConnection(t *testing.T) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
