@@ -146,8 +146,9 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 
 	start := time.Now()
 	collector := &queryCommandCollectingProcessor{}
+	archiveGlobs := s.runtimeArchiveGlobs()
 	runtimeSettings := &querycmd.MinitraceQueryRuntimeSettings{
-		ArchiveGlob:   nil,
+		ArchiveGlob:   archiveGlobs,
 		DBPath:        "",
 		TableName:     s.tableName,
 		PersistLoaded: false,
@@ -172,6 +173,20 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 	payload.DurationMs = time.Since(start).Milliseconds()
 	payload.RowCount = clampIntToInt32(len(rows))
 	writeProtoJSON(w, http.StatusOK, payload)
+}
+
+func (s *Server) runtimeArchiveGlobs() []string {
+	if len(s.archiveGlobs) > 0 {
+		return append([]string(nil), s.archiveGlobs...)
+	}
+	paths := make([]string, 0, len(s.sessionIndex))
+	for _, path := range s.sessionIndex {
+		if strings.TrimSpace(path) != "" {
+			paths = append(paths, path)
+		}
+	}
+	sort.Strings(paths)
+	return paths
 }
 
 func protoQueryCommands(catalog *minitracecmd.Catalog) []*apiv1.QueryCommand {

@@ -26,9 +26,10 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.legacy.query(`+"`"+`
-    SELECT id, title
-    FROM ${mt.legacy.tableName}
+  const db = mt.db().RuntimeArchives().Build();
+  return db.query(`+"`"+`
+    SELECT session_id AS id, title
+    FROM sessions
     LIMIT ${filters.limit}
   `+"`"+`);
 }
@@ -90,9 +91,10 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.legacy.query(` + "`" + `
-    SELECT id
-    FROM ${mt.legacy.tableName}
+  const db = mt.db().RuntimeArchives().Build();
+  return db.query(` + "`" + `
+    SELECT session_id AS id
+    FROM sessions
     LIMIT ${filters.limit}
   ` + "`" + `);
 }
@@ -161,9 +163,10 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.legacy.query(` + "`" + `
-    SELECT id
-    FROM ${mt.legacy.tableName}
+  const db = mt.db().RuntimeArchives().Build();
+  return db.query(` + "`" + `
+    SELECT session_id AS id
+    FROM sessions
     LIMIT ${filters.limit}
   ` + "`" + `);
 }
@@ -340,9 +343,10 @@ async function sessionList(filters) {
   const mt = require("minitrace");
   const timer = require("timer");
   await timer.sleep(1);
-  return mt.legacy.query(`+"`"+`
-    SELECT id
-    FROM ${mt.legacy.tableName}
+  const db = mt.db().RuntimeArchives().Build();
+  return db.query(`+"`"+`
+    SELECT session_id AS id
+    FROM sessions
     LIMIT ${filters.limit}
   `+"`"+`);
 }

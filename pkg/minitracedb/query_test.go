@@ -51,6 +51,17 @@ func TestQueryRunnerQueryOne(t *testing.T) {
 	}
 }
 
+func TestQueryRunnerAllowsSelectFollowedByNewline(t *testing.T) {
+	runner := setupQueryRunner(t)
+	rows, err := runner.Query(context.Background(), "SELECT\n  session_id\nFROM sessions")
+	if err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["session_id"] != "s1" {
+		t.Fatalf("unexpected rows %#v", rows)
+	}
+}
+
 func TestQueryRunnerRejectsWrites(t *testing.T) {
 	runner := setupQueryRunner(t)
 	result, err := runner.QueryResult(context.Background(), `INSERT INTO sessions(session_id) VALUES ('bad')`)

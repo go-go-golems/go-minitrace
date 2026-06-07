@@ -95,6 +95,13 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	}
 	normalized, err := validateReadOnlySQLiteQuery(sqlText, r.allowedObjects, r.opts)
 	if err != nil {
+		preview := strings.TrimSpace(sqlText)
+		if len(preview) > 160 {
+			preview = preview[:160]
+		}
+		if preview != "" {
+			return QueryResult{Error: err.Error() + ": " + preview}, nil
+		}
 		return QueryResult{Error: err.Error()}, nil
 	}
 	if ctx == nil {
@@ -192,7 +199,7 @@ func validateReadOnlySQLiteQuery(sqlText string, allowedObjects map[string]struc
 	}
 	sanitized := stripSQLLiteralsAndComments(normalized)
 	lower := strings.ToLower(strings.TrimSpace(sanitized))
-	if !strings.HasPrefix(lower, "select ") && !strings.HasPrefix(lower, "with ") {
+	if !hasReadOnlyQueryPrefix(lower, "select") && !hasReadOnlyQueryPrefix(lower, "with") {
 		return "", fmt.Errorf("only SELECT and WITH queries are allowed")
 	}
 	if opts.RequireOrderBy && strings.Contains(lower, " from ") && !strings.Contains(lower, " order by ") {
@@ -206,6 +213,19 @@ func validateReadOnlySQLiteQuery(sqlText string, allowedObjects map[string]struc
 		}
 	}
 	return normalized, nil
+}
+
+func hasReadOnlyQueryPrefix(lower, prefix string) bool {
+	if lower == prefix {
+		return true
+	}
+	if !strings.HasPrefix(lower, prefix) {
+		return false
+	}
+	if len(lower) == len(prefix) {
+		return true
+	}
+	return lower[len(prefix)] == ' ' || lower[len(prefix)] == '\n' || lower[len(prefix)] == '\t' || lower[len(prefix)] == '\r'
 }
 
 func normalizeQuery(sqlText string) (string, error) {

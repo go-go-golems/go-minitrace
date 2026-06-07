@@ -16,14 +16,15 @@ import (
 )
 
 type DBBuilder struct {
-	ctx              context.Context
-	backend          string
-	storage          string
-	query            minitracedb.QueryOptions
-	sources          []dbSource
-	autoConvert      bool
-	strictConversion bool
-	errors           []string
+	ctx                 context.Context
+	backend             string
+	storage             string
+	query               minitracedb.QueryOptions
+	sources             []dbSource
+	runtimeArchiveGlobs []string
+	autoConvert         bool
+	strictConversion    bool
+	errors              []string
 }
 
 type dbSource struct {
@@ -47,10 +48,14 @@ type DBHandle struct {
 }
 
 func NewDBBuilder(ctx context.Context) *DBBuilder {
+	return NewDBBuilderWithRuntime(ctx, RuntimeSettings{})
+}
+
+func NewDBBuilderWithRuntime(ctx context.Context, runtimeSettings RuntimeSettings) *DBBuilder {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", query: minitracedb.DefaultQueryOptions(), strictConversion: true}
+	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", query: minitracedb.DefaultQueryOptions(), runtimeArchiveGlobs: append([]string(nil), runtimeSettings.ArchiveGlob...), strictConversion: true}
 }
 
 func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
@@ -92,12 +97,16 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		return builderObject(vm, b)
 	})
 	_ = obj.Set("Glob", func(pattern string) *goja.Object {
-		paths, err := filepath.Glob(pattern)
-		if err != nil {
-			b.errors = append(b.errors, fmt.Sprintf("invalid glob %q: %v", pattern, err))
+		b.addGlob(pattern)
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("RuntimeArchives", func() *goja.Object {
+		if len(b.runtimeArchiveGlobs) == 0 {
+			b.errors = append(b.errors, "runtime archive glob is not configured")
 		} else {
-			sort.Strings(paths)
-			b.addFiles(paths)
+			for _, pattern := range b.runtimeArchiveGlobs {
+				b.addGlob(pattern)
+			}
 		}
 		return builderObject(vm, b)
 	})
@@ -184,6 +193,16 @@ func (b *DBBuilder) addFiles(paths []string) {
 	for _, path := range paths {
 		b.addFile(path)
 	}
+}
+
+func (b *DBBuilder) addGlob(pattern string) {
+	paths, err := filepath.Glob(pattern)
+	if err != nil {
+		b.errors = append(b.errors, fmt.Sprintf("invalid glob %q: %v", pattern, err))
+		return
+	}
+	sort.Strings(paths)
+	b.addFiles(paths)
 }
 
 func (b *DBBuilder) addContent(content, name string) {

@@ -1,23 +1,18 @@
 __section__("filters", {
   title: "Filters",
   fields: {
-    framework: {
-      type: "stringList",
-      help: "Restrict commands to specific agent frameworks",
-    },
-    limit: {
-      type: "int",
-      default: 3,
-      help: "Maximum number of rows to return",
-    },
+    framework: { type: "stringList", help: "Restrict commands to specific agent frameworks" },
+    limit: { type: "int", default: 3, help: "Maximum number of rows to return" },
   },
 });
 
+function _db(mt) {
+  return mt.db().RuntimeArchives().Build();
+}
+
 function _frameworkFilterSql(mt, filters) {
-  // Parenthesize DuckDB JSON-arrow predicates. The -> / ->> operators have low
-  // precedence, so the wrapped form is easier to read and less brittle.
   return filters.framework?.length
-    ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
+    ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
     : "";
 }
 
@@ -25,13 +20,14 @@ async function delayedSummary(filters) {
   const timer = require("timer");
   const mt = require("minitrace");
   await timer.sleep(1);
+  const db = _db(mt);
 
-  const summary = mt.legacy.queryOne(`
+  const summary = db.queryOne(`
     SELECT
       COUNT(*) AS session_count,
-      MIN(id) AS first_id,
-      MAX(environment->>'agent_framework') AS sample_framework
-    FROM ${mt.legacy.tableName}
+      MIN(session_id) AS first_id,
+      MAX(agent_framework) AS sample_framework
+    FROM sessions
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
   `);
@@ -49,16 +45,17 @@ async function topSessionCards(filters) {
   const timer = require("timer");
   const mt = require("minitrace");
   await timer.sleep(1);
+  const db = _db(mt);
 
-  const rows = mt.legacy.query(`
+  const rows = db.query(`
     SELECT
-      id,
+      session_id AS id,
       title,
-      environment->>'agent_framework' AS framework
-    FROM ${mt.legacy.tableName}
+      agent_framework AS framework
+    FROM sessions
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
-    ORDER BY timing->>'started_at' DESC
+    ORDER BY started_at DESC
     LIMIT ${filters.limit}
   `);
 
@@ -74,15 +71,11 @@ async function topSessionCards(filters) {
 __verb__("delayedSummary", {
   name: "delayed-summary",
   short: "Use async JS plus queryOne to build a summary row",
-  fields: {
-    filters: { bind: "filters" },
-  },
+  fields: { filters: { bind: "filters" } },
 });
 
 __verb__("topSessionCards", {
   name: "top-session-cards",
   short: "Use async JS to reshape query rows into card-like output",
-  fields: {
-    filters: { bind: "filters" },
-  },
+  fields: { filters: { bind: "filters" } },
 });

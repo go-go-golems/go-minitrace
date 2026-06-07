@@ -8,7 +8,6 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 )
 
 const ModuleName = "minitrace"
@@ -21,31 +20,15 @@ type RuntimeSettings struct {
 }
 
 func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeSettings RuntimeSettings) require.ModuleLoader {
+	_ = conn // Legacy host-table query access was removed; JS scripts should use mt.db().
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	return func(vm *goja.Runtime, moduleObj *goja.Object) {
 		exports := moduleObj.Get("exports").(*goja.Object)
 		_ = exports.Set("db", func() *goja.Object {
-			return builderObject(vm, NewDBBuilder(ctx))
+			return builderObject(vm, NewDBBuilderWithRuntime(ctx, runtimeSettings))
 		})
-
-		legacyObj := vm.NewObject()
-		_ = legacyObj.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
-			return legacyQuery(ctx, conn, sqlText, args...)
-		})
-		_ = legacyObj.Set("queryOne", func(sqlText string, args ...any) (map[string]any, error) {
-			rows, err := legacyQuery(ctx, conn, sqlText, args...)
-			if err != nil {
-				return nil, err
-			}
-			if len(rows) == 0 {
-				return nil, nil
-			}
-			return rows[0], nil
-		})
-		_ = legacyObj.Set("tableName", runtimeSettings.TableName)
-		_ = exports.Set("legacy", legacyObj)
 
 		runtimeObj := vm.NewObject()
 		_ = runtimeObj.Set("tableName", runtimeSettings.TableName)
@@ -61,58 +44,6 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = sqlObj.Set("like", func(value any) (string, error) { return SQLLike(value) })
 		_ = exports.Set("sql", sqlObj)
 	}
-}
-
-func legacyQuery(ctx context.Context, conn *sql.Conn, sqlText string, args ...any) ([]map[string]any, error) {
-	if conn == nil {
-		return nil, fmt.Errorf("minitrace legacy query connection is nil")
-	}
-	if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
-		return nil, err
-	}
-	rows, err := conn.QueryContext(ctx, sqlText, flattenArgs(args)...)
-	if err != nil {
-		return nil, fmt.Errorf("executing legacy js query: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, fmt.Errorf("reading legacy js query columns: %w", err)
-	}
-
-	ret := []map[string]any{}
-	for rows.Next() {
-		values := make([]any, len(columns))
-		scanArgs := make([]any, len(columns))
-		for i := range scanArgs {
-			scanArgs[i] = &values[i]
-		}
-		if err := rows.Scan(scanArgs...); err != nil {
-			return nil, fmt.Errorf("scanning legacy js query row: %w", err)
-		}
-		row := make(map[string]any, len(columns))
-		for i, column := range columns {
-			row[column] = queryengine.NormalizeValue(values[i])
-		}
-		ret = append(ret, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating legacy js query rows: %w", err)
-	}
-	return ret, nil
-}
-
-func flattenArgs(args []any) []any {
-	ret := make([]any, 0, len(args))
-	for _, arg := range args {
-		if slice, ok := arg.([]any); ok {
-			ret = append(ret, slice...)
-			continue
-		}
-		ret = append(ret, arg)
-	}
-	return ret
 }
 
 func SQLString(value any) (string, error) {

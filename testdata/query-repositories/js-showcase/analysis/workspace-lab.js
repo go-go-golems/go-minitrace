@@ -10,60 +10,49 @@ __section__("filters", {
   }
 });
 
-function _workspaceWhere(mt, filters) {
-  // Parenthesize DuckDB JSON-arrow predicates. The -> / ->> operators have low
-  // precedence, so the wrapped form is easier to read and less brittle.
+function _db(mt) { return mt.db().RuntimeArchives().Build(); }
+
+function _workspaceWhere(mt, filters, alias) {
+  const p = alias ? alias + "." : "";
   const clauses = ["1=1"];
-  if (filters.framework?.length) {
-    clauses.push(`(environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`);
-  }
-  if (filters.working_directory_like) {
-    clauses.push(`(COALESCE(operational_context->>'working_directory', '')) LIKE ${mt.sql.like(filters.working_directory_like)}`);
-  }
-  if (filters.min_tool_calls) {
-    clauses.push(`CAST(metrics->>'tool_call_count' AS BIGINT) >= ${filters.min_tool_calls}`);
-  }
+  if (filters.framework?.length) clauses.push(`${p}agent_framework IN (${mt.sql.stringIn(filters.framework)})`);
+  if (filters.working_directory_like) clauses.push(`COALESCE(${p}working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
+  if (filters.min_tool_calls) clauses.push(`${p}tool_call_count >= ${filters.min_tool_calls}`);
   return clauses.join("\n    AND ");
 }
 
 function workspaceScoreboard(filters) {
   const mt = require("minitrace");
-  const whereSql = _workspaceWhere(mt, filters);
+  const db = _db(mt);
+  const whereSql = _workspaceWhere(mt, filters, "");
+  const joinedWhereSql = _workspaceWhere(mt, filters, "s");
 
-  const workspaceRows = mt.legacy.query(`
+  const workspaceRows = db.query(`
     SELECT
-      COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
+      COALESCE(working_directory, '(none)') AS working_directory,
       COUNT(*) AS session_count,
-      AVG(CAST(metrics->>'tool_call_count' AS DOUBLE)) AS avg_tool_calls,
-      AVG(CAST(metrics->>'turn_count' AS DOUBLE)) AS avg_turns,
-      AVG(COALESCE(CAST(timing->>'active_duration_seconds' AS DOUBLE), 0)) AS avg_active_seconds,
-      MAX(timing->>'started_at') AS latest_started_at
-    FROM ${mt.legacy.tableName}
+      AVG(tool_call_count) AS avg_tool_calls,
+      AVG(turn_count) AS avg_turns,
+      MAX(started_at) AS latest_started_at
+    FROM sessions
     WHERE ${whereSql}
     GROUP BY 1
     ORDER BY session_count DESC, avg_tool_calls DESC, working_directory ASC
     LIMIT ${filters.limit}
   `);
 
-  const highlightRows = mt.legacy.query(`
-    SELECT
-      COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
-      id,
-      title,
-      CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count
-    FROM ${mt.legacy.tableName}
+  const highlightRows = db.query(`
+    SELECT COALESCE(working_directory, '(none)') AS working_directory, session_id AS id, title, tool_call_count
+    FROM sessions
     WHERE ${whereSql}
-    ORDER BY tool_call_count DESC, id ASC
+    ORDER BY tool_call_count DESC, session_id ASC
   `);
 
-  const toolRows = mt.legacy.query(`
-    SELECT
-      COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
-      call->>'tool_name' AS tool_name,
-      COUNT(*) AS tool_uses
-    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
-    WHERE ${whereSql}
-      AND (call->>'tool_name') IS NOT NULL
+  const toolRows = db.query(`
+    SELECT COALESCE(s.working_directory, '(none)') AS working_directory, t.tool_name, COUNT(*) AS tool_uses
+    FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
+    WHERE ${joinedWhereSql}
+      AND t.tool_name IS NOT NULL
     GROUP BY 1, 2
     ORDER BY working_directory ASC, tool_uses DESC, tool_name ASC
   `);
@@ -74,13 +63,6 @@ function workspaceScoreboard(filters) {
   return workspaceRows.map((row, index) => {
     const bestSession = bestSessionByWorkspace[row.working_directory] || {};
     const topTool = topToolByWorkspace[row.working_directory] || {};
-    const focusScore = cookbook.round1(
-      cookbook.safeNumber(row.session_count) * 4 +
-        cookbook.safeNumber(row.avg_tool_calls) * 0.3 +
-        cookbook.safeNumber(row.avg_turns) * 0.05 +
-        cookbook.safeNumber(row.avg_active_seconds) / 600,
-    );
-
     return {
       rank: index + 1,
       working_directory: row.working_directory,
@@ -89,7 +71,7 @@ function workspaceScoreboard(filters) {
       avg_tool_calls: cookbook.round1(row.avg_tool_calls),
       avg_turns: cookbook.round1(row.avg_turns),
       latest_started_at: row.latest_started_at,
-      focus_score: focusScore,
+      focus_score: cookbook.round1(cookbook.safeNumber(row.session_count) * 4 + cookbook.safeNumber(row.avg_tool_calls) * 0.3 + cookbook.safeNumber(row.avg_turns) * 0.05),
       top_tool: topTool.tool_name || "",
       top_tool_uses: topTool.tool_uses || 0,
       sample_session_id: bestSession.id || "",
@@ -100,39 +82,28 @@ function workspaceScoreboard(filters) {
 
 function workspaceSessionHighlights(filters) {
   const mt = require("minitrace");
-  const whereSql = _workspaceWhere(mt, filters);
+  const db = _db(mt);
+  const whereSql = _workspaceWhere(mt, filters, "");
 
-  const workspaceRows = mt.legacy.query(`
-    SELECT
-      COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
-      COUNT(*) AS session_count
-    FROM ${mt.legacy.tableName}
+  const workspaceRows = db.query(`
+    SELECT COALESCE(working_directory, '(none)') AS working_directory, COUNT(*) AS session_count
+    FROM sessions
     WHERE ${whereSql}
     GROUP BY 1
     ORDER BY session_count DESC, working_directory ASC
     LIMIT ${filters.limit}
   `);
 
-  const sessionRows = mt.legacy.query(`
-    SELECT
-      COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
-      id,
-      title,
-      CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count,
-      environment->>'model' AS model
-    FROM ${mt.legacy.tableName}
+  const sessionRows = db.query(`
+    SELECT COALESCE(working_directory, '(none)') AS working_directory, session_id AS id, title, tool_call_count, model
+    FROM sessions
     WHERE ${whereSql}
-    ORDER BY working_directory ASC, tool_call_count DESC, id ASC
+    ORDER BY working_directory ASC, tool_call_count DESC, session_id ASC
   `);
 
-  const toolRows = mt.legacy.query(`
-    SELECT
-      COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
-      call->>'tool_name' AS tool_name,
-      COUNT(*) AS tool_uses
-    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
-    WHERE ${whereSql}
-      AND (call->>'tool_name') IS NOT NULL
+  const toolRows = db.query(`
+    SELECT COALESCE(s.working_directory, '(none)') AS working_directory, t.tool_name, COUNT(*) AS tool_uses
+    FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
     GROUP BY 1, 2
     ORDER BY working_directory ASC, tool_uses DESC, tool_name ASC
   `);
@@ -156,7 +127,7 @@ function workspaceSessionHighlights(filters) {
 
 __verb__("workspaceScoreboard", {
   name: "workspace-scoreboard",
-  short: "Combine multiple queries into a scored workspace leaderboard",
+  short: "Combine normalized DB queries into a scored workspace leaderboard",
   fields: { filters: { bind: "filters" } }
 });
 

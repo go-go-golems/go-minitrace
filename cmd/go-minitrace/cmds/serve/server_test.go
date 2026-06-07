@@ -1094,14 +1094,15 @@ func TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive(t *tes
 	defer func() { _ = conn.Close() }()
 	defer func() { _ = db.Close() }()
 
+	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
 	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		ArchiveGlobs: []string{archiveGlob},
 		TableName:    "sessions_base",
 	}); err != nil {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", DBPath: ":memory:"}, map[string]string{}, nil, nil)
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", DBPath: ":memory:", ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = []minitracecmd.SourceRoot{{
 		Name: "test-root",
 		FS: fstest.MapFS{
@@ -1114,9 +1115,10 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.legacy.query(` + "`" + `
-    SELECT id
-    FROM ${mt.legacy.tableName}
+  const db = mt.db().RuntimeArchives().Build();
+  return db.query(` + "`" + `
+    SELECT session_id AS id
+    FROM sessions
     LIMIT ${filters.limit}
   ` + "`" + `);
 }
@@ -1484,14 +1486,15 @@ func newLoadedQueryCommandServer(t *testing.T, repoRoot string, sessions ...*min
 	t.Cleanup(func() { _ = conn.Close() })
 	t.Cleanup(func() { _ = db.Close() })
 
+	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
 	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
+		ArchiveGlobs: []string{archiveGlob},
 		TableName:    "sessions_base",
 	}); err != nil {
 		t.Fatalf("LoadArchive returned error: %v", err)
 	}
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repoRoot})
 	return server
 }
