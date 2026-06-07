@@ -654,6 +654,92 @@ func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesAdvancedJSSho
 			t.Fatalf("unique_tools missing from first row: %#v", first)
 		}
 	})
+
+	t.Run("phase3 context inventory joins expanded normalized tables", func(t *testing.T) {
+		command := catalog.ByPath["analysis/phase3-cookbook/context-inventory"]
+		if command == nil {
+			t.Fatalf("catalog missing context-inventory command")
+		}
+		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+		if err != nil {
+			t.Fatalf("NewMinitraceCatalogGlazeCommand returned error: %v", err)
+		}
+
+		parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+			"filters": {
+				"limit": 5,
+			},
+			QueryRuntimeSectionSlug: {
+				"archive-glob": []string{archiveGlob},
+			},
+		}))
+		if err != nil {
+			t.Fatalf("ParseCommandValues returned error: %v", err)
+		}
+
+		gp := &captureProcessor{}
+		if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+			t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+		}
+		if len(gp.rows) == 0 {
+			t.Fatalf("expected context inventory rows")
+		}
+		first := rowToMap(gp.rows[0])
+		if first["id"] != "fixture-alpha-1" {
+			t.Fatalf("id = %#v, want fixture-alpha-1; row=%#v", first["id"], first)
+		}
+		if first["annotation_count"] != int64(1) && first["annotation_count"] != 1 {
+			t.Fatalf("annotation_count = %#v, want 1; row=%#v", first["annotation_count"], first)
+		}
+		if first["handover_count"] != int64(2) && first["handover_count"] != 2 {
+			t.Fatalf("handover_count = %#v, want 2; row=%#v", first["handover_count"], first)
+		}
+		if first["spawned_agent_count"] != int64(1) && first["spawned_agent_count"] != 1 {
+			t.Fatalf("spawned_agent_count = %#v, want 1; row=%#v", first["spawned_agent_count"], first)
+		}
+	})
+
+	t.Run("phase3 annotation and spawned-agent cookbook commands use new tables", func(t *testing.T) {
+		for _, tc := range []struct {
+			path string
+			key  string
+			want interface{}
+		}{
+			{path: "analysis/phase3-cookbook/annotation-risk-matrix", key: "category", want: "risk"},
+			{path: "analysis/phase3-cookbook/spawned-agent-audit", key: "spawned_agent_type", want: "codex"},
+		} {
+			command := catalog.ByPath[tc.path]
+			if command == nil {
+				t.Fatalf("catalog missing %s command", tc.path)
+			}
+			glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+			if err != nil {
+				t.Fatalf("NewMinitraceCatalogGlazeCommand(%s) returned error: %v", tc.path, err)
+			}
+			parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+				"filters": {
+					"limit": 5,
+				},
+				QueryRuntimeSectionSlug: {
+					"archive-glob": []string{archiveGlob},
+				},
+			}))
+			if err != nil {
+				t.Fatalf("ParseCommandValues(%s) returned error: %v", tc.path, err)
+			}
+			gp := &captureProcessor{}
+			if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+				t.Fatalf("RunIntoGlazeProcessor(%s) returned error: %v", tc.path, err)
+			}
+			if len(gp.rows) == 0 {
+				t.Fatalf("expected rows from %s", tc.path)
+			}
+			first := rowToMap(gp.rows[0])
+			if first[tc.key] != tc.want {
+				t.Fatalf("%s row[%s] = %#v, want %#v; row=%#v", tc.path, tc.key, first[tc.key], tc.want, first)
+			}
+		}
+	})
 }
 
 func writeFixtureArchive(t *testing.T) string {
@@ -758,11 +844,52 @@ func buildAdvancedFixtureSessions(t *testing.T) []*minitrace.Session {
 		return &session
 	}
 
-	return []*minitrace.Session{
+	sessions := []*minitrace.Session{
 		mkSession("fixture-alpha-1", "Alpha planning", "~/projects/alpha/app", "gpt-5", time.Date(2026, 4, 1, 9, 0, 0, 0, time.UTC), 2, 6, []string{"bash", "bash", "bash", "read", "read", "edit"}),
 		mkSession("fixture-alpha-2", "Alpha follow-up", "~/projects/alpha/app", "gpt-5", time.Date(2026, 4, 1, 11, 0, 0, 0, time.UTC), 1, 4, []string{"bash", "bash", "write", "write"}),
 		mkSession("fixture-beta-1", "Beta vision", "~/projects/beta/lab", "claude-sonnet-4-6", time.Date(2026, 4, 2, 10, 0, 0, 0, time.UTC), 1, 3, []string{"understand_image", "understand_image", "read", "bash"}),
 	}
+
+	gitBranch := "main"
+	autonomyLevel := "supervised"
+	sandbox := true
+	sessions[0].OperationalContext.GitBranch = &gitBranch
+	sessions[0].OperationalContext.AutonomyLevel = &autonomyLevel
+	sessions[0].OperationalContext.Sandbox = &sandbox
+	sessions[0].Coordination.HumanAttention = "medium"
+	fromSession := "fixture-prior"
+	toSession := "fixture-next"
+	warmState := "warm"
+	readyState := "ready"
+	sessions[0].Handover.Received = &minitrace.HandoverDocument{FromSession: &fromSession, Document: "prior handover", StateDescription: &warmState}
+	sessions[0].Handover.Produced = &minitrace.HandoverDocument{ToSession: &toSession, Document: "next handover", StateDescription: &readyState}
+	classification := "high"
+	sessions[0].Annotations = []minitrace.Annotation{{
+		ID:        "fixture-ann-1",
+		Timestamp: minitrace.FormatTimestamp(time.Date(2026, 4, 1, 9, 45, 0, 0, time.UTC)),
+		Annotator: "fixture",
+		Scope:     minitrace.AnnotationScope{Type: "tool_call", TargetID: sessions[0].ToolCalls[0].ID},
+		Content:   minitrace.AnnotationContent{Category: "risk", Tags: []string{"spawned-agent"}, Title: "Subagent review", Detail: "Spawned agent should be reviewed."},
+		TaxonomyMappings: minitrace.TaxonomyMappings{
+			Minitrace: []string{"risk/subagent"},
+		},
+		Classification: &classification,
+	}}
+	subSessionID := "fixture-subagent-1"
+	position := 0.35
+	sessions[0].ToolCalls[0].SpawnedAgent = &minitrace.SpawnedAgent{AgentType: "codex", TaskScope: "audit", SubSessionID: &subSessionID, OutcomeSummary: "completed"}
+	sessions[0].ToolCalls[0].Context.PositionInSession = &position
+	inputTokens := 11
+	outputTokens := 22
+	cacheReadTokens := 33
+	toolTokens := 44
+	sessions[0].Metrics.TotalInputTokens = &inputTokens
+	sessions[0].Metrics.TotalOutputTokens = &outputTokens
+	sessions[0].Metrics.TotalCacheReadTokens = &cacheReadTokens
+	sessions[0].Metrics.TotalToolTokens = &toolTokens
+	sessions[0].Metrics.SubagentCount = 1
+	sessions[0].Metrics.SubagentToolCalls = 1
+	return sessions
 }
 
 func stringPtr(value string) *string { return &value }

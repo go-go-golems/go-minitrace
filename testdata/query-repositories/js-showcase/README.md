@@ -76,6 +76,19 @@ Defined in `analysis/session-architectures.js`.
 - `session-spotlights`
   - produces spotlight rows combining title, dominant tools, and role mix
 
+### `analysis phase3-cookbook ...`
+Defined in `analysis/phase3-cookbook.js`.
+
+- `context-inventory`
+  - joins sessions, metrics, annotations, handovers, and spawned-agent aggregates
+  - demonstrates the Phase 3 operational-context and usage/token columns
+- `annotation-risk-matrix`
+  - groups normalized annotation rows by category, classification, and scope
+- `handover-queue`
+  - lists received and produced handover documents
+- `spawned-agent-audit`
+  - lists tool calls that spawned subagents and their outcomes
+
 ## Patterns demonstrated
 
 This showcase now covers all of these patterns:
@@ -91,6 +104,7 @@ This showcase now covers all of these patterns:
 - JS-side joins across independently queried aggregates
 - JS-side scoring/classification logic
 - per-session tool co-occurrence analysis in JS
+- Phase 3 normalized schema cookbook queries over annotations, handovers, usage tokens, operational context, and spawned agents
 
 ## Alias examples
 
@@ -124,6 +138,12 @@ go run ./cmd/go-minitrace query commands \
 go run ./cmd/go-minitrace query commands \
   --query-repository ./testdata/query-repositories/js-showcase \
   analysis session-architectures session-shape-ranker \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --output json
+
+go run ./cmd/go-minitrace query commands \
+  --query-repository ./testdata/query-repositories/js-showcase \
+  analysis phase3-cookbook context-inventory \
   --archive-glob './output/active/*/*.minitrace.json' \
   --output json
 
