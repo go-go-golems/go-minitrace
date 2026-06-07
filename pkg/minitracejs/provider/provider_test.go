@@ -354,6 +354,75 @@ func TestModuleLoaderDBBuilderExposesCacheKeyAndCacheInfo(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderDBBuilderMemoryCacheReusesByCacheKey(t *testing.T) {
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "memory-cache-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "hello"}}}},
+	}))
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	value, err := vm.RunString(`
+		const first = mt.db().Content(jsonlContent, "memory-cache-content.jsonl").AutoConvert(true).Cache("memory").Build();
+		const firstInfo = first.cacheInfo();
+		const second = mt.db().Content(jsonlContent, "memory-cache-content.jsonl").AutoConvert(true).Cache("memory").Build();
+		const secondInfo = second.cacheInfo();
+		const secondCount = second.queryOne("SELECT COUNT(*) AS n FROM sessions").n;
+		second.close();
+		const afterSecondClose = first.cacheInfo();
+		first.close();
+		const changed = mt.db().Content(jsonlContent + "\n", "memory-cache-content.jsonl").AutoConvert(true).Cache("memory").Build();
+		const changedInfo = changed.cacheInfo();
+		changed.close();
+		JSON.stringify({
+			firstHit: firstInfo.hit,
+			firstMode: firstInfo.mode,
+			firstRefs: firstInfo.refCount,
+			secondHit: secondInfo.hit,
+			secondRefs: secondInfo.refCount,
+			afterSecondCloseRefs: afterSecondClose.refCount,
+			sameKey: firstInfo.key === secondInfo.key,
+			changedKeyDifferent: changedInfo.key !== firstInfo.key,
+			secondCount
+		});
+	`)
+	if err != nil {
+		t.Fatalf("run memory cache script: %v", err)
+	}
+	var got struct {
+		FirstHit             bool   `json:"firstHit"`
+		FirstMode            string `json:"firstMode"`
+		FirstRefs            int    `json:"firstRefs"`
+		SecondHit            bool   `json:"secondHit"`
+		SecondRefs           int    `json:"secondRefs"`
+		AfterSecondCloseRefs int    `json:"afterSecondCloseRefs"`
+		SameKey              bool   `json:"sameKey"`
+		ChangedKeyDifferent  bool   `json:"changedKeyDifferent"`
+		SecondCount          int    `json:"secondCount"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal memory cache result: %v", err)
+	}
+	if got.FirstHit || got.FirstMode != "memory" || got.FirstRefs != 1 {
+		t.Fatalf("unexpected first cache info: %#v", got)
+	}
+	if !got.SecondHit || got.SecondRefs != 2 || !got.SameKey {
+		t.Fatalf("expected second build to hit memory cache: %#v", got)
+	}
+	if got.AfterSecondCloseRefs != 1 || !got.ChangedKeyDifferent || got.SecondCount != 1 {
+		t.Fatalf("unexpected memory cache release/invalidation behavior: %#v", got)
+	}
+}
+
 func TestModuleLoaderDBBuilderNonStrictConversionKeepsValidSources(t *testing.T) {
 	path := writeNativeSessionFixture(t)
 	mod := resolveModule(t)

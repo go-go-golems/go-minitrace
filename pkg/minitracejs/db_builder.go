@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dop251/goja"
@@ -19,6 +20,7 @@ type DBBuilder struct {
 	ctx                 context.Context
 	backend             string
 	storage             string
+	cacheMode           string
 	query               minitracedb.QueryOptions
 	sources             []dbSource
 	runtimeArchiveGlobs []string
@@ -46,6 +48,35 @@ type DBHandle struct {
 	sources     []dbSource
 	diagnostics []minitracedb.ConversionDiagnostic
 	cacheKey    minitracedb.CacheKey
+	cacheMode   string
+	cacheHit    bool
+	closed      bool
+}
+
+type DBCacheInfo struct {
+	Key       string                          `json:"key"`
+	Mode      string                          `json:"mode"`
+	Hit       bool                            `json:"hit"`
+	RefCount  int                             `json:"refCount"`
+	CreatedAt string                          `json:"createdAt,omitempty"`
+	LastUsed  string                          `json:"lastUsed,omitempty"`
+	Options   minitracedb.CacheKeyOptions     `json:"options"`
+	Sources   []minitracedb.SourceFingerprint `json:"sources"`
+}
+
+var globalMemoryCache = &memoryDBCache{entries: map[string]*memoryDBCacheEntry{}}
+
+type memoryDBCache struct {
+	mu      sync.Mutex
+	entries map[string]*memoryDBCacheEntry
+}
+
+type memoryDBCacheEntry struct {
+	db        *sql.DB
+	key       minitracedb.CacheKey
+	refs      int
+	createdAt time.Time
+	lastUsed  time.Time
 }
 
 func NewDBBuilder(ctx context.Context) *DBBuilder {
@@ -56,7 +87,7 @@ func NewDBBuilderWithRuntime(ctx context.Context, runtimeSettings RuntimeSetting
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", query: minitracedb.DefaultQueryOptions(), runtimeArchiveGlobs: append([]string(nil), runtimeSettings.ArchiveGlob...), strictConversion: true}
+	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", cacheMode: "none", query: minitracedb.DefaultQueryOptions(), runtimeArchiveGlobs: append([]string(nil), runtimeSettings.ArchiveGlob...), strictConversion: true}
 }
 
 func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
@@ -162,6 +193,17 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 	})
 	_ = obj.Set("StrictConversion", func(enabled bool) *goja.Object {
 		b.strictConversion = enabled
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("Cache", func(mode string) *goja.Object {
+		switch strings.ToLower(strings.TrimSpace(mode)) {
+		case "", "none":
+			b.cacheMode = "none"
+		case "memory":
+			b.cacheMode = "memory"
+		default:
+			b.errors = append(b.errors, fmt.Sprintf("unsupported cache mode %q", mode))
+		}
 		return builderObject(vm, b)
 	})
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(b.sources) })
@@ -296,13 +338,76 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 	if err != nil {
 		return nil, err
 	}
-	db, err := minitracedb.OpenSQLiteMemory(b.ctx, "minitrace")
+	if b.cacheMode == "memory" {
+		return b.buildMemoryCached(cacheKey)
+	}
+	db, diagnostics, err := b.materializeFreshDB()
 	if err != nil {
 		return nil, err
 	}
-	if err := minitracedb.CreateSchema(b.ctx, db); err != nil {
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	if err != nil {
 		_ = db.Close()
 		return nil, err
+	}
+	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey, cacheMode: "none"}, nil
+}
+
+func (b *DBBuilder) buildMemoryCached(cacheKey minitracedb.CacheKey) (*DBHandle, error) {
+	now := time.Now().UTC()
+	globalMemoryCache.mu.Lock()
+	entry := globalMemoryCache.entries[cacheKey.Key]
+	if entry != nil {
+		entry.refs++
+		entry.lastUsed = now
+		db := entry.db
+		globalMemoryCache.mu.Unlock()
+		runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+		if err != nil {
+			releaseMemoryCache(cacheKey.Key)
+			return nil, err
+		}
+		return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), cacheKey: cacheKey, cacheMode: "memory", cacheHit: true}, nil
+	}
+	globalMemoryCache.mu.Unlock()
+
+	db, diagnostics, err := b.materializeFreshDB()
+	if err != nil {
+		return nil, err
+	}
+	globalMemoryCache.mu.Lock()
+	if existing := globalMemoryCache.entries[cacheKey.Key]; existing != nil {
+		existing.refs++
+		existing.lastUsed = now
+		dbToClose := db
+		db = existing.db
+		globalMemoryCache.mu.Unlock()
+		_ = dbToClose.Close()
+		runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+		if err != nil {
+			releaseMemoryCache(cacheKey.Key)
+			return nil, err
+		}
+		return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey, cacheMode: "memory", cacheHit: true}, nil
+	}
+	globalMemoryCache.entries[cacheKey.Key] = &memoryDBCacheEntry{db: db, key: cacheKey, refs: 1, createdAt: now, lastUsed: now}
+	globalMemoryCache.mu.Unlock()
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	if err != nil {
+		releaseMemoryCache(cacheKey.Key)
+		return nil, err
+	}
+	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey, cacheMode: "memory", cacheHit: false}, nil
+}
+
+func (b *DBBuilder) materializeFreshDB() (*sql.DB, []minitracedb.ConversionDiagnostic, error) {
+	db, err := minitracedb.OpenSQLiteMemory(b.ctx, "minitrace")
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := minitracedb.CreateSchema(b.ctx, db); err != nil {
+		_ = db.Close()
+		return nil, nil, err
 	}
 	diagnostics := []minitracedb.ConversionDiagnostic{}
 	for _, source := range b.sources {
@@ -312,22 +417,17 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 			diagnostics = append(diagnostics, diagnostic)
 			if b.strictConversion {
 				_ = db.Close()
-				return nil, err
+				return nil, nil, err
 			}
 			continue
 		}
 		diagnostics = append(diagnostics, loaded.Diagnostics...)
 		if err := minitracedb.MaterializeSession(b.ctx, db, loaded.Session, minitracedb.MaterializeOptions{SourcePath: source.Path}); err != nil {
 			_ = db.Close()
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
-	if err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey}, nil
+	return db, diagnostics, nil
 }
 
 func (b *DBBuilder) loadSource(source dbSource) (*minitracedb.LoadedSession, error) {
@@ -350,6 +450,42 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func releaseMemoryCache(key string) {
+	globalMemoryCache.mu.Lock()
+	defer globalMemoryCache.mu.Unlock()
+	if entry := globalMemoryCache.entries[key]; entry != nil && entry.refs > 0 {
+		entry.refs--
+		entry.lastUsed = time.Now().UTC()
+	}
+}
+
+func (h *DBHandle) CacheInfo() DBCacheInfo {
+	info := DBCacheInfo{Key: h.cacheKey.Key, Mode: firstNonEmpty(h.cacheMode, "none"), Hit: h.cacheHit, Options: h.cacheKey.Options, Sources: append([]minitracedb.SourceFingerprint(nil), h.cacheKey.Sources...)}
+	if h.cacheMode != "memory" {
+		return info
+	}
+	globalMemoryCache.mu.Lock()
+	defer globalMemoryCache.mu.Unlock()
+	if entry := globalMemoryCache.entries[h.cacheKey.Key]; entry != nil {
+		info.RefCount = entry.refs
+		info.CreatedAt = entry.createdAt.UTC().Format(time.RFC3339Nano)
+		info.LastUsed = entry.lastUsed.UTC().Format(time.RFC3339Nano)
+	}
+	return info
+}
+
+func (h *DBHandle) Close() error {
+	if h == nil || h.db == nil || h.closed {
+		return nil
+	}
+	h.closed = true
+	if h.cacheMode == "memory" {
+		releaseMemoryCache(h.cacheKey.Key)
+		return nil
+	}
+	return h.db.Close()
+}
+
 func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	obj := vm.NewObject()
 	_ = obj.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
@@ -369,13 +505,9 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	})
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(h.sources) })
 	_ = obj.Set("diagnostics", func() []map[string]any { return toPlainSlice(h.diagnostics) })
-	_ = obj.Set("cacheInfo", func() map[string]any { return toPlainMap(h.cacheKey) })
-	_ = obj.Set("close", func() error {
-		if h == nil || h.db == nil {
-			return nil
-		}
-		return h.db.Close()
-	})
+	_ = obj.Set("cacheInfo", func() map[string]any { return toPlainMap(h.CacheInfo()) })
+	_ = obj.Set("CacheInfo", func() map[string]any { return toPlainMap(h.CacheInfo()) })
+	_ = obj.Set("close", func() error { return h.Close() })
 	return obj
 }
 
