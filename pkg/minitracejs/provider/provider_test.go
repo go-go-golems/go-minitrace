@@ -20,10 +20,11 @@ func (h fakeHost) Conn() *sql.Conn { return h.conn }
 func (h fakeHost) RuntimeSettings() minitracejs.RuntimeSettings {
 	return minitracejs.RuntimeSettings{TableName: "events", DBPath: ":memory:"}
 }
-func (h fakeHost) CommandName() string { return "test-command" }
+func (h fakeHost) CommandName() string                      { return "test-command" }
+func (h fakeHost) AssetResolver() providerapi.AssetResolver { return nil }
 
 func TestRegisterProvider(t *testing.T) {
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}
@@ -38,7 +39,7 @@ func TestRegisterProvider(t *testing.T) {
 
 func TestProviderAllowsModuleWithoutHostServices(t *testing.T) {
 	mod := resolveModule(t)
-	loader, err := mod.New(providerapi.ModuleContext{})
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{})
 	if err != nil {
 		t.Fatalf("create loader without host services: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestProviderAllowsModuleWithoutHostServices(t *testing.T) {
 }
 
 func TestRegisterQueriesCommandProvider(t *testing.T) {
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}
@@ -68,7 +69,7 @@ func TestRegisterQueriesCommandProvider(t *testing.T) {
 }
 
 func TestQueriesCommandProviderBuildsCatalogCommands(t *testing.T) {
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}
@@ -80,14 +81,13 @@ func TestQueriesCommandProviderBuildsCatalogCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal config: %v", err)
 	}
-	set, err := provider.New(providerapi.CommandSetContext{
-		Context:        context.Background(),
-		PackageID:      PackageID,
-		Name:           "queries",
-		Mount:          "traces",
-		RuntimeProfile: "main",
-		Config:         config,
-		Providers:      registry,
+	set, err := provider.NewCommandSet(providerapi.CommandSetContext{
+		Context:   context.Background(),
+		PackageID: PackageID,
+		Name:      "queries",
+		Mount:     "traces",
+		Config:    config,
+		Providers: registry,
 	})
 	if err != nil {
 		t.Fatalf("create command set: %v", err)
@@ -123,7 +123,7 @@ func TestModuleLoaderQueriesHostConnection(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	mod := resolveModule(t)
-	loader, err := mod.New(providerapi.ModuleContext{Context: context.Background(), Host: fakeHost{conn: conn}})
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background(), Host: fakeHost{conn: conn}})
 	if err != nil {
 		t.Fatalf("create loader: %v", err)
 	}
@@ -161,7 +161,7 @@ func containsJSONField(raw json.RawMessage, field string) bool {
 
 func resolveModule(t *testing.T) providerapi.Module {
 	t.Helper()
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}

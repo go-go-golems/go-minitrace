@@ -1,8 +1,6 @@
 module github.com/go-go-golems/go-minitrace
 
-go 1.26.1
-
-toolchain go1.26.3
+go 1.26.4
 
 require (
 	dagger.io/dagger v0.20.5
@@ -10,8 +8,8 @@ require (
 	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14
 	github.com/duckdb/duckdb-go/v2 v2.10502.0
 	github.com/go-go-golems/clay v0.4.11
-	github.com/go-go-golems/glazed v1.3.5
-	github.com/go-go-golems/go-go-goja v0.7.0
+	github.com/go-go-golems/glazed v1.3.6
+	github.com/go-go-golems/go-go-goja v0.8.3
 	github.com/go-go-golems/logcopter v0.1.0
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.32

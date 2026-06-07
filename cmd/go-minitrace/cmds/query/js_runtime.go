@@ -14,7 +14,7 @@ import (
 	glazedvalues "github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
 	"github.com/go-go-golems/glazed/pkg/types"
-	gggengine "github.com/go-go-golems/go-go-goja/engine"
+	gggengine "github.com/go-go-golems/go-go-goja/pkg/engine"
 	"github.com/go-go-golems/go-go-goja/pkg/jsverbs"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
@@ -57,11 +57,11 @@ func RunJSCommandIntoProcessor(
 		return err
 	}
 
-	factory, err := gggengine.NewBuilder().
+	factory, err := gggengine.NewRuntimeFactoryBuilder().
 		WithRequireOptions(noderequire.WithLoader(registry.RequireLoader())).
 		UseModuleMiddleware(gggengine.Pipeline()).
 		WithModules(
-			gggengine.NativeModuleSpec{
+			gggengine.NativeModuleRegistrar{
 				ModuleID:   "minitrace-runtime",
 				ModuleName: minitracejs.ModuleName,
 				Loader: minitracejs.NewLoader(ctx, conn, command.Name, minitracejs.RuntimeSettings{

@@ -7,12 +7,10 @@ packages:
     import: github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider
     version: v0.0.0
     replace: ../../..
-runtimes:
-  main:
-    modules:
-      - package: go-minitrace
-        name: minitrace
-        as: minitrace
+modules:
+  - package: go-minitrace
+    name: minitrace
+    as: minitrace
 commands:
   eval:
     enabled: false
@@ -27,7 +25,6 @@ commandProviders:
     package: go-minitrace
     name: queries
     mount: traces
-    runtimeProfile: main
     config:
       appName: minitrace-command-provider-smoke
       queryRepositories:
