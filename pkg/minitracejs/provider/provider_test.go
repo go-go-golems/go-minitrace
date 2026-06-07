@@ -38,7 +38,7 @@ func TestRegisterProvider(t *testing.T) {
 
 func TestProviderAllowsModuleWithoutHostServices(t *testing.T) {
 	mod := resolveModule(t)
-	loader, err := mod.New(providerapi.ModuleContext{})
+	loader, err := mod.New(providerapi.ModuleSetupContext{})
 	if err != nil {
 		t.Fatalf("create loader without host services: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestModuleLoaderQueriesHostConnection(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	mod := resolveModule(t)
-	loader, err := mod.New(providerapi.ModuleContext{Context: context.Background(), Host: fakeHost{conn: conn}})
+	loader, err := mod.New(providerapi.ModuleSetupContext{Context: context.Background(), Host: fakeHost{conn: conn}})
 	if err != nil {
 		t.Fatalf("create loader: %v", err)
 	}

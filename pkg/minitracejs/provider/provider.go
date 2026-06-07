@@ -52,14 +52,14 @@ var queriesConfigSchema = json.RawMessage(`{
   }
 }`)
 
-func Register(registry *providerapi.Registry) error {
+func Register(registry *providerapi.ProviderRegistry) error {
 	return registry.Package(PackageID,
 		providerapi.Module{
 			Name:         minitracejs.ModuleName,
 			DefaultAs:    minitracejs.ModuleName,
 			Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
 			ConfigSchema: moduleConfigSchema,
-			New: func(ctx providerapi.ModuleContext) (require.ModuleLoader, error) {
+			NewModuleFactory: func(ctx providerapi.ModuleSetupContext) (require.ModuleLoader, error) {
 				var conn *sql.Conn
 				var commandName string
 				settings := minitracejs.RuntimeSettings{}
@@ -76,11 +76,11 @@ func Register(registry *providerapi.Registry) error {
 			},
 		},
 		providerapi.CommandSetProvider{
-			Name:         "queries",
-			DefaultMount: "minitrace",
-			Description:  "Run repository-backed go-minitrace query commands",
-			ConfigSchema: queriesConfigSchema,
-			New:          newQueriesCommandSet,
+			Name:          "queries",
+			DefaultMount:  "minitrace",
+			Description:   "Run repository-backed go-minitrace query commands",
+			ConfigSchema:  queriesConfigSchema,
+			NewCommandSet: newQueriesCommandSet,
 		},
 	)
 }
