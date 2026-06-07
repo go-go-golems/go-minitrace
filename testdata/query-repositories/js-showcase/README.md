@@ -89,6 +89,20 @@ Defined in `analysis/phase3-cookbook.js`.
 - `spawned-agent-audit`
   - lists tool calls that spawned subagents and their outcomes
 
+### `analysis report-cookbook ...`
+Defined in `analysis/report-cookbook.js`.
+
+- `session-inventory`
+  - reports session-level metrics, annotations, handovers, tokens, cost, model, and workspace
+- `tool-risk-matrix`
+  - groups tool calls by tool/operation with failure, annotation, spawned-agent, duration, and payload-size signals
+- `file-heatmap`
+  - groups normalized file touches by path and operation type
+- `prompt-instruction-audit`
+  - audits system prompt coverage with simple raw-SQL heuristics
+- `turn-timeline`
+  - reads the normalized `events` table as a turn/tool/annotation timeline
+
 ## Patterns demonstrated
 
 This showcase now covers all of these patterns:
@@ -105,6 +119,7 @@ This showcase now covers all of these patterns:
 - JS-side scoring/classification logic
 - per-session tool co-occurrence analysis in JS
 - Phase 3 normalized schema cookbook queries over annotations, handovers, usage tokens, operational context, and spawned agents
+- raw SQL report cookbook examples for tool risk, file heatmaps, prompt audits, timelines, and session inventories
 
 ## Alias examples
 
@@ -144,6 +159,12 @@ go run ./cmd/go-minitrace query commands \
 go run ./cmd/go-minitrace query commands \
   --query-repository ./testdata/query-repositories/js-showcase \
   analysis phase3-cookbook context-inventory \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --output json
+
+go run ./cmd/go-minitrace query commands \
+  --query-repository ./testdata/query-repositories/js-showcase \
+  analysis report-cookbook tool-risk-matrix \
   --archive-glob './output/active/*/*.minitrace.json' \
   --output json
 

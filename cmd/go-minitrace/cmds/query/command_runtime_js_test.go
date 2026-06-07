@@ -740,6 +740,51 @@ func TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesAdvancedJSSho
 			}
 		}
 	})
+
+	t.Run("report cookbook commands produce raw SQL analysis rows", func(t *testing.T) {
+		for _, tc := range []struct {
+			path string
+			key  string
+			want interface{}
+		}{
+			{path: "analysis/report-cookbook/session-inventory", key: "id", want: "fixture-beta-1"},
+			{path: "analysis/report-cookbook/tool-risk-matrix", key: "risk_label", want: "annotated-risk"},
+			{path: "analysis/report-cookbook/file-heatmap", key: "operation_type", want: "read"},
+			{path: "analysis/report-cookbook/prompt-instruction-audit", key: "mentions_tests", want: int64(1)},
+			{path: "analysis/report-cookbook/turn-timeline", key: "kind", want: "turn"},
+		} {
+			command := catalog.ByPath[tc.path]
+			if command == nil {
+				t.Fatalf("catalog missing %s command", tc.path)
+			}
+			glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
+			if err != nil {
+				t.Fatalf("NewMinitraceCatalogGlazeCommand(%s) returned error: %v", tc.path, err)
+			}
+			parsedValues, err := runner.ParseCommandValues(glazeCommand, runner.WithValuesForSections(map[string]map[string]interface{}{
+				"filters": {
+					"limit": 10,
+				},
+				QueryRuntimeSectionSlug: {
+					"archive-glob": []string{archiveGlob},
+				},
+			}))
+			if err != nil {
+				t.Fatalf("ParseCommandValues(%s) returned error: %v", tc.path, err)
+			}
+			gp := &captureProcessor{}
+			if err := glazeCommand.RunIntoGlazeProcessor(context.Background(), parsedValues, gp); err != nil {
+				t.Fatalf("RunIntoGlazeProcessor(%s) returned error: %v", tc.path, err)
+			}
+			if len(gp.rows) == 0 {
+				t.Fatalf("expected rows from %s", tc.path)
+			}
+			first := rowToMap(gp.rows[0])
+			if first[tc.key] != tc.want {
+				t.Fatalf("%s row[%s] = %#v, want %#v; row=%#v", tc.path, tc.key, first[tc.key], tc.want, first)
+			}
+		}
+	})
 }
 
 func writeFixtureArchive(t *testing.T) string {
@@ -788,6 +833,7 @@ func buildAdvancedFixtureSessions(t *testing.T) []*minitrace.Session {
 		session := minitrace.BuildSessionSkeleton(sessionID, "pi", "fixture", "test")
 		session.Title = stringPtr(title)
 		session.Environment.Model = stringPtr(model)
+		session.Environment.SystemPrompt = stringPtr("Run tests before reporting, commit focused work, and avoid legacy APIs.")
 		session.OperationalContext.WorkingDirectory = stringPtr(workingDir)
 
 		turns := []minitrace.Turn{}
@@ -814,19 +860,36 @@ func buildAdvancedFixtureSessions(t *testing.T) []*minitrace.Session {
 			ts := start.Add(time.Duration(index+i) * time.Minute)
 			formatted := minitrace.FormatTimestamp(ts)
 			turnIndex := assistantTurns + userTurns - 1
+			var filePath *string
+			var command *string
+			operationType := "EXECUTE"
+			switch toolName {
+			case "read":
+				operationType = "read"
+				filePath = stringPtr(filepath.Join(workingDir, "README.md"))
+			case "edit", "write":
+				operationType = "modify"
+				filePath = stringPtr(filepath.Join(workingDir, "src", "main.go"))
+			case "bash":
+				command = stringPtr("go test ./...")
+			case "understand_image":
+				operationType = "read"
+				filePath = stringPtr(filepath.Join(workingDir, "screenshots", "ui.png"))
+			}
+			durationMS := 100 + i*10
 			toolCall := minitrace.BuildToolCall(
 				fmt.Sprintf("%s-tool-%02d", sessionID, i+1),
 				&turnIndex,
 				&formatted,
 				toolName,
-				"EXECUTE",
-				nil,
-				nil,
+				operationType,
+				filePath,
+				command,
 				map[string]any{"example": true},
 				true,
 				"ok",
 				nil,
-				nil,
+				&durationMS,
 				nil,
 				nil,
 				stringPtr("fixture"),
