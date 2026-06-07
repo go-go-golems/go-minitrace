@@ -354,6 +354,88 @@ func TestModuleLoaderDBBuilderExposesCacheKeyAndCacheInfo(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderDBBuilderAutoCacheUsesMemoryDiskThenRebuild(t *testing.T) {
+	cacheDir := t.TempDir()
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "auto-cache-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "hello"}}}},
+	}))
+	changedContent := content + "\n"
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	_ = vm.Set("changedContent", changedContent)
+	_ = vm.Set("cacheDir", cacheDir)
+	value, err := vm.RunString(`
+		const warmer = mt.db().Content(jsonlContent, "auto-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).Build();
+		const warmInfo = warmer.cacheInfo();
+		warmer.close();
+		const fromDisk = mt.db().Content(jsonlContent, "auto-cache-content.jsonl").AutoConvert(true).Cache("auto").CacheDir(cacheDir).Build();
+		const diskInfo = fromDisk.cacheInfo();
+		const fromMemory = mt.db().Content(jsonlContent, "auto-cache-content.jsonl").AutoConvert(true).Cache("auto").CacheDir(cacheDir).Build();
+		const memoryInfo = fromMemory.cacheInfo();
+		fromMemory.close();
+		const afterMemoryClose = fromDisk.cacheInfo();
+		fromDisk.close();
+		const rebuilt = mt.db().Content(changedContent, "auto-cache-content.jsonl").AutoConvert(true).Cache("auto").CacheDir(cacheDir).Build();
+		const rebuiltInfo = rebuilt.cacheInfo();
+		rebuilt.close();
+		JSON.stringify({
+			warmMode: warmInfo.mode,
+			warmHit: warmInfo.hit,
+			diskMode: diskInfo.mode,
+			diskHit: diskInfo.hit,
+			diskRefs: diskInfo.refCount,
+			memoryHit: memoryInfo.hit,
+			memoryRefs: memoryInfo.refCount,
+			afterMemoryCloseRefs: afterMemoryClose.refCount,
+			sameKey: diskInfo.key === memoryInfo.key,
+			rebuiltHit: rebuiltInfo.hit,
+			rebuiltKeyDifferent: rebuiltInfo.key !== diskInfo.key
+		});
+	`)
+	if err != nil {
+		t.Fatalf("run auto cache script: %v", err)
+	}
+	var got struct {
+		WarmMode             string `json:"warmMode"`
+		WarmHit              bool   `json:"warmHit"`
+		DiskMode             string `json:"diskMode"`
+		DiskHit              bool   `json:"diskHit"`
+		DiskRefs             int    `json:"diskRefs"`
+		MemoryHit            bool   `json:"memoryHit"`
+		MemoryRefs           int    `json:"memoryRefs"`
+		AfterMemoryCloseRefs int    `json:"afterMemoryCloseRefs"`
+		SameKey              bool   `json:"sameKey"`
+		RebuiltHit           bool   `json:"rebuiltHit"`
+		RebuiltKeyDifferent  bool   `json:"rebuiltKeyDifferent"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal auto cache result: %v", err)
+	}
+	if got.WarmMode != "disk" || got.WarmHit {
+		t.Fatalf("unexpected warm disk cache info: %#v", got)
+	}
+	if got.DiskMode != "auto" || !got.DiskHit || got.DiskRefs != 1 {
+		t.Fatalf("expected auto disk hit with one memory ref: %#v", got)
+	}
+	if !got.MemoryHit || got.MemoryRefs != 2 || got.AfterMemoryCloseRefs != 1 || !got.SameKey {
+		t.Fatalf("expected auto memory hit/ref-count behavior: %#v", got)
+	}
+	if got.RebuiltHit || !got.RebuiltKeyDifferent {
+		t.Fatalf("expected changed source to rebuild with different key: %#v", got)
+	}
+}
+
 func TestModuleLoaderDBBuilderDiskCacheBuildsAndReusesSQLiteFile(t *testing.T) {
 	cacheDir := t.TempDir()
 	content := string(writeJSONLFixture(t, []map[string]any{

@@ -222,6 +222,9 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		case "disk":
 			b.cacheMode = "disk"
 			b.storage = "disk-cache"
+		case "auto":
+			b.cacheMode = "auto"
+			b.storage = "disk-cache"
 		default:
 			b.errors = append(b.errors, fmt.Sprintf("unsupported cache mode %q", mode))
 		}
@@ -331,7 +334,7 @@ func (b *DBBuilder) Validate() ValidationResult {
 	if b.storage != "memory" && b.storage != "disk-cache" {
 		errs = append(errs, "only memory and disk-cache storage are implemented")
 	}
-	if b.cacheMode != "none" && b.cacheMode != "memory" && b.cacheMode != "disk" {
+	if b.cacheMode != "none" && b.cacheMode != "memory" && b.cacheMode != "disk" && b.cacheMode != "auto" {
 		errs = append(errs, fmt.Sprintf("unsupported cache mode %q", b.cacheMode))
 	}
 	return ValidationResult{Valid: len(errs) == 0, Errors: errs}
@@ -378,6 +381,9 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 	}
 	if b.cacheMode == "disk" {
 		return b.buildDiskCached(cacheKey)
+	}
+	if b.cacheMode == "auto" {
+		return b.buildAutoCached(cacheKey)
 	}
 	db, diagnostics, err := b.materializeFreshDB()
 	if err != nil {
@@ -444,22 +450,81 @@ func (b *DBBuilder) buildDiskCached(cacheKey minitracedb.CacheKey) (*DBHandle, e
 		return nil, err
 	}
 	path := filepath.Join(cacheDir, cacheKey.Key+".sqlite")
+	cacheHit := false
+	diagnostics := []minitracedb.ConversionDiagnostic(nil)
 	if !b.forceRebuild {
 		if _, err := os.Stat(path); err == nil {
-			db, err := minitracedb.OpenSQLiteReadOnly(b.ctx, path)
-			if err != nil {
-				return nil, err
-			}
-			runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
-			if err != nil {
-				_ = db.Close()
-				return nil, err
-			}
-			return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), cacheKey: cacheKey, cacheMode: "disk", cacheHit: true, cachePath: path}, nil
+			cacheHit = true
 		} else if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("stat disk cache %s: %w", path, err)
 		}
 	}
+	if !cacheHit {
+		var err error
+		diagnostics, err = b.buildDiskCacheFile(cacheKey, path)
+		if err != nil {
+			return nil, err
+		}
+	}
+	db, err := minitracedb.OpenSQLiteReadOnly(b.ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey, cacheMode: "disk", cacheHit: cacheHit, cachePath: path}, nil
+}
+
+func (b *DBBuilder) buildAutoCached(cacheKey minitracedb.CacheKey) (*DBHandle, error) {
+	cacheDir, err := b.resolvedCacheDir()
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(cacheDir, cacheKey.Key+".sqlite")
+	if !b.forceRebuild {
+		if db, ok := acquireMemoryCache(cacheKey.Key); ok {
+			runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+			if err != nil {
+				releaseMemoryCache(cacheKey.Key)
+				return nil, err
+			}
+			return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), cacheKey: cacheKey, cacheMode: "auto", cacheHit: true, cachePath: path}, nil
+		}
+	}
+	cacheHit := false
+	diagnostics := []minitracedb.ConversionDiagnostic(nil)
+	if !b.forceRebuild {
+		if _, err := os.Stat(path); err == nil {
+			cacheHit = true
+		} else if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("stat disk cache %s: %w", path, err)
+		}
+	}
+	if !cacheHit {
+		var err error
+		diagnostics, err = b.buildDiskCacheFile(cacheKey, path)
+		if err != nil {
+			return nil, err
+		}
+	}
+	db, err := minitracedb.OpenSQLiteReadOnly(b.ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	db, cacheHit = installMemoryCache(cacheKey, db, cacheHit)
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	if err != nil {
+		releaseMemoryCache(cacheKey.Key)
+		return nil, err
+	}
+	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey, cacheMode: "auto", cacheHit: cacheHit, cachePath: path}, nil
+}
+
+func (b *DBBuilder) buildDiskCacheFile(cacheKey minitracedb.CacheKey, path string) ([]minitracedb.ConversionDiagnostic, error) {
+	cacheDir := filepath.Dir(path)
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return nil, fmt.Errorf("create disk cache directory: %w", err)
 	}
@@ -483,16 +548,7 @@ func (b *DBBuilder) buildDiskCached(cacheKey minitracedb.CacheKey) (*DBHandle, e
 		_ = os.Remove(tmpPath)
 		return nil, fmt.Errorf("install disk cache db: %w", err)
 	}
-	db, err := minitracedb.OpenSQLiteReadOnly(b.ctx, path)
-	if err != nil {
-		return nil, err
-	}
-	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
-	if err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics, cacheKey: cacheKey, cacheMode: "disk", cacheHit: false, cachePath: path}, nil
+	return diagnostics, nil
 }
 
 func (b *DBBuilder) resolvedCacheDir() (string, error) {
@@ -575,6 +631,32 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func acquireMemoryCache(key string) (*sql.DB, bool) {
+	globalMemoryCache.mu.Lock()
+	defer globalMemoryCache.mu.Unlock()
+	entry := globalMemoryCache.entries[key]
+	if entry == nil {
+		return nil, false
+	}
+	entry.refs++
+	entry.lastUsed = time.Now().UTC()
+	return entry.db, true
+}
+
+func installMemoryCache(cacheKey minitracedb.CacheKey, db *sql.DB, hit bool) (*sql.DB, bool) {
+	now := time.Now().UTC()
+	globalMemoryCache.mu.Lock()
+	defer globalMemoryCache.mu.Unlock()
+	if existing := globalMemoryCache.entries[cacheKey.Key]; existing != nil {
+		existing.refs++
+		existing.lastUsed = now
+		_ = db.Close()
+		return existing.db, true
+	}
+	globalMemoryCache.entries[cacheKey.Key] = &memoryDBCacheEntry{db: db, key: cacheKey, refs: 1, createdAt: now, lastUsed: now}
+	return db, hit
+}
+
 func releaseMemoryCache(key string) {
 	globalMemoryCache.mu.Lock()
 	defer globalMemoryCache.mu.Unlock()
@@ -586,14 +668,16 @@ func releaseMemoryCache(key string) {
 
 func (h *DBHandle) CacheInfo() DBCacheInfo {
 	info := DBCacheInfo{Key: h.cacheKey.Key, Mode: firstNonEmpty(h.cacheMode, "none"), Hit: h.cacheHit, Path: h.cachePath, Options: h.cacheKey.Options, Sources: append([]minitracedb.SourceFingerprint(nil), h.cacheKey.Sources...)}
-	if h.cacheMode == "disk" && h.cachePath != "" {
+	if (h.cacheMode == "disk" || h.cacheMode == "auto") && h.cachePath != "" {
 		if stat, err := os.Stat(h.cachePath); err == nil {
 			info.CreatedAt = stat.ModTime().UTC().Format(time.RFC3339Nano)
 			info.LastUsed = time.Now().UTC().Format(time.RFC3339Nano)
 		}
-		return info
+		if h.cacheMode == "disk" {
+			return info
+		}
 	}
-	if h.cacheMode != "memory" {
+	if h.cacheMode != "memory" && h.cacheMode != "auto" {
 		return info
 	}
 	globalMemoryCache.mu.Lock()
@@ -611,7 +695,7 @@ func (h *DBHandle) Close() error {
 		return nil
 	}
 	h.closed = true
-	if h.cacheMode == "memory" {
+	if h.cacheMode == "memory" || h.cacheMode == "auto" {
 		releaseMemoryCache(h.cacheKey.Key)
 		return nil
 	}
