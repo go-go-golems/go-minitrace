@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
@@ -79,6 +80,20 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 			}
 		}
 	}
+	for i, annotation := range session.Annotations {
+		if err := insertAnnotation(ctx, tx, session.ID, annotation, i); err != nil {
+			return err
+		}
+		if err := insertAnnotationEvent(ctx, tx, session.ID, annotation, i); err != nil {
+			return err
+		}
+	}
+	if err := insertHandover(ctx, tx, session.ID, "received", session.Handover.Received); err != nil {
+		return err
+	}
+	if err := insertHandover(ctx, tx, session.ID, "produced", session.Handover.Produced); err != nil {
+		return err
+	}
 	if err := insertMetrics(ctx, tx, session); err != nil {
 		return err
 	}
@@ -90,45 +105,103 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 }
 
 func insertSession(ctx context.Context, tx *sql.Tx, session *minitrace.Session, opts MaterializeOptions) error {
-	raw := mustJSON(session)
 	sourcePath := opts.SourcePath
 	if sourcePath == "" && session.Provenance.SourcePath != nil {
 		sourcePath = *session.Provenance.SourcePath
 	}
-	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO sessions(
-		session_id, schema_version, profile, title, summary, classification, source_format, source_path, converted_at,
-		model, agent_framework, working_directory, started_at, ended_at, turn_count, tool_call_count,
-		read_count, modify_count, create_count, execute_count, contains_error, raw_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		session.ID, session.SchemaVersion, session.Profile, nullableString(session.Title), nullableString(session.Summary), session.Classification,
-		session.Provenance.SourceFormat, nullableStringValue(sourcePath), nullableStringValue(session.Provenance.ConvertedAt), nullableString(session.Environment.Model), nullableString(session.Environment.AgentFramework), nullableString(session.OperationalContext.WorkingDirectory), nullableString(session.Timing.StartedAt), nullableString(session.Timing.EndedAt),
-		session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, boolInt(session.Flags.ContainsError), raw)
-	if err != nil {
+	columns := []string{
+		"session_id", "schema_version", "profile", "scenario_id", "quality", "title", "summary", "classification",
+		"source_format", "source_path", "converted_at", "converter_version", "original_session_id",
+		"for_research", "needs_cleaning", "contains_error", "contains_pii", "category_json",
+		"model", "model_version", "temperature", "tools_enabled_json", "system_prompt", "agent_framework", "agent_version", "platform_type", "provider_hint",
+		"working_directory", "git_branch", "git_ref", "autonomy_level", "sandbox", "framework_config_json",
+		"privacy_level", "duration_seconds", "active_duration_seconds", "started_at", "ended_at", "hour_of_day", "day_of_week",
+		"guidance_variant", "permission_level", "condition_custom_json",
+		"project_id", "predecessor_session", "concurrent_sessions", "human_attention",
+		"outcome_success", "outcome_partial", "failure_codes_json", "outcome_notes",
+		"turn_count", "tool_call_count", "read_count", "modify_count", "create_count", "execute_count", "raw_json",
+	}
+	args := []any{
+		session.ID, session.SchemaVersion, session.Profile, nullableString(session.ScenarioID), nullableString(session.Quality), nullableString(session.Title), nullableString(session.Summary), session.Classification,
+		session.Provenance.SourceFormat, nullableStringValue(sourcePath), nullableStringValue(session.Provenance.ConvertedAt), nullableStringValue(session.Provenance.ConverterVersion), nullableString(session.Provenance.OriginalSessionID),
+		boolInt(session.Flags.ForResearch), boolInt(session.Flags.NeedsCleaning), boolInt(session.Flags.ContainsError), boolInt(session.Flags.ContainsPII), jsonNullable(session.Flags.Category),
+		nullableString(session.Environment.Model), nullableString(session.Environment.ModelVersion), nullableFloat(session.Environment.Temperature), jsonNullable(session.Environment.ToolsEnabled), nullableString(session.Environment.SystemPrompt), nullableString(session.Environment.AgentFramework), nullableString(session.Environment.AgentVersion), nullableString(session.Environment.PlatformType), nullableString(session.Environment.ProviderHint),
+		nullableString(session.OperationalContext.WorkingDirectory), nullableString(session.OperationalContext.GitBranch), nullableString(session.OperationalContext.GitRef), nullableString(session.OperationalContext.AutonomyLevel), nullableBoolPointer(session.OperationalContext.Sandbox), jsonNullable(session.OperationalContext.FrameworkConfig),
+		nullableStringValue(session.Timing.PrivacyLevel), nullableFloat(session.Timing.DurationSeconds), nullableFloat(session.Timing.ActiveDurationSeconds), nullableString(session.Timing.StartedAt), nullableString(session.Timing.EndedAt), nullableIntPointer(session.Timing.HourOfDay), nullableIntPointer(session.Timing.DayOfWeek),
+		conditionString(session.Condition, "guidance"), conditionString(session.Condition, "permission"), conditionJSON(session.Condition),
+		nullableString(session.Coordination.ProjectID), nullableString(session.Coordination.PredecessorSession), nullableIntPointer(session.Coordination.ConcurrentSessions), nullableStringValue(session.Coordination.HumanAttention),
+		outcomeSuccess(session.Outcome), outcomePartial(session.Outcome), outcomeFailureCodes(session.Outcome), outcomeNotes(session.Outcome),
+		session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, mustJSON(session),
+	}
+	if err := insertRow(ctx, tx, "sessions", columns, args...); err != nil {
 		return fmt.Errorf("insert session %s: %w", session.ID, err)
 	}
 	return nil
 }
 
 func insertTurn(ctx context.Context, tx *sql.Tx, sessionID string, turn minitrace.Turn) error {
-	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO turns(
-		session_id, turn_index, timestamp, role, source, model, content_type, input_channel, content,
-		thinking, was_streamed, input_tokens, output_tokens, reasoning_tokens, raw_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		sessionID, turn.Index, nullableString(turn.Timestamp), turn.Role, nullableString(turn.Source), nullableString(turn.Model), nullableString(turn.ContentType), nullableString(turn.InputChannel), turn.Content, nullableString(turn.Thinking), boolInt(turn.Streaming.WasStreamed), usageInt(turn.Usage, "input"), usageInt(turn.Usage, "output"), usageInt(turn.Usage, "reasoning"), mustJSON(turn))
-	if err != nil {
+	columns := []string{
+		"session_id", "turn_index", "timestamp", "role", "source", "model", "content_type", "input_channel", "content",
+		"framework_metadata_json", "thinking", "intent_requested", "intent_inferred", "intent_proactive", "was_streamed", "stream_log",
+		"input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens", "reasoning_tokens", "tool_tokens", "raw_json",
+	}
+	args := []any{
+		sessionID, turn.Index, nullableString(turn.Timestamp), turn.Role, nullableString(turn.Source), nullableString(turn.Model), nullableString(turn.ContentType), nullableString(turn.InputChannel), turn.Content,
+		jsonNullable(turn.FrameworkMetadata), nullableString(turn.Thinking), intentBool(turn.IntentMarkers, "requested"), intentBool(turn.IntentMarkers, "inferred"), intentBool(turn.IntentMarkers, "proactive"), boolInt(turn.Streaming.WasStreamed), nullableString(turn.Streaming.StreamLog),
+		usageInt(turn.Usage, "input"), usageInt(turn.Usage, "output"), usageInt(turn.Usage, "cache_read"), usageInt(turn.Usage, "cache_creation"), usageInt(turn.Usage, "reasoning"), usageInt(turn.Usage, "tool"), mustJSON(turn),
+	}
+	if err := insertRow(ctx, tx, "turns", columns, args...); err != nil {
 		return fmt.Errorf("insert turn %s/%d: %w", sessionID, turn.Index, err)
 	}
 	return nil
 }
 
 func insertToolCall(ctx context.Context, tx *sql.Tx, sessionID string, toolCall minitrace.ToolCall) error {
-	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO tool_calls(
-		session_id, tool_call_id, emitting_turn_index, timestamp, tool_name, operation_type, file_path,
-		command, justification, arguments_json, success, result, error, exit_code, duration_ms, truncated, raw_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		sessionID, toolCall.ID, nullableIntPointer(toolCall.EmittingTurnIndex), nullableString(toolCall.Timestamp), toolCall.ToolName, toolCall.OperationType, nullableString(toolCall.Input.FilePath), nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), mustJSON(toolCall.Input.Arguments), boolInt(toolCall.Output.Success), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated), mustJSON(toolCall))
-	if err != nil {
+	columns := []string{
+		"session_id", "tool_call_id", "emitting_turn_index", "timestamp", "tool_name", "operation_type", "file_path",
+		"command", "justification", "arguments_json", "success", "result", "error", "exit_code", "duration_ms", "truncated",
+		"full_bytes", "full_hash", "full_reference", "redacted", "content_origin", "position_in_session", "tools_before_json", "time_since_last_user",
+		"framework_metadata_json", "spawned_agent_type", "spawned_agent_task_scope", "spawned_agent_sub_session_id", "spawned_agent_outcome_summary", "raw_json",
+	}
+	args := []any{
+		sessionID, toolCall.ID, nullableIntPointer(toolCall.EmittingTurnIndex), nullableString(toolCall.Timestamp), toolCall.ToolName, toolCall.OperationType, nullableString(toolCall.Input.FilePath),
+		nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), jsonNullable(toolCall.Input.Arguments), boolInt(toolCall.Output.Success), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated),
+		nullableIntPointer(toolCall.Output.FullBytes), nullableString(toolCall.Output.FullHash), nullableString(toolCall.Output.FullReference), nullableBoolPointer(toolCall.Output.Redacted), nullableString(toolCall.Output.ContentOrigin), nullableFloat(toolCall.Context.PositionInSession), jsonNullable(toolCall.Context.ToolsBefore), nullableFloat(toolCall.Context.TimeSinceLastUser),
+		jsonNullable(toolCall.FrameworkMetadata), spawnedAgentString(toolCall.SpawnedAgent, "type"), spawnedAgentString(toolCall.SpawnedAgent, "scope"), spawnedAgentString(toolCall.SpawnedAgent, "sub_session"), spawnedAgentString(toolCall.SpawnedAgent, "outcome"), mustJSON(toolCall),
+	}
+	if err := insertRow(ctx, tx, "tool_calls", columns, args...); err != nil {
 		return fmt.Errorf("insert tool call %s/%s: %w", sessionID, toolCall.ID, err)
+	}
+	return nil
+}
+
+func insertAnnotation(ctx context.Context, tx *sql.Tx, sessionID string, annotation minitrace.Annotation, ordinal int) error {
+	annotationID := annotation.ID
+	if annotationID == "" {
+		annotationID = fmt.Sprintf("annotation-%06d", ordinal)
+	}
+	columns := []string{
+		"session_id", "annotation_id", "timestamp", "annotator", "scope_type", "target_id", "category", "tags_json", "title", "detail",
+		"minitrace_taxonomy_json", "mast_taxonomy_json", "toolemu_taxonomy_json", "classification", "raw_json",
+	}
+	args := []any{
+		sessionID, annotationID, nullableStringValue(annotation.Timestamp), nullableStringValue(annotation.Annotator), annotation.Scope.Type, annotation.Scope.TargetID, annotation.Content.Category, jsonNullable(annotation.Content.Tags), annotation.Content.Title, annotation.Content.Detail,
+		jsonNullable(annotation.TaxonomyMappings.Minitrace), jsonNullable(annotation.TaxonomyMappings.Mast), jsonNullable(annotation.TaxonomyMappings.Toolemu), nullableString(annotation.Classification), mustJSON(annotation),
+	}
+	if err := insertRow(ctx, tx, "annotations", columns, args...); err != nil {
+		return fmt.Errorf("insert annotation %s/%s: %w", sessionID, annotationID, err)
+	}
+	return nil
+}
+
+func insertHandover(ctx context.Context, tx *sql.Tx, sessionID, direction string, handover *minitrace.HandoverDocument) error {
+	if handover == nil {
+		return nil
+	}
+	columns := []string{"session_id", "direction", "from_session", "to_session", "document", "state_description", "raw_json"}
+	args := []any{sessionID, direction, nullableString(handover.FromSession), nullableString(handover.ToSession), handover.Document, nullableString(handover.StateDescription), mustJSON(handover)}
+	if err := insertRow(ctx, tx, "handovers", columns, args...); err != nil {
+		return fmt.Errorf("insert handover %s/%s: %w", sessionID, direction, err)
 	}
 	return nil
 }
@@ -167,16 +240,50 @@ func insertToolCallEvent(ctx context.Context, tx *sql.Tx, sessionID string, tool
 	return nil
 }
 
-func insertMetrics(ctx context.Context, tx *sql.Tx, session *minitrace.Session) error {
-	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO metrics(
-		session_id, turn_count, tool_call_count, read_count, modify_count, create_count, execute_count,
-		delegate_count, read_ratio, time_to_first_action, total_input_tokens, total_output_tokens, session_cost, raw_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		session.ID, session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, session.Metrics.DelegateCount, nullableFloat(session.Metrics.ReadRatio), nullableFloat(session.Metrics.TimeToFirstAction), nullableIntPointer(session.Metrics.TotalInputTokens), nullableIntPointer(session.Metrics.TotalOutputTokens), nullableFloat(session.Metrics.SessionCost), mustJSON(session.Metrics))
+func insertAnnotationEvent(ctx context.Context, tx *sql.Tx, sessionID string, annotation minitrace.Annotation, ordinal int) error {
+	annotationID := annotation.ID
+	if annotationID == "" {
+		annotationID = fmt.Sprintf("annotation-%06d", ordinal)
+	}
+	eventID := "annotation-" + annotationID
+	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO events(session_id, event_id, ordinal, kind, role, annotation_id, title, summary, text, severity, collapsed_by_default, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		sessionID, eventID, ordinal, "annotation", "annotation", annotationID, annotation.Content.Title, annotation.Content.Category, annotation.Content.Detail, "info", 1, mustJSON(annotation))
 	if err != nil {
+		return fmt.Errorf("insert annotation event %s/%s: %w", sessionID, annotationID, err)
+	}
+	return nil
+}
+
+func insertMetrics(ctx context.Context, tx *sql.Tx, session *minitrace.Session) error {
+	columns := []string{
+		"session_id", "turn_count", "tool_call_count", "read_count", "modify_count", "create_count", "execute_count", "delegate_count",
+		"read_ratio", "time_to_first_action", "idle_ratio", "total_input_tokens", "total_output_tokens", "total_cache_read_tokens", "total_cache_creation_tokens",
+		"total_reasoning_tokens", "total_tool_tokens", "session_cost", "subagent_count", "subagent_tool_calls", "model_switches", "unique_models",
+		"median_response_tokens", "max_response_tokens", "raw_json",
+	}
+	args := []any{
+		session.ID, session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, session.Metrics.DelegateCount,
+		nullableFloat(session.Metrics.ReadRatio), nullableFloat(session.Metrics.TimeToFirstAction), nullableFloat(session.Metrics.IdleRatio), nullableIntPointer(session.Metrics.TotalInputTokens), nullableIntPointer(session.Metrics.TotalOutputTokens), nullableIntPointer(session.Metrics.TotalCacheReadTokens), nullableIntPointer(session.Metrics.TotalCacheCreationTokens),
+		nullableIntPointer(session.Metrics.TotalReasoningTokens), nullableIntPointer(session.Metrics.TotalToolTokens), nullableFloat(session.Metrics.SessionCost), session.Metrics.SubagentCount, session.Metrics.SubagentToolCalls, nullableIntPointer(session.Metrics.ModelSwitches), nullableIntPointer(session.Metrics.UniqueModels),
+		nullableIntPointer(session.Metrics.MedianResponseTokens), nullableIntPointer(session.Metrics.MaxResponseTokens), mustJSON(session.Metrics),
+	}
+	if err := insertRow(ctx, tx, "metrics", columns, args...); err != nil {
 		return fmt.Errorf("insert metrics %s: %w", session.ID, err)
 	}
 	return nil
+}
+
+func insertRow(ctx context.Context, tx *sql.Tx, table string, columns []string, args ...any) error {
+	if len(columns) != len(args) {
+		return fmt.Errorf("insert %s has %d columns but %d values", table, len(columns), len(args))
+	}
+	placeholders := make([]string, len(columns))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+	stmt := fmt.Sprintf("INSERT OR REPLACE INTO %s(%s) VALUES (%s)", table, strings.Join(columns, ", "), strings.Join(placeholders, ", "))
+	_, err := tx.ExecContext(ctx, stmt, args...)
+	return err
 }
 
 func nullableString(v *string) any {
@@ -207,6 +314,13 @@ func nullableFloat(v *float64) any {
 	return *v
 }
 
+func nullableBoolPointer(v *bool) any {
+	if v == nil {
+		return nil
+	}
+	return boolInt(*v)
+}
+
 func boolInt(v bool) int {
 	if v {
 		return 1
@@ -223,8 +337,97 @@ func usageInt(usage *minitrace.Usage, field string) any {
 		return nullableIntPointer(usage.InputTokens)
 	case "output":
 		return nullableIntPointer(usage.OutputTokens)
+	case "cache_read":
+		return nullableIntPointer(usage.CacheReadTokens)
+	case "cache_creation":
+		return nullableIntPointer(usage.CacheCreationTokens)
 	case "reasoning":
 		return nullableIntPointer(usage.ReasoningTokens)
+	case "tool":
+		return nullableIntPointer(usage.ToolTokens)
+	default:
+		return nil
+	}
+}
+
+func intentBool(markers *minitrace.IntentMarkers, field string) any {
+	if markers == nil {
+		return nil
+	}
+	switch field {
+	case "requested":
+		return boolInt(markers.Requested)
+	case "inferred":
+		return boolInt(markers.Inferred)
+	case "proactive":
+		return boolInt(markers.Proactive)
+	default:
+		return nil
+	}
+}
+
+func conditionString(condition *minitrace.Condition, field string) any {
+	if condition == nil {
+		return nil
+	}
+	switch field {
+	case "guidance":
+		return nullableString(condition.GuidanceVariant)
+	case "permission":
+		return nullableString(condition.PermissionLevel)
+	default:
+		return nil
+	}
+}
+
+func conditionJSON(condition *minitrace.Condition) any {
+	if condition == nil {
+		return nil
+	}
+	return jsonNullable(condition.Custom)
+}
+
+func outcomeSuccess(outcome *minitrace.Outcome) any {
+	if outcome == nil || outcome.Success == nil {
+		return nil
+	}
+	return boolInt(*outcome.Success)
+}
+
+func outcomePartial(outcome *minitrace.Outcome) any {
+	if outcome == nil {
+		return nil
+	}
+	return boolInt(outcome.Partial)
+}
+
+func outcomeFailureCodes(outcome *minitrace.Outcome) any {
+	if outcome == nil {
+		return nil
+	}
+	return jsonNullable(outcome.FailureCodes)
+}
+
+func outcomeNotes(outcome *minitrace.Outcome) any {
+	if outcome == nil {
+		return nil
+	}
+	return nullableString(outcome.OutcomeNotes)
+}
+
+func spawnedAgentString(agent *minitrace.SpawnedAgent, field string) any {
+	if agent == nil {
+		return nil
+	}
+	switch field {
+	case "type":
+		return nullableStringValue(agent.AgentType)
+	case "scope":
+		return nullableStringValue(agent.TaskScope)
+	case "sub_session":
+		return nullableString(agent.SubSessionID)
+	case "outcome":
+		return nullableStringValue(agent.OutcomeSummary)
 	default:
 		return nil
 	}
@@ -244,6 +447,17 @@ func summarizeText(value string, max int) string {
 		return value[:max]
 	}
 	return value
+}
+
+func jsonNullable(v any) any {
+	if v == nil {
+		return nil
+	}
+	payload, err := json.Marshal(v)
+	if err != nil || string(payload) == "null" {
+		return nil
+	}
+	return string(payload)
 }
 
 func mustJSON(v any) string {
