@@ -26,9 +26,9 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(`+"`"+`
+  return mt.legacy.query(`+"`"+`
     SELECT id, title
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     LIMIT ${filters.limit}
   `+"`"+`);
 }
@@ -90,9 +90,9 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(` + "`" + `
+  return mt.legacy.query(` + "`" + `
     SELECT id
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     LIMIT ${filters.limit}
   ` + "`" + `);
 }
@@ -161,9 +161,9 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(` + "`" + `
+  return mt.legacy.query(` + "`" + `
     SELECT id
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     LIMIT ${filters.limit}
   ` + "`" + `);
 }
@@ -340,9 +340,9 @@ async function sessionList(filters) {
   const mt = require("minitrace");
   const timer = require("timer");
   await timer.sleep(1);
-  return mt.query(`+"`"+`
+  return mt.legacy.query(`+"`"+`
     SELECT id
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     LIMIT ${filters.limit}
   `+"`"+`);
 }

@@ -1114,9 +1114,9 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(` + "`" + `
+  return mt.legacy.query(` + "`" + `
     SELECT id
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     LIMIT ${filters.limit}
   ` + "`" + `);
 }

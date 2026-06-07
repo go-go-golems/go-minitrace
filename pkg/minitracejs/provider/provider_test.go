@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -12,19 +11,7 @@ import (
 	"github.com/go-go-golems/go-go-goja/pkg/xgoja/providerapi"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
-	_ "github.com/mattn/go-sqlite3"
 )
-
-type fakeHost struct {
-	conn *sql.Conn
-}
-
-func (h fakeHost) Conn() *sql.Conn { return h.conn }
-func (h fakeHost) RuntimeSettings() minitracejs.RuntimeSettings {
-	return minitracejs.RuntimeSettings{TableName: "events", DBPath: ":memory:"}
-}
-func (h fakeHost) CommandName() string                      { return "test-command" }
-func (h fakeHost) AssetResolver() providerapi.AssetResolver { return nil }
 
 func TestRegisterProvider(t *testing.T) {
 	registry := providerapi.NewProviderRegistry()
@@ -260,6 +247,89 @@ func TestModuleLoaderDBBuilderLoadsNativeDirAndGlob(t *testing.T) {
 	}
 }
 
+func TestModuleLoaderDBBuilderAutoConvertsJSONLContent(t *testing.T) {
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "pi-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "hello"}}}},
+	}))
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	value, err := vm.RunString(`
+		const db = mt.db().Content(jsonlContent, {name: "pi-content.jsonl"}).AutoConvert(true).Build();
+		const result = {
+			id: db.queryOne("SELECT session_id FROM sessions").session_id,
+			turns: db.queryOne("SELECT COUNT(*) AS n FROM turns").n,
+			diagnosticFormat: db.diagnostics()[0].format
+		};
+		db.close();
+		JSON.stringify(result);
+	`)
+	if err != nil {
+		t.Fatalf("run content autoconvert script: %v", err)
+	}
+	var got struct {
+		ID               string `json:"id"`
+		Turns            int    `json:"turns"`
+		DiagnosticFormat string `json:"diagnosticFormat"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal content result: %v", err)
+	}
+	if got.ID != "pi-content" || got.Turns != 1 || got.DiagnosticFormat != "pi-jsonl" {
+		t.Fatalf("unexpected content autoconvert result: %#v", got)
+	}
+}
+
+func TestModuleLoaderDBBuilderNonStrictConversionKeepsValidSources(t *testing.T) {
+	path := writeNativeSessionFixture(t)
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("fixturePath", path)
+	value, err := vm.RunString(`
+		const db = mt.db().File(fixturePath).Content("not json", "bad.txt").StrictConversion(false).Build();
+		const result = {
+			sessions: db.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
+			diagnosticCount: db.diagnostics().length,
+			errorSeverity: db.diagnostics().some(d => d.severity === "error")
+		};
+		db.close();
+		JSON.stringify(result);
+	`)
+	if err != nil {
+		t.Fatalf("run non-strict script: %v", err)
+	}
+	var got struct {
+		Sessions        int  `json:"sessions"`
+		DiagnosticCount int  `json:"diagnosticCount"`
+		ErrorSeverity   bool `json:"errorSeverity"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal non-strict result: %v", err)
+	}
+	if got.Sessions != 1 || got.DiagnosticCount < 2 || !got.ErrorSeverity {
+		t.Fatalf("unexpected non-strict result: %#v", got)
+	}
+}
+
 func TestModuleLoaderDBBuilderValidation(t *testing.T) {
 	mod := resolveModule(t)
 	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
@@ -288,6 +358,20 @@ func TestModuleLoaderDBBuilderValidation(t *testing.T) {
 	}
 }
 
+func writeJSONLFixture(t *testing.T, records []map[string]any) []byte {
+	t.Helper()
+	payloads := make([]byte, 0)
+	for _, record := range records {
+		payload, err := json.Marshal(record)
+		if err != nil {
+			t.Fatalf("marshal jsonl record: %v", err)
+		}
+		payloads = append(payloads, payload...)
+		payloads = append(payloads, '\n')
+	}
+	return payloads
+}
+
 func writeNativeSessionFixture(t *testing.T) string {
 	t.Helper()
 	session := minitrace.BuildSessionSkeleton("session-file-1", "pi", "minitrace-json-v1", "test")
@@ -306,45 +390,6 @@ func writeNativeSessionFixture(t *testing.T) string {
 		t.Fatalf("write fixture: %v", err)
 	}
 	return filePath
-}
-
-func TestModuleLoaderQueriesHostConnection(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	defer func() { _ = db.Close() }()
-	conn, err := db.Conn(context.Background())
-	if err != nil {
-		t.Fatalf("conn: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-
-	mod := resolveModule(t)
-	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background(), Host: fakeHost{conn: conn}})
-	if err != nil {
-		t.Fatalf("create loader: %v", err)
-	}
-
-	vm := goja.New()
-	moduleObj := vm.NewObject()
-	exports := vm.NewObject()
-	if err := moduleObj.Set("exports", exports); err != nil {
-		t.Fatalf("set exports: %v", err)
-	}
-	loader(vm, moduleObj)
-	queryOne, ok := goja.AssertFunction(exports.Get("queryOne"))
-	if !ok {
-		t.Fatalf("queryOne export is not a function")
-	}
-	ret, err := queryOne(goja.Undefined(), vm.ToValue("select 1 as ok"))
-	if err != nil {
-		t.Fatalf("queryOne: %v", err)
-	}
-	row := ret.ToObject(vm)
-	if got := row.Get("ok").ToInteger(); got != 1 {
-		t.Fatalf("ok = %d, want 1", got)
-	}
 }
 
 func containsJSONField(raw json.RawMessage, field string) bool {

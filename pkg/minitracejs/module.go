@@ -29,11 +29,13 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = exports.Set("db", func() *goja.Object {
 			return builderObject(vm, NewDBBuilder(ctx))
 		})
-		_ = exports.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
-			return Query(ctx, conn, sqlText, args...)
+
+		legacyObj := vm.NewObject()
+		_ = legacyObj.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
+			return legacyQuery(ctx, conn, sqlText, args...)
 		})
-		_ = exports.Set("queryOne", func(sqlText string, args ...any) (map[string]any, error) {
-			rows, err := Query(ctx, conn, sqlText, args...)
+		_ = legacyObj.Set("queryOne", func(sqlText string, args ...any) (map[string]any, error) {
+			rows, err := legacyQuery(ctx, conn, sqlText, args...)
 			if err != nil {
 				return nil, err
 			}
@@ -42,7 +44,8 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 			}
 			return rows[0], nil
 		})
-		_ = exports.Set("tableName", runtimeSettings.TableName)
+		_ = legacyObj.Set("tableName", runtimeSettings.TableName)
+		_ = exports.Set("legacy", legacyObj)
 
 		runtimeObj := vm.NewObject()
 		_ = runtimeObj.Set("tableName", runtimeSettings.TableName)
@@ -60,22 +63,22 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 	}
 }
 
-func Query(ctx context.Context, conn *sql.Conn, sqlText string, args ...any) ([]map[string]any, error) {
+func legacyQuery(ctx context.Context, conn *sql.Conn, sqlText string, args ...any) ([]map[string]any, error) {
 	if conn == nil {
-		return nil, fmt.Errorf("minitrace query connection is nil")
+		return nil, fmt.Errorf("minitrace legacy query connection is nil")
 	}
 	if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
 		return nil, err
 	}
 	rows, err := conn.QueryContext(ctx, sqlText, flattenArgs(args)...)
 	if err != nil {
-		return nil, fmt.Errorf("executing js query: %w", err)
+		return nil, fmt.Errorf("executing legacy js query: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, fmt.Errorf("reading js query columns: %w", err)
+		return nil, fmt.Errorf("reading legacy js query columns: %w", err)
 	}
 
 	ret := []map[string]any{}
@@ -86,7 +89,7 @@ func Query(ctx context.Context, conn *sql.Conn, sqlText string, args ...any) ([]
 			scanArgs[i] = &values[i]
 		}
 		if err := rows.Scan(scanArgs...); err != nil {
-			return nil, fmt.Errorf("scanning js query row: %w", err)
+			return nil, fmt.Errorf("scanning legacy js query row: %w", err)
 		}
 		row := make(map[string]any, len(columns))
 		for i, column := range columns {
@@ -95,7 +98,7 @@ func Query(ctx context.Context, conn *sql.Conn, sqlText string, args ...any) ([]
 		ret = append(ret, row)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating js query rows: %w", err)
+		return nil, fmt.Errorf("iterating legacy js query rows: %w", err)
 	}
 	return ret, nil
 }

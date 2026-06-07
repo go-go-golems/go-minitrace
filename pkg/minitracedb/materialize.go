@@ -56,6 +56,9 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 		if err := insertTurn(ctx, tx, session.ID, turn); err != nil {
 			return err
 		}
+		if err := insertTurnEvent(ctx, tx, session.ID, turn); err != nil {
+			return err
+		}
 		for ordinal, toolCallID := range turn.ToolCallsInTurn {
 			if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO turn_tool_calls(session_id, turn_index, tool_call_id, ordinal) VALUES (?, ?, ?, ?)`, session.ID, turn.Index, toolCallID, ordinal); err != nil {
 				return fmt.Errorf("insert turn_tool_calls %s/%d/%s: %w", session.ID, turn.Index, toolCallID, err)
@@ -64,6 +67,9 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 	}
 	for _, toolCall := range session.ToolCalls {
 		if err := insertToolCall(ctx, tx, session.ID, toolCall); err != nil {
+			return err
+		}
+		if err := insertToolCallEvent(ctx, tx, session.ID, toolCall); err != nil {
 			return err
 		}
 		if toolCall.Input.FilePath != nil && *toolCall.Input.FilePath != "" {
@@ -123,6 +129,40 @@ func insertToolCall(ctx context.Context, tx *sql.Tx, sessionID string, toolCall 
 		sessionID, toolCall.ID, nullableIntPointer(toolCall.EmittingTurnIndex), nullableString(toolCall.Timestamp), toolCall.ToolName, toolCall.OperationType, nullableString(toolCall.Input.FilePath), nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), mustJSON(toolCall.Input.Arguments), boolInt(toolCall.Output.Success), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated), mustJSON(toolCall))
 	if err != nil {
 		return fmt.Errorf("insert tool call %s/%s: %w", sessionID, toolCall.ID, err)
+	}
+	return nil
+}
+
+func insertTurnEvent(ctx context.Context, tx *sql.Tx, sessionID string, turn minitrace.Turn) error {
+	eventID := fmt.Sprintf("turn-%06d", turn.Index)
+	title := turn.Role
+	if turn.ContentType != nil && *turn.ContentType != "" {
+		title = title + " / " + *turn.ContentType
+	}
+	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO events(session_id, event_id, turn_index, ordinal, kind, role, title, summary, text, severity, collapsed_by_default, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		sessionID, eventID, turn.Index, 0, "turn", turn.Role, title, summarizeText(turn.Content, 120), turn.Content, "info", 0, mustJSON(turn))
+	if err != nil {
+		return fmt.Errorf("insert turn event %s/%d: %w", sessionID, turn.Index, err)
+	}
+	return nil
+}
+
+func insertToolCallEvent(ctx context.Context, tx *sql.Tx, sessionID string, toolCall minitrace.ToolCall) error {
+	turnIndex := nullableIntPointer(toolCall.EmittingTurnIndex)
+	ordinal := 0
+	if toolCall.EmittingTurnIndex != nil {
+		ordinal = 1
+	}
+	eventID := "tool-" + toolCall.ID
+	severity := "info"
+	if !toolCall.Output.Success {
+		severity = "error"
+	}
+	summary := firstNonEmptyPointer(toolCall.Input.FilePath, toolCall.Input.Command, toolCall.Output.Error, toolCall.Output.Result)
+	_, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO events(session_id, event_id, turn_index, ordinal, kind, role, tool_call_id, title, summary, text, severity, collapsed_by_default, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		sessionID, eventID, turnIndex, ordinal, "tool_call", "tool", toolCall.ID, toolCall.ToolName+" / "+toolCall.OperationType, summarizeText(summary, 120), firstNonEmptyPointer(toolCall.Output.Result, toolCall.Output.Error), severity, 1, mustJSON(toolCall))
+	if err != nil {
+		return fmt.Errorf("insert tool call event %s/%s: %w", sessionID, toolCall.ID, err)
 	}
 	return nil
 }
@@ -188,6 +228,22 @@ func usageInt(usage *minitrace.Usage, field string) any {
 	default:
 		return nil
 	}
+}
+
+func firstNonEmptyPointer(values ...*string) string {
+	for _, value := range values {
+		if value != nil && *value != "" {
+			return *value
+		}
+	}
+	return ""
+}
+
+func summarizeText(value string, max int) string {
+	if max > 0 && len(value) > max {
+		return value[:max]
+	}
+	return value
 }
 
 func mustJSON(v any) string {

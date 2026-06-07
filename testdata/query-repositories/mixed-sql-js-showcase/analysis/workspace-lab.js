@@ -26,27 +26,27 @@ function workspaceScoreboard(filters) {
   const mt = require("minitrace");
   const whereSql = _workspaceWhere(mt, filters);
 
-  const workspaceRows = mt.query(`
+  const workspaceRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       COUNT(*) AS session_count,
       AVG(CAST(metrics->>'tool_call_count' AS DOUBLE)) AS avg_tool_calls,
       AVG(CAST(metrics->>'turn_count' AS DOUBLE)) AS avg_turns,
       MAX(timing->>'started_at') AS latest_started_at
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     GROUP BY 1
     ORDER BY session_count DESC, avg_tool_calls DESC, working_directory ASC
     LIMIT ${filters.limit}
   `);
 
-  const highlightRows = mt.query(`
+  const highlightRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       id,
       title,
       CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     ORDER BY tool_call_count DESC, id ASC
   `);

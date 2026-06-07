@@ -16,17 +16,21 @@ import (
 )
 
 type DBBuilder struct {
-	ctx     context.Context
-	backend string
-	storage string
-	query   minitracedb.QueryOptions
-	sources []dbSource
-	errors  []string
+	ctx              context.Context
+	backend          string
+	storage          string
+	query            minitracedb.QueryOptions
+	sources          []dbSource
+	autoConvert      bool
+	strictConversion bool
+	errors           []string
 }
 
 type dbSource struct {
-	Kind string `json:"kind"`
-	Path string `json:"path,omitempty"`
+	Kind    string `json:"kind"`
+	Path    string `json:"path,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Content string `json:"-"`
 }
 
 type ValidationResult struct {
@@ -35,17 +39,18 @@ type ValidationResult struct {
 }
 
 type DBHandle struct {
-	db      *sql.DB
-	runner  *minitracedb.QueryRunner
-	schema  minitracedb.SchemaDescriptor
-	sources []dbSource
+	db          *sql.DB
+	runner      *minitracedb.QueryRunner
+	schema      minitracedb.SchemaDescriptor
+	sources     []dbSource
+	diagnostics []minitracedb.ConversionDiagnostic
 }
 
 func NewDBBuilder(ctx context.Context) *DBBuilder {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", query: minitracedb.DefaultQueryOptions()}
+	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", query: minitracedb.DefaultQueryOptions(), strictConversion: true}
 }
 
 func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
@@ -65,6 +70,25 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 	})
 	_ = obj.Set("Archive", func(path string) *goja.Object {
 		b.addFile(path)
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("Content", func(call goja.FunctionCall) goja.Value {
+		content := call.Argument(0).String()
+		name := "content"
+		if len(call.Arguments) > 1 && !goja.IsUndefined(call.Argument(1)) && !goja.IsNull(call.Argument(1)) {
+			arg := call.Argument(1)
+			if exported := arg.Export(); exported != nil {
+				switch typed := exported.(type) {
+				case string:
+					name = typed
+				case map[string]any:
+					if value, ok := typed["name"].(string); ok && value != "" {
+						name = value
+					}
+				}
+			}
+		}
+		b.addContent(content, name)
 		return builderObject(vm, b)
 	})
 	_ = obj.Set("Glob", func(pattern string) *goja.Object {
@@ -122,6 +146,14 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		b.query.RequireOrderBy = enabled
 		return builderObject(vm, b)
 	})
+	_ = obj.Set("AutoConvert", func(enabled bool) *goja.Object {
+		b.autoConvert = enabled
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("StrictConversion", func(enabled bool) *goja.Object {
+		b.strictConversion = enabled
+		return builderObject(vm, b)
+	})
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(b.sources) })
 	_ = obj.Set("Validate", func() ValidationResult { return b.Validate() })
 	_ = obj.Set("Build", func() (*goja.Object, error) {
@@ -140,13 +172,30 @@ func (b *DBBuilder) addFile(path string) {
 		b.errors = append(b.errors, "file path must not be empty")
 		return
 	}
-	b.sources = append(b.sources, dbSource{Kind: "file", Path: path})
+	for _, source := range b.sources {
+		if source.Kind == "file" && source.Path == path {
+			return
+		}
+	}
+	b.sources = append(b.sources, dbSource{Kind: "file", Path: path, Name: filepath.Base(path)})
 }
 
 func (b *DBBuilder) addFiles(paths []string) {
 	for _, path := range paths {
 		b.addFile(path)
 	}
+}
+
+func (b *DBBuilder) addContent(content, name string) {
+	if strings.TrimSpace(content) == "" {
+		b.errors = append(b.errors, "content source must not be empty")
+		return
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		name = "content"
+	}
+	b.sources = append(b.sources, dbSource{Kind: "content", Name: name, Content: content})
 }
 
 func collectMinitraceFiles(root string) ([]string, error) {
@@ -162,7 +211,7 @@ func collectMinitraceFiles(root string) ([]string, error) {
 		if d.IsDir() {
 			return nil
 		}
-		if strings.HasSuffix(path, ".minitrace.json") {
+		if strings.HasSuffix(path, ".minitrace.json") || strings.HasSuffix(path, ".jsonl") {
 			paths = append(paths, path)
 		}
 		return nil
@@ -197,21 +246,22 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	diagnostics := []minitracedb.ConversionDiagnostic{}
 	for _, source := range b.sources {
-		switch source.Kind {
-		case "file":
-			session, err := minitracedb.LoadSessionFile(source.Path)
-			if err != nil {
+		loaded, err := b.loadSource(source)
+		if err != nil {
+			diagnostic := minitracedb.ConversionDiagnostic{Source: firstNonEmpty(source.Name, source.Path, source.Kind), Severity: "error", Message: err.Error()}
+			diagnostics = append(diagnostics, diagnostic)
+			if b.strictConversion {
 				_ = db.Close()
 				return nil, err
 			}
-			if err := minitracedb.MaterializeSession(b.ctx, db, session, minitracedb.MaterializeOptions{SourcePath: source.Path}); err != nil {
-				_ = db.Close()
-				return nil, err
-			}
-		default:
+			continue
+		}
+		diagnostics = append(diagnostics, loaded.Diagnostics...)
+		if err := minitracedb.MaterializeSession(b.ctx, db, loaded.Session, minitracedb.MaterializeOptions{SourcePath: source.Path}); err != nil {
 			_ = db.Close()
-			return nil, fmt.Errorf("unsupported source kind %q", source.Kind)
+			return nil, err
 		}
 	}
 	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
@@ -219,7 +269,27 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...)}, nil
+	return &DBHandle{db: db, runner: runner, schema: minitracedb.Schema(), sources: append([]dbSource(nil), b.sources...), diagnostics: diagnostics}, nil
+}
+
+func (b *DBBuilder) loadSource(source dbSource) (*minitracedb.LoadedSession, error) {
+	switch source.Kind {
+	case "file":
+		return minitracedb.LoadSessionFileAuto(source.Path, minitracedb.LoadOptions{SourcePath: source.Path, SourceName: filepath.Base(source.Path), AutoConvert: b.autoConvert})
+	case "content":
+		return minitracedb.LoadSessionContentAuto([]byte(source.Content), minitracedb.LoadOptions{SourceName: source.Name, AutoConvert: b.autoConvert})
+	default:
+		return nil, fmt.Errorf("unsupported source kind %q", source.Kind)
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
@@ -240,7 +310,7 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 		return map[string]any{"schemaVersion": h.schema.Version, "dialect": h.schema.Dialect, "tables": len(h.schema.Tables)}
 	})
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(h.sources) })
-	_ = obj.Set("diagnostics", func() []map[string]any { return []map[string]any{} })
+	_ = obj.Set("diagnostics", func() []map[string]any { return toPlainSlice(h.diagnostics) })
 	_ = obj.Set("close", func() error {
 		if h == nil || h.db == nil {
 			return nil

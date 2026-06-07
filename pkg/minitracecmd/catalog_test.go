@@ -117,7 +117,7 @@ func TestLoadCatalog_PreservesDistinctRootsWhenNamesCollide(t *testing.T) {
 				"queries/overview/session-tools.js": &fstest.MapFile{Data: []byte(`
 function sessionList() {
   const mt = require("minitrace");
-  return mt.query(` + "`" + `SELECT 1 AS answer FROM ${mt.tableName}` + "`" + `);
+  return mt.legacy.query(` + "`" + `SELECT 1 AS answer FROM ${mt.legacy.tableName}` + "`" + `);
 }
 
 __verb__("sessionList", {

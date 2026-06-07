@@ -30,7 +30,7 @@ function workspaceScoreboard(filters) {
   const mt = require("minitrace");
   const whereSql = _workspaceWhere(mt, filters);
 
-  const workspaceRows = mt.query(`
+  const workspaceRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       COUNT(*) AS session_count,
@@ -38,30 +38,30 @@ function workspaceScoreboard(filters) {
       AVG(CAST(metrics->>'turn_count' AS DOUBLE)) AS avg_turns,
       AVG(COALESCE(CAST(timing->>'active_duration_seconds' AS DOUBLE), 0)) AS avg_active_seconds,
       MAX(timing->>'started_at') AS latest_started_at
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     GROUP BY 1
     ORDER BY session_count DESC, avg_tool_calls DESC, working_directory ASC
     LIMIT ${filters.limit}
   `);
 
-  const highlightRows = mt.query(`
+  const highlightRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       id,
       title,
       CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     ORDER BY tool_call_count DESC, id ASC
   `);
 
-  const toolRows = mt.query(`
+  const toolRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       call->>'tool_name' AS tool_name,
       COUNT(*) AS tool_uses
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1, 2
@@ -102,35 +102,35 @@ function workspaceSessionHighlights(filters) {
   const mt = require("minitrace");
   const whereSql = _workspaceWhere(mt, filters);
 
-  const workspaceRows = mt.query(`
+  const workspaceRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       COUNT(*) AS session_count
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     GROUP BY 1
     ORDER BY session_count DESC, working_directory ASC
     LIMIT ${filters.limit}
   `);
 
-  const sessionRows = mt.query(`
+  const sessionRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       id,
       title,
       CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count,
       environment->>'model' AS model
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     ORDER BY working_directory ASC, tool_call_count DESC, id ASC
   `);
 
-  const toolRows = mt.query(`
+  const toolRows = mt.legacy.query(`
     SELECT
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       call->>'tool_name' AS tool_name,
       COUNT(*) AS tool_uses
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1, 2

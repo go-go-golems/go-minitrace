@@ -29,6 +29,7 @@ func TestMaterializeSessionPopulatesCoreTables(t *testing.T) {
 	assertCount(t, db, "turn_tool_calls", 1)
 	assertCount(t, db, "files", 1)
 	assertCount(t, db, "metrics", 1)
+	assertCount(t, db, "events", 3)
 
 	runner, err := NewQueryRunner(db, AllowedTableNames(), QueryOptions{})
 	if err != nil {

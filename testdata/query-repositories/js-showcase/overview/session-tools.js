@@ -25,12 +25,12 @@ function _frameworkFilterSql(mt, filters) {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(`
+  return mt.legacy.query(`
     SELECT
       id,
       title,
       environment->>'agent_framework' AS framework
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
     ORDER BY timing->>'started_at' DESC
@@ -40,11 +40,11 @@ function sessionList(filters) {
 
 function frameworkShare(filters) {
   const mt = require("minitrace");
-  const rows = mt.query(`
+  const rows = mt.legacy.query(`
     SELECT
       environment->>'agent_framework' AS framework,
       COUNT(*) AS count
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
     GROUP BY 1

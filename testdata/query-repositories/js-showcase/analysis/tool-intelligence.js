@@ -26,12 +26,12 @@ function toolboxOverview(filters) {
   const mt = require("minitrace");
   const whereSql = _toolWhere(mt, filters);
 
-  const toolRows = mt.query(`
+  const toolRows = mt.legacy.query(`
     SELECT
       call->>'tool_name' AS tool_name,
       COUNT(*) AS tool_uses,
       COUNT(DISTINCT id) AS session_count
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1
@@ -39,24 +39,24 @@ function toolboxOverview(filters) {
     LIMIT ${filters.limit}
   `);
 
-  const operationRows = mt.query(`
+  const operationRows = mt.legacy.query(`
     SELECT
       call->>'tool_name' AS tool_name,
       call->>'operation_type' AS operation_type,
       COUNT(*) AS use_count
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1, 2
     ORDER BY tool_name ASC, use_count DESC, operation_type ASC
   `);
 
-  const workspaceRows = mt.query(`
+  const workspaceRows = mt.legacy.query(`
     SELECT
       call->>'tool_name' AS tool_name,
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       COUNT(*) AS tool_uses
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1, 2
@@ -85,11 +85,11 @@ function toolboxOverview(filters) {
 function toolPairMatrix(filters) {
   const mt = require("minitrace");
   const whereSql = _toolWhere(mt, filters);
-  const sessionToolRows = mt.query(`
+  const sessionToolRows = mt.legacy.query(`
     SELECT DISTINCT
       id,
       call->>'tool_name' AS tool_name
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     ORDER BY id ASC, tool_name ASC

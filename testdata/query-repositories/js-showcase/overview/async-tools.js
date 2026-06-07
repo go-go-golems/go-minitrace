@@ -26,12 +26,12 @@ async function delayedSummary(filters) {
   const mt = require("minitrace");
   await timer.sleep(1);
 
-  const summary = mt.queryOne(`
+  const summary = mt.legacy.queryOne(`
     SELECT
       COUNT(*) AS session_count,
       MIN(id) AS first_id,
       MAX(environment->>'agent_framework') AS sample_framework
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
   `);
@@ -50,12 +50,12 @@ async function topSessionCards(filters) {
   const mt = require("minitrace");
   await timer.sleep(1);
 
-  const rows = mt.query(`
+  const rows = mt.legacy.query(`
     SELECT
       id,
       title,
       environment->>'agent_framework' AS framework
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
     ORDER BY timing->>'started_at' DESC

@@ -30,7 +30,7 @@ function sessionShapeRanker(filters) {
   const mt = require("minitrace");
   const whereSql = _sessionWhere(mt, filters);
 
-  const baseRows = mt.query(`
+  const baseRows = mt.legacy.query(`
     SELECT
       id,
       title,
@@ -39,28 +39,28 @@ function sessionShapeRanker(filters) {
       CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count,
       CAST(metrics->>'turn_count' AS BIGINT) AS turn_count,
       COALESCE(CAST(timing->>'active_duration_seconds' AS DOUBLE), 0) AS active_duration_seconds
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     ORDER BY tool_call_count DESC, turn_count DESC, id ASC
     LIMIT ${filters.limit}
   `);
 
-  const roleRows = mt.query(`
+  const roleRows = mt.legacy.query(`
     SELECT
       id,
       turn->>'role' AS role,
       COUNT(*) AS role_count
-    FROM ${mt.tableName}, UNNEST(turns) AS t(turn)
+    FROM ${mt.legacy.tableName}, UNNEST(turns) AS t(turn)
     WHERE ${whereSql}
     GROUP BY 1, 2
     ORDER BY id ASC, role ASC
   `);
 
-  const uniqueToolRows = mt.query(`
+  const uniqueToolRows = mt.legacy.query(`
     SELECT
       id,
       COUNT(DISTINCT call->>'tool_name') AS unique_tools
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1
@@ -109,37 +109,37 @@ function sessionSpotlights(filters) {
   const mt = require("minitrace");
   const whereSql = _sessionWhere(mt, filters);
 
-  const baseRows = mt.query(`
+  const baseRows = mt.legacy.query(`
     SELECT
       id,
       title,
       COALESCE(operational_context->>'working_directory', '(none)') AS working_directory,
       CAST(metrics->>'tool_call_count' AS BIGINT) AS tool_call_count,
       CAST(metrics->>'turn_count' AS BIGINT) AS turn_count
-    FROM ${mt.tableName}
+    FROM ${mt.legacy.tableName}
     WHERE ${whereSql}
     ORDER BY tool_call_count DESC, turn_count DESC, id ASC
     LIMIT ${filters.limit}
   `);
 
-  const toolRows = mt.query(`
+  const toolRows = mt.legacy.query(`
     SELECT
       id,
       call->>'tool_name' AS tool_name,
       COUNT(*) AS tool_uses
-    FROM ${mt.tableName}, UNNEST(tool_calls) AS t(call)
+    FROM ${mt.legacy.tableName}, UNNEST(tool_calls) AS t(call)
     WHERE ${whereSql}
       AND (call->>'tool_name') IS NOT NULL
     GROUP BY 1, 2
     ORDER BY id ASC, tool_uses DESC, tool_name ASC
   `);
 
-  const roleRows = mt.query(`
+  const roleRows = mt.legacy.query(`
     SELECT
       id,
       turn->>'role' AS role,
       COUNT(*) AS role_count
-    FROM ${mt.tableName}, UNNEST(turns) AS t(turn)
+    FROM ${mt.legacy.tableName}, UNNEST(turns) AS t(turn)
     WHERE ${whereSql}
     GROUP BY 1, 2
     ORDER BY id ASC, role_count DESC, role ASC

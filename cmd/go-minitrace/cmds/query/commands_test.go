@@ -240,7 +240,7 @@ SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
 	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.js"), []byte(`
 function sessionList() {
   const mt = require("minitrace");
-  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+  return mt.legacy.query(`+"`"+`SELECT id FROM ${mt.legacy.tableName} LIMIT 1`+"`"+`);
 }
 
 __verb__("sessionList", {
@@ -305,7 +305,7 @@ __section__("filters", {
 
 function researchSummary(filters) {
   const mt = require("minitrace");
-  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT ${filters.limit}`+"`"+`);
+  return mt.legacy.query(`+"`"+`SELECT id FROM ${mt.legacy.tableName} LIMIT ${filters.limit}`+"`"+`);
 }
 
 __verb__("researchSummary", {
@@ -351,7 +351,7 @@ func TestNewCommandsCommand_SelfNamedSingleVerbJSCommandKeepsExpandedPathWhenSib
 	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
 function researchSummary() {
   const mt = require("minitrace");
-  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+  return mt.legacy.query(`+"`"+`SELECT id FROM ${mt.legacy.tableName} LIMIT 1`+"`"+`);
 }
 
 __verb__("researchSummary", {
@@ -402,7 +402,7 @@ func TestNewCommandsCommand_SelfNamedSingleChildGroupHelpShowsRuntimeFlags(t *te
 	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
 function researchSummary() {
   const mt = require("minitrace");
-  return mt.query(`+"`"+`SELECT 1 AS ok FROM ${mt.tableName} LIMIT 1`+"`"+`);
+  return mt.legacy.query(`+"`"+`SELECT 1 AS ok FROM ${mt.legacy.tableName} LIMIT 1`+"`"+`);
 }
 
 __verb__("researchSummary", {
@@ -448,7 +448,7 @@ SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
 	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.js"), []byte(`
 function sessionList() {
   const mt = require("minitrace");
-  return mt.query(`+"`"+`SELECT id FROM ${mt.tableName} LIMIT 1`+"`"+`);
+  return mt.legacy.query(`+"`"+`SELECT id FROM ${mt.legacy.tableName} LIMIT 1`+"`"+`);
 }
 
 __verb__("sessionList", {
