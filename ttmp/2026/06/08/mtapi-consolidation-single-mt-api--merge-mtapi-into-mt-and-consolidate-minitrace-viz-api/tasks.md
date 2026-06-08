@@ -75,5 +75,5 @@
 - [x] Add regression tests for quoted disallowed objects, quoted allowed objects, CTE aliases, and disallowed objects inside CTE bodies.
 - [x] Move table allowlist enforcement from regex extraction into the SQLite authorizer.
 - [x] Remove obsolete regex table extraction helpers from the production query-validation path.
-- [ ] Run focused and full validation: `go test ./pkg/minitracedb ./pkg/minitracejs/...`, `go test ./cmd/... ./pkg/... -count=1`, and `golangci-lint run --timeout=5m ./cmd/... ./pkg/...`.
-- [ ] Update ticket changelog and investigation diary after each implementation slice.
+- [x] Run focused and full validation: `go test ./pkg/minitracedb ./pkg/minitracejs/...`, `go test ./cmd/... ./pkg/... -count=1`, and `golangci-lint run --timeout=5m ./cmd/... ./pkg/...`.
+- [x] Update ticket changelog and investigation diary after each implementation slice.

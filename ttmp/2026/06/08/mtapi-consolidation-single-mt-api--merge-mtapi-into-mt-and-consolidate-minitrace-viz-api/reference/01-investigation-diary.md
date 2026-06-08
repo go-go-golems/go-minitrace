@@ -921,7 +921,7 @@ Then in the go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merg
 
 **Inferred user intent:** Unblock CI before deeper authorization work, while preserving a detailed implementation plan for the brittle query-guard problem.
 
-**Commit (code):** pending — lint/documentation changes are not committed yet.
+**Commit (code):** f047b04 — "Fix lint blockers and plan SQLite query authorization"
 
 ### What I did
 
@@ -1011,7 +1011,7 @@ The new regression tests cover both reported review failures: quoted `sqlite_mas
 
 **Inferred user intent:** Turn the design into working code while preserving reviewable, documented implementation history.
 
-**Commit (code):** pending — this implementation slice is not committed yet.
+**Commit (code):** 5db80e1 — "Enforce query allowlist via SQLite authorizer"
 
 ### What I did
 
@@ -1102,4 +1102,83 @@ gofmt -w pkg/minitracedb/query.go pkg/minitracedb/query_test.go
 go test ./pkg/minitracedb -count=1
 go test ./pkg/minitracedb ./pkg/minitracejs/...
 docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp changelog update --ticket mtapi-consolidation-single-mt-api ...
+```
+
+## Step 11: Validate and close Phase 8
+
+I ran the full validation requested by the Phase 8 task list after the SQLite authorizer implementation commit. The full command/package test suite passed, and golangci-lint reported zero issues.
+
+This step is documentation-only: it records the final validation state, marks the Phase 8 tasks complete, and updates the ticket changelog so the implementation can be reviewed from tests through code to ticket artifacts.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 10)
+
+**Assistant interpretation:** Continue the task-by-task implementation loop by validating the completed authorizer change and updating ticket bookkeeping.
+
+**Inferred user intent:** Ensure the final implementation is CI-ready and the ticket records the completed work.
+
+**Commit (code):** N/A — validation/bookkeeping-only step recorded in the surrounding docs commit
+
+### What I did
+
+- Ran the full Go test suite for `./cmd/... ./pkg/...`.
+- Ran golangci-lint with the same package pattern and timeout used by CI.
+- Marked all Phase 8 tasks complete in `tasks.md`.
+- Updated the changelog with the validation result.
+- Updated prior diary entries with their final commit hashes.
+
+### Why
+
+- The authorizer change affects a central query path used by JS and HTTP-facing analysis flows, so package-level tests are not enough for final handoff.
+- The original request explicitly asked to keep a detailed diary while working task-by-task.
+
+### What worked
+
+- `go test ./cmd/... ./pkg/... -count=1` passed.
+- `golangci-lint run --timeout=5m ./cmd/... ./pkg/...` passed with `0 issues`.
+
+### What didn't work
+
+- N/A for this validation step.
+
+### What I learned
+
+- The lint-only commit and the authorizer implementation commit left the tree in a clean, CI-ready state before documentation-only validation updates.
+
+### What was tricky to build
+
+- N/A for this validation step; the tricky implementation details were captured in Step 10.
+
+### What warrants a second pair of eyes
+
+- Review the completed Phase 8 task list against the PR review comments to confirm no related query-guard edge case was missed.
+
+### What should be done in the future
+
+- Consider adding function allowlist policy as a separate hardening task if untrusted queries ever run on connections with powerful user-defined functions.
+
+### Code review instructions
+
+- Review commits in order:
+  1. `f047b04` — lint/doc planning unblock.
+  2. `5db80e1` — SQLite authorizer behavior change and regression tests.
+  3. This pending validation/bookkeeping commit.
+- Validate with:
+
+```bash
+go test ./cmd/... ./pkg/... -count=1
+golangci-lint run --timeout=5m ./cmd/... ./pkg/...
+```
+
+### Technical details
+
+Validation output summary:
+
+```text
+go test ./cmd/... ./pkg/... -count=1
+# all cmd/pkg packages passed or had no test files
+
+golangci-lint run --timeout=5m ./cmd/... ./pkg/...
+0 issues.
 ```

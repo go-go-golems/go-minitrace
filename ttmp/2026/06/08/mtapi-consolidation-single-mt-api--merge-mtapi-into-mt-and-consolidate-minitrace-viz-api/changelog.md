@@ -167,3 +167,14 @@ Implement robust QueryRunner authorization: add regression tests for quoted iden
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query.go — SQLite authorizer now enforces allowed table reads using parser-resolved object names
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query_test.go — Regression coverage for quoted sqlite_master
 
+
+## 2026-06-08
+
+Complete Phase 8 validation for robust SQLite query authorization: full cmd/pkg test suite passed and golangci-lint reported 0 issues.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query.go — Validated authorizer-backed allowlist implementation
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query_test.go — Validated regression coverage
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md — Phase 8 tasks marked complete
+
