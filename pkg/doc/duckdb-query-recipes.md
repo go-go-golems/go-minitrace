@@ -395,7 +395,7 @@ The `queries/load.sql` file defaults to the glob `./output/active/*/*.minitrace.
 ## See also
 
 - `go-minitrace help analysis-guide` — end-to-end workflow where these recipes fit into the full analysis loop
-- `go-minitrace help js-api-reference` — port any of these SQL patterns into a `mt.query()` JS handler
+- `go-minitrace help js-api-reference` — translate useful recipes into `mt.db()` JS handlers over normalized SQLite tables when you need reusable multi-query logic
 - `go-minitrace help structured-query-commands` — promote a useful recipe into a named, reusable structured command
 - `go-minitrace help query-duckdb` — how to run these recipes with `--preset`, `--sql`, and `--sql-file`
 - `go-minitrace help writing-duckdb-queries` — JSON access, UNNEST, casting, and annotation join patterns in depth

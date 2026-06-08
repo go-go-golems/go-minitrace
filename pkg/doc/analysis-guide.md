@@ -194,7 +194,7 @@ See `go-minitrace help structured-query-commands` for how to author your own `.s
 
 ### JavaScript command handlers
 
-JavaScript command handlers run in a Goja-powered JS runtime and have access to `require("minitrace")` for DuckDB queries, plus the full Goja NodeJS stdlib (`timer`, `fs`, `exec`, `path`, `console`, etc.). Use JS when SQL alone is not enough.
+JavaScript command handlers run in a Goja-powered JS runtime and have access to `require("minitrace")` for builder-composed normalized SQLite databases through `mt.db()`, plus the full Goja NodeJS stdlib (`timer`, `fs`, `exec`, `path`, `console`, etc.). Use JS when SQL alone is not enough.
 
 **When to reach for JS instead of SQL:**
 
@@ -216,17 +216,21 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(`
-    SELECT id, title,
-           environment->>'agent_framework' AS framework
-    FROM ${mt.tableName}
-    WHERE 1=1
-    ${filters.framework?.length
-      ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
-      : ""}
-    ORDER BY timing->>'started_at' DESC
-    LIMIT ${filters.limit}
-  `);
+  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  try {
+    return db.query(`
+      SELECT session_id, title, agent_framework AS framework
+      FROM sessions
+      WHERE 1=1
+      ${filters.framework?.length
+        ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
+        : ""}
+      ORDER BY started_at DESC
+      LIMIT ${filters.limit}
+    `);
+  } finally {
+    db.close();
+  }
 }
 
 __verb__("sessionList", {
@@ -249,19 +253,22 @@ go-minitrace query commands overview session-tools session-list \
 
 | Export | Description |
 |--------|-------------|
-| `mt.query(sql)` | Execute read-only SQL, return `Array<Record>` |
-| `mt.queryOne(sql)` | Same but return only the first row or `null` |
-| `mt.tableName` | The loaded DuckDB table name (use in SQL FROM) |
-| `mt.sql.string(val)` | Single-quoted, escaped SQL string literal |
-| `mt.sql.stringIn(arr)` | Comma-separated quoted list for `IN (...)` clauses |
-| `mt.sql.like(val)` | `LIKE` pattern with `%` wildcards on both sides |
-| `mt.runtime` | Read-only context object (`tableName`, `dbPath`, `archiveGlob`, `persistLoaded`, `commandName`) |
+| `mt.db()` | Create a fluent normalized SQLite builder. In query commands, start with `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`. |
+| `db.query(sql)` | Execute read-only SQL against normalized tables such as `sessions`, `turns`, `tool_calls`, `files`, `metrics`, and `events`; return `Array<Record>`. |
+| `db.queryOne(sql)` | Same but return only the first row or `null`/`undefined`. |
+| `db.queryResult(sql)` | Return `{ columns, rows, count, truncated, error }` instead of throwing on query validation errors. |
+| `db.schema()` / `db.tables()` | Discover the normalized SQLite schema from inside JS. |
+| `db.close()` | Release or close the DB handle; call it in `finally`. |
+| `mt.sql.string(val)` | Single-quoted, escaped SQL string literal. |
+| `mt.sql.stringIn(arr)` | Comma-separated quoted list for `IN (...)` clauses. |
+| `mt.sql.like(val)` | `LIKE` pattern with `%` wildcards on both sides. |
+| `mt.runtime` | Read-only context object (`archiveGlob`, `commandName`, plus compatibility fields). |
 
 See `go-minitrace help js-api-reference` for the complete API, all built-in modules, scanner markers, and the supported field type set.
 
 **Start from working examples.** The testdata showcase directories demonstrate every practical pattern:
 
-- `testdata/query-repositories/js-showcase/` — pure JS commands: multi-verb files, aliases targeting JS, relative helpers, async via `require("timer")`, `mt.queryOne()`, multi-query joins in JS, JS-side scoring, tool co-occurrence
+- `testdata/query-repositories/js-showcase/` — pure JS commands: multi-verb files, aliases targeting JS, relative helpers, async via `require("timer")`, `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`, `db.queryOne()`, multi-query joins in JS, JS-side scoring, tool co-occurrence
 - `testdata/query-repositories/mixed-sql-js-showcase/` — the same commands side-by-side as `.sql` and `.js` equivalents so you can compare SQL vs JS approaches directly
 
 Smoke the showcases against your own local archive:

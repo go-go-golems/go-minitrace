@@ -694,3 +694,80 @@ cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderQuer
 cd go-minitrace && go test ./pkg/minitracejs/provider -count=1
 cd go-minitrace && go test ./pkg/minitracejs/... -count=1
 ```
+
+## Step 8: Update JS API docs and query-command examples
+
+I updated the documentation and query-command examples to describe the builder-composed API as the normal JavaScript workflow. The biggest change is a full rewrite of `pkg/doc/js-api-reference.md` so it documents `mt.importer()`, `mt.sources()`, `mt.importPolicy()`, `mt.cache()`, `mt.limits()`, `mt.db()`, `mt.session()`, `mt.query()`, and `mt.view()`.
+
+I also updated existing JavaScript showcase examples and related docs from `mt.db().RuntimeArchives().Build()` to the more explicit query-command preset form `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue."
+
+**Assistant interpretation:** Continue with the next implementation phase after the core builders, keeping diary and commits focused.
+
+**Inferred user intent:** Proceed through the ticket task list without pausing for a separate prompt at each task.
+
+**Commit (code):** pending at time of diary update — planned message: `Document builder-composed minitrace JS API`.
+
+### What I did
+
+- Rewrote `go-minitrace/pkg/doc/js-api-reference.md` around builder factories and usage patterns.
+- Updated README/query docs that referenced the prior normalized SQLite builder pattern.
+- Updated JavaScript showcase examples to use `.QueryCommandDefaults()` for runtime archives.
+- Updated the command-provider example in `examples/xgoja/minitrace-command-provider`.
+- Marked Phase 3 documentation/example tasks complete.
+
+### Why
+
+- The implementation now exposes the builder-composed API, so docs and examples needed to stop teaching the older monolithic runtime-archive chain as the only pattern.
+- `.QueryCommandDefaults()` makes query-command intent explicit and aligns examples with the builder-preset design.
+
+### What worked
+
+- Stale-term searches found no remaining `mt.db.open`, `mt.session.open`, `OpenDBOptions`, `SessionOpenOptions`, `mt.import.save`, `mt.queries`, or `mt.views` references in the main updated docs/examples.
+- Query command tests still passed after updating showcase JavaScript.
+
+### What didn't work
+
+- My first bulk replacement accidentally turned `mt.db().RuntimeArchives().Build()` into `mt.db().RuntimeArchives().QueryCommandDefaults().QueryCommandDefaults().Build()` because I applied two overlapping replacements. I fixed this by normalizing duplicate `.QueryCommandDefaults().QueryCommandDefaults()` chains back to a single call.
+
+### What I learned
+
+- Several docs were already partially updated from the old DuckDB ambient API to `mt.db()`. This phase had to preserve that direction while adding the newer subbuilder/preset language.
+- The raw DuckDB docs should remain as DuckDB docs; only cross-references to JavaScript handlers needed builder-composed terminology.
+
+### What was tricky to build
+
+- The docs were already dirty before this phase. I inspected the diffs first, then treated the current dirty SQLite-oriented text as the baseline to update rather than reverting it.
+- `js-api-reference.md` was easier to rewrite fully than patch piecemeal because it had many references to older API shapes.
+
+### What warrants a second pair of eyes
+
+- Review `pkg/doc/js-api-reference.md` for completeness and tone.
+- Check whether the module examples should keep `require("minitrace")` for query-command contexts or switch some docs to `require("mt")` for xgoja app contexts. The current doc explains both.
+
+### What should be done in the future
+
+- Consider adding a dedicated examples section for `mt.query()` recipes once more recipe coverage is added.
+- Proceed to Phase 4: xgoja wiring cutover in `ClubMedMeetup/minitrace-viz/xgoja.yaml`.
+
+### Code review instructions
+
+- Start with `go-minitrace/pkg/doc/js-api-reference.md`.
+- Then inspect the small `.QueryCommandDefaults()` changes in JS showcase files.
+- Validate with:
+
+```bash
+cd go-minitrace && go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+rg -n "mt\.db\.open|mt\.session\.open|OpenDBOptions|SessionOpenOptions|mt\.import\.save|mt\.queries|mt\.views" go-minitrace/README.md go-minitrace/pkg/doc go-minitrace/testdata/query-repositories/js-showcase/README.md go-minitrace/examples/xgoja/minitrace-command-provider
+cd go-minitrace && go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```

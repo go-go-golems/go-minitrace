@@ -377,7 +377,7 @@ duckdb analysis.duckdb -init queries/load.sql -f queries/framework-summary.sql
 
 ## See also
 
-- `go-minitrace help js-api-reference` — use the same SQL patterns inside `mt.query()` and `mt.queryOne()` in JS command handlers
+- `go-minitrace help js-api-reference` — use JavaScript command handlers with `mt.db()` and normalized SQLite tables when you need reusable multi-query logic
 - `go-minitrace help analysis-guide` — where SQL queries fit in the end-to-end analysis workflow
 - `go-minitrace help structured-query-commands` — promote useful SQL into a named, reusable structured command
 - `go-minitrace help duckdb-query-recipes` — ready-to-use SQL examples for common analysis patterns

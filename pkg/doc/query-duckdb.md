@@ -189,7 +189,7 @@ go-minitrace query duckdb \
 
 ## See also
 
-- `go-minitrace help js-api-reference` — run the same SQL patterns inside `mt.query()` in JS command handlers
+- `go-minitrace help js-api-reference` — use JavaScript command handlers with `mt.db()` and normalized SQLite tables when you need reusable multi-query logic
 - `go-minitrace help analysis-guide` — end-to-end workflow with preset guidance and output format examples
 - `go-minitrace help structured-query-commands` — promote useful queries into named, reusable structured commands with typed flags
 - `go-minitrace help duckdb-query-recipes` — more ready-to-use query examples

@@ -39,7 +39,7 @@ Defined in `overview/async-tools.js`.
 
 - `delayed-summary`
   - async command using `require("timer")`
-  - uses `mt.queryOne(...)`
+  - uses `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and `db.queryOne(...)`
   - returns a single synthesized summary row
 - `top-session-cards`
   - async command returning multiple rows
@@ -112,7 +112,8 @@ This showcase now covers all of these patterns:
 - relative helper modules
 - pure synthetic row generation with no DB query
 - async commands using `require("timer")`
-- `queryOne(...)`
+- `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` for query-command archive loading
+- `db.queryOne(...)`
 - query results post-processed in JavaScript before emission
 - multiple SQL queries combined in JS
 - JS-side joins across independently queried aggregates

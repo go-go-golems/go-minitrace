@@ -7,7 +7,7 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().Build(); }
+function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
 function _limit(filters) {
   const limit = Number(filters.limit || 20);

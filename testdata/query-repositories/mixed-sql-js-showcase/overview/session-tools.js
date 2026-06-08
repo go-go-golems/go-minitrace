@@ -6,7 +6,7 @@ __section__("filters", {
 });
 
 function _db(mt) {
-  return mt.db().RuntimeArchives().Build();
+  return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
 }
 
 function sessionList(filters) {

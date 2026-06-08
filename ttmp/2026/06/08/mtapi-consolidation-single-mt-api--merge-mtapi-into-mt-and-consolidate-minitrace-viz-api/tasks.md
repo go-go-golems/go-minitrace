@@ -25,12 +25,12 @@
 
 ## Phase 3 — Documentation and Examples Cutover
 
-- [ ] Rewrite `go-minitrace/pkg/doc/js-api-reference.md` around builder factories: `mt.importer`, `mt.sources`, `mt.importPolicy`, `mt.cache`, `mt.limits`, `mt.db`, `mt.session`, `mt.query`, and `mt.view`.
-- [ ] Replace monolithic `mt.db().RuntimeArchives().Build()` examples with staged fluent examples and concise preset examples such as `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`.
-- [ ] Add upload/import examples using `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
-- [ ] Add app-style examples using `mt.session().File(...).InteractiveCache(...).Open()` and `session.view().Transcript().IncludeTools().Run()`.
-- [ ] Update query-command tests and showcase repositories to the builder-composed API.
-- [ ] Search for stale `mt.db.open`, `mt.session.open`, `OpenDBOptions`, `SessionOpenOptions`, `mt.import.save`, `mt.queries.*`, `mt.views.*`, and old options-map examples.
+- [x] Rewrite `go-minitrace/pkg/doc/js-api-reference.md` around builder factories: `mt.importer`, `mt.sources`, `mt.importPolicy`, `mt.cache`, `mt.limits`, `mt.db`, `mt.session`, `mt.query`, and `mt.view`.
+- [x] Replace monolithic `mt.db().RuntimeArchives().Build()` examples with staged fluent examples and concise preset examples such as `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`.
+- [x] Add upload/import examples using `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
+- [x] Add app-style examples using `mt.session().File(...).InteractiveCache(...).Open()` and `session.view().Transcript().IncludeTools().Run()`.
+- [x] Update query-command tests and showcase repositories to the builder-composed API.
+- [x] Search for stale `mt.db.open`, `mt.session.open`, `OpenDBOptions`, `SessionOpenOptions`, `mt.import.save`, `mt.queries.*`, `mt.views.*`, and old options-map examples.
 
 ## Phase 4 — `minitrace-viz` xgoja Wiring Cutover
 

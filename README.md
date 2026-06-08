@@ -236,7 +236,7 @@ For analysis tasks that go beyond what SQL can express conveniently — multi-qu
 
 JS handlers run in a Goja-powered runtime with access to:
 
-- `require("minitrace")` — DuckDB queries (`mt.query()`, `mt.queryOne()`)
+- `require("minitrace")` — normalized SQLite databases through `mt.db()` and `db.query()`
 - `require("timer")` — `setTimeout`, `setInterval` for async commands
 - `require("fs")`, `require("exec")`, `require("path")` — file system and shell access
 - `require("console")` — debug output to server logs
@@ -260,30 +260,34 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
+  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
 
-  // Run multiple queries and combine in JS
-  const rows = mt.query(`
-    SELECT
-      id,
-      title,
-      environment->>'agent_framework' AS framework,
-      CAST(metrics->>'tool_call_count' AS INT) AS tools,
-      CAST(metrics->>'turn_count' AS INT) AS turns
-    FROM ${mt.tableName}
-    WHERE 1=1
-    ${filters.framework?.length
-      ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
-      : ""}
-    ORDER BY timing->>'started_at' DESC
-    LIMIT ${filters.limit}
-  `);
+  try {
+    // Run SQL against normalized SQLite tables and post-process in JS.
+    const rows = db.query(`
+      SELECT
+        session_id,
+        title,
+        agent_framework AS framework,
+        tool_call_count AS tools,
+        turn_count AS turns
+      FROM sessions
+      WHERE 1=1
+      ${filters.framework?.length
+        ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
+        : ""}
+      ORDER BY started_at DESC
+      LIMIT ${filters.limit}
+    `);
 
-  // Post-process in JS: compute density, classify session type
-  return rows.map(row => ({
-    ...row,
-    density: row.turns > 0 ? (row.tools / row.turns).toFixed(2) : 0,
-    type: row.tools / row.turns > 2 ? "tool-heavy" : "balanced",
-  }));
+    return rows.map(row => ({
+      ...row,
+      density: row.turns > 0 ? (row.tools / row.turns).toFixed(2) : 0,
+      type: row.tools / row.turns > 2 ? "tool-heavy" : "balanced",
+    }));
+  } finally {
+    db.close();
+  }
 }
 
 __verb__("sessionList", {

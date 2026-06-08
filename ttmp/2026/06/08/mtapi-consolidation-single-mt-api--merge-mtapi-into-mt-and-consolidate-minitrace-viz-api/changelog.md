@@ -95,3 +95,14 @@ Recorded commit 5f5303d for Step 7 session/query/view builder implementation.
 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/reference/01-investigation-diary.md — Updated Step 7 commit hash
 
+
+## 2026-06-08
+
+Step 8: Rewrote JS API reference and updated query-command examples/docs to builder-composed mt API.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/queries/reports/markdown-summary.js — Example updated for QueryCommandDefaults
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md — Primary builder-composed JS API docs
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/testdata/query-repositories/js-showcase/README.md — Showcase docs updated for QueryCommandDefaults
+

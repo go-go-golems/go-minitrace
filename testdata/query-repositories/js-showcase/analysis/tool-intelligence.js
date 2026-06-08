@@ -9,7 +9,7 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().Build(); }
+function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
 function _toolWhere(mt, filters) {
   const clauses = ["1=1"];
