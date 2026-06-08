@@ -854,3 +854,90 @@ func TestModuleLoaderImporterSavesJSONLContent(t *testing.T) {
 		t.Fatalf("expected saved metadata: %v", err)
 	}
 }
+
+func TestModuleLoaderQueryAndViewBuilders(t *testing.T) {
+	path := writeNativeSessionFixture(t)
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("fixturePath", path)
+	value, err := vm.RunString(`
+		const db = mt.db().File(fixturePath).Build();
+		const recipe = mt.query().TranscriptRows().IncludeTools().Build();
+		const viaRecipe = db.query(recipe.sql(), ...recipe.args());
+		const timeline = mt.view().DB(db).Timeline().Run();
+		const usage = mt.view().DB(db).TokenUsage().ByTurn().Run();
+		const frames = mt.view().DB(db).TurnFrames().Run();
+		db.close();
+		JSON.stringify({ recipe: recipe.toJSON(), transcriptRows: viaRecipe.length, timelineRows: timeline.length, usageRows: usage.length, frameCount: frames.length });
+	`)
+	if err != nil {
+		t.Fatalf("run query/view builder script: %v", err)
+	}
+	var got struct {
+		Recipe struct {
+			Name string `json:"name"`
+		} `json:"recipe"`
+		TranscriptRows int `json:"transcriptRows"`
+		TimelineRows   int `json:"timelineRows"`
+		UsageRows      int `json:"usageRows"`
+		FrameCount     int `json:"frameCount"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal query/view result: %v", err)
+	}
+	if got.Recipe.Name != "transcriptRows" || got.TranscriptRows == 0 || got.TimelineRows == 0 || got.UsageRows == 0 || got.FrameCount == 0 {
+		t.Fatalf("unexpected query/view result: %#v", got)
+	}
+}
+
+func TestModuleLoaderSessionBuilderViews(t *testing.T) {
+	path := writeNativeSessionFixture(t)
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("fixturePath", path)
+	value, err := vm.RunString(`
+		const session = mt.session().File(fixturePath).InteractiveCache().Open();
+		const summary = session.summary();
+		const transcript = session.view().Transcript().IncludeTools().Run();
+		const timeline = session.view().Timeline().Run();
+		const usage = session.view().TokenUsage().ByTurn().Run();
+		const queried = session.query("SELECT COUNT(*) AS n FROM turns")[0].n;
+		session.close();
+		JSON.stringify({ id: session.id(), summaryId: summary.session_id, transcriptRows: transcript.length, timelineRows: timeline.length, usageRows: usage.length, queried });
+	`)
+	if err != nil {
+		t.Fatalf("run session builder script: %v", err)
+	}
+	var got struct {
+		ID             string `json:"id"`
+		SummaryID      string `json:"summaryId"`
+		TranscriptRows int    `json:"transcriptRows"`
+		TimelineRows   int    `json:"timelineRows"`
+		UsageRows      int    `json:"usageRows"`
+		Queried        int    `json:"queried"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal session result: %v", err)
+	}
+	if got.ID == "" || got.ID != got.SummaryID || got.TranscriptRows == 0 || got.TimelineRows == 0 || got.UsageRows == 0 || got.Queried == 0 {
+		t.Fatalf("unexpected session result: %#v", got)
+	}
+}

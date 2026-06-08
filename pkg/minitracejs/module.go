@@ -44,6 +44,15 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = exports.Set("limits", func() *goja.Object {
 			return queryLimitsBuilderObject(vm, NewQueryLimitsBuilder())
 		})
+		_ = exports.Set("query", func() *goja.Object {
+			return queryRecipeBuilderObject(vm, NewQueryRecipeBuilder())
+		})
+		_ = exports.Set("view", func() *goja.Object {
+			return viewPlanBuilderObject(vm, NewViewPlanBuilder())
+		})
+		_ = exports.Set("session", func() *goja.Object {
+			return sessionBuilderObject(vm, NewSessionBuilder(ctx, runtimeSettings))
+		})
 
 		runtimeObj := vm.NewObject()
 		_ = runtimeObj.Set("tableName", runtimeSettings.TableName)

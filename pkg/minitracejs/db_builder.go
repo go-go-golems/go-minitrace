@@ -817,6 +817,7 @@ func (h *DBHandle) Close() error {
 
 func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	obj := vm.NewObject()
+	_ = obj.Set("_handle", h)
 	_ = obj.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
 		return h.runner.Query(context.Background(), sqlText, args...)
 	})

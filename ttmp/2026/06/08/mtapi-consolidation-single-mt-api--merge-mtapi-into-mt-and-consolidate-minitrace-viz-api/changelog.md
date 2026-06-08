@@ -76,3 +76,13 @@ Step 6: Added mt.importer fluent upload/import builder with save-to-session-dire
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — New import builder
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go — Importer integration test
 
+
+## 2026-06-08
+
+Step 7: Added mt.query, mt.view, and mt.session builders with provider integration tests.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go — Query/view/session integration tests
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/query_view_session.go — Query/view/session builders
+

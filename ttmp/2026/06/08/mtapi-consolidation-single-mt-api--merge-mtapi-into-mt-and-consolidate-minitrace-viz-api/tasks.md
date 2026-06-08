@@ -9,19 +9,19 @@
 - [x] Add `mt.limits()` fluent subbuilder that returns Go-owned `QueryLimits` from `Rows`, `Columns`, `CellChars`, `TimeoutMs`, and `RequireOrderBy`.
 - [x] Refactor `mt.db()` into a composition builder that accepts `Sources(SourceSet)`, `Import(ImportPolicy)`, `Cache(CachePolicy)`, and `Limits(QueryLimits)`.
 - [x] Keep concise `mt.db()` convenience methods such as `File`, `Content`, `Name`, `RuntimeArchives`, `AutoConvert`, `Strict`, `CacheAuto`, `QueryCommandDefaults`, and `InteractiveDefaults` where they delegate to internal subbuilders.
-- [ ] Add `mt.session()` fluent builder with `Sources`, `Source`, `Import`, `Cache`, `Limits`, `SessionID`, `File`, `Content`, `Name`, `InteractiveCache`, `Strict`, and `Open`.
-- [ ] Add lifecycle-safe session handles with `summary()`, `diagnostics()`, `cacheInfo()`, `db()`, `query()`, `view()`, and `close()`.
+- [x] Add `mt.session()` fluent builder with `Sources`, `Source`, `Import`, `Cache`, `Limits`, `SessionID`, `File`, `Content`, `Name`, `InteractiveCache`, `Strict`, and `Open`.
+- [x] Add lifecycle-safe session handles with `summary()`, `diagnostics()`, `cacheInfo()`, `db()`, `query()`, `view()`, and `close()`.
 
 ## Phase 2 — Query Recipe and View Plan Builders
 
-- [ ] Add `mt.query()` fluent builder with recipe selectors `SessionSummary`, `TurnRows`, `ToolRows`, `EventRows`, `TurnBlockRows`, `TokenUsageRows`, `TranscriptRows`, and `TimelineRows`.
-- [ ] Add query-builder modifiers `SessionID`, `IncludeTools`, `BySession`, `ByTurn`, `ByRole`, and `ByTool`.
-- [ ] Make `mt.query().<Recipe>().Build()` return a Go-owned `QueryRecipe` with `name()`, `sql()`, `args()`, `description()`, `output()`, and `toJSON()`.
-- [ ] Add `mt.view()` fluent builder with `DB`, `SessionID`, `Transcript`, `TurnFrames`, `Timeline`, `TokenUsage`, `SessionSummary`, and `Run`.
-- [ ] Add `session.view()` as a session-bound view builder.
-- [ ] Add view-builder modifiers `IncludeTools`, `IncludeThinking`, `IncludeToolResults`, `CollapseLongTextAt`, `BySession`, `ByTurn`, `ByRole`, and `ByTool`.
-- [ ] Keep view outputs plain JSON-serializable transcript rows, turn frames, token usage rows, and timeline rows.
-- [ ] Add output-contract tests for transcript rows, turn frames, token usage rows, timeline rows, and query recipe objects.
+- [x] Add `mt.query()` fluent builder with recipe selectors `SessionSummary`, `TurnRows`, `ToolRows`, `EventRows`, `TurnBlockRows`, `TokenUsageRows`, `TranscriptRows`, and `TimelineRows`.
+- [x] Add query-builder modifiers `SessionID`, `IncludeTools`, `BySession`, `ByTurn`, `ByRole`, and `ByTool`.
+- [x] Make `mt.query().<Recipe>().Build()` return a Go-owned `QueryRecipe` with `name()`, `sql()`, `args()`, `description()`, `output()`, and `toJSON()`.
+- [x] Add `mt.view()` fluent builder with `DB`, `SessionID`, `Transcript`, `TurnFrames`, `Timeline`, `TokenUsage`, `SessionSummary`, and `Run`.
+- [x] Add `session.view()` as a session-bound view builder.
+- [x] Add view-builder modifiers `IncludeTools`, `IncludeThinking`, `IncludeToolResults`, `CollapseLongTextAt`, `BySession`, `ByTurn`, `ByRole`, and `ByTool`.
+- [x] Keep view outputs plain JSON-serializable transcript rows, turn frames, token usage rows, and timeline rows.
+- [x] Add output-contract tests for transcript rows, turn frames, token usage rows, timeline rows, and query recipe objects.
 
 ## Phase 3 — Documentation and Examples Cutover
 

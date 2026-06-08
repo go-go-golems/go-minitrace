@@ -22,6 +22,8 @@ RelatedFiles:
       Note: Step 5 exported new builder factories
     - Path: go-minitrace/pkg/minitracejs/provider/provider_test.go
       Note: Step 5 added Goja integration coverage for composed builders
+    - Path: go-minitrace/pkg/minitracejs/query_view_session.go
+      Note: Step 7 added query
     - Path: go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/01-single-mt-api-consolidation-design-and-implementation-guide.md
       Note: Primary design produced during diary step 2
     - Path: go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md
@@ -32,6 +34,7 @@ LastUpdated: 2026-06-08T20:45:00-04:00
 WhatFor: Use this to resume the ticket and understand what evidence was gathered before the implementation guide was written.
 WhenToUse: Read before implementing or reviewing the mt API consolidation work.
 ---
+
 
 
 
@@ -489,7 +492,7 @@ This replaces the old ClubMed shape `mt.source(content, { name }).detect().conve
 
 **Inferred user intent:** Move from design into concrete Goja module features with tests and reviewable commits.
 
-**Commit (code):** pending at time of diary update — planned message: `Add minitrace JS import builder`.
+**Commit (code):** `e2e82cee7c9e95a9254e4a4d2ea606bdb5757aee` — `Add minitrace JS import builder`.
 
 ### What I did
 
@@ -569,4 +572,125 @@ Commands run:
 gofmt -w go-minitrace/pkg/minitracejs/import_builder.go go-minitrace/pkg/minitracejs/module.go go-minitrace/pkg/minitracejs/provider/provider_test.go
 cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderImporterSavesJSONLContent' -count=1
 cd go-minitrace && go test ./pkg/minitracejs/provider -count=1
+```
+
+## Step 7: Add session, query, and view builders
+
+I implemented the remaining core builder-composed API surface for in-process transcript work: `mt.query()`, `mt.view()`, and `mt.session()`. Query recipes are now built fluently, view plans can execute against a DB handle or a session-bound DB, and a session handle exposes summary, diagnostics, cache information, direct SQL querying, and view plans.
+
+This step completes the first pass of Phase 1 and Phase 2 for the Goja module. The API still needs documentation updates and app cutover, but the reusable builder primitives now exist and have provider-level integration tests.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue task-by-task implementation and commit when a coherent API slice is complete.
+
+**Inferred user intent:** Finish the foundational Goja module API before moving to docs and minitrace-viz refactoring.
+
+**Commit (code):** pending at time of diary update — planned message: `Add minitrace JS session and view builders`.
+
+### What I did
+
+- Added `go-minitrace/pkg/minitracejs/query_view_session.go`.
+- Exported `mt.query()`, `mt.view()`, and `mt.session()` from `module.go`.
+- Added `QueryRecipeBuilder` and `QueryRecipe` wrappers with:
+  - `SessionSummary`,
+  - `TurnRows`,
+  - `ToolRows`,
+  - `EventRows`,
+  - `TurnBlockRows`,
+  - `TokenUsageRows`,
+  - `TranscriptRows`,
+  - `TimelineRows`,
+  - modifiers such as `SessionID`, `IncludeTools`, `ByTurn`, `ByRole`, and `ByTool`.
+- Added `ViewPlanBuilder` with:
+  - `DB`,
+  - `SessionID`,
+  - `Transcript`,
+  - `TurnFrames`,
+  - `Timeline`,
+  - `TokenUsage`,
+  - `SessionSummary`,
+  - `Run`.
+- Added `SessionBuilder` and `SessionHandle` with:
+  - `File`,
+  - `Content`,
+  - `Name`,
+  - `InteractiveCache`,
+  - `Open`,
+  - `summary`,
+  - `diagnostics`,
+  - `cacheInfo`,
+  - `db`,
+  - `query`,
+  - `view`,
+  - `close`.
+- Added integration tests for query/view builders and session-bound views.
+- Marked Phase 1 session tasks and Phase 2 query/view tasks complete.
+
+### Why
+
+- These builders are the core replacement for the old `mt.archiveFile(...).turnBlocks()` app path.
+- They provide a Go-owned fluent API while keeping output rows plain enough for WidgetRenderer adapters and HTTP responses.
+
+### What worked
+
+- `mt.query().TranscriptRows().Build()` returns a recipe object with `sql()`, `args()`, and `toJSON()`.
+- `mt.view().DB(db).Timeline().Run()` and `mt.view().DB(db).TokenUsage().ByTurn().Run()` execute against a DB handle.
+- `mt.session().File(path).InteractiveCache().Open()` derives a session summary and supports `session.view().Transcript().IncludeTools().Run()`.
+- `go test ./pkg/minitracejs/... -count=1` passed.
+
+### What didn't work
+
+- The first version of the transcript query used CTEs named `message_rows`, `thinking_rows`, and `tool_rows`. The existing query validator treated CTE aliases as disallowed table/view references and failed with:
+
+```text
+GoError: query references disallowed table/view "message_rows": WITH message_rows AS (...)
+```
+
+I rewrote the transcript recipe as direct `UNION ALL` selects over allowed base tables (`turns`, `tool_calls`, `turn_tool_calls`) to satisfy the validator.
+
+### What I learned
+
+- Query recipes must account for the current SQL validator, not just SQLite syntax. CTE-heavy recipes may need validator improvements or simpler SQL forms.
+- A standalone `mt.view().DB(db)` needs access to the underlying Go `*DBHandle`; I exposed it on the JS DB object as `_handle` so the view builder can recover it.
+
+### What was tricky to build
+
+- The `DBHandle` object returned to JS was previously only a JS wrapper with methods. To support `mt.view().DB(db)`, I added an internal `_handle` property containing the Go pointer. This is pragmatic but should be reviewed; a less visible host-object mechanism would be cleaner if available.
+- `TurnFrames` currently groups event rows and tool rows into plain frame maps. It is a first-pass generic grouping helper and may need richer stats/text truncation parity later.
+
+### What warrants a second pair of eyes
+
+- Review the `_handle` exposure on DB JS objects.
+- Review the SQL recipes for validator friendliness and stable output contracts.
+- Review whether `session.db()` returning a new JS wrapper around the same handle has any lifecycle caveats after `session.close()`.
+
+### What should be done in the future
+
+- Update `go-minitrace/pkg/doc/js-api-reference.md` and examples for the new builders.
+- Start the minitrace-viz xgoja and app call-site cutover after docs/tests are stable.
+- Consider adding pure Go unit tests for recipe SQL generation in addition to Goja integration tests.
+
+### Code review instructions
+
+- Start with `go-minitrace/pkg/minitracejs/query_view_session.go`.
+- Then review `module.go` exports and the two new provider tests.
+- Validate with:
+
+```bash
+cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderQueryAndViewBuilders|TestModuleLoaderSessionBuilderViews' -count=1
+cd go-minitrace && go test ./pkg/minitracejs/... -count=1
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+gofmt -w go-minitrace/pkg/minitracejs/query_view_session.go go-minitrace/pkg/minitracejs/db_builder.go go-minitrace/pkg/minitracejs/module.go
+cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderQueryAndViewBuilders|TestModuleLoaderSessionBuilderViews' -count=1
+cd go-minitrace && go test ./pkg/minitracejs/provider -count=1
+cd go-minitrace && go test ./pkg/minitracejs/... -count=1
 ```
