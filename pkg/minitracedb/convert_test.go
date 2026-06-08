@@ -19,6 +19,19 @@ func TestLoadSessionContentAutoConvertsPiJSONL(t *testing.T) {
 	}
 }
 
+func TestLoadSessionContentAutoConvertsRoleOnlyPiJSONL(t *testing.T) {
+	loaded, err := LoadSessionContentAuto(jsonl(t, []map[string]any{
+		{"role": "user", "content": "Read config.yaml"},
+		{"role": "assistant", "content": "I will inspect the file."},
+	}), LoadOptions{SourceName: "role-only-pi.jsonl", AutoConvert: true})
+	if err != nil {
+		t.Fatalf("LoadSessionContentAuto: %v", err)
+	}
+	if loaded.Format != "pi-jsonl" || loaded.Adapter != "pi" {
+		t.Fatalf("unexpected load result: %#v", loaded)
+	}
+}
+
 func TestLoadSessionContentAutoConvertsCodexJSONL(t *testing.T) {
 	loaded, err := LoadSessionContentAuto(jsonl(t, []map[string]any{
 		{"type": "session_meta", "payload": map[string]any{"id": "codex-1", "cwd": "/tmp/project"}},

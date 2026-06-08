@@ -100,6 +100,10 @@ func DetectJSONLFormat(records []map[string]any) string {
 		if t == "session" || t == "model_change" || t == "thinking_level_change" || t == "message" {
 			return "pi-jsonl"
 		}
+		role := stringValue(record["role"])
+		if role == "user" || role == "assistant" || role == "toolResult" {
+			return "pi-jsonl"
+		}
 		if (t == "system" || t == "user" || t == "assistant") && record["message"] != nil {
 			return "claude-code-jsonl"
 		}

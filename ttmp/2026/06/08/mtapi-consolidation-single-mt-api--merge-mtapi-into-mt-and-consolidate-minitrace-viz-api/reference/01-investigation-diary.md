@@ -709,7 +709,7 @@ I also updated existing JavaScript showcase examples and related docs from `mt.d
 
 **Inferred user intent:** Proceed through the ticket task list without pausing for a separate prompt at each task.
 
-**Commit (code):** pending at time of diary update — planned message: `Document builder-composed minitrace JS API`.
+**Commit (code):** `4651b614235e4ae83c709cfec8a30f2ef2e6d5ea` — `Document builder-composed minitrace JS API`.
 
 ### What I did
 
@@ -769,5 +769,117 @@ Commands run:
 
 ```bash
 rg -n "mt\.db\.open|mt\.session\.open|OpenDBOptions|SessionOpenOptions|mt\.import\.save|mt\.queries|mt\.views" go-minitrace/README.md go-minitrace/pkg/doc go-minitrace/testdata/query-repositories/js-showcase/README.md go-minitrace/examples/xgoja/minitrace-command-provider
+cd go-minitrace && go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```
+
+## Step 9: Cut minitrace-viz over to go-minitrace mt builders and delete local mtapi
+
+I moved the ClubMedMeetup app off the local `mtapi` provider and onto the new builder-composed `go-minitrace` module. The xgoja wiring now aliases the `go-minitrace` provider as `mt`, the upload path uses `mt.importer()`, the timeline path opens sessions through `mt.session()`, and the legacy report endpoints no longer call the removed report builder.
+
+I also deleted the local `pkg/mtapi` and `pkg/mtapiprovider` packages and updated the smoke test to validate the new student-facing endpoints instead of the removed `/analyze` report flow.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue implementing the remaining phases after docs, including app cutover and validation.
+
+**Inferred user intent:** Complete the clean API cutover rather than stopping at reusable module primitives.
+
+**Commit (code):** pending at time of diary update — planned messages: `Detect role-only Pi JSONL transcripts` in `go-minitrace` and `Cut minitrace-viz over to go-minitrace mt builders` in `ClubMedMeetup`.
+
+### What I did
+
+- Updated `ClubMedMeetup/minitrace-viz/xgoja.yaml`:
+  - removed the local `clubmed-minitrace-viz` package,
+  - removed local `mt` module registration,
+  - aliased `go-minitrace` as `mt`,
+  - added `replace: ../../go-minitrace` so xgoja builds use the local implementation.
+- Updated `lib/session-service.js` to use `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
+- Updated `lib/timeline-data.js` to open a `mt.session()` and query normalized tables for the existing app timeline/context shaping code.
+- Updated `server.js`:
+  - `/api/session/:sessionId/turn-blocks` now uses `session.view().TurnFrames()`;
+  - `/analyze`, `/api/report/:sessionId`, and `/api/report-presets` return explicit 410 legacy-report responses instead of calling removed APIs.
+- Updated `test-fixtures/smoke-test.sh` to smoke-test upload, timeline, transcript-data, and context-window-data.
+- Deleted `ClubMedMeetup/minitrace-viz/pkg/mtapi` and `pkg/mtapiprovider`.
+- Fixed `go-minitrace/pkg/minitracedb/convert.go` to detect role-only Pi-style JSONL records used by the existing minitrace-viz smoke fixture.
+
+### Why
+
+- This completes the clean cutover from the local ClubMed provider to the reusable `go-minitrace` module.
+- The app's smoke fixture used `{ role, content }` JSONL records, which the old `mtapi` detector accepted but `go-minitrace` did not yet detect as Pi JSONL.
+
+### What worked
+
+- `xgoja build` succeeded after adding the local `go-minitrace` replacement.
+- The updated smoke test passed all six checks:
+  - index page,
+  - sessions API,
+  - upload,
+  - timeline API,
+  - transcript-data API,
+  - context-window-data API.
+- `go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1` passed.
+
+### What didn't work
+
+- The first `xgoja build` after the xgoja cutover used the dependency version of `go-minitrace`, so runtime upload failed with:
+
+```text
+Upload error: TypeError: Object has no member 'importer'
+```
+
+I fixed this by adding `replace: ../../go-minitrace` to the `go-minitrace` package entry in `xgoja.yaml`.
+
+- After that, upload failed because the smoke fixture was role-only Pi-style JSONL:
+
+```text
+Upload error: GoError: sample.jsonl JSONL format is unsupported
+```
+
+I fixed this by teaching `minitracedb.DetectJSONLFormat` to classify records with `role` equal to `user`, `assistant`, or `toolResult` as `pi-jsonl`.
+
+- The old smoke test expected the removed `/analyze` report flow and old page text. I rewrote it to validate current WidgetRenderer pages and JSON endpoints.
+
+### What I learned
+
+- xgoja package replacement is required here because the app must build against the local `go-minitrace` implementation, not the currently released module version.
+- The old ClubMed detector accepted a broader Pi JSONL shape than `go-minitrace` initially did. Consolidation surfaced that parity gap quickly.
+
+### What was tricky to build
+
+- `timeline-data.js` still feeds app-specific transcript/context shaping. I preserved the existing `shapeTimeline(...)` path and populated it from normalized SQL rows instead of trying to force the first-pass generic `Timeline()` view to carry all app-specific fields.
+- The report routes had to stop calling removed APIs, but leaving explicit 410 JSON responses is safer than silently removing routes while frontend/demo links may still exist.
+
+### What warrants a second pair of eyes
+
+- Review whether `xgoja.yaml` should keep `replace: ../../go-minitrace` permanently or only while both repos are developed in this workspace.
+- Review the SQL in `timeline-data.js`; it intentionally preserves old app model fields but may later be simplified around richer `session.view()` outputs.
+- Review whether report endpoints should be deleted entirely instead of returning 410.
+
+### What should be done in the future
+
+- Consider adding a go-minitrace converter regression test specifically for role-only Pi JSONL records.
+- Run a broader minitrace-viz browser/manual test once the frontend route expectations are reviewed.
+
+### Code review instructions
+
+- In `go-minitrace`, start with `pkg/minitracedb/convert.go` for the detector parity fix.
+- In `ClubMedMeetup`, start with `minitrace-viz/xgoja.yaml`, then `lib/session-service.js`, `lib/timeline-data.js`, and `server.js`.
+- Validate with:
+
+```bash
+cd go-minitrace && go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+cd ClubMedMeetup/minitrace-viz && make build && bash test-fixtures/smoke-test.sh
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+cd ClubMedMeetup/minitrace-viz && make build
+cd ClubMedMeetup/minitrace-viz && bash test-fixtures/smoke-test.sh
+rg -n "clubmed-minitrace-viz|mtapiprovider|require\\([\\\"']minitrace|mt\\.source|mt\\.archiveFile|reportPresets|\\.report\\(" ClubMedMeetup/minitrace-viz --glob '!dist/**' --glob '!node_modules/**'
 cd go-minitrace && go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
 ```

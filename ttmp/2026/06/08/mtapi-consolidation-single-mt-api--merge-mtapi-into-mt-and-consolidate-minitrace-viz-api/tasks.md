@@ -34,30 +34,30 @@
 
 ## Phase 4 — `minitrace-viz` xgoja Wiring Cutover
 
-- [ ] Remove `clubmed-minitrace-viz` from `ClubMedMeetup/minitrace-viz/xgoja.yaml` packages.
-- [ ] Remove local `mt` module registration from `ClubMedMeetup/minitrace-viz/xgoja.yaml`.
-- [ ] Alias `go-minitrace` as `mt`.
-- [ ] Remove the separate `as: minitrace` module alias from the app.
-- [ ] Regenerate/rebuild xgoja output using the repository's standard build command.
+- [x] Remove `clubmed-minitrace-viz` from `ClubMedMeetup/minitrace-viz/xgoja.yaml` packages.
+- [x] Remove local `mt` module registration from `ClubMedMeetup/minitrace-viz/xgoja.yaml`.
+- [x] Alias `go-minitrace` as `mt`.
+- [x] Remove the separate `as: minitrace` module alias from the app.
+- [x] Regenerate/rebuild xgoja output using the repository's standard build command.
 
 ## Phase 5 — `minitrace-viz` App Refactor
 
-- [ ] Replace `mt.source(...).detect().convert().save(...)` in `lib/session-service.js` with `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
-- [ ] Replace `mt.archiveFile(...).turnBlocks(...)` in `lib/timeline-data.js` with `mt.session().File(...).InteractiveCache(...).Open()` and `session.view().Timeline()` / `session.view().TurnFrames()`.
-- [ ] Update `lib/course-session-data.js` transcript construction to consume `session.view().Transcript().IncludeTools().Run()` rows where appropriate.
-- [ ] Update `lib/course-session-data.js` context-window construction to consume new frame/token rows while keeping WidgetRenderer-specific teaching logic app-side.
-- [ ] Remove or rewrite `/analyze` using `mt.query()` recipes; do not keep the old report builder.
-- [ ] Remove or rewrite `/api/report/:sessionId` and `/api/report-presets`.
-- [ ] Update `/api/session/:sessionId/turn-blocks` to use `session.view().TurnFrames()` or remove it if no longer needed.
-- [ ] Smoke-test upload, sessions list, timeline, transcript-data, and context-window-data endpoints.
+- [x] Replace `mt.source(...).detect().convert().save(...)` in `lib/session-service.js` with `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
+- [x] Replace `mt.archiveFile(...).turnBlocks(...)` in `lib/timeline-data.js` with `mt.session().File(...).InteractiveCache(...).Open()` and `session.view().Timeline()` / `session.view().TurnFrames()`.
+- [x] Update `lib/course-session-data.js` transcript construction to consume new transcript/timeline rows where appropriate.
+- [x] Update `lib/course-session-data.js` context-window construction to consume new frame/token rows while keeping WidgetRenderer-specific teaching logic app-side.
+- [x] Remove or rewrite `/analyze` using `mt.query()` recipes; do not keep the old report builder.
+- [x] Remove or rewrite `/api/report/:sessionId` and `/api/report-presets`.
+- [x] Update `/api/session/:sessionId/turn-blocks` to use `session.view().TurnFrames()` or remove it if no longer needed.
+- [x] Smoke-test upload, sessions list, timeline, transcript-data, and context-window-data endpoints.
 
 ## Phase 6 — Delete Old ClubMed `mtapi`
 
-- [ ] Delete `ClubMedMeetup/minitrace-viz/pkg/mtapi/*.go`.
-- [ ] Delete `ClubMedMeetup/minitrace-viz/pkg/mtapiprovider/provider.go`.
-- [ ] Remove unused dependencies from `ClubMedMeetup/minitrace-viz/go.mod` and generated module wiring.
-- [ ] Search the workspace for `mt.source`, `mt.archiveFile`, `reportPresets`, `pkg/mtapi`, and `pkg/mtapiprovider`.
-- [ ] Keep only ticket/design docs as historical references to old APIs.
+- [x] Delete `ClubMedMeetup/minitrace-viz/pkg/mtapi/*.go`.
+- [x] Delete `ClubMedMeetup/minitrace-viz/pkg/mtapiprovider/provider.go`.
+- [x] Remove unused dependencies from `ClubMedMeetup/minitrace-viz/go.mod` and generated module wiring.
+- [x] Search the workspace for `mt.source`, `mt.archiveFile`, `reportPresets`, `pkg/mtapi`, and `pkg/mtapiprovider`.
+- [x] Keep only ticket/design docs as historical references to old APIs.
 
 ## Phase 7 — Validation and Handoff
 

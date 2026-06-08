@@ -106,3 +106,16 @@ Step 8: Rewrote JS API reference and updated query-command examples/docs to buil
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md — Primary builder-composed JS API docs
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/testdata/query-repositories/js-showcase/README.md — Showcase docs updated for QueryCommandDefaults
 
+
+## 2026-06-08
+
+Step 9: Cut minitrace-viz over to go-minitrace mt builders, deleted local mtapi, and fixed role-only Pi JSONL detection.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/ClubMedMeetup/minitrace-viz/lib/session-service.js — Upload path now uses mt.importer
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/ClubMedMeetup/minitrace-viz/lib/timeline-data.js — Timeline data now uses mt.session and normalized SQL
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/ClubMedMeetup/minitrace-viz/server.js — Legacy report routes removed from mtapi path
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/ClubMedMeetup/minitrace-viz/xgoja.yaml — go-minitrace provider aliased as mt
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/convert.go — Role-only Pi JSONL detection parity
+
