@@ -883,3 +883,116 @@ cd ClubMedMeetup/minitrace-viz && bash test-fixtures/smoke-test.sh
 rg -n "clubmed-minitrace-viz|mtapiprovider|require\\([\\\"']minitrace|mt\\.source|mt\\.archiveFile|reportPresets|\\.report\\(" ClubMedMeetup/minitrace-viz --glob '!dist/**' --glob '!node_modules/**'
 cd go-minitrace && go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
 ```
+
+## Step 9: Unblock CI lint and plan robust SQLite authorization
+
+I first addressed the immediate CI blocker from golangci-lint, then created the second design document requested for the brittle SQLite query-guard problem. The code change is deliberately small: it only removes lint violations and does not yet change query authorization behavior.
+
+The design document records the deeper implementation direction: keep cheap SQL shape validation and the existing read-only prepared-statement check, but move table allowlist enforcement from regex extraction to SQLite's parser-backed `sqlite3_set_authorizer` callback.
+
+### Prompt Context
+
+**User prompt (verbatim):** "fix this firsrt:
+
+minitrace] ...
+  Running [/home/runner/golangci-lint-2.11.2-linux-amd64/golangci-lint config verify] in [/home/runner/work/go-minitrace/go-minitrace] ...
+  Running [/home/runner/golangci-lint-2.11.2-linux-amd64/golangci-lint run  --timeout=5m ./cmd/... ./pkg/...] in [/home/runner/work/go-minitrace/go-minitrace] ...
+  Error: pkg/minitracedb/materialize.go:445:34: param max has same name as predeclared identifier (predeclared)
+  func summarizeText(value string, max int) string {
+                                   ^
+  Error: pkg/minitracejs/builders.go:139:21: func (*SourceSet).toJSON is unused (unused)
+  func (s *SourceSet) toJSON() []map[string]any  { return s.Summary() }
+                      ^
+  Error: pkg/minitracejs/builders.go:185:24: func (*ImportPolicy).toJSON is unused (unused)
+  func (p *ImportPolicy) toJSON() map[string]any  { return p.Summary() }
+                         ^
+  Error: pkg/minitracejs/builders.go:231:23: func (*CachePolicy).toJSON is unused (unused)
+  func (p *CachePolicy) toJSON() map[string]any  { return p.Summary() }
+                        ^
+  Error: pkg/minitracejs/builders.go:273:23: func (*QueryLimits).toJSON is unused (unused)
+  func (l *QueryLimits) toJSON() map[string]any  { return l.Summary() }
+                        ^
+  5 issues:
+
+
+Then in the go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/ ticket, create a second design document that analyzes and makes a n implementation plan for the solid sqlite parsing."
+
+**Assistant interpretation:** Fix the reported lint failures first, then add a second ticket design document that explains and plans the robust SQLite parsing/authorization fix.
+
+**Inferred user intent:** Unblock CI before deeper authorization work, while preserving a detailed implementation plan for the brittle query-guard problem.
+
+**Commit (code):** pending — lint/documentation changes are not committed yet.
+
+### What I did
+
+- Renamed `summarizeText(value string, max int)` to use `maxChars` in `pkg/minitracedb/materialize.go`.
+- Removed unused unexported `toJSON` methods from `pkg/minitracejs/builders.go`.
+- Copied SQLite authorizer research sources into `sources/sqlite-authorizer/` under this ticket.
+- Added `design-doc/02-solid-sqlite-query-authorization-design-and-implementation-plan.md`.
+- Updated the ticket changelog and related-file metadata for the new design document.
+- Ran validation commands.
+
+### Why
+
+- The immediate lint errors were blocking the PR's CI run and were safe to fix independently from behavior changes.
+- The query-guard problem needs a design-first approach because regex-based SQL table extraction is not a reliable security boundary.
+
+### What worked
+
+- `go test ./pkg/minitracedb ./pkg/minitracejs/...` passed.
+- `golangci-lint run --timeout=5m ./cmd/... ./pkg/...` reported `0 issues` locally.
+- `docmgr doc relate` succeeded after correcting the new document's `ExternalSources` frontmatter format.
+
+### What didn't work
+
+- My first `docmgr --root ttmp ...` command resolved to the ClubMedMeetup ticket root because the workspace has a root `.ttmp.yaml`. I reran docmgr with the absolute root `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp`.
+- The first `docmgr doc relate` attempt failed because `ExternalSources` contained structured maps, while this docmgr taxonomy expects strings:
+
+```text
+Error: document has invalid frontmatter ... yaml: unmarshal errors:
+  line 25: cannot unmarshal !!map into string
+```
+
+I converted the external source entries to strings and reran the relate command successfully.
+
+### What I learned
+
+- The local workspace's docmgr root resolution can be surprising when multiple repos under the same workspace contain `ttmp` trees.
+- For this ticket's frontmatter schema, `RelatedFiles` supports structured `Path`/`Note` maps, but `ExternalSources` should be a string list.
+
+### What was tricky to build
+
+- The tricky part was keeping the lint fix separate from the deeper behavior change. The authorizer design calls for changing `pkg/minitracedb/query.go`, but doing that in the same step as the lint unblock would make CI triage harder.
+- The docmgr frontmatter mismatch looked like a relation problem at first, but the underlying cause was YAML taxonomy validation for `ExternalSources`.
+
+### What warrants a second pair of eyes
+
+- Review whether deleting the unused `toJSON` methods is acceptable for Goja JSON serialization semantics. They were unexported and unused by Go, but if a future Goja interop path expected method discovery, this should be validated.
+- Review the proposed deny-by-default authorizer policy in the new design doc, especially whether `SQLITE_FUNCTION` should be allow-all initially or narrowed to a function allowlist.
+
+### What should be done in the future
+
+- Implement the behavior change from the new design doc in a follow-up step: add failing regression tests, move table allowlisting into the SQLite authorizer, and remove regex table extraction from the security path.
+
+### Code review instructions
+
+- Start with `pkg/minitracedb/materialize.go` and `pkg/minitracejs/builders.go` for the lint-only code diff.
+- Then read `design-doc/02-solid-sqlite-query-authorization-design-and-implementation-plan.md` for the planned query-authorization implementation.
+- Validate with:
+
+```bash
+go test ./pkg/minitracedb ./pkg/minitracejs/...
+golangci-lint run --timeout=5m ./cmd/... ./pkg/...
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+gofmt -w pkg/minitracedb/materialize.go pkg/minitracejs/builders.go
+go test ./pkg/minitracedb ./pkg/minitracejs/...
+golangci-lint run --timeout=5m ./cmd/... ./pkg/...
+docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp changelog update --ticket mtapi-consolidation-single-mt-api ...
+docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp doc relate --doc .../design-doc/02-solid-sqlite-query-authorization-design-and-implementation-plan.md ...
+```

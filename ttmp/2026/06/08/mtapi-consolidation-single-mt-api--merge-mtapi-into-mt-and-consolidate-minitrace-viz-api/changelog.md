@@ -146,3 +146,14 @@ Re-uploaded final implementation bundle to reMarkable at /ai/2026/06/08/mtapi-co
 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/changelog.md — Final upload entry
 
+
+## 2026-06-08
+
+Fix CI lint issues in minitracedb/materialize.go and minitracejs/builders.go, add SQLite authorizer source material, and add a second design document for robust parser-backed query validation.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize.go — Renamed summarizeText parameter to avoid predeclared identifier lint
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/builders.go — Removed unused unexported toJSON methods flagged by lint
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/02-solid-sqlite-query-authorization-design-and-implementation-plan.md — Implementation plan for parser-backed SQLite authorization
+

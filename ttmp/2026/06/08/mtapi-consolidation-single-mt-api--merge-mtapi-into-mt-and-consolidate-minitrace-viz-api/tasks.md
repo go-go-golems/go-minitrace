@@ -67,3 +67,13 @@
 - [x] Upload representative Pi fixture through the minitrace-viz smoke test; Codex, Claude Code, and native minitrace app uploads remain follow-up validation.
 - [x] Validate transcript ordering, tool-call attachment, failed-tool markers, token totals, and context-window turn selection at smoke-test/API level.
 - [x] Update changelog and diary with final implementation notes, commands, failures, and review instructions.
+
+## Phase 8 — Robust SQLite Query Authorization
+
+- [x] Fix current CI lint blockers before changing query behavior.
+- [x] Add SQLite authorizer research sources and the second design document for parser-backed query authorization.
+- [ ] Add regression tests for quoted disallowed objects, quoted allowed objects, CTE aliases, and disallowed objects inside CTE bodies.
+- [ ] Move table allowlist enforcement from regex extraction into the SQLite authorizer.
+- [ ] Remove obsolete regex table extraction helpers from the production query-validation path.
+- [ ] Run focused and full validation: `go test ./pkg/minitracedb ./pkg/minitracejs/...`, `go test ./cmd/... ./pkg/... -count=1`, and `golangci-lint run --timeout=5m ./cmd/... ./pkg/...`.
+- [ ] Update ticket changelog and investigation diary after each implementation slice.

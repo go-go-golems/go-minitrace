@@ -136,7 +136,6 @@ func (b *SourceSetBuilder) Build() (*SourceSet, error) {
 }
 
 func (s *SourceSet) Summary() []map[string]any { return toPlainSlice(s.sources) }
-func (s *SourceSet) toJSON() []map[string]any  { return s.Summary() }
 
 type ImportPolicy struct {
 	AutoConvert  bool   `json:"autoConvert"`
@@ -182,7 +181,6 @@ func importPolicyBuilderObject(vm *goja.Runtime, b *ImportPolicyBuilder) *goja.O
 }
 
 func (p *ImportPolicy) Summary() map[string]any { return toPlainMap(p) }
-func (p *ImportPolicy) toJSON() map[string]any  { return p.Summary() }
 
 type CachePolicy struct {
 	Mode         string `json:"mode"`
@@ -228,7 +226,6 @@ func cachePolicyBuilderObject(vm *goja.Runtime, b *CachePolicyBuilder) *goja.Obj
 }
 
 func (p *CachePolicy) Summary() map[string]any { return toPlainMap(p) }
-func (p *CachePolicy) toJSON() map[string]any  { return p.Summary() }
 
 type QueryLimits struct {
 	MaxRows        int           `json:"maxRows,omitempty"`
@@ -270,7 +267,6 @@ func queryLimitsBuilderObject(vm *goja.Runtime, b *QueryLimitsBuilder) *goja.Obj
 }
 
 func (l *QueryLimits) Summary() map[string]any { return toPlainMap(l) }
-func (l *QueryLimits) toJSON() map[string]any  { return l.Summary() }
 
 func optionalBool(call goja.FunctionCall, defaultValue bool) bool {
 	if len(call.Arguments) == 0 || goja.IsUndefined(call.Argument(0)) || goja.IsNull(call.Argument(0)) {

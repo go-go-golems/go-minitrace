@@ -442,9 +442,9 @@ func firstNonEmptyPointer(values ...*string) string {
 	return ""
 }
 
-func summarizeText(value string, max int) string {
-	if max > 0 && len(value) > max {
-		return value[:max]
+func summarizeText(value string, maxChars int) string {
+	if maxChars > 0 && len(value) > maxChars {
+		return value[:maxChars]
 	}
 	return value
 }
