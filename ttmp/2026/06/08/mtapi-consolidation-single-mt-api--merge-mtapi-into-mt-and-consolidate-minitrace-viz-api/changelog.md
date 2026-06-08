@@ -119,3 +119,12 @@ Step 9: Cut minitrace-viz over to go-minitrace mt builders, deleted local mtapi,
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/ClubMedMeetup/minitrace-viz/xgoja.yaml — go-minitrace provider aliased as mt
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/convert.go — Role-only Pi JSONL detection parity
 
+
+## 2026-06-08
+
+Recorded Step 9 commits d5e418d (go-minitrace detector parity) and 2196537 (minitrace-viz cutover).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/reference/01-investigation-diary.md — Step 9 commit hashes
+

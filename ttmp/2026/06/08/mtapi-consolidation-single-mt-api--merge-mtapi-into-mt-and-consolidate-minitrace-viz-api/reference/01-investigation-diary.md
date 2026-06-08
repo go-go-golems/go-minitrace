@@ -786,7 +786,7 @@ I also deleted the local `pkg/mtapi` and `pkg/mtapiprovider` packages and update
 
 **Inferred user intent:** Complete the clean API cutover rather than stopping at reusable module primitives.
 
-**Commit (code):** pending at time of diary update — planned messages: `Detect role-only Pi JSONL transcripts` in `go-minitrace` and `Cut minitrace-viz over to go-minitrace mt builders` in `ClubMedMeetup`.
+**Commit (code):** `d5e418de781c64b27d770c55e250e6b9040c51b5` — `Detect role-only Pi JSONL transcripts` in `go-minitrace`; `2196537105480f6c05dac645fd8a8ff6fbc4df56` — `Cut minitrace-viz over to go-minitrace mt builders` in `ClubMedMeetup`.
 
 ### What I did
 
