@@ -1,0 +1,68 @@
+# Changelog
+
+## 2026-06-08
+
+- Initial workspace created
+
+
+## 2026-06-08
+
+Created intern-facing single mt API consolidation design, API assessment, clean-cutover plan, diary, and phased tasks.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/01-single-mt-api-consolidation-design-and-implementation-guide.md — Primary implementation guide
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/reference/01-investigation-diary.md — Chronological investigation diary
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md — Phased task list
+
+
+## 2026-06-08
+
+Uploaded design bundle to reMarkable at /ai/2026/06/08/mtapi-consolidation-single-mt-api and opened tasks with md-view.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/01-single-mt-api-consolidation-design-and-implementation-guide.md — Uploaded in reMarkable bundle
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md — Opened with md-view
+
+
+## 2026-06-08
+
+Updated diary with validation, reMarkable upload, and md-view task-view handoff details.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/reference/01-investigation-diary.md — Recorded delivery step
+
+
+## 2026-06-08
+
+Revised API design from options-map-first to staged fluent Go-owned builders and updated phased tasks accordingly.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/01-single-mt-api-consolidation-design-and-implementation-guide.md — Builder-first design revision
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/reference/01-investigation-diary.md — Diary Step 4 records the correction
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md — Builder-composed implementation phases
+
+
+## 2026-06-08
+
+Re-uploaded revised builder-first design bundle to reMarkable at /ai/2026/06/08/mtapi-consolidation-single-mt-api.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/01-single-mt-api-consolidation-design-and-implementation-guide.md — Re-uploaded revised design
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md — Re-uploaded revised tasks
+
+
+## 2026-06-08
+
+Step 5: Added SourceSet/import/cache/limits builders and DB composition methods, with provider integration tests.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/builders.go — New builder value types and JS wrappers
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/db_builder.go — DB builder composition wiring
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go — Integration tests
+

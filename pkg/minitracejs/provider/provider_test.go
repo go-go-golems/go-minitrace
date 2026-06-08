@@ -698,3 +698,90 @@ func resolveModule(t *testing.T) providerapi.Module {
 	}
 	return mod
 }
+
+func TestModuleLoaderComposesDBFromSubBuilders(t *testing.T) {
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "builder-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "hello from builder"}}}},
+	}))
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	value, err := vm.RunString(`
+		const sources = mt.sources().Content(jsonlContent).Name("builder-content.jsonl").Build();
+		const importPolicy = mt.importPolicy().AutoConvert().Strict().Build();
+		const cache = mt.cache().None().Build();
+		const limits = mt.limits().Rows(25).CellChars(2000).Build();
+		const db = mt.db().Sources(sources).Import(importPolicy).Cache(cache).Limits(limits).Build();
+		const row = db.queryOne("SELECT session_id, turn_count FROM sessions");
+		const sourceSummary = sources.Summary();
+		const cacheSummary = cache.Summary();
+		db.close();
+		JSON.stringify({ row, sourceSummary, cacheSummary });
+	`)
+	if err != nil {
+		t.Fatalf("run composed builder script: %v", err)
+	}
+	var got struct {
+		Row           map[string]any   `json:"row"`
+		SourceSummary []map[string]any `json:"sourceSummary"`
+		CacheSummary  map[string]any   `json:"cacheSummary"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal composed builder result: %v", err)
+	}
+	if got.Row["session_id"] != "builder-content" {
+		t.Fatalf("unexpected session row: %#v", got.Row)
+	}
+	if len(got.SourceSummary) != 1 || got.SourceSummary[0]["name"] != "builder-content.jsonl" {
+		t.Fatalf("unexpected source summary: %#v", got.SourceSummary)
+	}
+	if got.CacheSummary["mode"] != "none" {
+		t.Fatalf("unexpected cache summary: %#v", got.CacheSummary)
+	}
+}
+
+func TestModuleLoaderDBBuilderConveniencePresets(t *testing.T) {
+	path := writeNativeSessionFixture(t)
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("fixturePath", path)
+	value, err := vm.RunString(`
+		const db = mt.db().File(fixturePath).InteractiveDefaults().Build();
+		const row = db.queryOne("SELECT COUNT(*) AS n FROM sessions");
+		const cacheInfo = db.cacheInfo();
+		db.close();
+		JSON.stringify({ sessions: row.n, cacheMode: cacheInfo.mode });
+	`)
+	if err != nil {
+		t.Fatalf("run convenience builder script: %v", err)
+	}
+	var got struct {
+		Sessions  int    `json:"sessions"`
+		CacheMode string `json:"cacheMode"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal convenience builder result: %v", err)
+	}
+	if got.Sessions != 1 || got.CacheMode != "auto" {
+		t.Fatalf("unexpected convenience builder result: %#v", got)
+	}
+}

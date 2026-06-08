@@ -1,0 +1,69 @@
+# Tasks
+
+## Phase 1 — Builder-Composed `go-minitrace` `mt` API
+
+- [ ] Add `mt.importer()` fluent builder with `Content`, `File`, `Name`, `AutoDetect`, `Format`, `Strict`, `Into`, `SessionID`, `Convert`, `Converted`, and `Save`.
+- [x] Add `mt.sources()` fluent subbuilder that returns a Go-owned `SourceSet` from `File`, `Archive`, `Files`, `Dir`, `Glob`, `Content`, `Name`, and `RuntimeArchives`.
+- [x] Add `mt.importPolicy()` fluent subbuilder that returns a Go-owned `ImportPolicy` from `AutoConvert`, `NativeOnly`, `Strict`, and `Lenient`.
+- [x] Add `mt.cache()` fluent subbuilder that returns a Go-owned `CachePolicy` from `None`, `Memory`, `Disk`, `Auto`, `Dir`, and `ForceRebuild`.
+- [x] Add `mt.limits()` fluent subbuilder that returns Go-owned `QueryLimits` from `Rows`, `Columns`, `CellChars`, `TimeoutMs`, and `RequireOrderBy`.
+- [x] Refactor `mt.db()` into a composition builder that accepts `Sources(SourceSet)`, `Import(ImportPolicy)`, `Cache(CachePolicy)`, and `Limits(QueryLimits)`.
+- [x] Keep concise `mt.db()` convenience methods such as `File`, `Content`, `Name`, `RuntimeArchives`, `AutoConvert`, `Strict`, `CacheAuto`, `QueryCommandDefaults`, and `InteractiveDefaults` where they delegate to internal subbuilders.
+- [ ] Add `mt.session()` fluent builder with `Sources`, `Source`, `Import`, `Cache`, `Limits`, `SessionID`, `File`, `Content`, `Name`, `InteractiveCache`, `Strict`, and `Open`.
+- [ ] Add lifecycle-safe session handles with `summary()`, `diagnostics()`, `cacheInfo()`, `db()`, `query()`, `view()`, and `close()`.
+
+## Phase 2 — Query Recipe and View Plan Builders
+
+- [ ] Add `mt.query()` fluent builder with recipe selectors `SessionSummary`, `TurnRows`, `ToolRows`, `EventRows`, `TurnBlockRows`, `TokenUsageRows`, `TranscriptRows`, and `TimelineRows`.
+- [ ] Add query-builder modifiers `SessionID`, `IncludeTools`, `BySession`, `ByTurn`, `ByRole`, and `ByTool`.
+- [ ] Make `mt.query().<Recipe>().Build()` return a Go-owned `QueryRecipe` with `name()`, `sql()`, `args()`, `description()`, `output()`, and `toJSON()`.
+- [ ] Add `mt.view()` fluent builder with `DB`, `SessionID`, `Transcript`, `TurnFrames`, `Timeline`, `TokenUsage`, `SessionSummary`, and `Run`.
+- [ ] Add `session.view()` as a session-bound view builder.
+- [ ] Add view-builder modifiers `IncludeTools`, `IncludeThinking`, `IncludeToolResults`, `CollapseLongTextAt`, `BySession`, `ByTurn`, `ByRole`, and `ByTool`.
+- [ ] Keep view outputs plain JSON-serializable transcript rows, turn frames, token usage rows, and timeline rows.
+- [ ] Add output-contract tests for transcript rows, turn frames, token usage rows, timeline rows, and query recipe objects.
+
+## Phase 3 — Documentation and Examples Cutover
+
+- [ ] Rewrite `go-minitrace/pkg/doc/js-api-reference.md` around builder factories: `mt.importer`, `mt.sources`, `mt.importPolicy`, `mt.cache`, `mt.limits`, `mt.db`, `mt.session`, `mt.query`, and `mt.view`.
+- [ ] Replace monolithic `mt.db().RuntimeArchives().Build()` examples with staged fluent examples and concise preset examples such as `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`.
+- [ ] Add upload/import examples using `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
+- [ ] Add app-style examples using `mt.session().File(...).InteractiveCache(...).Open()` and `session.view().Transcript().IncludeTools().Run()`.
+- [ ] Update query-command tests and showcase repositories to the builder-composed API.
+- [ ] Search for stale `mt.db.open`, `mt.session.open`, `OpenDBOptions`, `SessionOpenOptions`, `mt.import.save`, `mt.queries.*`, `mt.views.*`, and old options-map examples.
+
+## Phase 4 — `minitrace-viz` xgoja Wiring Cutover
+
+- [ ] Remove `clubmed-minitrace-viz` from `ClubMedMeetup/minitrace-viz/xgoja.yaml` packages.
+- [ ] Remove local `mt` module registration from `ClubMedMeetup/minitrace-viz/xgoja.yaml`.
+- [ ] Alias `go-minitrace` as `mt`.
+- [ ] Remove the separate `as: minitrace` module alias from the app.
+- [ ] Regenerate/rebuild xgoja output using the repository's standard build command.
+
+## Phase 5 — `minitrace-viz` App Refactor
+
+- [ ] Replace `mt.source(...).detect().convert().save(...)` in `lib/session-service.js` with `mt.importer().Content(...).Name(...).Into(...).SessionID(...).Save()`.
+- [ ] Replace `mt.archiveFile(...).turnBlocks(...)` in `lib/timeline-data.js` with `mt.session().File(...).InteractiveCache(...).Open()` and `session.view().Timeline()` / `session.view().TurnFrames()`.
+- [ ] Update `lib/course-session-data.js` transcript construction to consume `session.view().Transcript().IncludeTools().Run()` rows where appropriate.
+- [ ] Update `lib/course-session-data.js` context-window construction to consume new frame/token rows while keeping WidgetRenderer-specific teaching logic app-side.
+- [ ] Remove or rewrite `/analyze` using `mt.query()` recipes; do not keep the old report builder.
+- [ ] Remove or rewrite `/api/report/:sessionId` and `/api/report-presets`.
+- [ ] Update `/api/session/:sessionId/turn-blocks` to use `session.view().TurnFrames()` or remove it if no longer needed.
+- [ ] Smoke-test upload, sessions list, timeline, transcript-data, and context-window-data endpoints.
+
+## Phase 6 — Delete Old ClubMed `mtapi`
+
+- [ ] Delete `ClubMedMeetup/minitrace-viz/pkg/mtapi/*.go`.
+- [ ] Delete `ClubMedMeetup/minitrace-viz/pkg/mtapiprovider/provider.go`.
+- [ ] Remove unused dependencies from `ClubMedMeetup/minitrace-viz/go.mod` and generated module wiring.
+- [ ] Search the workspace for `mt.source`, `mt.archiveFile`, `reportPresets`, `pkg/mtapi`, and `pkg/mtapiprovider`.
+- [ ] Keep only ticket/design docs as historical references to old APIs.
+
+## Phase 7 — Validation and Handoff
+
+- [ ] Run `go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1` in `go-minitrace`.
+- [ ] Run the minitrace-viz build/regeneration command.
+- [ ] Launch the minitrace-viz site with temporary sessions/cache directories.
+- [ ] Upload representative Pi, Codex, Claude Code, and native minitrace fixtures.
+- [ ] Validate transcript ordering, tool-call attachment, failed-tool markers, token totals, and context-window turn selection.
+- [ ] Update changelog and diary with final implementation notes, commands, failures, and review instructions.

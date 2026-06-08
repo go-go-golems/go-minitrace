@@ -209,25 +209,43 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		b.strictConversion = enabled
 		return builderObject(vm, b)
 	})
-	_ = obj.Set("Cache", func(mode string) *goja.Object {
-		switch strings.ToLower(strings.TrimSpace(mode)) {
-		case "", "none":
-			b.cacheMode = "none"
-			if b.storage == "disk-cache" {
-				b.storage = "memory"
-			}
-		case "memory":
-			b.cacheMode = "memory"
-			b.storage = "memory"
-		case "disk":
-			b.cacheMode = "disk"
-			b.storage = "disk-cache"
-		case "auto":
-			b.cacheMode = "auto"
-			b.storage = "disk-cache"
-		default:
-			b.errors = append(b.errors, fmt.Sprintf("unsupported cache mode %q", mode))
+	_ = obj.Set("Sources", func(sources *SourceSet) *goja.Object {
+		b.applySourceSet(sources)
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("Import", func(policy *ImportPolicy) *goja.Object {
+		b.applyImportPolicy(policy)
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("Limits", func(limits *QueryLimits) *goja.Object {
+		b.applyQueryLimits(limits)
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("Cache", func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) == 0 || goja.IsUndefined(call.Argument(0)) || goja.IsNull(call.Argument(0)) {
+			b.applyCachePolicy(&CachePolicy{Mode: "none"})
+			return builderObject(vm, b)
 		}
+		if policy, ok := call.Argument(0).Export().(*CachePolicy); ok {
+			b.applyCachePolicy(policy)
+			return builderObject(vm, b)
+		}
+		b.applyCacheMode(call.Argument(0).String())
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("CacheAuto", func(call goja.FunctionCall) goja.Value {
+		b.applyCachePolicy(&CachePolicy{Mode: "auto", Dir: optionalString(call)})
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("QueryCommandDefaults", func() *goja.Object {
+		b.autoConvert = true
+		b.strictConversion = true
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("InteractiveDefaults", func(call goja.FunctionCall) goja.Value {
+		b.autoConvert = true
+		b.strictConversion = true
+		b.applyCachePolicy(&CachePolicy{Mode: "auto", Dir: optionalString(call)})
 		return builderObject(vm, b)
 	})
 	_ = obj.Set("CacheDir", func(path string) *goja.Object {
@@ -300,6 +318,101 @@ func (b *DBBuilder) addContent(content, name string) {
 		name = "content"
 	}
 	b.sources = append(b.sources, dbSource{Kind: "content", Name: name, Content: content})
+}
+func (b *DBBuilder) applySourceSet(set *SourceSet) {
+	if set == nil {
+		b.errors = append(b.errors, "source set must not be nil")
+		return
+	}
+	for _, source := range set.sources {
+		switch source.Kind {
+		case "file":
+			b.addFile(source.Path)
+		case "content":
+			b.addContent(source.Content, source.Name)
+		case "dir":
+			paths, err := collectMinitraceFiles(source.Path)
+			if err != nil {
+				b.errors = append(b.errors, err.Error())
+			} else {
+				b.addFiles(paths)
+			}
+		case "glob":
+			b.addGlob(source.Path)
+		case "runtime":
+			if len(b.runtimeArchiveGlobs) == 0 {
+				b.errors = append(b.errors, "runtime archive glob is not configured")
+			} else {
+				for _, pattern := range b.runtimeArchiveGlobs {
+					b.addGlob(pattern)
+				}
+			}
+		default:
+			b.errors = append(b.errors, fmt.Sprintf("unsupported source kind %q", source.Kind))
+		}
+	}
+}
+
+func (b *DBBuilder) applyImportPolicy(policy *ImportPolicy) {
+	if policy == nil {
+		b.errors = append(b.errors, "import policy must not be nil")
+		return
+	}
+	b.autoConvert = policy.AutoConvert
+	b.strictConversion = policy.Strict
+}
+
+func (b *DBBuilder) applyQueryLimits(limits *QueryLimits) {
+	if limits == nil {
+		b.errors = append(b.errors, "query limits must not be nil")
+		return
+	}
+	if limits.MaxRows > 0 {
+		b.query.MaxRows = limits.MaxRows
+	}
+	if limits.MaxColumns > 0 {
+		b.query.MaxColumns = limits.MaxColumns
+	}
+	if limits.MaxCellChars > 0 {
+		b.query.MaxCellChars = limits.MaxCellChars
+	}
+	if limits.Timeout > 0 {
+		b.query.Timeout = limits.Timeout
+	}
+	b.query.RequireOrderBy = limits.RequireOrderBy
+}
+
+func (b *DBBuilder) applyCachePolicy(policy *CachePolicy) {
+	if policy == nil {
+		b.errors = append(b.errors, "cache policy must not be nil")
+		return
+	}
+	b.applyCacheMode(policy.Mode)
+	if strings.TrimSpace(policy.Dir) != "" {
+		b.cacheDir = strings.TrimSpace(policy.Dir)
+	}
+	b.forceRebuild = policy.ForceRebuild
+}
+
+func (b *DBBuilder) applyCacheMode(mode string) {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "", "none":
+		b.cacheMode = "none"
+		if b.storage == "disk-cache" {
+			b.storage = "memory"
+		}
+	case "memory":
+		b.cacheMode = "memory"
+		b.storage = "memory"
+	case "disk":
+		b.cacheMode = "disk"
+		b.storage = "disk-cache"
+	case "auto":
+		b.cacheMode = "auto"
+		b.storage = "disk-cache"
+	default:
+		b.errors = append(b.errors, fmt.Sprintf("unsupported cache mode %q", mode))
+	}
 }
 
 func collectMinitraceFiles(root string) ([]string, error) {
