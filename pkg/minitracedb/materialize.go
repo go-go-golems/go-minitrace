@@ -277,13 +277,39 @@ func insertRow(ctx context.Context, tx *sql.Tx, table string, columns []string, 
 	if len(columns) != len(args) {
 		return fmt.Errorf("insert %s has %d columns but %d values", table, len(columns), len(args))
 	}
+	if err := validateInsertTarget(table, columns); err != nil {
+		return err
+	}
 	placeholders := make([]string, len(columns))
 	for i := range placeholders {
 		placeholders[i] = "?"
 	}
+	// #nosec G201 -- table and column identifiers are fixed schema-owned names validated by validateInsertTarget; all row values remain parameterized.
 	stmt := fmt.Sprintf("INSERT OR REPLACE INTO %s(%s) VALUES (%s)", table, strings.Join(columns, ", "), strings.Join(placeholders, ", "))
 	_, err := tx.ExecContext(ctx, stmt, args...)
 	return err
+}
+
+func validateInsertTarget(table string, columns []string) error {
+	if table == "" || !isSQLIdentifier(table) {
+		return fmt.Errorf("invalid insert table %q", table)
+	}
+	for _, column := range columns {
+		if column == "" || !isSQLIdentifier(column) {
+			return fmt.Errorf("invalid insert column %q for table %s", column, table)
+		}
+	}
+	return nil
+}
+
+func isSQLIdentifier(v string) bool {
+	for i, r := range v {
+		if r == '_' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || i > 0 && r >= '0' && r <= '9' {
+			continue
+		}
+		return false
+	}
+	return v != ""
 }
 
 func nullableString(v *string) any {

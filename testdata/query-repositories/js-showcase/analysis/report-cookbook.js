@@ -9,6 +9,15 @@ __section__("filters", {
 
 function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _limit(filters) {
   const limit = Number(filters.limit || 20);
   return Math.max(1, Math.min(limit, 200));
@@ -24,9 +33,8 @@ function _sessionWhere(mt, filters, alias) {
 
 function sessionInventory(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
       s.session_id AS id,
       s.title,
@@ -56,14 +64,13 @@ function sessionInventory(filters) {
     WHERE ${whereSql}
     ORDER BY s.started_at DESC, s.tool_call_count DESC, id ASC
     LIMIT ${_limit(filters)}
-  `);
+  `));
 }
 
 function toolRiskMatrix(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
       t.tool_name,
       t.operation_type,
@@ -90,14 +97,13 @@ function toolRiskMatrix(filters) {
     GROUP BY t.tool_name, t.operation_type
     ORDER BY failed_calls DESC, annotated_calls DESC, spawned_agent_calls DESC, calls DESC, t.tool_name ASC
     LIMIT ${_limit(filters)}
-  `);
+  `));
 }
 
 function fileHeatmap(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
       f.path,
       f.operation_type,
@@ -111,14 +117,13 @@ function fileHeatmap(filters) {
     GROUP BY f.path, f.operation_type
     ORDER BY touches DESC, sessions DESC, f.path ASC
     LIMIT ${_limit(filters)}
-  `);
+  `));
 }
 
 function promptInstructionAudit(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
       s.session_id AS id,
       s.title,
@@ -134,14 +139,13 @@ function promptInstructionAudit(filters) {
     WHERE ${whereSql}
     ORDER BY has_system_prompt DESC, system_prompt_chars DESC, id ASC
     LIMIT ${_limit(filters)}
-  `);
+  `));
 }
 
 function turnTimeline(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
       e.session_id AS id,
       s.title AS session_title,
@@ -159,7 +163,7 @@ function turnTimeline(filters) {
     WHERE ${whereSql}
     ORDER BY e.session_id ASC, COALESCE(e.turn_index, 999999) ASC, e.ordinal ASC, e.event_id ASC
     LIMIT ${_limit(filters)}
-  `);
+  `));
 }
 
 __verb__("sessionInventory", {

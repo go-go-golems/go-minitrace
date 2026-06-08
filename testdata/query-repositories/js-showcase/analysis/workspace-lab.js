@@ -12,6 +12,15 @@ __section__("filters", {
 
 function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _workspaceWhere(mt, filters, alias) {
   const p = alias ? alias + "." : "";
   const clauses = ["1=1"];
@@ -23,8 +32,8 @@ function _workspaceWhere(mt, filters, alias) {
 
 function workspaceScoreboard(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _workspaceWhere(mt, filters, "");
+  return _withDB(mt, (db) => {
   const joinedWhereSql = _workspaceWhere(mt, filters, "s");
 
   const workspaceRows = db.query(`
@@ -78,12 +87,13 @@ function workspaceScoreboard(filters) {
       sample_title: bestSession.title || "",
     };
   });
+  });
 }
 
 function workspaceSessionHighlights(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _workspaceWhere(mt, filters, "");
+  return _withDB(mt, (db) => {
 
   const workspaceRows = db.query(`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, COUNT(*) AS session_count
@@ -122,6 +132,7 @@ function workspaceSessionHighlights(filters) {
       headline_models: cookbook.joinTopValues(sessions, "model", 2),
       dominant_tools: cookbook.joinTopValues(tools, "tool_name", 3),
     };
+  });
   });
 }
 

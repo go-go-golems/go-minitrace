@@ -178,3 +178,14 @@ Complete Phase 8 validation for robust SQLite query authorization: full cmd/pkg 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query_test.go — Validated regression coverage
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/tasks.md — Phase 8 tasks marked complete
 
+
+## 2026-06-08
+
+Address PR review follow-ups: close SQLite-backed JS showcase DB handles with try/finally helpers and document/validate safe schema-owned insert statement construction for gosec G201.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize.go — Validated insert identifiers and annotated parameterized schema-owned SQL construction
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/testdata/query-repositories/js-showcase/analysis/report-cookbook.js — Showcase report commands now close DBHandle via helper
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/testdata/query-repositories/js-showcase/overview/session-tools.js — Representative query-repository command now closes DBHandle after materializing rows
+

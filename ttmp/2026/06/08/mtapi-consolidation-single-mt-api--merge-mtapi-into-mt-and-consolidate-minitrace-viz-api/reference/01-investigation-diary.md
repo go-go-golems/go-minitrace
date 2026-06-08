@@ -1182,3 +1182,105 @@ go test ./cmd/... ./pkg/... -count=1
 golangci-lint run --timeout=5m ./cmd/... ./pkg/...
 0 issues.
 ```
+
+## Step 12: Address DB handle cleanup and G201 review follow-ups
+
+I addressed two additional PR review findings after the SQLite authorizer work. The query-repository JavaScript commands now close each fresh `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` handle after materializing query rows, and the materializer's dynamic insert statement construction now validates schema-owned identifiers and documents why the values remain parameterized.
+
+The DB handle cleanup was applied across both `js-showcase` and `mixed-sql-js-showcase` command files. Each file now uses a small `_withDB` or `_withDBAsync` helper that closes the handle in `finally`, preserving existing command return shapes while making repeated CLI/serve invocations release non-cached DB handles promptly.
+
+### Prompt Context
+
+**User prompt (verbatim):** "P2 Badge Close DB handles in JS commands
+
+When these query-repository commands are run repeatedly through the CLI or serve API, _db() builds a fresh SQLite-backed DBHandle and the callers return query rows without ever calling db.close(). DBHandle.Close() is the only path that closes non-cached handles, so each invocation keeps the materialized in-memory DB and its connections alive until process exit; the same helper pattern appears across the showcase commands. Please wrap the query work in try/finally or otherwise close the handle after materializing the rows.
+
+Useful? React with 👍 / 👎.
+
+
+
+testdata/query-repositories/js-showcase/overview/session-tools.js
+});
+
+function _db(mt) {
+  return mt.db().RuntimeArchives().QueryCommandDefaults().Build();"
+
+**Assistant interpretation:** Update the JS showcase query commands so fresh DB handles are always closed after queries, using `try/finally` or equivalent.
+
+**Inferred user intent:** Fix the resource leak called out by review before repeated CLI/API command execution accumulates in-memory SQLite DBs and open connections.
+
+**Commit (code):** this commit — "Close showcase DB handles and document safe inserts"
+
+### What I did
+
+- Added `_withDB(mt, fn)` helpers to synchronous query-repository JS files.
+- Added `_withDBAsync(mt, fn)` to the async showcase file.
+- Wrapped all `_db(mt)` query work in `try/finally` helpers so `db.close()` runs after rows are materialized.
+- Updated both showcase trees:
+  - `testdata/query-repositories/js-showcase/overview/*.js`
+  - `testdata/query-repositories/js-showcase/analysis/*.js`
+  - `testdata/query-repositories/mixed-sql-js-showcase/overview/*.js`
+  - `testdata/query-repositories/mixed-sql-js-showcase/analysis/*.js`
+- Addressed the gosec G201 finding in `pkg/minitracedb/materialize.go` by validating table/column identifiers with `validateInsertTarget`/`isSQLIdentifier` and adding a `#nosec G201` explanation on the statement construction line.
+- Added Phase 9 review-follow-up tasks and updated the changelog.
+
+### Why
+
+- `DBHandle.Close()` is the only path that closes non-cached handles. Returning rows without closing the handle leaks the materialized in-memory DB until process exit.
+- `insertRow` formats only schema-owned table/column identifiers, while all row values remain parameterized. The validation and comment make that invariant explicit for reviewers and gosec.
+
+### What worked
+
+- `node --check` passed for all query-repository JavaScript files.
+- `go test ./cmd/... ./pkg/... -count=1` passed.
+- `golangci-lint run --timeout=5m ./cmd/... ./pkg/...` passed with `0 issues`.
+
+### What didn't work
+
+- My first bulk edit attempt for `report-cookbook.js` produced overlapping edit regions, so I switched to a small Python rewrite for repetitive JS command patterns and verified syntax with `node --check`.
+- My first Python pass used the wrong function names for `tool-intelligence.js`; the actual functions are `toolboxOverview` and `toolPairMatrix`, not `toolEffectiveness` and `toolSessionProfiles`.
+
+### What I learned
+
+- The showcase files all used the same `_db(mt)` helper shape, but command bodies vary enough that a purely mechanical replacement needs syntax validation after each batch.
+- The G201 warning is useful even for schema-owned SQL construction because it forces the code to state and check the identifier invariant directly.
+
+### What was tricky to build
+
+- The JS commands often return transformed arrays after several queries. Closing the DB immediately after the first query would be wrong; the close has to surround the whole command body and run only after all rows needed by the transformation are materialized.
+- For async commands, the helper must `await fn(db)` before closing so future async query work cannot race with `db.close()`.
+
+### What warrants a second pair of eyes
+
+- Review the JS wrapping for readability; some mechanically wrapped blocks could be reformatted later if desired.
+- Review whether `validateInsertTarget` should additionally check table names against `AllowedTableNames()` or stay generic for internal schema helpers.
+
+### What should be done in the future
+
+- Consider exposing a higher-level JS helper for query repositories so examples do not have to repeat `_withDB` in every file.
+
+### Code review instructions
+
+- Start with `testdata/query-repositories/js-showcase/overview/session-tools.js` for the simplest sync pattern.
+- Then review `testdata/query-repositories/js-showcase/overview/async-tools.js` for the async pattern.
+- Review `pkg/minitracedb/materialize.go` around `insertRow`, `validateInsertTarget`, and `isSQLIdentifier` for the G201 fix.
+- Validate with:
+
+```bash
+for f in $(rg --files testdata/query-repositories -g '*.js'); do node --check "$f"; done
+go test ./cmd/... ./pkg/... -count=1
+golangci-lint run --timeout=5m ./cmd/... ./pkg/...
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+rg -n "function _db|_db\\(mt\\)|\\.Build\\(\\)" testdata/query-repositories -g '*.js'
+for f in $(rg --files testdata/query-repositories -g '*.js'); do node --check "$f"; done
+gofmt -w pkg/minitracedb/materialize.go
+go test ./cmd/... ./pkg/... -count=1
+golangci-lint run --timeout=5m ./cmd/... ./pkg/...
+docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp changelog update --ticket mtapi-consolidation-single-mt-api ...
+```

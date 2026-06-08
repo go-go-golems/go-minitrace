@@ -10,6 +10,15 @@ function _db(mt) {
   return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
 }
 
+async function _withDBAsync(mt, fn) {
+  const db = _db(mt);
+  try {
+    return await fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _frameworkFilterSql(mt, filters) {
   return filters.framework?.length
     ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
@@ -20,9 +29,8 @@ async function delayedSummary(filters) {
   const timer = require("timer");
   const mt = require("minitrace");
   await timer.sleep(1);
-  const db = _db(mt);
-
-  const summary = db.queryOne(`
+  return _withDBAsync(mt, async (db) => {
+    const summary = db.queryOne(`
     SELECT
       COUNT(*) AS session_count,
       MIN(session_id) AS first_id,
@@ -32,22 +40,22 @@ async function delayedSummary(filters) {
     ${_frameworkFilterSql(mt, filters)}
   `);
 
-  return {
-    delayed: true,
-    requested_limit: filters.limit,
-    session_count: summary?.session_count || 0,
-    first_id: summary?.first_id || "",
-    sample_framework: summary?.sample_framework || "",
-  };
+    return {
+      delayed: true,
+      requested_limit: filters.limit,
+      session_count: summary?.session_count || 0,
+      first_id: summary?.first_id || "",
+      sample_framework: summary?.sample_framework || "",
+    };
+  });
 }
 
 async function topSessionCards(filters) {
   const timer = require("timer");
   const mt = require("minitrace");
   await timer.sleep(1);
-  const db = _db(mt);
-
-  const rows = db.query(`
+  return _withDBAsync(mt, async (db) => {
+    const rows = db.query(`
     SELECT
       session_id AS id,
       title,
@@ -59,13 +67,14 @@ async function topSessionCards(filters) {
     LIMIT ${filters.limit}
   `);
 
-  return rows.map((row, index) => ({
-    rank: index + 1,
-    id: row.id,
-    framework: row.framework,
-    title: row.title,
-    card_label: `#${index + 1} ${row.title}`,
-  }));
+    return rows.map((row, index) => ({
+      rank: index + 1,
+      id: row.id,
+      framework: row.framework,
+      title: row.title,
+      card_label: `#${index + 1} ${row.title}`,
+    }));
+  });
 }
 
 __verb__("delayedSummary", {

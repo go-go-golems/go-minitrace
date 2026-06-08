@@ -12,6 +12,15 @@ function _db(mt) {
   return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
 }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _frameworkFilterSql(mt, filters) {
   return filters.framework?.length
     ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
@@ -20,8 +29,7 @@ function _frameworkFilterSql(mt, filters) {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
       session_id AS id,
       title,
@@ -31,13 +39,13 @@ function sessionList(filters) {
     ${_frameworkFilterSql(mt, filters)}
     ORDER BY started_at DESC
     LIMIT ${filters.limit}
-  `);
+  `));
 }
 
 function frameworkShare(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
-  const rows = db.query(`
+  return _withDB(mt, (db) => {
+    const rows = db.query(`
     SELECT
       agent_framework AS framework,
       COUNT(*) AS count
@@ -49,7 +57,8 @@ function frameworkShare(filters) {
     LIMIT ${filters.limit}
   `);
 
-  return transforms.addSharePercent(rows, "count");
+    return transforms.addSharePercent(rows, "count");
+  });
 }
 
 __verb__("sessionList", {

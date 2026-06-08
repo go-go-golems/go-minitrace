@@ -11,6 +11,15 @@ __section__("filters", {
 
 function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _toolWhere(mt, filters) {
   const clauses = ["1=1"];
   if (filters.framework?.length) clauses.push(`s.agent_framework IN (${mt.sql.stringIn(filters.framework)})`);
@@ -20,8 +29,8 @@ function _toolWhere(mt, filters) {
 
 function toolboxOverview(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _toolWhere(mt, filters);
+  return _withDB(mt, (db) => {
 
   const toolRows = db.query(`
     SELECT t.tool_name, COUNT(*) AS tool_uses, COUNT(DISTINCT t.session_id) AS session_count
@@ -65,12 +74,13 @@ function toolboxOverview(filters) {
       dominant_workspace_slug: cookbook.shortWorkspace(workspace.working_directory),
     };
   });
+  });
 }
 
 function toolPairMatrix(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _toolWhere(mt, filters);
+  return _withDB(mt, (db) => {
   const sessionToolRows = db.query(`
     SELECT DISTINCT t.session_id AS id, t.tool_name
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
@@ -81,6 +91,7 @@ function toolPairMatrix(filters) {
   return cookbook.pairCounts(sessionToolRows)
     .slice(0, filters.limit)
     .map((row, index) => ({ rank: index + 1, ...row }));
+  });
 }
 
 __verb__("toolboxOverview", {

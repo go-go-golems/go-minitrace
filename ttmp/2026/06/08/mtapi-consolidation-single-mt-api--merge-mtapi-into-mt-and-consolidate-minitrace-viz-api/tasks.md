@@ -77,3 +77,9 @@
 - [x] Remove obsolete regex table extraction helpers from the production query-validation path.
 - [x] Run focused and full validation: `go test ./pkg/minitracedb ./pkg/minitracejs/...`, `go test ./cmd/... ./pkg/... -count=1`, and `golangci-lint run --timeout=5m ./cmd/... ./pkg/...`.
 - [x] Update ticket changelog and investigation diary after each implementation slice.
+
+## Phase 9 — PR Review Follow-ups
+
+- [x] Close SQLite-backed JS command DB handles in query-repository showcase commands with `try/finally` helpers.
+- [x] Address gosec G201 on dynamic insert statement construction by validating schema-owned identifiers and documenting the safe parameterized value path.
+- [x] Run full validation after review follow-ups: `go test ./cmd/... ./pkg/... -count=1` and `golangci-lint run --timeout=5m ./cmd/... ./pkg/...`.

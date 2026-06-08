@@ -9,29 +9,38 @@ function _db(mt) {
   return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
 }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
-  return db.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT session_id AS id, title, agent_framework AS framework
     FROM sessions
     ORDER BY started_at DESC
     LIMIT ${filters.limit}
-  `);
+  `));
 }
 
 function frameworkShare(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
-  const rows = db.query(`
+  return _withDB(mt, (db) => {
+    const rows = db.query(`
     SELECT agent_framework AS framework, COUNT(*) AS count
     FROM sessions
     GROUP BY 1
     ORDER BY count DESC, framework ASC
     LIMIT ${filters.limit}
   `);
-  const total = rows.reduce((sum, row) => sum + Number(row.count || 0), 0) || 1;
-  return rows.map(row => ({ ...row, share_percent: Math.round((Number(row.count || 0) / total) * 100) }));
+    const total = rows.reduce((sum, row) => sum + Number(row.count || 0), 0) || 1;
+    return rows.map(row => ({ ...row, share_percent: Math.round((Number(row.count || 0) / total) * 100) }));
+  });
 }
 
 __verb__("sessionList", {

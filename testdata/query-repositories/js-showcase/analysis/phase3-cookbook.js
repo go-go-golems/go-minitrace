@@ -9,6 +9,15 @@ __section__("filters", {
 
 function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _sessionWhere(mt, filters, alias) {
   const p = alias ? `${alias}.` : "";
   const clauses = ["1=1"];
@@ -24,8 +33,8 @@ function _limit(filters) {
 
 function contextInventory(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
+  return _withDB(mt, (db) => {
   const rows = db.query(`
     SELECT
       s.session_id AS id,
@@ -71,12 +80,13 @@ function contextInventory(filters) {
     sandbox_label: row.sandbox === 1 || row.sandbox === true ? "sandboxed" : "unspecified",
     context_label: [row.git_branch || "no-branch", row.autonomy_level || "no-autonomy", row.human_attention || "no-attention"].join(" / ")
   }));
+  });
 }
 
 function annotationRiskMatrix(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
+  return _withDB(mt, (db) => {
   return db.query(`
     SELECT
       a.category,
@@ -92,12 +102,13 @@ function annotationRiskMatrix(filters) {
     ORDER BY annotation_count DESC, category ASC, classification ASC
     LIMIT ${_limit(filters)}
   `);
+  });
 }
 
 function handoverQueue(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
+  return _withDB(mt, (db) => {
   return db.query(`
     SELECT
       h.direction,
@@ -113,12 +124,13 @@ function handoverQueue(filters) {
     ORDER BY h.direction ASC, s.started_at DESC, id ASC
     LIMIT ${_limit(filters)}
   `);
+  });
 }
 
 function spawnedAgentAudit(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
+  return _withDB(mt, (db) => {
   return db.query(`
     SELECT
       s.session_id AS id,
@@ -138,6 +150,7 @@ function spawnedAgentAudit(filters) {
     ORDER BY s.started_at DESC, t.emitting_turn_index ASC, t.tool_call_id ASC
     LIMIT ${_limit(filters)}
   `);
+  });
 }
 
 __verb__("contextInventory", {

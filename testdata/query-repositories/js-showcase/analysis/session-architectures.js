@@ -12,6 +12,15 @@ __section__("filters", {
 
 function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _sessionWhere(mt, filters, alias) {
   const p = alias ? alias + "." : "";
   const clauses = ["1=1"];
@@ -23,8 +32,8 @@ function _sessionWhere(mt, filters, alias) {
 
 function sessionShapeRanker(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
+  return _withDB(mt, (db) => {
 
   const baseRows = db.query(`
     SELECT session_id AS id, title, COALESCE(working_directory, '(none)') AS working_directory, model, tool_call_count, turn_count, 0 AS active_duration_seconds
@@ -72,12 +81,13 @@ function sessionShapeRanker(filters) {
       complexity_score: cookbook.round1(cookbook.safeNumber(row.tool_call_count) * 0.5 + cookbook.safeNumber(uniqueTools) * 2 + cookbook.safeNumber(row.turn_count) * 0.1),
     };
   });
+  });
 }
 
 function sessionSpotlights(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _sessionWhere(mt, filters, "s");
+  return _withDB(mt, (db) => {
 
   const baseRows = db.query(`
     SELECT session_id AS id, title, COALESCE(working_directory, '(none)') AS working_directory, tool_call_count, turn_count
@@ -116,6 +126,7 @@ function sessionSpotlights(filters) {
     dominant_tools: cookbook.joinTopValues(toolsBySession[row.id] || [], "tool_name", 3),
     role_mix: (rolesBySession[row.id] || []).map((entry) => `${entry.role}:${entry.role_count}`).join(", "),
   }));
+  });
 }
 
 __verb__("sessionShapeRanker", {

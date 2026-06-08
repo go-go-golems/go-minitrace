@@ -8,6 +8,15 @@ __section__("filters", {
 
 function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
 
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _workspaceWhere(mt, filters) {
   const clauses = ["1=1"];
   if (filters.working_directory_like) clauses.push(`COALESCE(working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
@@ -16,8 +25,8 @@ function _workspaceWhere(mt, filters) {
 
 function workspaceScoreboard(filters) {
   const mt = require("minitrace");
-  const db = _db(mt);
   const whereSql = _workspaceWhere(mt, filters);
+  return _withDB(mt, (db) => {
 
   const workspaceRows = db.query(`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, COUNT(*) AS session_count, AVG(tool_call_count) AS avg_tool_calls
@@ -46,6 +55,7 @@ function workspaceScoreboard(filters) {
     sample_session_id: byWorkspace[row.working_directory]?.id || "",
     sample_title: byWorkspace[row.working_directory]?.title || "",
   }));
+  });
 }
 
 __verb__("workspaceScoreboard", {
