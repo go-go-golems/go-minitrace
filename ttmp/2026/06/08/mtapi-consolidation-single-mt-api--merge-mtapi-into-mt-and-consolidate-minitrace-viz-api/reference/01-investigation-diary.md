@@ -588,7 +588,7 @@ This step completes the first pass of Phase 1 and Phase 2 for the Goja module. T
 
 **Inferred user intent:** Finish the foundational Goja module API before moving to docs and minitrace-viz refactoring.
 
-**Commit (code):** pending at time of diary update — planned message: `Add minitrace JS session and view builders`.
+**Commit (code):** `5f5303d1f5fd2be42d00bfa21ad53097b9964e64` — `Add minitrace JS session and view builders`.
 
 ### What I did
 

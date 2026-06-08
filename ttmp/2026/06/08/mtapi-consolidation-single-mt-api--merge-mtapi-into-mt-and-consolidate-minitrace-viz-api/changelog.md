@@ -86,3 +86,12 @@ Step 7: Added mt.query, mt.view, and mt.session builders with provider integrati
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go — Query/view/session integration tests
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/query_view_session.go — Query/view/session builders
 
+
+## 2026-06-08
+
+Recorded commit 5f5303d for Step 7 session/query/view builder implementation.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/reference/01-investigation-diary.md — Updated Step 7 commit hash
+
