@@ -39,7 +39,7 @@ Defined in `overview/async-tools.js`.
 
 - `delayed-summary`
   - async command using `require("timer")`
-  - uses `mt.queryOne(...)`
+  - uses `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and `db.queryOne(...)`
   - returns a single synthesized summary row
 - `top-session-cards`
   - async command returning multiple rows
@@ -76,6 +76,33 @@ Defined in `analysis/session-architectures.js`.
 - `session-spotlights`
   - produces spotlight rows combining title, dominant tools, and role mix
 
+### `analysis phase3-cookbook ...`
+Defined in `analysis/phase3-cookbook.js`.
+
+- `context-inventory`
+  - joins sessions, metrics, annotations, handovers, and spawned-agent aggregates
+  - demonstrates the Phase 3 operational-context and usage/token columns
+- `annotation-risk-matrix`
+  - groups normalized annotation rows by category, classification, and scope
+- `handover-queue`
+  - lists received and produced handover documents
+- `spawned-agent-audit`
+  - lists tool calls that spawned subagents and their outcomes
+
+### `analysis report-cookbook ...`
+Defined in `analysis/report-cookbook.js`.
+
+- `session-inventory`
+  - reports session-level metrics, annotations, handovers, tokens, cost, model, and workspace
+- `tool-risk-matrix`
+  - groups tool calls by tool/operation with failure, annotation, spawned-agent, duration, and payload-size signals
+- `file-heatmap`
+  - groups normalized file touches by path and operation type
+- `prompt-instruction-audit`
+  - audits system prompt coverage with simple raw-SQL heuristics
+- `turn-timeline`
+  - reads the normalized `events` table as a turn/tool/annotation timeline
+
 ## Patterns demonstrated
 
 This showcase now covers all of these patterns:
@@ -85,12 +112,15 @@ This showcase now covers all of these patterns:
 - relative helper modules
 - pure synthetic row generation with no DB query
 - async commands using `require("timer")`
-- `queryOne(...)`
+- `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` for query-command archive loading
+- `db.queryOne(...)`
 - query results post-processed in JavaScript before emission
 - multiple SQL queries combined in JS
 - JS-side joins across independently queried aggregates
 - JS-side scoring/classification logic
 - per-session tool co-occurrence analysis in JS
+- Phase 3 normalized schema cookbook queries over annotations, handovers, usage tokens, operational context, and spawned agents
+- raw SQL report cookbook examples for tool risk, file heatmaps, prompt audits, timelines, and session inventories
 
 ## Alias examples
 
@@ -124,6 +154,18 @@ go run ./cmd/go-minitrace query commands \
 go run ./cmd/go-minitrace query commands \
   --query-repository ./testdata/query-repositories/js-showcase \
   analysis session-architectures session-shape-ranker \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --output json
+
+go run ./cmd/go-minitrace query commands \
+  --query-repository ./testdata/query-repositories/js-showcase \
+  analysis phase3-cookbook context-inventory \
+  --archive-glob './output/active/*/*.minitrace.json' \
+  --output json
+
+go run ./cmd/go-minitrace query commands \
+  --query-repository ./testdata/query-repositories/js-showcase \
+  analysis report-cookbook tool-risk-matrix \
   --archive-glob './output/active/*/*.minitrace.json' \
   --output json
 

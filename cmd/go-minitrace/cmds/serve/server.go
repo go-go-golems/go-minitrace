@@ -26,6 +26,7 @@ type Server struct {
 	tableName          string
 	presetDirs         []string
 	queryDirs          []string
+	archiveGlobs       []string
 	sessionIndex       map[string]string
 	annoStore          *annotate.Store
 	annoIndex          map[string]string
@@ -66,6 +67,7 @@ func NewServer(
 		tableName:    settings.TableName,
 		presetDirs:   normalizeDirList(settings.PresetDir),
 		queryDirs:    normalizeDirList(settings.QueryDir),
+		archiveGlobs: append([]string(nil), settings.ArchiveGlob...),
 		sessionIndex: sessionIndex,
 		annoStore:    annoStore,
 		annoIndex:    annoIndex,

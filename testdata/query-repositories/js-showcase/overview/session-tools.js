@@ -3,48 +3,53 @@ const transforms = require("./lib/transforms");
 __section__("filters", {
   title: "Filters",
   fields: {
-    framework: {
-      type: "stringList",
-      help: "Restrict commands to specific agent frameworks",
-    },
-    limit: {
-      type: "int",
-      default: 20,
-      help: "Maximum number of sessions to inspect",
-    },
+    framework: { type: "stringList", help: "Restrict commands to specific agent frameworks" },
+    limit: { type: "int", default: 20, help: "Maximum number of sessions to inspect" },
   },
 });
 
+function _db(mt) {
+  return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+}
+
+function _withDB(mt, fn) {
+  const db = _db(mt);
+  try {
+    return fn(db);
+  } finally {
+    db.close();
+  }
+}
+
 function _frameworkFilterSql(mt, filters) {
-  // Parenthesize DuckDB JSON-arrow predicates. The -> / ->> operators have low
-  // precedence, so the wrapped form is easier to read and less brittle.
   return filters.framework?.length
-    ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})`
+    ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
     : "";
 }
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(`
+  return _withDB(mt, (db) => db.query(`
     SELECT
-      id,
+      session_id AS id,
       title,
-      environment->>'agent_framework' AS framework
-    FROM ${mt.tableName}
+      agent_framework AS framework
+    FROM sessions
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
-    ORDER BY timing->>'started_at' DESC
+    ORDER BY started_at DESC
     LIMIT ${filters.limit}
-  `);
+  `));
 }
 
 function frameworkShare(filters) {
   const mt = require("minitrace");
-  const rows = mt.query(`
+  return _withDB(mt, (db) => {
+    const rows = db.query(`
     SELECT
-      environment->>'agent_framework' AS framework,
+      agent_framework AS framework,
       COUNT(*) AS count
-    FROM ${mt.tableName}
+    FROM sessions
     WHERE 1=1
     ${_frameworkFilterSql(mt, filters)}
     GROUP BY 1
@@ -52,21 +57,18 @@ function frameworkShare(filters) {
     LIMIT ${filters.limit}
   `);
 
-  return transforms.addSharePercent(rows, "count");
+    return transforms.addSharePercent(rows, "count");
+  });
 }
 
 __verb__("sessionList", {
   name: "session-list",
   short: "List sessions from JS",
-  fields: {
-    filters: { bind: "filters" },
-  },
+  fields: { filters: { bind: "filters" } },
 });
 
 __verb__("frameworkShare", {
   name: "framework-share",
   short: "Compute framework share percentages in JS after querying",
-  fields: {
-    filters: { bind: "filters" },
-  },
+  fields: { filters: { bind: "filters" } },
 });

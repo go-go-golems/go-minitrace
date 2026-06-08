@@ -17,12 +17,12 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-The `query` group loads converted minitrace archives into an analysis backend and runs queries against them. Today that backend is DuckDB, but there are now two distinct user-facing workflows on top of it:
+The `query` group loads converted minitrace archives into analysis backends and runs queries against them. There are now two distinct user-facing workflows:
 
-- `query duckdb` for raw presets, inline SQL, and SQL files
-- `query commands` for repository-backed sqleton-style structured commands
+- `query duckdb` for raw presets, inline SQL, and SQL files against the DuckDB `sessions_base` JSON table
+- `query commands` for repository-backed sqleton-style structured commands, including SQL templates and JavaScript handlers
 
-Both workflows ultimately execute read-only SQL against the same loaded DuckDB table. The difference is where the SQL comes from: `query duckdb` takes it directly from a preset, string, or file, while `query commands` renders it from a structured command definition with typed parameters.
+SQL structured commands render read-only SQL against the DuckDB runtime. JavaScript structured commands now usually call `require("minitrace").db().RuntimeArchives().Build()` and query normalized SQLite tables explicitly. The difference is not only where the SQL comes from; JS commands can also build a normalized database, run several queries, and combine or score the results in JavaScript.
 
 ## Query workflow choices
 

@@ -23,7 +23,7 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-Structured query commands add a metadata layer on top of raw SQL and JavaScript-backed analysis scripts. Instead of remembering a long `--sql` string or maintaining ad hoc files with no parameter schema, you define a scanner-first command source, let go-minitrace turn its fields into real CLI parameters and web-form fields, and then either render read-only SQL or invoke a JS handler against the loaded DuckDB table.
+Structured query commands add a metadata layer on top of raw SQL and JavaScript-backed analysis scripts. Instead of remembering a long `--sql` string or maintaining ad hoc files with no parameter schema, you define a scanner-first command source, let go-minitrace turn its fields into real CLI parameters and web-form fields, and then either render read-only SQL or invoke a JS handler that explicitly builds a normalized SQLite database with `mt.db()`.
 
 This matters when a query or analysis script becomes part of your team's repeatable workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
 
@@ -380,17 +380,22 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return mt.query(`
-    SELECT
-      id,
-      title,
-      environment->>'agent_framework' AS framework
-    FROM ${mt.tableName}
-    WHERE 1=1
-    ${filters.framework?.length ? `AND (environment->>'agent_framework') IN (${mt.sql.stringIn(filters.framework)})` : ""}
-    ORDER BY timing->>'started_at' DESC
-    LIMIT ${filters.limit}
-  `);
+  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  try {
+    return db.query(`
+      SELECT
+        session_id,
+        title,
+        agent_framework AS framework
+      FROM sessions
+      WHERE 1=1
+      ${filters.framework?.length ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})` : ""}
+      ORDER BY started_at DESC
+      LIMIT ${filters.limit}
+    `);
+  } finally {
+    db.close();
+  }
 }
 
 __verb__("sessionList", {
@@ -514,7 +519,7 @@ Use `query duckdb --sql` or `--sql-file` when:
 - the query is still changing rapidly
 - the query does not need a typed parameter schema yet
 
-The two approaches are complementary. Structured commands are the reusable layer on top of the same DuckDB backend.
+The two approaches are complementary. Raw `query duckdb` is the fastest ad hoc path over the DuckDB `sessions_base` table. Structured SQL commands make that style reusable, while structured JS commands can build normalized SQLite databases with `mt.db()` when the analysis needs multiple queries, post-processing, caching, or table-level schema discovery.
 
 ## Troubleshooting
 
@@ -532,11 +537,11 @@ The two approaches are complementary. Structured commands are the reusable layer
 
 ## See also
 
-- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.query()`, `mt.queryOne()`, `mt.tableName`, `mt.sql.*`, `mt.runtime`, all built-in modules, scanner markers, field types
+- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.db()`, `db.query()`, normalized SQLite tables, cache modes, `mt.sql.*`, `mt.runtime`, built-in modules, scanner markers, field types
 - `go-minitrace help analysis-guide` — end-to-end workflow with JS command guidance, authoring loop, and when to use JS vs SQL
-- `go-minitrace help query-duckdb` — worked examples for `query duckdb` alongside structured commands
-- `go-minitrace help duckdb-query-recipes` — ready-to-use SQL examples for porting into JS handlers
-- `go-minitrace help writing-duckdb-queries` — SQL patterns for the `sessions_base` schema: JSON access, UNNEST, casting
+- `go-minitrace help query-duckdb` — worked examples for raw DuckDB exploration alongside structured commands
+- `go-minitrace help duckdb-query-recipes` — ready-to-use DuckDB examples that can often be translated to normalized `mt.db()` SQL
+- `go-minitrace help writing-duckdb-queries` — SQL patterns for the older `sessions_base` DuckDB JSON table: JSON access, UNNEST, casting
 - `go-minitrace help query-commands` — the raw DuckDB query group, presets, and custom SQL modes
 - `go-minitrace help getting-started` — end-to-end first-run tutorial
 - `README.md` — project overview and quick-start commands
