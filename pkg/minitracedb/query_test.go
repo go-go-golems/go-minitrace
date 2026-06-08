@@ -95,6 +95,68 @@ func TestQueryRunnerRejectsDisallowedObjects(t *testing.T) {
 	}
 }
 
+func TestQueryRunnerRejectsQuotedDisallowedObjects(t *testing.T) {
+	runner := setupQueryRunner(t)
+	queries := []string{
+		`SELECT name FROM "sqlite_master"`,
+		"SELECT name FROM `sqlite_master`",
+		`SELECT name FROM [sqlite_master]`,
+	}
+	for _, query := range queries {
+		result, err := runner.QueryResult(context.Background(), query)
+		if err != nil {
+			t.Fatalf("QueryResult error: %v", err)
+		}
+		if result.Error == "" {
+			t.Fatalf("expected disallowed object error for %q, got %#v", query, result)
+		}
+	}
+}
+
+func TestQueryRunnerAllowsQuotedAllowedObjects(t *testing.T) {
+	runner := setupQueryRunner(t)
+	rows, err := runner.Query(context.Background(), `SELECT session_id FROM "sessions"`)
+	if err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["session_id"] != "s1" {
+		t.Fatalf("unexpected rows %#v", rows)
+	}
+}
+
+func TestQueryRunnerAllowsCTEAliases(t *testing.T) {
+	runner := setupQueryRunner(t)
+	rows, err := runner.Query(context.Background(), `WITH recent AS (SELECT session_id FROM sessions) SELECT session_id FROM recent`)
+	if err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["session_id"] != "s1" {
+		t.Fatalf("unexpected rows %#v", rows)
+	}
+}
+
+func TestQueryRunnerRejectsDisallowedObjectsInsideCTE(t *testing.T) {
+	runner := setupQueryRunner(t)
+	result, err := runner.QueryResult(context.Background(), `WITH catalog AS (SELECT name FROM sqlite_master) SELECT name FROM catalog`)
+	if err != nil {
+		t.Fatalf("QueryResult error: %v", err)
+	}
+	if result.Error == "" {
+		t.Fatalf("expected disallowed object error, got %#v", result)
+	}
+}
+
+func TestQueryRunnerAllowsSchemaQualifiedAllowedObjects(t *testing.T) {
+	runner := setupQueryRunner(t)
+	rows, err := runner.Query(context.Background(), `SELECT session_id FROM main.sessions`)
+	if err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["session_id"] != "s1" {
+		t.Fatalf("unexpected rows %#v", rows)
+	}
+}
+
 func TestQueryRunnerTruncatesCells(t *testing.T) {
 	runner := setupQueryRunner(t)
 	row, err := runner.QueryOne(context.Background(), `SELECT title FROM sessions`)

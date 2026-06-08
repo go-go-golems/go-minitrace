@@ -996,3 +996,110 @@ golangci-lint run --timeout=5m ./cmd/... ./pkg/...
 docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp changelog update --ticket mtapi-consolidation-single-mt-api ...
 docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp doc relate --doc .../design-doc/02-solid-sqlite-query-authorization-design-and-implementation-plan.md ...
 ```
+
+## Step 10: Move query allowlisting into SQLite's authorizer
+
+I implemented the behavior change planned by the second design document. QueryRunner now relies on SQLite's parser-backed authorizer for table allowlisting instead of extracting `FROM` and `JOIN` objects with a regular expression over sanitized SQL text.
+
+The new regression tests cover both reported review failures: quoted `sqlite_master` access is denied, and valid CTE aliases are no longer rejected as physical tables. The tests also cover quoted allowed objects, disallowed objects inside CTE bodies, and schema-qualified allowed table access through `main.sessions`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, add tasks to the ticket, and then implement task by task, committing at appropriate intervals, keeping a detailed diary as you go."
+
+**Assistant interpretation:** Add the remaining SQLite authorization implementation tasks to the ticket, then work through them in small commits with diary updates.
+
+**Inferred user intent:** Turn the design into working code while preserving reviewable, documented implementation history.
+
+**Commit (code):** pending — this implementation slice is not committed yet.
+
+### What I did
+
+- Added Phase 8 tasks to `tasks.md` for robust SQLite query authorization.
+- Added regression tests in `pkg/minitracedb/query_test.go` for:
+  - quoted disallowed `sqlite_master` identifiers,
+  - quoted allowed `sessions` identifiers,
+  - valid CTE aliases,
+  - disallowed `sqlite_master` access inside a CTE body,
+  - schema-qualified `main.sessions` access.
+- Reproduced the expected pre-fix failures:
+  - quoted `"sqlite_master"` leaked catalog rows,
+  - `WITH recent AS (...) SELECT ... FROM recent` failed because `recent` was treated as a disallowed table.
+- Changed `validateReadOnlySQLiteQuery` so it only validates query shape and no longer receives or checks `allowedObjects`.
+- Removed `referencedObjects`, `normalizeExtractedObject`, and the `fromJoinObjectRe` regexp from production code.
+- Added `queryAuthorizationState` to preserve a clear `query references disallowed table/view` error when the authorizer denies a read.
+- Changed `newReadOnlyAuthorizer` to enforce `allowedObjects` for `SQLITE_READ` using SQLite's parser-resolved table name.
+- Kept the authorizer installed through prepare and execution.
+
+### Why
+
+- SQLite's parser already knows which physical table each query reads. Using that information is more reliable than recreating partial SQL parsing in Go.
+- The existing regex path had both false negatives and false positives, which makes it unsafe as a security boundary.
+
+### What worked
+
+- `go test ./pkg/minitracedb -count=1` passed after the authorizer change.
+- `go test ./pkg/minitracedb ./pkg/minitracejs/...` passed.
+- The existing unquoted `sqlite_master` test still gets the clear `disallowed` error because the new authorizer denial state formats that message.
+
+### What didn't work
+
+- The initial regression run intentionally failed before the implementation:
+
+```text
+--- FAIL: TestQueryRunnerRejectsQuotedDisallowedObjects (0.00s)
+    query_test.go:111: expected disallowed object error for "SELECT name FROM \"sqlite_master\"", got minitracedb.QueryResult{Columns:[]string{"name"}, Rows:[]map[string]interface {}{map[string]interface {}{"name":"sessi"}, map[string]interface {}{"name":"sqlit"}, map[string]interface {}{"name":"turns"}, map[string]interface {}{"name":"sqlit"}, map[string]interface {}{"name":"tool_"}, map[string]interface {}{"name":"sqlit"}, map[string]interface {}{"name":"turn_"}, map[string]interface {}{"name":"sqlit"}, map[string]interface {}{"name":"files"}, map[string]interface {}{"name":"annot"}}, Count:10, Truncated:true, Error:""}
+--- FAIL: TestQueryRunnerAllowsCTEAliases (0.00s)
+    query_test.go:131: Query: query references disallowed table/view "recent": WITH recent AS (SELECT session_id FROM sessions) SELECT session_id FROM recent
+```
+
+- The first authorizer implementation had duplicate switch cases for `SQLITE_CREATE_VTABLE` and `SQLITE_DROP_VTABLE`, producing this compile error:
+
+```text
+pkg/minitracedb/query.go:420: duplicate case sqlite3.SQLITE_CREATE_VTABLE (constant 29 of type int) in expression switch
+pkg/minitracedb/query.go:420: duplicate case sqlite3.SQLITE_DROP_VTABLE (constant 30 of type int) in expression switch
+```
+
+I removed the duplicates and reran tests successfully.
+
+### What I learned
+
+- The quoted identifier leak was easy to prove because `MaxCellChars: 5` truncated leaked `sqlite_master` names to values such as `sessi` and `sqlit`.
+- The deny-by-default authorizer path needs careful switch-case maintenance because SQLite action constants cover many DDL operations.
+
+### What was tricky to build
+
+- The key ordering constraint is authorizer lifetime. The callback must remain installed not only for the explicit read-only prepare check, but also for `QueryContext`, because SQLite can reprepare during execution after schema changes.
+- Error reporting needed a small captured state object. Without it, SQLite's generic authorization error would still be correct, but existing tests and user-facing diagnostics would be less clear.
+
+### What warrants a second pair of eyes
+
+- Review whether `SQLITE_FUNCTION` should remain allow-all. This is convenient for current analysis queries, but a function allowlist may be safer if future runtime code registers powerful user-defined functions on the same connections.
+- Review the deny-by-default operation list against expected query recipes, especially if recursive CTEs or advanced SQLite features are introduced later.
+
+### What should be done in the future
+
+- Add tests for joins, aggregate functions, and recursive CTEs if those become first-class query recipes.
+- Consider exposing denied operation/object details in structured diagnostics rather than only as an error string.
+
+### Code review instructions
+
+- Start with `pkg/minitracedb/query_test.go` to see the expected behavior.
+- Then review `pkg/minitracedb/query.go`, especially `QueryResult`, `validateReadOnlySQLiteQuery`, `queryAuthorizationState`, and `newReadOnlyAuthorizer`.
+- Validate with:
+
+```bash
+go test ./pkg/minitracedb -count=1
+go test ./pkg/minitracedb ./pkg/minitracejs/...
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+gofmt -w pkg/minitracedb/query.go pkg/minitracedb/query_test.go
+go test ./pkg/minitracedb -count=1
+go test ./pkg/minitracedb ./pkg/minitracejs/...
+docmgr --root /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp changelog update --ticket mtapi-consolidation-single-mt-api ...
+```

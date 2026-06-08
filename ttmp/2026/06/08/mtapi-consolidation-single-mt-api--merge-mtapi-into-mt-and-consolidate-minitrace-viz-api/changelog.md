@@ -157,3 +157,13 @@ Fix CI lint issues in minitracedb/materialize.go and minitracejs/builders.go, ad
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/builders.go — Removed unused unexported toJSON methods flagged by lint
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/08/mtapi-consolidation-single-mt-api--merge-mtapi-into-mt-and-consolidate-minitrace-viz-api/design-doc/02-solid-sqlite-query-authorization-design-and-implementation-plan.md — Implementation plan for parser-backed SQLite authorization
 
+
+## 2026-06-08
+
+Implement robust QueryRunner authorization: add regression tests for quoted identifiers and CTE aliases, move table allowlist checks into SQLite's authorizer, and remove regex table extraction from the production validation path.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query.go — SQLite authorizer now enforces allowed table reads using parser-resolved object names
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/query_test.go — Regression coverage for quoted sqlite_master
+

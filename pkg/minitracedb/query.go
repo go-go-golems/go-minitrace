@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"math/big"
-	"regexp"
 	"strings"
 	"time"
 
@@ -93,7 +92,7 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	if r == nil || r.db == nil {
 		return QueryResult{Error: "db is not initialized"}, nil
 	}
-	normalized, err := validateReadOnlySQLiteQuery(sqlText, r.allowedObjects, r.opts)
+	normalized, err := validateReadOnlySQLiteQuery(sqlText, r.opts)
 	if err != nil {
 		preview := strings.TrimSpace(sqlText)
 		if len(preview) > 160 {
@@ -116,17 +115,24 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	}
 	defer func() { _ = conn.Close() }()
 
-	if err := setSQLiteAuthorizer(conn, newReadOnlyAuthorizer()); err != nil {
+	authState := &queryAuthorizationState{}
+	if err := setSQLiteAuthorizer(conn, newReadOnlyAuthorizer(r.allowedObjects, authState)); err != nil {
 		return QueryResult{Error: err.Error()}, nil
 	}
 	defer func() { _ = setSQLiteAuthorizer(conn, nil) }()
 
 	if err := ensureReadonlyPreparedQuery(conn, normalized); err != nil {
+		if authErr := authState.err(); authErr != nil {
+			return QueryResult{Error: authErr.Error()}, nil
+		}
 		return QueryResult{Error: err.Error()}, nil
 	}
 
 	rows, err := conn.QueryContext(qctx, normalized, flattenArgs(args)...)
 	if err != nil {
+		if authErr := authState.err(); authErr != nil {
+			return QueryResult{Error: authErr.Error()}, nil
+		}
 		return QueryResult{Error: err.Error()}, nil
 	}
 	defer func() { _ = rows.Close() }()
@@ -159,6 +165,9 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 		out.Count++
 	}
 	if err := rows.Err(); err != nil {
+		if authErr := authState.err(); authErr != nil {
+			return QueryResult{Error: authErr.Error()}, nil
+		}
 		return QueryResult{Error: err.Error()}, nil
 	}
 	return out, nil
@@ -192,7 +201,7 @@ func truncateString(s string, maxChars int) string {
 	return s
 }
 
-func validateReadOnlySQLiteQuery(sqlText string, allowedObjects map[string]struct{}, opts QueryOptions) (string, error) {
+func validateReadOnlySQLiteQuery(sqlText string, opts QueryOptions) (string, error) {
 	normalized, err := normalizeQuery(sqlText)
 	if err != nil {
 		return "", err
@@ -204,13 +213,6 @@ func validateReadOnlySQLiteQuery(sqlText string, allowedObjects map[string]struc
 	}
 	if opts.RequireOrderBy && strings.Contains(lower, " from ") && !strings.Contains(lower, " order by ") {
 		return "", fmt.Errorf("query must include ORDER BY")
-	}
-	if len(allowedObjects) > 0 {
-		for _, object := range referencedObjects(sanitized) {
-			if _, ok := allowedObjects[normalizeObjectName(object)]; !ok {
-				return "", fmt.Errorf("query references disallowed table/view %q", object)
-			}
-		}
 	}
 	return normalized, nil
 }
@@ -244,37 +246,6 @@ func normalizeQuery(sqlText string) (string, error) {
 		return "", fmt.Errorf("sql is required")
 	}
 	return trimmed, nil
-}
-
-var fromJoinObjectRe = regexp.MustCompile(`(?i)\b(from|join)\s+([a-zA-Z_][a-zA-Z0-9_\.]*)`)
-
-func referencedObjects(sqlText string) []string {
-	matches := fromJoinObjectRe.FindAllStringSubmatch(sqlText, -1)
-	seen := map[string]struct{}{}
-	var out []string
-	for _, match := range matches {
-		if len(match) < 3 {
-			continue
-		}
-		object := normalizeExtractedObject(match[2])
-		if object == "" {
-			continue
-		}
-		if _, ok := seen[object]; ok {
-			continue
-		}
-		seen[object] = struct{}{}
-		out = append(out, object)
-	}
-	return out
-}
-
-func normalizeExtractedObject(v string) string {
-	v = strings.Trim(v, "`\"[] ")
-	if dot := strings.LastIndex(v, "."); dot >= 0 && dot+1 < len(v) {
-		v = v[dot+1:]
-	}
-	return v
 }
 
 func normalizeObjectName(v string) string { return strings.ToLower(strings.TrimSpace(v)) }
@@ -412,15 +383,49 @@ func ensureReadonlyPreparedQuery(conn *sql.Conn, sqlText string) error {
 	})
 }
 
-func newReadOnlyAuthorizer() func(int, string, string, string) int {
-	return func(op int, _, _, _ string) int {
+type queryAuthorizationState struct {
+	deniedOp     int
+	deniedObject string
+}
+
+func (s *queryAuthorizationState) deny(op int, object string) {
+	if s == nil || s.deniedObject != "" {
+		return
+	}
+	s.deniedOp = op
+	s.deniedObject = object
+}
+
+func (s *queryAuthorizationState) err() error {
+	if s == nil || s.deniedObject == "" {
+		return nil
+	}
+	if s.deniedOp == sqlite3.SQLITE_READ {
+		return fmt.Errorf("query references disallowed table/view %q", s.deniedObject)
+	}
+	return fmt.Errorf("query uses disallowed SQLite operation %d on %q", s.deniedOp, s.deniedObject)
+}
+
+func newReadOnlyAuthorizer(allowedObjects map[string]struct{}, state *queryAuthorizationState) func(int, string, string, string) int {
+	return func(op int, object, _, _ string) int {
 		switch op {
-		case sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FUNCTION:
+		case sqlite3.SQLITE_SELECT, sqlite3.SQLITE_FUNCTION:
 			return sqlite3.SQLITE_OK
-		case sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE, sqlite3.SQLITE_PRAGMA, sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_TRANSACTION, sqlite3.SQLITE_CREATE_INDEX, sqlite3.SQLITE_CREATE_TABLE, sqlite3.SQLITE_CREATE_TEMP_INDEX, sqlite3.SQLITE_CREATE_TEMP_TABLE, sqlite3.SQLITE_CREATE_TEMP_TRIGGER, sqlite3.SQLITE_CREATE_TEMP_VIEW, sqlite3.SQLITE_CREATE_TRIGGER, sqlite3.SQLITE_CREATE_VIEW, sqlite3.SQLITE_CREATE_VTABLE, sqlite3.SQLITE_DROP_INDEX, sqlite3.SQLITE_DROP_TABLE, sqlite3.SQLITE_DROP_TEMP_INDEX, sqlite3.SQLITE_DROP_TEMP_TABLE, sqlite3.SQLITE_DROP_TEMP_TRIGGER, sqlite3.SQLITE_DROP_TEMP_VIEW, sqlite3.SQLITE_DROP_TRIGGER, sqlite3.SQLITE_DROP_VIEW, sqlite3.SQLITE_DROP_VTABLE:
+		case sqlite3.SQLITE_READ:
+			if len(allowedObjects) == 0 {
+				return sqlite3.SQLITE_OK
+			}
+			if _, ok := allowedObjects[normalizeObjectName(object)]; ok {
+				return sqlite3.SQLITE_OK
+			}
+			state.deny(op, object)
+			return sqlite3.SQLITE_DENY
+		case sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE, sqlite3.SQLITE_PRAGMA, sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_TRANSACTION, sqlite3.SQLITE_CREATE_INDEX, sqlite3.SQLITE_CREATE_TABLE, sqlite3.SQLITE_CREATE_TEMP_INDEX, sqlite3.SQLITE_CREATE_TEMP_TABLE, sqlite3.SQLITE_CREATE_TEMP_TRIGGER, sqlite3.SQLITE_CREATE_TEMP_VIEW, sqlite3.SQLITE_CREATE_TRIGGER, sqlite3.SQLITE_CREATE_VIEW, sqlite3.SQLITE_CREATE_VTABLE, sqlite3.SQLITE_DROP_INDEX, sqlite3.SQLITE_DROP_TABLE, sqlite3.SQLITE_DROP_TEMP_INDEX, sqlite3.SQLITE_DROP_TEMP_TABLE, sqlite3.SQLITE_DROP_TEMP_TRIGGER, sqlite3.SQLITE_DROP_TEMP_VIEW, sqlite3.SQLITE_DROP_TRIGGER, sqlite3.SQLITE_DROP_VIEW, sqlite3.SQLITE_DROP_VTABLE, sqlite3.SQLITE_ALTER_TABLE, sqlite3.SQLITE_REINDEX, sqlite3.SQLITE_ANALYZE, sqlite3.SQLITE_SAVEPOINT:
+			state.deny(op, object)
 			return sqlite3.SQLITE_DENY
 		default:
-			return sqlite3.SQLITE_OK
+			state.deny(op, object)
+			return sqlite3.SQLITE_DENY
 		}
 	}
 }
