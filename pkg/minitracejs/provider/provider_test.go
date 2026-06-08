@@ -785,3 +785,72 @@ func TestModuleLoaderDBBuilderConveniencePresets(t *testing.T) {
 		t.Fatalf("unexpected convenience builder result: %#v", got)
 	}
 }
+
+func TestModuleLoaderImporterSavesJSONLContent(t *testing.T) {
+	content := string(writeJSONLFixture(t, []map[string]any{
+		{"type": "session", "id": "importer-content", "version": 3, "timestamp": "2026-03-29T12:00:00Z"},
+		{"type": "message", "timestamp": "2026-03-29T12:00:01Z", "message": map[string]any{"role": "user", "content": []any{map[string]any{"type": "text", "text": "save me"}}}},
+	}))
+	root := t.TempDir()
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	_ = vm.Set("rootDir", root)
+	value, err := vm.RunString(`
+		const importer = mt.importer()
+		  .Content(jsonlContent)
+		  .Name("importer-content.jsonl")
+		  .Into(rootDir)
+		  .SessionID("saved-session")
+		  .AutoDetect()
+		  .Strict()
+		  .Convert();
+		const converted = importer.Converted();
+		const saved = importer.Save();
+		JSON.stringify({ converted, saved, diagnostics: importer.Diagnostics() });
+	`)
+	if err != nil {
+		t.Fatalf("run importer script: %v", err)
+	}
+	var got struct {
+		Converted struct {
+			SessionID string `json:"sessionId"`
+			Format    string `json:"format"`
+			TurnCount int    `json:"turnCount"`
+		} `json:"converted"`
+		Saved struct {
+			SessionID    string `json:"sessionId"`
+			Format       string `json:"format"`
+			SessionPath  string `json:"sessionPath"`
+			MetadataPath string `json:"metadataPath"`
+		} `json:"saved"`
+		Diagnostics []map[string]any `json:"diagnostics"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal importer result: %v", err)
+	}
+	if got.Converted.SessionID != "importer-content" || got.Converted.Format != "pi-jsonl" || got.Converted.TurnCount == 0 {
+		t.Fatalf("unexpected converted summary: %#v", got.Converted)
+	}
+	if got.Saved.SessionID != "saved-session" || got.Saved.Format != "pi-jsonl" {
+		t.Fatalf("unexpected saved result: %#v", got.Saved)
+	}
+	if len(got.Diagnostics) == 0 {
+		t.Fatalf("expected diagnostics")
+	}
+	if _, err := os.Stat(got.Saved.SessionPath); err != nil {
+		t.Fatalf("expected saved archive: %v", err)
+	}
+	if _, err := os.Stat(got.Saved.MetadataPath); err != nil {
+		t.Fatalf("expected saved metadata: %v", err)
+	}
+}

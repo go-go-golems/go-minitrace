@@ -2,7 +2,7 @@
 
 ## Phase 1 — Builder-Composed `go-minitrace` `mt` API
 
-- [ ] Add `mt.importer()` fluent builder with `Content`, `File`, `Name`, `AutoDetect`, `Format`, `Strict`, `Into`, `SessionID`, `Convert`, `Converted`, and `Save`.
+- [x] Add `mt.importer()` fluent builder with `Content`, `File`, `Name`, `AutoDetect`, `Format`, `Strict`, `Into`, `SessionID`, `Convert`, `Converted`, and `Save`.
 - [x] Add `mt.sources()` fluent subbuilder that returns a Go-owned `SourceSet` from `File`, `Archive`, `Files`, `Dir`, `Glob`, `Content`, `Name`, and `RuntimeArchives`.
 - [x] Add `mt.importPolicy()` fluent subbuilder that returns a Go-owned `ImportPolicy` from `AutoConvert`, `NativeOnly`, `Strict`, and `Lenient`.
 - [x] Add `mt.cache()` fluent subbuilder that returns a Go-owned `CachePolicy` from `None`, `Memory`, `Disk`, `Auto`, `Dir`, and `ForceRebuild`.

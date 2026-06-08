@@ -66,3 +66,13 @@ Step 5: Added SourceSet/import/cache/limits builders and DB composition methods,
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/db_builder.go — DB builder composition wiring
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go — Integration tests
 
+
+## 2026-06-08
+
+Step 6: Added mt.importer fluent upload/import builder with save-to-session-directory integration test.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — New import builder
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go — Importer integration test
+

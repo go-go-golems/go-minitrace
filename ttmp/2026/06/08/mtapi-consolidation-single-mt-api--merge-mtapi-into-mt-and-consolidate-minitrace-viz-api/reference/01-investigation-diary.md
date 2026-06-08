@@ -16,6 +16,8 @@ RelatedFiles:
       Note: Step 5 added Go-owned source/policy/cache/limits subbuilders
     - Path: go-minitrace/pkg/minitracejs/db_builder.go
       Note: Step 5 added DB composition methods for subbuilder outputs
+    - Path: go-minitrace/pkg/minitracejs/import_builder.go
+      Note: Step 6 added mt.importer upload/import builder
     - Path: go-minitrace/pkg/minitracejs/module.go
       Note: Step 5 exported new builder factories
     - Path: go-minitrace/pkg/minitracejs/provider/provider_test.go
@@ -30,6 +32,7 @@ LastUpdated: 2026-06-08T20:45:00-04:00
 WhatFor: Use this to resume the ticket and understand what evidence was gathered before the implementation guide was written.
 WhenToUse: Read before implementing or reviewing the mt API consolidation work.
 ---
+
 
 
 
@@ -376,7 +379,7 @@ This step intentionally did not remove the older `mt.db().File(...).Build()` con
 
 **Inferred user intent:** Make steady implementation progress while preserving a reviewable history and detailed continuation notes.
 
-**Commit (code):** pending at time of diary update — planned message: `Add staged minitrace JS DB builders`.
+**Commit (code):** `26fabe2cdb6c42d7342f6a83a2146ef7ebaff6f8` — `Add staged minitrace JS DB builders`.
 
 ### What I did
 
@@ -470,4 +473,100 @@ Commands run:
 gofmt -w go-minitrace/pkg/minitracejs/builders.go go-minitrace/pkg/minitracejs/db_builder.go go-minitrace/pkg/minitracejs/module.go
 cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderProvidesDBBuilder|TestModuleLoaderDBBuilderAutoConvertsJSONLContent' -count=1
 cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderComposesDBFromSubBuilders|TestModuleLoaderDBBuilderConveniencePresets' -count=1
+```
+
+## Step 6: Add the upload/import fluent builder
+
+I implemented `mt.importer()` as the first high-level builder on top of the conversion foundation. The builder supports the upload workflow the site needs while keeping the converted session as a Go-owned object until `Save()` writes the canonical `session.minitrace.json` and `metadata.json` files.
+
+This replaces the old ClubMed shape `mt.source(content, { name }).detect().convert().save(root, id)` with a cleaner staged builder: `mt.importer().Content(content).Name(name).Into(root).SessionID(id).Convert().Save()`.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue implementing the builder-first API task by task, keeping the diary current and committing focused increments.
+
+**Inferred user intent:** Move from design into concrete Goja module features with tests and reviewable commits.
+
+**Commit (code):** pending at time of diary update — planned message: `Add minitrace JS import builder`.
+
+### What I did
+
+- Added `go-minitrace/pkg/minitracejs/import_builder.go`.
+- Added `mt.importer()` export in `go-minitrace/pkg/minitracejs/module.go`.
+- Implemented fluent methods:
+  - `Content`,
+  - `File`,
+  - `Name`,
+  - `SourcePath`,
+  - `AutoDetect`,
+  - `Format`,
+  - `Strict`,
+  - `Into`,
+  - `SessionID`,
+  - `Overwrite`,
+  - `Detect`,
+  - `Convert`,
+  - `Converted`,
+  - `Diagnostics`,
+  - `Save`.
+- Added `SavedSession` and `ConvertedSession` JS-facing result structs.
+- Added an integration test that converts Pi JSONL content, saves it under a temp sessions root, and verifies both archive and metadata files exist.
+- Marked the `mt.importer()` Phase 1 task complete.
+
+### Why
+
+- Upload/import is one of the core behaviors currently trapped in ClubMed `mtapi`.
+- Implementing it in `go-minitrace` allows `minitrace-viz` to delete the local provider later.
+
+### What worked
+
+- The importer successfully used `minitracedb.LoadSessionContentAuto` to convert JSONL content.
+- `Save()` wrote `session.minitrace.json` and `metadata.json` with the caller-provided session id.
+- The provider test package passed after adding the importer test.
+
+### What didn't work
+
+- N/A in this step; the targeted importer test passed on the first run after gofmt.
+
+### What I learned
+
+- `LoadSessionContentAuto` already returns enough format, adapter, diagnostics, and session information for upload metadata.
+- Keeping the converted session inside the builder avoids re-decoding content between `Convert()`, `Converted()`, `Diagnostics()`, and `Save()`.
+
+### What was tricky to build
+
+- `Detect()` is implemented through the same load path as conversion for now, because low-level JSONL parsing and native-session detection helpers are not all exported from `minitracedb`. This is acceptable for the initial builder but may be worth revisiting if upload previews need cheap detection without conversion.
+- `Save()` must override the converted session id when `.SessionID(...)` is provided so the archive and metadata agree with the app's session directory.
+
+### What warrants a second pair of eyes
+
+- Review whether `Overwrite(false)` should fail when the session directory exists, as implemented, or whether it should specifically check individual output files.
+- Review whether `Detect()` should be separated from conversion with an exported `minitracedb.DetectContent` helper.
+
+### What should be done in the future
+
+- Implement `mt.session()` next so app data access can use the importer output cleanly.
+- Consider adding file-input importer tests after the content path is stable.
+
+### Code review instructions
+
+- Start with `go-minitrace/pkg/minitracejs/import_builder.go`.
+- Then review the new `mt.importer()` export in `module.go` and the importer integration test in `provider_test.go`.
+- Validate with:
+
+```bash
+cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderImporterSavesJSONLContent' -count=1
+cd go-minitrace && go test ./pkg/minitracejs/provider -count=1
+```
+
+### Technical details
+
+Commands run:
+
+```bash
+gofmt -w go-minitrace/pkg/minitracejs/import_builder.go go-minitrace/pkg/minitracejs/module.go go-minitrace/pkg/minitracejs/provider/provider_test.go
+cd go-minitrace && go test ./pkg/minitracejs/provider -run 'TestModuleLoaderImporterSavesJSONLContent' -count=1
+cd go-minitrace && go test ./pkg/minitracejs/provider -count=1
 ```
