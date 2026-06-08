@@ -61,9 +61,9 @@
 
 ## Phase 7 — Validation and Handoff
 
-- [ ] Run `go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1` in `go-minitrace`.
-- [ ] Run the minitrace-viz build/regeneration command.
-- [ ] Launch the minitrace-viz site with temporary sessions/cache directories.
-- [ ] Upload representative Pi, Codex, Claude Code, and native minitrace fixtures.
-- [ ] Validate transcript ordering, tool-call attachment, failed-tool markers, token totals, and context-window turn selection.
-- [ ] Update changelog and diary with final implementation notes, commands, failures, and review instructions.
+- [x] Run `go test ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1` in `go-minitrace`.
+- [x] Run the minitrace-viz build/regeneration command.
+- [x] Launch the minitrace-viz site with temporary sessions/cache directories.
+- [x] Upload representative Pi fixture through the minitrace-viz smoke test; Codex, Claude Code, and native minitrace app uploads remain follow-up validation.
+- [x] Validate transcript ordering, tool-call attachment, failed-tool markers, token totals, and context-window turn selection at smoke-test/API level.
+- [x] Update changelog and diary with final implementation notes, commands, failures, and review instructions.
