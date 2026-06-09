@@ -25,6 +25,9 @@ func TestRegisterProvider(t *testing.T) {
 	if mod.DefaultAs != minitracejs.ModuleName {
 		t.Fatalf("default alias = %q, want %q", mod.DefaultAs, minitracejs.ModuleName)
 	}
+	if mod.TypeScript == nil {
+		t.Fatalf("expected module %s.%s to carry TypeScript descriptor", PackageID, minitracejs.ModuleName)
+	}
 }
 
 func TestProviderAllowsModuleWithoutHostServices(t *testing.T) {
