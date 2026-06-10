@@ -20,6 +20,7 @@ func TestSchemaContainsCoreTables(t *testing.T) {
 		"turn_tool_calls": false,
 		"files":           false,
 		"metrics":         false,
+		"attachments":     false,
 		"events":          false,
 	}
 	for _, table := range schema.Tables {

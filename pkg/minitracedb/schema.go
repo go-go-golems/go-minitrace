@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const SchemaVersion = "normalized-sqlite-v1"
+const SchemaVersion = "normalized-sqlite-v2"
 
 type ColumnDescriptor struct {
 	Name        string `json:"name"`
@@ -44,6 +44,7 @@ func Tables() []TableDescriptor {
 		annotationsTable(),
 		handoversTable(),
 		metricsTable(),
+		attachmentsTable(),
 		eventsTable(),
 	}
 }
@@ -508,40 +509,92 @@ func metricsTable() TableDescriptor {
 	}
 }
 
+func attachmentsTable() TableDescriptor {
+	return TableDescriptor{
+		Name:        "attachments",
+		Description: "One row per source artifact or attachment reference associated with a session, turn, tool call, or event.",
+		Columns: []ColumnDescriptor{
+			{Name: "session_id", Type: "TEXT", PrimaryKey: true},
+			{Name: "attachment_id", Type: "TEXT", PrimaryKey: true},
+			{Name: "timestamp", Type: "TEXT", Nullable: true},
+			{Name: "kind", Type: "TEXT", Nullable: true},
+			{Name: "name", Type: "TEXT", Nullable: true},
+			{Name: "media_type", Type: "TEXT", Nullable: true},
+			{Name: "path", Type: "TEXT", Nullable: true},
+			{Name: "url", Type: "TEXT", Nullable: true},
+			{Name: "size_bytes", Type: "INTEGER", Nullable: true},
+			{Name: "hash", Type: "TEXT", Nullable: true},
+			{Name: "content_ref", Type: "TEXT", Nullable: true},
+			{Name: "text_preview", Type: "TEXT", Nullable: true},
+			{Name: "turn_index", Type: "INTEGER", Nullable: true},
+			{Name: "tool_call_id", Type: "TEXT", Nullable: true},
+			{Name: "event_id", Type: "TEXT", Nullable: true},
+			{Name: "framework_metadata_json", Type: "TEXT", Nullable: true},
+			{Name: "raw_json", Type: "TEXT", Nullable: true},
+		},
+		CreateSQL: `CREATE TABLE IF NOT EXISTS attachments (
+	session_id TEXT NOT NULL,
+	attachment_id TEXT NOT NULL,
+	timestamp TEXT,
+	kind TEXT,
+	name TEXT,
+	media_type TEXT,
+	path TEXT,
+	url TEXT,
+	size_bytes INTEGER,
+	hash TEXT,
+	content_ref TEXT,
+	text_preview TEXT,
+	turn_index INTEGER,
+	tool_call_id TEXT,
+	event_id TEXT,
+	framework_metadata_json TEXT,
+	raw_json TEXT,
+	PRIMARY KEY (session_id, attachment_id)
+);`,
+	}
+}
+
 func eventsTable() TableDescriptor {
 	return TableDescriptor{
 		Name:        "events",
-		Description: "One row per timeline/renderable event derived from turns, tool calls, and annotations.",
+		Description: "One row per timeline/renderable event derived from turns, tool calls, annotations, or explicit source event records.",
 		Columns: []ColumnDescriptor{
 			{Name: "session_id", Type: "TEXT", PrimaryKey: true},
 			{Name: "event_id", Type: "TEXT", PrimaryKey: true},
+			{Name: "timestamp", Type: "TEXT", Nullable: true},
 			{Name: "turn_index", Type: "INTEGER", Nullable: true},
 			{Name: "ordinal", Type: "INTEGER", Nullable: true},
 			{Name: "kind", Type: "TEXT", Nullable: true},
 			{Name: "role", Type: "TEXT", Nullable: true},
 			{Name: "tool_call_id", Type: "TEXT", Nullable: true},
 			{Name: "annotation_id", Type: "TEXT", Nullable: true},
+			{Name: "attachment_id", Type: "TEXT", Nullable: true},
 			{Name: "title", Type: "TEXT", Nullable: true},
 			{Name: "summary", Type: "TEXT", Nullable: true},
 			{Name: "text", Type: "TEXT", Nullable: true},
 			{Name: "severity", Type: "TEXT", Nullable: true},
 			{Name: "collapsed_by_default", Type: "INTEGER", Nullable: true},
+			{Name: "framework_metadata_json", Type: "TEXT", Nullable: true},
 			{Name: "raw_json", Type: "TEXT", Nullable: true},
 		},
 		CreateSQL: `CREATE TABLE IF NOT EXISTS events (
 	session_id TEXT NOT NULL,
 	event_id TEXT NOT NULL,
+	timestamp TEXT,
 	turn_index INTEGER,
 	ordinal INTEGER,
 	kind TEXT,
 	role TEXT,
 	tool_call_id TEXT,
 	annotation_id TEXT,
+	attachment_id TEXT,
 	title TEXT,
 	summary TEXT,
 	text TEXT,
 	severity TEXT,
 	collapsed_by_default INTEGER,
+	framework_metadata_json TEXT,
 	raw_json TEXT,
 	PRIMARY KEY (session_id, event_id)
 );`,
@@ -562,6 +615,9 @@ func indexStatements() []string {
 		`CREATE INDEX IF NOT EXISTS idx_annotations_scope ON annotations(scope_type, target_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_annotations_category ON annotations(category);`,
 		`CREATE INDEX IF NOT EXISTS idx_handovers_direction ON handovers(direction);`,
+		`CREATE INDEX IF NOT EXISTS idx_attachments_kind ON attachments(kind);`,
+		`CREATE INDEX IF NOT EXISTS idx_attachments_tool_call ON attachments(session_id, tool_call_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_attachments_event ON attachments(session_id, event_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_events_session_turn ON events(session_id, turn_index, ordinal);`,
 		`CREATE INDEX IF NOT EXISTS idx_events_kind ON events(kind);`,
 	}
