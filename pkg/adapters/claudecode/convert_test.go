@@ -302,15 +302,27 @@ func TestConvertRecordsPreservesLatestClaudeSessionMetadata(t *testing.T) {
 	if config["agent_id"] != "agent-abc" || config["session_id"] != "session-latest" || config["parent_uuid"] != "parent-uuid" || config["is_sidechain"] != true {
 		t.Fatalf("expected subagent/session metadata in config, got %+v", config)
 	}
-	if len(session.Annotations) != 1 {
-		t.Fatalf("expected attachment annotation, got %d", len(session.Annotations))
+	if len(session.Events) != 4 {
+		t.Fatalf("expected mode/permission/title/attachment events, got %d", len(session.Events))
 	}
-	annotation := session.Annotations[0]
-	if annotation.Scope.Type != "session" || annotation.Scope.TargetID != "fallback" {
-		t.Fatalf("unexpected attachment scope: %+v", annotation.Scope)
+	if session.Events[0].Kind != "mode_change" || session.Events[1].Kind != "permission_mode_change" || session.Events[2].Kind != "title_change" || session.Events[3].Kind != "attachment" {
+		t.Fatalf("unexpected Claude lifecycle events: %+v", session.Events)
 	}
-	if annotation.Content.Category != "attachment" || !containsString(annotation.Content.Tags, "image") {
-		t.Fatalf("expected image attachment annotation, got %+v", annotation.Content)
+	if len(session.Attachments) != 1 {
+		t.Fatalf("expected first-class attachment, got %d", len(session.Attachments))
+	}
+	attachment := session.Attachments[0]
+	if attachment.ID != "attachment-1" || attachment.Kind != "image" || attachment.MediaType != "image/png" || attachment.Name != "screenshot.png" {
+		t.Fatalf("unexpected attachment: %+v", attachment)
+	}
+	if attachment.EventID == nil || *attachment.EventID != session.Events[3].ID {
+		t.Fatalf("expected attachment to link to attachment event, got %+v", attachment.EventID)
+	}
+	if session.Events[3].AttachmentID == nil || *session.Events[3].AttachmentID != attachment.ID {
+		t.Fatalf("expected attachment event to link to attachment, got %+v", session.Events[3].AttachmentID)
+	}
+	if len(session.Annotations) != 0 {
+		t.Fatalf("expected source attachments to avoid annotation fallback, got %d", len(session.Annotations))
 	}
 	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
 	if !ok || turnMetadata["agent_id"] != "agent-abc" || turnMetadata["session_id"] != "session-latest" {
