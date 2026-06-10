@@ -40,28 +40,28 @@ Goal: make recent Codex `response_item` / `event_msg` sessions load with accurat
 
 Goal: preserve recent Claude Code non-message records and make subagent/session metadata visible in normalized sessions and previews.
 
-- [ ] Add minimized Claude Code fixtures
-  - [ ] `attachment` records with file/image-like metadata
-  - [ ] `mode` records
-  - [ ] `permission-mode` records
-  - [ ] `ai-title` records
-  - [ ] subagent records carrying `agentId`, `parentUuid`, `sessionId`, `slug`, `isSidechain`
-- [ ] Preserve Claude attachment records
-  - [ ] create annotations or events for attachments
-  - [ ] set image/media signal metadata when appropriate
-  - [ ] avoid inlining large blobs by default
-- [ ] Preserve Claude session mode records
-  - [ ] store `mode` in `OperationalContext.FrameworkConfig`
-  - [ ] store `permission-mode` in `OperationalContext.FrameworkConfig`
-  - [ ] map permission mode to autonomy-level if a stable mapping is obvious
-- [ ] Preserve Claude title records
-  - [ ] use `ai-title` as a title candidate when present
-  - [ ] keep raw title metadata for review
-- [ ] Verify Claude subagent linking
-  - [ ] ensure `ConvertSubagentLocator` keeps child metadata
-  - [ ] ensure parent `Agent` tool calls receive `SubSessionID`
-  - [ ] ensure preview reports nonzero subagent signals when normalized data contains them
-- [ ] Run targeted tests and commit Phase 2
+- [x] Add minimized Claude Code fixtures
+  - [x] `attachment` records with file/image-like metadata
+  - [x] `mode` records
+  - [x] `permission-mode` records
+  - [x] `ai-title` records
+  - [x] subagent records carrying `agentId`, `parentUuid`, `sessionId`, `slug`, `isSidechain`
+- [x] Preserve Claude attachment records
+  - [x] create annotations or events for attachments
+  - [x] set image/media signal metadata when appropriate
+  - [x] avoid inlining large blobs by default
+- [x] Preserve Claude session mode records
+  - [x] store `mode` in `OperationalContext.FrameworkConfig`
+  - [x] store `permission-mode` in `OperationalContext.FrameworkConfig`
+  - [x] map permission mode to autonomy-level if a stable mapping is obvious
+- [x] Preserve Claude title records
+  - [x] use `ai-title` as a title candidate when present
+  - [x] keep raw title metadata for review
+- [x] Verify Claude subagent linking
+  - [x] ensure `ConvertSubagentLocator` keeps child metadata
+  - [x] ensure parent `Agent` tool calls receive `SubSessionID`
+  - [x] ensure preview reports nonzero subagent signals when normalized data contains them
+- [x] Run targeted tests and commit Phase 2
 
 ## Phase 3: First-class preview command
 

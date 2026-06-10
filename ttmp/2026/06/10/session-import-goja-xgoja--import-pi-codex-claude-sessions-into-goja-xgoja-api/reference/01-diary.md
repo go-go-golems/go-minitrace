@@ -11,6 +11,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: pkg/adapters/claudecode/convert.go
+      Note: Phase 2 latest Claude metadata and attachment preservation (commit 53dc197)
+    - Path: pkg/adapters/claudecode/convert_test.go
+      Note: Phase 2 minimized latest Claude fixture (commit 53dc197)
     - Path: pkg/adapters/codex/convert.go
       Note: Phase 1 latest Codex tool semantic promotion (commit 0b4ce59)
     - Path: pkg/adapters/codex/convert_test.go
@@ -31,6 +35,7 @@ LastUpdated: 2026-06-10T14:30:52.478395442-04:00
 WhatFor: Chronological implementation diary for the session import goja/xgoja ticket.
 WhenToUse: Use before resuming the ticket to understand what changed, what failed, and what remains.
 ---
+
 
 
 
@@ -618,5 +623,121 @@ Phase 1 changed these files:
 ```text
 pkg/adapters/codex/convert.go
 pkg/adapters/codex/convert_test.go
+ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/tasks.md
+```
+
+## Step 6: Phase 2 Claude Code Latest Metadata and Attachments
+
+This step completed the second implementation phase: Claude Code sessions now preserve latest non-message records that previously disappeared during conversion. The adapter now records `mode`, `permission-mode`, and `ai-title` in session framework config, uses `ai-title` as the session title when present, emits annotations for `attachment` records, and carries top-level `agentId` / `sessionId` metadata into session, turn, and tool metadata.
+
+The implementation keeps these records out of the turn stream because they are not conversational messages. Attachments become session-scoped annotations with bounded detail text and tags, including an `image` tag when the attachment type, media type, or filename indicates image content.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue executing the phased ticket plan after Phase 1, focusing next on Claude Code latest-format preservation.
+
+**Inferred user intent:** Make Claude Code import reliable enough that parent/subagent/session metadata and attachment signals can be inspected in previews and queries.
+
+**Commit (code):** 53dc19728a515672c33da6f9b5ddc6cbd1498dac — "claudecode: preserve latest session metadata"
+
+### What I did
+
+- Added `TestConvertRecordsPreservesLatestClaudeSessionMetadata` in `pkg/adapters/claudecode/convert_test.go`.
+- Added conversion support for these top-level Claude records:
+  - `mode`
+  - `permission-mode`
+  - `ai-title`
+  - `attachment`
+- Added `captureClaudeSessionMetadata` to collect shared top-level metadata into `OperationalContext.FrameworkConfig`:
+  - `entrypoint`
+  - `agent_id`
+  - `session_id`
+  - `parent_uuid`
+  - `is_sidechain`
+  - `user_type`
+  - `attribution_agent`
+- Added `buildClaudeAttachmentAnnotation` and supporting helpers.
+- Added `agent_id` and `session_id` to turn/tool/tool-result framework metadata.
+- Added conservative permission-mode mapping:
+  - `bypassPermissions` -> `full-auto`
+  - `plan` -> `suggest`
+- Ran targeted and broader tests.
+
+### Why
+
+- Recent Claude Code sessions include non-message records that affect session interpretation but are not turns or tool calls.
+- Attachments can represent tool listings, task reminders, image references, or other context payloads; dropping them makes previews and analyses incomplete.
+- Subagent sessions and sidechains need `agentId`, `sessionId`, and parent metadata to remain visible after normalization.
+
+### What worked
+
+- The new Claude fixture verifies mode, permission mode, AI title, image attachment annotation, and agent/session metadata preservation.
+- The broader test set passed:
+
+```bash
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```
+
+### What didn't work
+
+- The first Claude compile failed because I initially passed arbitrary metadata to `minitrace.BuildAnnotation`:
+
+```text
+pkg/adapters/claudecode/convert.go:603:3: cannot use claudeAttachmentMetadata(record, attachment) (value of interface type any) as *minitrace.TaxonomyMappings value in argument to minitrace.BuildAnnotation: need type assertion
+pkg/adapters/claudecode/convert.go:625:36: undefined: truncateTitle
+```
+
+- Root cause: minitrace annotations only accept taxonomy mappings as the final argument, not free-form metadata. I moved the relevant attachment metadata into bounded annotation detail text and tags, then added a local `truncateText` helper instead of reusing Codex-only `truncateTitle`.
+
+### What I learned
+
+- Claude Code latest records are mostly session-state or contextual attachments, not alternate message formats.
+- The current minitrace schema does not have a free-form metadata field on annotations, so attachment metadata must either be summarized in annotation detail or modeled elsewhere in a future schema change.
+- `ai-title` is a better title source than first user turn for many Claude sessions because it is already the framework’s synthesized session title.
+
+### What was tricky to build
+
+- Attachments are heterogeneous. A `deferred_tools_delta` attachment, an image attachment, and a task reminder should not all become turns. The safest current mapping is session annotations with tags and bounded summaries.
+- Preserving enough metadata without changing schema required a compromise: session-level metadata goes into `FrameworkConfig`, while attachment-specific data is summarized in annotation content.
+
+### What warrants a second pair of eyes
+
+- Review whether `permission-mode` should map into `AutonomyLevel` or remain framework-only metadata.
+- Review whether attachment records deserve a future first-class schema/table instead of annotation summaries.
+- Review whether `ai-title` should always override `ExtractTitle`, or only when the extracted title is empty.
+
+### What should be done in the future
+
+- Add real-session smoke tests once Phase 3 exposes a CLI preview command.
+- If image/blob workflows become central, add a dedicated attachment representation rather than encoding attachment signals in annotations alone.
+
+### Code review instructions
+
+- Start in `pkg/adapters/claudecode/convert_test.go`, test `TestConvertRecordsPreservesLatestClaudeSessionMetadata`.
+- Then review `pkg/adapters/claudecode/convert.go` helpers:
+  - `captureClaudeSessionMetadata`
+  - `buildClaudeAttachmentAnnotation`
+  - `summarizeClaudeAttachment`
+  - `hasClaudeImageSignal`
+  - `mapClaudePermissionMode`
+  - `claudeTurnMetadata`
+  - `claudeToolMetadata`
+  - `claudeToolResultMetadata`
+- Validate with:
+
+```bash
+cd go-minitrace
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```
+
+### Technical details
+
+Phase 2 changed these files:
+
+```text
+pkg/adapters/claudecode/convert.go
+pkg/adapters/claudecode/convert_test.go
 ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/tasks.md
 ```
