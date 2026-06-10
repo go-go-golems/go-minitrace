@@ -101,6 +101,11 @@ type PreviewToolCall struct {
 	OutputContentBytes int    `json:"outputContentBytes,omitempty"`
 }
 
+type PreviewOptions struct {
+	SampleLimit int
+	Privacy     string
+}
+
 func NewImportBuilder() *ImportBuilder {
 	return &ImportBuilder{strict: true, autoConvert: true}
 }
@@ -211,8 +216,20 @@ func (b *ImportBuilder) Preview() (SessionPreview, error) {
 }
 
 func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
+	return PreviewLoadedSessionWithOptions(loaded, PreviewOptions{})
+}
+
+func PreviewLoadedSessionWithOptions(loaded *minitracedb.LoadedSession, options PreviewOptions) SessionPreview {
 	if loaded == nil || loaded.Session == nil {
 		return SessionPreview{RoleCounts: map[string]int{}, ToolCounts: map[string]int{}}
+	}
+	limit := options.SampleLimit
+	if limit <= 0 {
+		limit = 12
+	}
+	privacy := strings.TrimSpace(options.Privacy)
+	if privacy == "" {
+		privacy = "snippets"
 	}
 	session := loaded.Session
 	preview := SessionPreview{
@@ -239,7 +256,7 @@ func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
 		if hasImageSignal(turn.ContentType, turn.Content, turn.FrameworkMetadata) {
 			preview.HasImageSignals = true
 		}
-		if len(preview.SampleTurns) < 12 {
+		if len(preview.SampleTurns) < limit {
 			preview.SampleTurns = append(preview.SampleTurns, PreviewTurn{
 				Index:       turn.Index,
 				Role:        turn.Role,
@@ -249,7 +266,7 @@ func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
 				HasContent:  strings.TrimSpace(turn.Content) != "",
 				HasThinking: strings.TrimSpace(stringPtr(turn.Thinking)) != "",
 				ToolCalls:   append([]string(nil), turn.ToolCallsInTurn...),
-				Preview:     truncatePreview(turn.Content, 240),
+				Preview:     previewTextForPrivacy(turn.Content, privacy),
 			})
 		}
 	}
@@ -258,14 +275,14 @@ func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
 		if hasImageSignal(nil, toolCall.ToolName, toolCall.FrameworkMetadata) || hasImageSignal(toolCall.Output.ContentOrigin, stringPtr(toolCall.Output.Result), toolCall.Input.Arguments) {
 			preview.HasImageSignals = true
 		}
-		if len(preview.SampleTools) < 12 {
+		if len(preview.SampleTools) < limit {
 			sample := PreviewToolCall{
 				ID:                 toolCall.ID,
 				TurnIndex:          toolCall.EmittingTurnIndex,
 				ToolName:           toolCall.ToolName,
 				OperationType:      toolCall.OperationType,
-				FilePath:           stringPtr(toolCall.Input.FilePath),
-				Command:            truncatePreview(stringPtr(toolCall.Input.Command), 240),
+				FilePath:           filePathForPrivacy(stringPtr(toolCall.Input.FilePath), privacy),
+				Command:            commandForPrivacy(stringPtr(toolCall.Input.Command), privacy),
 				Success:            toolCall.Output.Success,
 				HasResult:          strings.TrimSpace(stringPtr(toolCall.Output.Result)) != "",
 				HasError:           strings.TrimSpace(stringPtr(toolCall.Output.Error)) != "",
@@ -274,7 +291,7 @@ func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
 			}
 			if toolCall.SpawnedAgent != nil {
 				sample.SpawnedAgentType = toolCall.SpawnedAgent.AgentType
-				sample.SpawnedAgentScope = toolCall.SpawnedAgent.TaskScope
+				sample.SpawnedAgentScope = previewTextForPrivacy(toolCall.SpawnedAgent.TaskScope, privacy)
 				sample.SpawnedSubSession = stringPtr(toolCall.SpawnedAgent.SubSessionID)
 			}
 			preview.SampleTools = append(preview.SampleTools, sample)
@@ -344,6 +361,35 @@ func stringPtr(value *string) string {
 		return ""
 	}
 	return *value
+}
+
+func previewTextForPrivacy(value, privacy string) string {
+	value = strings.TrimSpace(value)
+	switch privacy {
+	case "structural":
+		return ""
+	case "full":
+		return value
+	default:
+		return truncatePreview(value, 240)
+	}
+}
+
+func commandForPrivacy(value, privacy string) string {
+	if privacy == "structural" {
+		return ""
+	}
+	if privacy == "full" {
+		return strings.TrimSpace(value)
+	}
+	return truncatePreview(value, 240)
+}
+
+func filePathForPrivacy(value, privacy string) string {
+	if privacy == "structural" {
+		return ""
+	}
+	return strings.TrimSpace(value)
 }
 
 func truncatePreview(value string, limit int) string {
