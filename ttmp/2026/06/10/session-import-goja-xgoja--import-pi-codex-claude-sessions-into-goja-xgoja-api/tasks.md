@@ -86,12 +86,12 @@ Goal: expose the new importer preview API without requiring users to write JavaS
 
 Goal: prove the importer works on latest local sessions and refresh the ticket deliverables.
 
-- [ ] Re-run latest session survey script
-- [ ] Run preview/import on latest local Codex sessions
-- [ ] Run preview/import on latest local Claude parent and subagent sessions
-- [ ] Run preview/import on latest local Pi sessions as regression coverage
-- [ ] Update design guide with actual implementation decisions and commands
-- [ ] Update diary with validation outcomes and failures
-- [ ] Run `docmgr doctor`
-- [ ] Upload refreshed bundle to reMarkable
-- [ ] Commit final ticket documentation refresh
+- [x] Re-run latest session survey script
+- [x] Run preview/import on latest local Codex sessions
+- [x] Run preview/import on latest local Claude parent and subagent sessions
+- [x] Run preview/import on latest local Pi sessions as regression coverage
+- [x] Update design guide with actual implementation decisions and commands
+- [x] Update diary with validation outcomes and failures
+- [x] Run `docmgr doctor`
+- [x] Upload refreshed bundle to reMarkable
+- [x] Commit final ticket documentation refresh

@@ -37,10 +37,14 @@ RelatedFiles:
       Note: Phase 3 preview options test coverage (commit 4b21d79)
     - Path: pkg/minitracejs/import_builder_test.go
       Note: Preview behavior test recorded in Step 2 (commit c1c1afa)
+    - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/design-doc/01-session-import-design-and-implementation-guide.md
+      Note: Final validation status update
     - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/scripts/01-survey-agent-session-shapes.py
       Note: Ticket survey script created in Step 1
     - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/sources/01-agent-session-shape-survey.md
       Note: Latest local session structural survey evidence
+    - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/sources/02-preview-validation-evidence.md
+      Note: Phase 4 latest-session preview validation evidence
     - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/tasks.md
       Note: Detailed phased implementation checklist
 ExternalSources: []
@@ -49,6 +53,7 @@ LastUpdated: 2026-06-10T14:30:52.478395442-04:00
 WhatFor: Chronological implementation diary for the session import goja/xgoja ticket.
 WhenToUse: Use before resuming the ticket to understand what changed, what failed, and what remains.
 ---
+
 
 
 
@@ -986,4 +991,111 @@ Example commands:
 go-minitrace preview session --source-session /path/to/session.jsonl --privacy snippets --sample-limit 12 --output yaml
 go-minitrace preview session --framework codex --latest 5 --privacy structural --output json
 go-minitrace preview session --framework claude-code --source-dir ~/.claude/projects --latest 3 --sample-limit 2 --output yaml
+```
+
+## Step 9: Phase 4 End-to-End Validation and Delivery Refresh
+
+This step completed the Phase 4 validation pass. I refreshed the structural survey, captured compact preview evidence for latest local Pi, Codex, Claude parent, and Claude subagent files, reran the full relevant Go test suite, and reran `docmgr doctor`. The results show that latest Codex and Claude sessions load through the new preview command with the semantics implemented in Phases 1 and 2.
+
+The validation evidence is stored in the ticket rather than only in terminal output. `sources/02-preview-validation-evidence.md` contains the source paths and structural JSON preview output with `--privacy structural --sample-limit 2`, which keeps the evidence reviewable without dumping transcript text.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue through the remaining ticket phases, validate against real latest local sessions, refresh documentation, and deliver the updated bundle.
+
+**Inferred user intent:** Finish the implementation loop so the ticket records not only code changes but also proof that the importer/preview workflow works on current Pi/Codex/Claude data.
+
+### What I did
+
+- Re-ran the latest session shape survey script and refreshed `sources/01-agent-session-shape-survey.md` while preserving docmgr frontmatter.
+- Added `sources/02-preview-validation-evidence.md` with structural preview evidence for:
+  - latest Pi session,
+  - latest Codex session,
+  - latest Claude parent session,
+  - latest Claude subagent session.
+- Updated the design guide with final implementation and validation status.
+- Ran the full relevant Go test suite.
+- Ran `docmgr doctor`.
+- Prepared the refreshed bundle for reMarkable upload.
+
+### Why
+
+- The ticket needed evidence that the implemented parser and preview changes work against current real local session files, not only minimized fixtures.
+- The design guide needed to be updated from proposed future work to actual implementation status.
+- The user requested diary maintenance and reMarkable delivery for the ticket.
+
+### What worked
+
+- Preview evidence showed successful loading for all selected latest files:
+  - Pi: `adapter=pi`, `format=pi-jsonl`, `has_image_signals=true`.
+  - Codex: `adapter=codex`, `format=codex-jsonl`, `has_system_prompt=true`, `has_image_signals=true`.
+  - Claude parent: `adapter=claude-code`, `format=claude-code-jsonl`, `subagent_count=6`.
+  - Claude subagent: `adapter=claude-code`, `format=claude-code-jsonl`.
+- Full relevant tests passed:
+
+```bash
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/... -count=1
+```
+
+- Docmgr validation passed:
+
+```bash
+docmgr --root "$(pwd)/ttmp" doctor --ticket session-import-goja-xgoja --stale-after 30
+```
+
+- Refreshed reMarkable upload succeeded:
+
+```text
+OK: uploaded session import goja xgoja guide.pdf -> /ai/2026/06/10/session-import-goja-xgoja
+```
+
+### What didn't work
+
+- No validation failures occurred in this step.
+
+### What I learned
+
+- The latest Claude parent preview now reports subagent count correctly, which gives a simple operator-level confirmation that delegated-agent structure survived conversion.
+- Structural privacy is adequate for ticket evidence because it keeps role/tool/count/diagnostic data while suppressing sampled text and command/path fields.
+- The ticket evidence is more useful when preview JSON is stored beside the survey because it connects raw shape observations to normalized import behavior.
+
+### What was tricky to build
+
+- Refreshing the survey required preserving docmgr frontmatter because the survey script emits plain Markdown. I wrote the body to a temporary file and reattached the existing frontmatter before replacing the ticket source document.
+- Capturing useful real-session evidence without leaking transcript content required using `--privacy structural` and a low sample limit.
+
+### What warrants a second pair of eyes
+
+- Review `sources/02-preview-validation-evidence.md` to confirm the evidence has enough detail without exposing sensitive content.
+- Review whether Claude subagent preview should apply `AdjustSubagentSession` when previewing a raw subagent file directly; currently direct file preview loads it as Claude Code JSONL and preserves agent/session metadata, while parent-child linking still belongs to full discovery/conversion workflows.
+
+### What should be done in the future
+
+- Implement Pi preservation for `custom`, `session_info`, and `compaction` records if Pi latest-format parity becomes part of this ticket.
+- Consider `--framework all` for mixed latest-session previews.
+- Consider a first-class attachment/blob schema if future image-heavy sessions need more than metadata and preview signals.
+
+### Code review instructions
+
+- Review validation evidence in `sources/02-preview-validation-evidence.md`.
+- Review final status in `design-doc/01-session-import-design-and-implementation-guide.md`.
+- Validate with:
+
+```bash
+cd go-minitrace
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/... -count=1
+docmgr --root "$(pwd)/ttmp" doctor --ticket session-import-goja-xgoja --stale-after 30
+```
+
+### Technical details
+
+Representative validation commands:
+
+```bash
+go run ./cmd/go-minitrace preview session --source-session "$PI" --privacy structural --sample-limit 2 --output json
+go run ./cmd/go-minitrace preview session --source-session "$CODEX" --privacy structural --sample-limit 2 --output json
+go run ./cmd/go-minitrace preview session --source-session "$CLAUDE" --privacy structural --sample-limit 2 --output json
+go run ./cmd/go-minitrace preview session --source-session "$SUBAGENT" --privacy structural --sample-limit 2 --output json
 ```

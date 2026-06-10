@@ -17,69 +17,20 @@ LastUpdated: 2026-06-10T18:30:52.478395442-04:00
 WhatFor: "Evidence for latest session format support gaps."
 WhenToUse: "Use when updating adapters or adding preview tests for recent session shapes."
 ---
-
 # Agent Session Shape Survey
 
 Structural preview only; message text and prompt bodies are intentionally omitted.
 
-## pi: `~/.pi/agent/sessions/--home-manuel-workspaces-2026-06-07-club-meetup-site--/2026-06-09T20-33-18-780Z_019eae16-edbc-74a6-ac75-a963c9980fa9.jsonl`
-
-- Bytes: 4355903
-- Records sampled: 1254
-- Subagent path: False
-- Session IDs: `0060de03, 008e65b4, 0097180d, 009a905b, 00d0ea6c`
-- Models: `glm-5.1, gpt-5.5, umans-qwen3.6-35b-a3b`
-- Record types:
-  - `message`: 1202
-  - `custom`: 32
-  - `thinking_level_change`: 11
-  - `model_change`: 4
-  - `session_info`: 2
-  - `compaction`: 2
-  - `session`: 1
-- Payload types:
-  - none observed
-- Content block types:
-  - `text`: 1071
-  - `toolCall`: 620
-  - `thinking`: 337
-- Tool names:
-  - `bash`: 244
-  - `read`: 161
-  - `edit`: 82
-  - `write`: 67
-  - `playwright_browser_take_screenshot`: 14
-  - `playwright_browser_evaluate`: 14
-  - `playwright_browser_navigate`: 13
-  - `playwright_browser_wait_for`: 13
-- Top-level key shapes:
-  - `['id', 'message', 'parentId', 'timestamp', 'type']`: 1202
-  - `['customType', 'data', 'id', 'parentId', 'timestamp', 'type']`: 32
-  - `['id', 'parentId', 'thinkingLevel', 'timestamp', 'type']`: 11
-  - `['id', 'modelId', 'parentId', 'provider', 'timestamp', 'type']`: 4
-  - `['id', 'name', 'parentId', 'timestamp', 'type']`: 2
-- Message key shapes:
-  - `['api', 'content', 'model', 'provider', 'responseId', 'role', 'stopReason', 'timestamp', 'usage']`: 530
-  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 443
-  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 175
-  - `['content', 'role', 'timestamp']`: 38
-  - `['api', 'content', 'errorMessage', 'model', 'provider', 'role', 'stopReason', 'timestamp', 'usage']`: 10
-- Tool-result key shapes:
-  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 443
-  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 175
-- Image/blob indicators:
-  - none observed
-
 ## pi: `~/.pi/agent/sessions/--home-manuel-workspaces-2026-06-10-add-docs-deploy--/2026-06-10T15-08-40-711Z_019eb214-1387-7aa4-8e32-b5c1363445ae.jsonl`
 
-- Bytes: 1630348
-- Records sampled: 504
+- Bytes: 2154919
+- Records sampled: 680
 - Subagent path: False
-- Session IDs: `001f0fdc, 007683fc, 009e0013, 019eb214-1387-7aa4-8e32-b5c1363445ae, 021517fd`
+- Session IDs: `001f0fdc, 007683fc, 009e0013, 013b696c, 019eb214-1387-7aa4-8e32-b5c1363445ae`
 - Models: `gpt-5.5`
 - Record types:
-  - `message`: 486
-  - `custom`: 13
+  - `message`: 660
+  - `custom`: 15
   - `session`: 1
   - `model_change`: 1
   - `thinking_level_change`: 1
@@ -88,69 +39,120 @@ Structural preview only; message text and prompt bodies are intentionally omitte
 - Payload types:
   - none observed
 - Content block types:
-  - `text`: 271
-  - `toolCall`: 247
-  - `thinking`: 171
+  - `text`: 357
+  - `toolCall`: 332
+  - `thinking`: 246
 - Tool names:
-  - `bash`: 151
-  - `read`: 55
-  - `write`: 23
-  - `edit`: 18
+  - `bash`: 223
+  - `read`: 66
+  - `write`: 24
+  - `edit`: 19
 - Top-level key shapes:
-  - `['id', 'message', 'parentId', 'timestamp', 'type']`: 486
-  - `['customType', 'data', 'id', 'parentId', 'timestamp', 'type']`: 13
+  - `['id', 'message', 'parentId', 'timestamp', 'type']`: 660
+  - `['customType', 'data', 'id', 'parentId', 'timestamp', 'type']`: 15
   - `['cwd', 'id', 'timestamp', 'type', 'version']`: 1
   - `['id', 'modelId', 'parentId', 'provider', 'timestamp', 'type']`: 1
   - `['id', 'parentId', 'thinkingLevel', 'timestamp', 'type']`: 1
 - Message key shapes:
-  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 216
-  - `['api', 'content', 'model', 'provider', 'responseId', 'role', 'stopReason', 'timestamp', 'usage']`: 213
-  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 31
-  - `['content', 'role', 'timestamp']`: 14
-  - `['api', 'content', 'errorMessage', 'model', 'provider', 'role', 'stopReason', 'timestamp', 'usage']`: 10
+  - `['api', 'content', 'model', 'provider', 'responseId', 'role', 'stopReason', 'timestamp', 'usage']`: 298
+  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 294
+  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 37
+  - `['content', 'role', 'timestamp']`: 15
+  - `['api', 'content', 'errorMessage', 'model', 'provider', 'role', 'stopReason', 'timestamp', 'usage']`: 13
 - Tool-result key shapes:
-  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 216
-  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 31
+  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 294
+  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 37
+- Image/blob indicators:
+  - none observed
+
+## pi: `~/.pi/agent/sessions/--home-manuel-workspaces-2026-06-07-club-meetup-site--/2026-06-09T20-33-18-780Z_019eae16-edbc-74a6-ac75-a963c9980fa9.jsonl`
+
+- Bytes: 4925351
+- Records sampled: 1327
+- Subagent path: False
+- Session IDs: `0060de03, 008e65b4, 0097180d, 009a905b, 00d0ea6c`
+- Models: `glm-5.1, gpt-5.5, umans-qwen3.6-35b-a3b`
+- Record types:
+  - `message`: 1271
+  - `custom`: 35
+  - `thinking_level_change`: 11
+  - `model_change`: 4
+  - `compaction`: 3
+  - `session_info`: 2
+  - `session`: 1
+- Payload types:
+  - none observed
+- Content block types:
+  - `text`: 1122
+  - `toolCall`: 653
+  - `thinking`: 365
+- Tool names:
+  - `bash`: 264
+  - `read`: 169
+  - `edit`: 85
+  - `write`: 69
+  - `playwright_browser_take_screenshot`: 14
+  - `playwright_browser_evaluate`: 14
+  - `playwright_browser_navigate`: 13
+  - `playwright_browser_wait_for`: 13
+- Top-level key shapes:
+  - `['id', 'message', 'parentId', 'timestamp', 'type']`: 1271
+  - `['customType', 'data', 'id', 'parentId', 'timestamp', 'type']`: 35
+  - `['id', 'parentId', 'thinkingLevel', 'timestamp', 'type']`: 11
+  - `['id', 'modelId', 'parentId', 'provider', 'timestamp', 'type']`: 4
+  - `['details', 'firstKeptEntryId', 'fromHook', 'id', 'parentId', 'summary', 'timestamp', 'tokensBefore', 'type']`: 3
+- Message key shapes:
+  - `['api', 'content', 'model', 'provider', 'responseId', 'role', 'stopReason', 'timestamp', 'usage']`: 562
+  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 471
+  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 181
+  - `['content', 'role', 'timestamp']`: 40
+  - `['api', 'content', 'errorMessage', 'model', 'provider', 'role', 'stopReason', 'timestamp', 'usage']`: 11
+- Tool-result key shapes:
+  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 471
+  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 181
 - Image/blob indicators:
   - none observed
 
 ## pi: `~/.pi/agent/sessions/--home-manuel-workspaces-2026-06-07-club-meetup-site--/2026-06-10T18-27-34-754Z_019eb2ca-2ce2-7332-ba1f-2dd453caf5af.jsonl`
 
-- Bytes: 192433
-- Records sampled: 43
+- Bytes: 1428022
+- Records sampled: 359
 - Subagent path: False
-- Session IDs: `019eb2ca-2ce2-7332-ba1f-2dd453caf5af, 030bfc6b, 05d341b8, 0960044e, 0962bc63`
+- Session IDs: `0129c62c, 019eb2ca-2ce2-7332-ba1f-2dd453caf5af, 01f86ed4, 024f137d, 029ef867`
 - Models: `gpt-5.5`
 - Record types:
-  - `message`: 38
-  - `custom`: 2
+  - `message`: 349
+  - `custom`: 6
+  - `thinking_level_change`: 2
   - `session`: 1
   - `model_change`: 1
-  - `thinking_level_change`: 1
 - Payload types:
   - none observed
 - Content block types:
-  - `text`: 23
-  - `toolCall`: 23
-  - `thinking`: 13
+  - `text`: 233
+  - `toolCall`: 177
+  - `thinking`: 138
 - Tool names:
-  - `read`: 12
-  - `bash`: 10
-  - `write`: 1
+  - `bash`: 88
+  - `read`: 47
+  - `edit`: 30
+  - `write`: 10
+  - `kagi_web_search`: 2
 - Top-level key shapes:
-  - `['id', 'message', 'parentId', 'timestamp', 'type']`: 38
-  - `['customType', 'data', 'id', 'parentId', 'timestamp', 'type']`: 2
+  - `['id', 'message', 'parentId', 'timestamp', 'type']`: 349
+  - `['customType', 'data', 'id', 'parentId', 'timestamp', 'type']`: 6
+  - `['id', 'parentId', 'thinkingLevel', 'timestamp', 'type']`: 2
   - `['cwd', 'id', 'timestamp', 'type', 'version']`: 1
   - `['id', 'modelId', 'parentId', 'provider', 'timestamp', 'type']`: 1
-  - `['id', 'parentId', 'thinkingLevel', 'timestamp', 'type']`: 1
 - Message key shapes:
-  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 20
-  - `['api', 'content', 'model', 'provider', 'responseId', 'role', 'stopReason', 'timestamp', 'usage']`: 15
-  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 2
-  - `['content', 'role', 'timestamp']`: 1
+  - `['api', 'content', 'model', 'provider', 'responseId', 'role', 'stopReason', 'timestamp', 'usage']`: 159
+  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 130
+  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 46
+  - `['api', 'content', 'errorMessage', 'model', 'provider', 'role', 'stopReason', 'timestamp', 'usage']`: 8
+  - `['content', 'role', 'timestamp']`: 5
 - Tool-result key shapes:
-  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 20
-  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 2
+  - `['content', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 130
+  - `['content', 'details', 'isError', 'role', 'timestamp', 'toolCallId', 'toolName']`: 46
 - Image/blob indicators:
   - none observed
 

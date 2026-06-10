@@ -59,6 +59,21 @@ The follow-up implementation completed the highest-priority latest-format suppor
 
 The remaining notable gap is Pi preservation of `custom`, `session_info`, and `compaction` records; this was outside the requested Claude/Codex continuation and remains a future adapter-hardening task.
 
+## Final validation update
+
+Phase 4 validation refreshed the structural survey and added `sources/02-preview-validation-evidence.md` with real local preview output for the latest available Pi, Codex, Claude parent, and Claude subagent files. The validation command used structural privacy and a small sample limit so the evidence demonstrates parsing behavior without dumping transcript content.
+
+Observed validation outcomes:
+
+- Latest Pi session loaded as `adapter=pi`, `format=pi-jsonl`, with thinking and image signals present.
+- Latest Codex session loaded as `adapter=codex`, `format=codex-jsonl`, with system prompt and image signals present.
+- Latest Claude parent session loaded as `adapter=claude-code`, `format=claude-code-jsonl`, with `subagent_count=6`.
+- Latest Claude subagent JSONL loaded as `adapter=claude-code`, `format=claude-code-jsonl`.
+- Full relevant tests passed with `go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/... -count=1`.
+- `docmgr doctor --ticket session-import-goja-xgoja --stale-after 30` passed.
+
+The implementation is now sufficient for the requested Claude/Codex loading and preview workflow. Remaining work is incremental hardening: Pi non-message preservation, optional `--framework all`, and richer attachment/blob schema if image-heavy workflows require more than metadata and preview signals.
+
 ## Problem statement and scope
 
 The goal is to make session import usable from the new Goja / xgoja API for three local agent ecosystems:

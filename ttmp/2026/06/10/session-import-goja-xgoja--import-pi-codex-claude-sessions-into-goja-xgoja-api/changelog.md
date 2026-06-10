@@ -65,3 +65,22 @@ Phase 3 complete: added directory/latest-N preview mode, sample limits, privacy 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — Preview options
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/design-doc/01-session-import-design-and-implementation-guide.md — Implementation status update
 
+
+## 2026-06-10
+
+Phase 4: refreshed survey, captured latest Pi/Codex/Claude preview evidence, updated guide, and prepared refreshed reMarkable bundle.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/design-doc/01-session-import-design-and-implementation-guide.md — Final implementation status
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/sources/02-preview-validation-evidence.md — Preview validation evidence
+
+
+## 2026-06-10
+
+Uploaded refreshed Phase 4 bundle to reMarkable at /ai/2026/06/10/session-import-goja-xgoja.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/reference/01-diary.md — Upload evidence
+
