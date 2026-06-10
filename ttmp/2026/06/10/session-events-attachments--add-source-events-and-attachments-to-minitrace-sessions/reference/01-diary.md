@@ -26,6 +26,8 @@ RelatedFiles:
       Note: Added Pi non-message event preservation tests (commit fa73b81)
     - Path: pkg/doc/adapter-reference.md
       Note: Documented source events and attachment semantics (commit adca28f)
+    - Path: pkg/doc/js-api-reference.md
+      Note: Documented preview event and attachment fields (commit 5e24a54)
     - Path: pkg/doc/query.md
       Note: Documented events/attachments DuckDB arrays (commit adca28f)
     - Path: pkg/doc/writing-duckdb-queries.md
@@ -52,12 +54,15 @@ RelatedFiles:
       Note: Validated events and attachments arrays in native JSON (commit adca28f)
     - Path: pkg/validate/json_test.go
       Note: Added valid/null/malformed event and attachment tests (commit adca28f)
+    - Path: ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/design-doc/01-session-events-and-attachments-design-and-implementation-guide.md
+      Note: Updated implementation status after first pass (commit 5e24a54)
 ExternalSources: []
 Summary: Chronological implementation diary for first-class session events and attachments.
 LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -656,3 +661,60 @@ The default privacy behavior remains safe: structural mode suppresses text previ
 
 ### Technical details
 - CLI rows now include `event_count`, `attachment_count`, `event_counts`, `attachment_counts`, `sample_events`, and `sample_attachments`.
+
+## Step 9: Update API docs and implementation status
+
+I updated the JS API reference and ticket design guide after the backend and preview implementation pass. The JS docs now describe event and attachment counts, kind breakdowns, and preview samples. The design guide now has an implementation-status section that distinguishes completed backend work from remaining follow-up candidates.
+
+This was a documentation-only step, committed separately so reviewers can distinguish runtime behavior from explanatory changes.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Complete the documentation task by aligning public API docs and the ticket guide with the actual implementation.
+
+**Inferred user intent:** The user wants the ticket to be usable by a new intern or reviewer after implementation, not just before it.
+
+**Commit (code):** 5e24a5462b9f7e152582cd11de407de3fc52a31c — "Docs: document event attachment previews"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md`:
+  - documented `sampleEvents`, `sampleAttachments`, `eventCounts`, and `attachmentCounts`;
+  - updated `.Preview()` description;
+  - added an important preview fields table.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/design-doc/01-session-events-and-attachments-design-and-implementation-guide.md`:
+  - added first-pass implementation status;
+  - listed known follow-up candidates.
+
+### Why
+- API docs need to match preview output before the bundle is uploaded.
+- The design guide should remain useful after the initial implementation, so it needs status and caveats.
+
+### What worked
+- The documentation diff was small and clean.
+- The design guide now summarizes exactly what was completed across schema, DB, validation, adapters, and preview.
+
+### What didn't work
+- No command failed in this step.
+
+### What I learned
+- The design guide's original phased plan mapped cleanly to the implemented commits, which made the status update straightforward.
+
+### What was tricky to build
+- The tricky part was not over-claiming completion. I explicitly left frontend/protobuf rendering, exact Codex rate-limit timestamps, and stricter future validation as follow-up candidates.
+
+### What warrants a second pair of eyes
+- Review whether the JS API reference should include a full `SessionPreview` JSON schema block.
+- Review whether docs should include one concrete example of a preview row containing an attachment.
+
+### What should be done in the future
+- Run full validation and docmgr doctor.
+- Upload the final ticket bundle to reMarkable.
+
+### Code review instructions
+- Review `pkg/doc/js-api-reference.md` around `.Preview()`.
+- Review the ticket design guide's `Implementation status after first pass` section.
+
+### Technical details
+- No runtime code changed in this step.

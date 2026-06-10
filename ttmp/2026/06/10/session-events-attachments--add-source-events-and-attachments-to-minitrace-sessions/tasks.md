@@ -43,7 +43,7 @@
   - Update `go-minitrace preview session` output and tests.
   - Keep default preview privacy-safe: structural summaries first, snippets only when requested.
 
-- [ ] 8. Update long-form docs and examples.
+- [x] 8. Update long-form docs and examples.
   - Update `pkg/doc/js-api-reference.md`, `pkg/doc/adapter-reference.md`, and query docs for events/attachments.
   - Add query examples for timeline events and image/file attachments.
   - Ensure the ticket design doc reflects actual implementation decisions.

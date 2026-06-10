@@ -87,3 +87,13 @@ Step 8: Extended Goja and CLI session previews with event/attachment counts and 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go — CLI output
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — Preview API
 
+
+## 2026-06-10
+
+Step 9: Updated JS API preview docs and design implementation status (commit 5e24a54).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md — JS API docs
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/design-doc/01-session-events-and-attachments-design-and-implementation-guide.md — Ticket design guide
+
