@@ -114,6 +114,12 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	if session.Metrics.TotalInputTokens == nil || *session.Metrics.TotalInputTokens != 10 {
 		t.Fatalf("expected input tokens 10, got %+v", session.Metrics.TotalInputTokens)
 	}
+	if len(session.Events) != 2 {
+		t.Fatalf("expected model/thinking source events, got %d", len(session.Events))
+	}
+	if session.Events[0].Kind != "model_change" || session.Events[1].Kind != "thinking_level_change" {
+		t.Fatalf("unexpected Pi lifecycle events: %+v", session.Events)
+	}
 	assistantMetadata, ok := session.Turns[1].FrameworkMetadata.(map[string]any)
 	if !ok {
 		t.Fatalf("expected assistant framework metadata, got %+v", session.Turns[1].FrameworkMetadata)
@@ -123,6 +129,76 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 	}
 	if session.Metrics.SessionCost == nil || *session.Metrics.SessionCost != 0.25 {
 		t.Fatalf("expected session cost 0.25, got %+v", session.Metrics.SessionCost)
+	}
+}
+
+func TestConvertRecordsPreservesPiNonMessageRecordsAsEvents(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "session",
+			"id":        "session-events",
+			"timestamp": "2026-06-10T12:00:00Z",
+		},
+		{
+			"type":      "session_info",
+			"name":      "Configurable Context Diagram StyleSet Cutover",
+			"timestamp": "2026-06-10T12:00:01Z",
+		},
+		{
+			"type":       "custom",
+			"customType": "pinned-skills-state",
+			"timestamp":  "2026-06-10T12:00:02Z",
+			"data": map[string]any{
+				"activeConfig": map[string]any{"skills": []any{"diary", "docmgr"}},
+			},
+		},
+		{
+			"type":      "compaction",
+			"timestamp": "2026-06-10T12:00:03Z",
+			"details": map[string]any{
+				"modifiedFiles":                 []any{"pkg/foo.go", "pkg/bar.go"},
+				"customInstructionsAppended":    false,
+				"edited":                        map[string]any{"prompt": true},
+				"largeUnmodeledSourceFieldName": "kept in raw json",
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback", "/tmp/session.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+
+	if session.Title == nil || *session.Title != "Configurable Context Diagram StyleSet Cutover" {
+		t.Fatalf("expected session_info title, got %+v", session.Title)
+	}
+	if len(session.Events) != 3 {
+		t.Fatalf("expected 3 Pi source events, got %d", len(session.Events))
+	}
+	kinds := []string{session.Events[0].Kind, session.Events[1].Kind, session.Events[2].Kind}
+	wantKinds := []string{"session_info", "custom.pinned-skills-state", "compaction"}
+	for i, want := range wantKinds {
+		if kinds[i] != want {
+			t.Fatalf("event kind[%d] = %q, want %q; events=%+v", i, kinds[i], want, session.Events)
+		}
+	}
+	customMetadata, ok := session.Events[1].FrameworkMetadata.(map[string]any)
+	if !ok || customMetadata["custom_type"] != "pinned-skills-state" {
+		t.Fatalf("expected custom event metadata, got %+v", session.Events[1].FrameworkMetadata)
+	}
+	compactionMetadata, ok := session.Events[2].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected compaction metadata, got %+v", session.Events[2].FrameworkMetadata)
+	}
+	if compactionMetadata["modified_file_count"] != 2 {
+		t.Fatalf("expected modified_file_count=2, got %+v", compactionMetadata)
+	}
+	frameworkConfig, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if frameworkConfig["session_info"] == nil || frameworkConfig["pi_custom"] == nil {
+		t.Fatalf("expected session_info and pi_custom framework config, got %+v", frameworkConfig)
 	}
 }
 
