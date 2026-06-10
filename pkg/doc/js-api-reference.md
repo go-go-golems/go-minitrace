@@ -292,6 +292,42 @@ Convenience methods:
 
 Queries are validated as read-only SQL and bounded by row, column, cell, and timeout limits.
 
+### Source events and attachments from JavaScript
+
+Normalized SQLite now includes first-class source lifecycle facts and artifact references:
+
+| Table | What it contains | How to use it from Goja |
+|---|---|---|
+| `events` | Derived renderable rows for turns/tools/annotations plus explicit source events. | Filter `kind NOT IN ('turn', 'tool_call', 'annotation')` when you want only source lifecycle facts. |
+| `attachments` | Durable references to images/files/artifacts associated with sessions, turns, tools, or events. | Join/link by `tool_call_id`, `event_id`, `attachment_id`, or `turn_index`; do not expect blob bytes. |
+
+Important source-event kinds include Pi `compaction`, `model_change`, `thinking_level_change`, Claude Code `mode_change`, `permission_mode_change`, `title_change`, `attachment`, and Codex `image_view`, `subagent_spawn`, `subagent_wait`, and `rate_limits`.
+
+```js
+const session = mt.session()
+  .File("/path/to/session.minitrace.json")
+  .InteractiveCache(".cache/minitrace")
+  .Open();
+try {
+  const sourceEvents = session.query(`
+    SELECT event_id, timestamp, turn_index, kind, title, summary, tool_call_id, attachment_id
+    FROM events
+    WHERE kind NOT IN ('turn', 'tool_call', 'annotation')
+    ORDER BY COALESCE(turn_index, 999999), COALESCE(ordinal, 999999), event_id
+  `);
+  const attachments = session.query(`
+    SELECT attachment_id, timestamp, kind, name, media_type, path, url, tool_call_id, event_id, text_preview
+    FROM attachments
+    ORDER BY COALESCE(turn_index, 999999), timestamp, attachment_id
+  `);
+  return { sourceEvents, attachments };
+} finally {
+  session.close();
+}
+```
+
+For UI code such as `ClubMedMeetup/minitrace-viz/lib/course-session-data.js`, the recommended pattern is to keep transcript messages derived from `turns` and `tool_calls`, then project source events/attachments into separate annotations, badges, or side panels. This avoids polluting the conversation text while still making compactions, subagents, mode changes, rate limits, and images visible.
+
 ## `mt.query()`
 
 `mt.query()` builds SQL recipes. A recipe is a Go-owned object with `name()`, `sql()`, `args()`, `description()`, `output()`, and `toJSON()`.
