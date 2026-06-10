@@ -47,3 +47,13 @@ Step 4: Added native JSON validation for events/attachments and updated query/ad
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/query.md — Query documentation
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/validate/json.go — Validation logic
 
+
+## 2026-06-10
+
+Step 5: Mapped Pi non-message records to first-class source events and framework config (commit fa73b81).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/pi/convert.go — Pi adapter mappings
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/pi/convert_test.go — Pi adapter coverage
+

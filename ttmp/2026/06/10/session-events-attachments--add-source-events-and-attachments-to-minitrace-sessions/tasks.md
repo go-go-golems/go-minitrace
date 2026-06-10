@@ -19,7 +19,7 @@
   - Add validator tests for valid, empty, null, and malformed arrays.
   - Update query/API documentation that lists normalized tables and JSON arrays.
 
-- [ ] 4. Map Pi non-message records onto first-class events.
+- [x] 4. Map Pi non-message records onto first-class events.
   - Convert `session_info` to `Session.Title` and a `session_info` event.
   - Convert `custom` records to `custom.<customType>` events and preserve payloads in `FrameworkMetadata`/`RawJSON`.
   - Convert `compaction` records to `compaction` events with privacy-safe summaries.

@@ -10,6 +10,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: pkg/adapters/pi/convert.go
+      Note: Mapped Pi session_info/custom/compaction/model/thinking records to source events (commit fa73b81)
+    - Path: pkg/adapters/pi/convert_test.go
+      Note: Added Pi non-message event preservation tests (commit fa73b81)
     - Path: pkg/doc/adapter-reference.md
       Note: Documented source events and attachment semantics (commit adca28f)
     - Path: pkg/doc/query.md
@@ -40,6 +44,7 @@ LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -349,3 +354,83 @@ I also updated query-facing documentation so readers know that `events` and `att
 - `events: null` and `attachments: null` remain valid.
 - `events: []` and `attachments: []` remain valid.
 - Malformed values return messages such as `events must be an array` or `attachments[0]: attachment missing required field "kind"`.
+
+## Step 5: Preserve Pi non-message records as source events
+
+I updated the Pi adapter so non-message source records are no longer limited to config side effects or dropped. Pi `session_info`, `custom`, `compaction`, `model_change`, and `thinking_level_change` records now create first-class `Session.Events` entries while preserving existing model/framework behavior.
+
+The most important semantic change is that Pi compactions and pinned-skill/custom state are represented as source timeline facts instead of annotations. `session_info.name` also becomes the session title and is mirrored into framework config for easy structural lookup.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the task list by implementing the Pi-specific mapping now that events exist in schema, DB materialization, and validation.
+
+**Inferred user intent:** The user wants latest Pi session metadata such as compactions, custom records, and session titles to survive conversion into minitrace without abusing annotations.
+
+**Commit (code):** fa73b814f9e38899f7dd0e44c3ebce60b281b03f — "pi: preserve source records as events"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/pi/convert.go`:
+  - added an `events` accumulator;
+  - added handling for `session_info`;
+  - added handling for `custom`;
+  - added handling for `compaction`;
+  - added source events for existing `model_change` and `thinking_level_change` records;
+  - set `Session.Events`;
+  - set `Session.Title` from `session_info.name` when present;
+  - mirrored `session_info` and `pi_custom` data into `OperationalContext.FrameworkConfig`.
+- Added helper functions:
+  - `buildPiRecordEvent`;
+  - `sanitizeEventIDPart`;
+  - `summarizePiModelChange`;
+  - `summarizePiCompaction`;
+  - `piCompactionMetadata`.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/pi/convert_test.go`:
+  - asserted model/thinking records produce events in the existing conversion test;
+  - added a minimized fixture for `session_info`, `custom`, and `compaction`.
+- Ran:
+  - `gofmt -w pkg/adapters/pi/convert.go pkg/adapters/pi/convert_test.go`
+  - `go test ./pkg/adapters/pi -count=1`
+
+### Why
+- Pi has meaningful source records that are not turns or tool calls.
+- The new event model is the correct home for compactions, custom lifecycle/config records, and model/thinking changes.
+- Keeping a framework config mirror for `session_info` and `pi_custom` makes structural preview/query use easier without replacing the event timeline.
+
+### What worked
+- `go test ./pkg/adapters/pi -count=1` passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/adapters/pi 0.003s`
+- The adapter now produces stable event IDs such as `pi-session-info-000000` and `pi-compaction-000002`.
+- Pi compaction metadata includes privacy-safe counts/keys while raw source JSON remains available in the event object.
+
+### What didn't work
+- No test failed during this step.
+
+### What I learned
+- Pi's previous `model_change` and `thinking_level_change` handling was config-only. Adding events gives users a timeline without removing the existing config behavior.
+- `session_info` is a better title source than extracting the first human prompt when present because it is an explicit source-provided session name.
+
+### What was tricky to build
+- The tricky part was balancing timeline fidelity and privacy. A compaction record can contain lists of modified files and edited values. I put counts and edited keys into `FrameworkMetadata`, kept the source record in `RawJSON`, and used a compact summary string.
+- Custom records are open-ended, so the adapter stores them under `framework_config.pi_custom[customType]` and emits an event kind `custom.<customType>` rather than inventing a fixed schema for every custom payload.
+
+### What warrants a second pair of eyes
+- Review whether `custom.<customType>` event kinds are the right convention or whether they should be normalized to `custom` plus `framework_metadata.custom_type` only.
+- Review whether `RawJSON` for `custom` records could expose too much in normal full JSON output. Preview defaults should remain structural.
+- Review whether Pi compaction summaries should include modified file counts only or file basenames as well.
+
+### What should be done in the future
+- Implement Task 5: map Claude Code lifecycle and attachment records to events/attachments.
+- Add end-to-end preview output once preview structures are updated.
+
+### Code review instructions
+- Start with the switch in `pkg/adapters/pi/convert.go` inside `ConvertRecords`.
+- Then review the helper functions near `buildFrameworkConfig`.
+- Validate with `go test ./pkg/adapters/pi -count=1`.
+
+### Technical details
+- `session_info.name` overrides extracted prompt title.
+- `custom` records populate both `events[]` and `operational_context.framework_config.pi_custom`.
+- `compaction` records populate event summary/framework metadata and remain collapsed by default.
