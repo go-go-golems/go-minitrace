@@ -367,6 +367,22 @@ func TestConvertRecordsSessionJSONLPromotesLatestToolSemantics(t *testing.T) {
 	if imageMetadata["has_image_signal"] != true {
 		t.Fatalf("expected image metadata signal, got %+v", imageMetadata)
 	}
+	if len(session.Attachments) != 1 {
+		t.Fatalf("expected one image attachment, got %d", len(session.Attachments))
+	}
+	attachment := session.Attachments[0]
+	if attachment.Kind != "image" || attachment.MediaType != "image/png" || attachment.Path != minitrace.NormalizePath("/tmp/screenshot.png") || attachment.ToolCallID == nil || *attachment.ToolCallID != "call-image" {
+		t.Fatalf("unexpected image attachment: %+v", attachment)
+	}
+	if len(session.Events) != 3 {
+		t.Fatalf("expected spawn/wait/image events, got %d: %+v", len(session.Events), session.Events)
+	}
+	if session.Events[0].Kind != "subagent_spawn" || session.Events[1].Kind != "subagent_wait" || session.Events[2].Kind != "image_view" {
+		t.Fatalf("unexpected Codex events: %+v", session.Events)
+	}
+	if session.Events[2].AttachmentID == nil || *session.Events[2].AttachmentID != attachment.ID {
+		t.Fatalf("expected image event to link attachment, got %+v", session.Events[2].AttachmentID)
+	}
 
 	patch := byID["call-patch"]
 	if patch.OperationType != "MODIFY" || patch.Output.ExitCode == nil || *patch.Output.ExitCode != 0 {
@@ -505,5 +521,11 @@ func TestConvertRecordsSessionJSONLPreservesFrameworkMetadata(t *testing.T) {
 	}
 	if toolMetadata["parsed_cmd"] == nil || toolMetadata["stdout"] != "main.go" {
 		t.Fatalf("expected parsed_cmd/stdout metadata, got %+v", toolMetadata)
+	}
+	if len(session.Events) != 1 || session.Events[0].Kind != "rate_limits" {
+		t.Fatalf("expected rate_limits source event, got %+v", session.Events)
+	}
+	if session.Events[0].FrameworkMetadata == nil {
+		t.Fatalf("expected rate_limits event metadata")
 	}
 }

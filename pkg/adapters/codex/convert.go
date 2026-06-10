@@ -121,6 +121,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 		))
 	}
 	minitrace.ComputeToolCallContext(toolCalls)
+	events, attachments := buildCodexEventsAndAttachments(toolCalls, metadata)
 
 	timing := minitrace.ComputeTiming(timestamps)
 	quality := minitrace.AssignQualityTier(turns, toolCalls)
@@ -131,6 +132,8 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	session.Timing = timing
 	session.Turns = turns
 	session.ToolCalls = toolCalls
+	session.Events = events
+	session.Attachments = attachments
 	session.Annotations = annotations
 	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, 0, tokenTotals)
 	session.Flags.ContainsPII = containsPII
@@ -163,6 +166,114 @@ type codexMetadata struct {
 	ContextWindow           int
 	TruncationPolicy        any
 	LatestRateLimits        any
+}
+
+func buildCodexEventsAndAttachments(toolCalls []minitrace.ToolCall, metadata codexMetadata) ([]minitrace.Event, []minitrace.Attachment) {
+	events := []minitrace.Event{}
+	attachments := []minitrace.Attachment{}
+	for _, toolCall := range toolCalls {
+		switch toolCall.ToolName {
+		case "view_image":
+			attachment := buildCodexImageAttachment(toolCall)
+			event := buildCodexToolEvent(toolCall, len(events), "image_view", "Codex image view", firstNonEmptyPointer(toolCall.Input.FilePath, toolCall.Output.Result))
+			event.AttachmentID = &attachment.ID
+			attachment.EventID = &event.ID
+			attachments = append(attachments, attachment)
+			events = append(events, event)
+		case "spawn_agent":
+			events = append(events, buildCodexToolEvent(toolCall, len(events), "subagent_spawn", "Codex subagent spawn", summarizeCodexSpawnedAgent(toolCall.SpawnedAgent)))
+		case "wait_agent":
+			events = append(events, buildCodexToolEvent(toolCall, len(events), "subagent_wait", "Codex subagent wait", summarizeCodexSpawnedAgent(toolCall.SpawnedAgent)))
+		}
+	}
+	if metadata.LatestRateLimits != nil {
+		event := minitrace.BuildEvent("codex-rate-limits", nil, "rate_limits", "Codex rate limits", "Latest Codex rate-limit snapshot", map[string]any{"rate_limits": metadata.LatestRateLimits})
+		event.Role = "system"
+		event.FrameworkMetadata = map[string]any{"rate_limits": metadata.LatestRateLimits}
+		events = append(events, event)
+	}
+	return events, attachments
+}
+
+func buildCodexImageAttachment(toolCall minitrace.ToolCall) minitrace.Attachment {
+	attachmentID := "codex-image-" + truncateID(toolCall.ID)
+	path := firstNonEmptyPointer(toolCall.Input.FilePath)
+	attachment := minitrace.BuildAttachment(attachmentID, toolCall.Timestamp, "image", baseName(path), mediaTypeFromPath(path), map[string]any{"tool_call_id": toolCall.ID, "tool_name": toolCall.ToolName})
+	attachment.Path = path
+	attachment.ToolCallID = &toolCall.ID
+	attachment.FrameworkMetadata = map[string]any{"tool_call_id": toolCall.ID, "has_image_signal": true}
+	return attachment
+}
+
+func buildCodexToolEvent(toolCall minitrace.ToolCall, ordinal int, kind, title, summary string) minitrace.Event {
+	event := minitrace.BuildEvent(fmt.Sprintf("codex-%s-%s", strings.ReplaceAll(kind, "_", "-"), truncateID(toolCall.ID)), toolCall.Timestamp, kind, title, summary, map[string]any{"tool_call_id": toolCall.ID, "tool_name": toolCall.ToolName})
+	event.Role = "tool"
+	event.ToolCallID = &toolCall.ID
+	if toolCall.EmittingTurnIndex != nil {
+		event.TurnIndex = toolCall.EmittingTurnIndex
+	}
+	event.Ordinal = &ordinal
+	event.FrameworkMetadata = toolCall.FrameworkMetadata
+	return event
+}
+
+func summarizeCodexSpawnedAgent(agent *minitrace.SpawnedAgent) string {
+	if agent == nil {
+		return "Codex subagent operation."
+	}
+	parts := []string{}
+	if agent.AgentType != "" {
+		parts = append(parts, "agent_type="+agent.AgentType)
+	}
+	if agent.TaskScope != "" {
+		parts = append(parts, "task="+truncateTitle(agent.TaskScope, 120))
+	}
+	if agent.SubSessionID != nil && *agent.SubSessionID != "" {
+		parts = append(parts, "sub_session="+*agent.SubSessionID)
+	}
+	if agent.OutcomeSummary != "" {
+		parts = append(parts, "outcome="+truncateTitle(agent.OutcomeSummary, 120))
+	}
+	if len(parts) == 0 {
+		return "Codex subagent operation."
+	}
+	return strings.Join(parts, "; ")
+}
+
+func mediaTypeFromPath(path string) string {
+	lower := strings.ToLower(path)
+	switch {
+	case strings.HasSuffix(lower, ".png"):
+		return "image/png"
+	case strings.HasSuffix(lower, ".jpg"), strings.HasSuffix(lower, ".jpeg"):
+		return "image/jpeg"
+	case strings.HasSuffix(lower, ".webp"):
+		return "image/webp"
+	case strings.HasSuffix(lower, ".gif"):
+		return "image/gif"
+	default:
+		return "image"
+	}
+}
+
+func firstNonEmptyPointer(values ...*string) string {
+	for _, value := range values {
+		if value != nil && strings.TrimSpace(*value) != "" {
+			return *value
+		}
+	}
+	return ""
+}
+
+func baseName(path string) string {
+	path = strings.TrimRight(path, "/")
+	if path == "" {
+		return "image"
+	}
+	if index := strings.LastIndex(path, "/"); index >= 0 && index < len(path)-1 {
+		return path[index+1:]
+	}
+	return path
 }
 
 func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.ToolCall, []minitrace.Annotation, []time.Time, *minitrace.TokenTotals, codexMetadata) {
