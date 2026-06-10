@@ -639,11 +639,13 @@ The first implementation pass completed the backend and preview scope described 
 - Claude Code maps `mode`, `permission-mode`, `ai-title`, and `attachment` records to events/attachments.
 - Codex derives `image_view`, `subagent_spawn`, `subagent_wait`, and `rate_limits` events plus image attachments from normalized tool/session metadata.
 - Goja and CLI preview output includes event/attachment counts, kind breakdowns, and privacy-aware samples.
+- The v2 protobuf session API exposes events and attachments on summary-detail and detail responses.
+- The React transcript viewer renders a compact Source facts panel for lifecycle events and attachments.
 
 Known follow-up candidates:
 
 - Preserve exact timestamps for Codex `rate_limits` events instead of deriving them from latest metadata only.
-- Decide whether frontend/protobuf timeline rendering should expose events and attachments directly.
+- Consider a dedicated paginated source-facts endpoint if sessions accumulate very large event/attachment arrays.
 - Consider stricter validation once adapter-produced event/attachment shapes settle.
 
 ## References

@@ -107,3 +107,13 @@ Step 10: Validation passed, fixed diary Markdown for PDF rendering, and uploaded
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/reference/01-diary.md — Final diary and PDF-rendering fix
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/tasks.md — All tasks checked
 
+
+## 2026-06-10
+
+Step 11: Integrated events/attachments into protobuf API responses and the React transcript viewer Source facts panel (commit f8e542b).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/proto/go_go_golems/minitrace/api/v1/sessions.proto — API contract
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx — Frontend rendering
+

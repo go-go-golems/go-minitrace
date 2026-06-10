@@ -12,6 +12,10 @@ Owners: []
 RelatedFiles:
     - Path: cmd/go-minitrace/cmds/preview/session.go
       Note: Emits event/attachment preview columns from CLI (commit 72dd30f)
+    - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
+      Note: Normalizes minitrace events/attachments for API responses (commit f8e542b)
+    - Path: cmd/go-minitrace/cmds/serve/handlers_sessions_v2.go
+      Note: Converts event/attachment responses to protobuf JSON (commit f8e542b)
     - Path: pkg/adapters/claudecode/convert.go
       Note: Mapped Claude mode/permission/title records to events and attachments to first-class artifacts (commit 673489f)
     - Path: pkg/adapters/claudecode/convert_test.go
@@ -54,14 +58,21 @@ RelatedFiles:
       Note: Validated events and attachments arrays in native JSON (commit adca28f)
     - Path: pkg/validate/json_test.go
       Note: Added valid/null/malformed event and attachment tests (commit adca28f)
+    - Path: proto/go_go_golems/minitrace/api/v1/sessions.proto
+      Note: Added protobuf Event/Attachment API fields (commit f8e542b)
     - Path: ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/design-doc/01-session-events-and-attachments-design-and-implementation-guide.md
       Note: Updated implementation status after first pass (commit 5e24a54)
+    - Path: web/src/api/sessionProtoAdapters.ts
+      Note: Adapts protobuf events/attachments to UI types (commit f8e542b)
+    - Path: web/src/components/TranscriptViewer/TranscriptViewer.tsx
+      Note: Renders Source facts panel for events/attachments (commit f8e542b)
 ExternalSources: []
 Summary: Chronological implementation diary for first-class session events and attachments.
 LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -798,3 +809,90 @@ This completes the requested implementation loop: ticket, design guide, detailed
 ### Technical details
 - reMarkable upload command used a single bundle containing index, design guide, diary, tasks, and changelog.
 - Upload destination: `/ai/2026/06/10/session-events-attachments`.
+
+## Step 11: Integrate protobuf API and frontend rendering
+
+I implemented the optional follow-up the user requested after clarifying what “frontend/protobuf rendering” meant. The v2 session protobuf contract now exposes events and attachments, the Go serve handlers convert canonical minitrace events/attachments into protobuf responses, and the React transcript viewer renders a compact “Source facts” panel above the transcript.
+
+This step makes the backend work visible in the browser UI: users can now see source lifecycle events such as compactions/subagent lifecycle records and artifact references such as image attachments without dropping into CLI preview or SQL.
+
+### Prompt Context
+
+**User prompt (verbatim):** "oh  i see, yes, please integrate them."
+
+**Assistant interpretation:** Add first-class events and attachments to the web/protobuf layer that was previously identified as a remaining follow-up.
+
+**Inferred user intent:** The user wants the browser transcript viewer and typed API surface to display the new source events and attachments, not only the backend/CLI layers.
+
+**Commit (code):** f8e542b7c5bc05743e659705a592e8872319ffe2 — "serve: render session events and attachments"
+
+### What I did
+- Updated `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/proto/go_go_golems/minitrace/api/v1/sessions.proto`:
+  - added `SessionEvent`;
+  - added `SessionAttachment`;
+  - added repeated `events` and `attachments` fields to `SessionSummaryDetail` and `SessionDetail`.
+- Regenerated protobuf outputs:
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1/sessions.pb.go`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.d.ts`
+- Updated Go server normalization/conversion:
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions.go`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/serve/handlers_sessions_v2.go`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/serve/server_test.go`
+- Updated frontend types/adapters/UI:
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/types/session.ts`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/api/sessionProtoAdapters.ts`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/web/src/mocks/data.ts`
+- Built/validated:
+  - `buf generate`
+  - `go test ./cmd/go-minitrace/cmds/serve -count=1`
+  - `pnpm install` in `web/` because `node_modules` was absent
+  - `pnpm build` in `web/`
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./pkg/validate -count=1`
+
+### Why
+- The previous implementation exposed events/attachments in Go, SQLite, adapters, validation, docs, and CLI/Goja preview, but not in the browser transcript viewer.
+- The web UI receives typed v2 protobuf-shaped JSON, so the API contract and generated frontend types had to be updated before React could display the new data safely.
+
+### What worked
+- `go test ./cmd/go-minitrace/cmds/serve -count=1` passed after the proto/server changes.
+- `pnpm build` passed after adding `events`/`attachments` to mock session detail data.
+- The broader targeted Go test set passed:
+  - `go test ./cmd/go-minitrace/cmds/serve ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./pkg/validate -count=1`
+
+### What didn't work
+- First `pnpm build` failed because dependencies were not installed:
+  - `sh: 1: tsc: not found`
+  - `Local package.json exists, but node_modules missing, did you mean to install?`
+- I fixed that by running `pnpm install` in `web/`.
+- Second `pnpm build` failed because `mockSessionDetail` did not include the newly required `events` and `attachments` fields:
+  - `src/mocks/data.ts(359,14): error TS2739: Type ... is missing the following properties from type 'SessionDetail': events, attachments`
+- I fixed the mock data by adding representative event and image attachment records.
+
+### What I learned
+- The browser transcript page uses `getSessionSummary` plus `getSessionBlocks`, not the full session detail endpoint, so `events` and `attachments` needed to be present on `SessionSummaryDetail` as well as `SessionDetail`.
+- The built frontend assets under `cmd/go-minitrace/cmds/serve/frontend/*` are ignored except `.gitkeep`; source changes plus `go generate ./cmd/go-minitrace/cmds/serve` remain the release path for embedded assets.
+
+### What was tricky to build
+- The important integration detail was choosing where to attach the new arrays in the API. If they only appeared on `SessionDetail`, the existing transcript page would not see them because it composes its session object from summary and blocks. Adding them to both summary-detail and detail avoids changing the page's data-fetching shape.
+- Protobuf generation also rewrote unrelated TypeScript generated files because the remote plugin version differed. I reverted non-session generated files to keep the commit focused.
+
+### What warrants a second pair of eyes
+- Review whether `SessionSummaryDetail` is the right API response for full event/attachment arrays, or whether large sessions should eventually fetch source facts through a dedicated endpoint.
+- Review the `SourceFactsPanel` visual design; it is intentionally compact but not yet virtualized.
+- Review whether `framework_metadata` should be exposed in the UI or kept API-only.
+
+### What should be done in the future
+- If sessions accumulate many events/attachments, add pagination or a dedicated `/api/v2/sessions/{id}/source-facts` endpoint.
+- Add Storybook stories specifically for `SourceFactsPanel` once it is split into its own component.
+
+### Code review instructions
+- Start with `proto/go_go_golems/minitrace/api/v1/sessions.proto` to review the public API shape.
+- Then review `handlers_sessions.go` and `handlers_sessions_v2.go` for server conversion.
+- Then review `web/src/api/sessionProtoAdapters.ts` and `web/src/components/TranscriptViewer/TranscriptViewer.tsx` for frontend adaptation/rendering.
+- Validate with `go test ./cmd/go-minitrace/cmds/serve -count=1` and `cd web && pnpm build`.
+
+### Technical details
+- The UI panel renders at most eight events and eight attachments and shows overflow counts.
+- The panel links event/attachment/tool IDs textually but does not yet scroll to linked tool calls.
