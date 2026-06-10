@@ -11,6 +11,12 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/go-minitrace/cmds/preview/root.go
+      Note: Preview command group registration (commit 172731e)
+    - Path: cmd/go-minitrace/cmds/preview/session.go
+      Note: Phase 3 one-file preview command (commit 172731e)
+    - Path: cmd/go-minitrace/main.go
+      Note: Root CLI registration for preview command (commit 172731e)
     - Path: pkg/adapters/claudecode/convert.go
       Note: Phase 2 latest Claude metadata and attachment preservation (commit 53dc197)
     - Path: pkg/adapters/claudecode/convert_test.go
@@ -20,7 +26,9 @@ RelatedFiles:
     - Path: pkg/adapters/codex/convert_test.go
       Note: Phase 1 minimized latest Codex fixtures (commit 0b4ce59)
     - Path: pkg/minitracejs/import_builder.go
-      Note: Code change recorded in Step 2 (commit c1c1afa)
+      Note: |-
+        Code change recorded in Step 2 (commit c1c1afa)
+        Exported PreviewLoadedSession for CLI reuse (commit 172731e)
     - Path: pkg/minitracejs/import_builder_test.go
       Note: Preview behavior test recorded in Step 2 (commit c1c1afa)
     - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/scripts/01-survey-agent-session-shapes.py
@@ -35,6 +43,7 @@ LastUpdated: 2026-06-10T14:30:52.478395442-04:00
 WhatFor: Chronological implementation diary for the session import goja/xgoja ticket.
 WhenToUse: Use before resuming the ticket to understand what changed, what failed, and what remains.
 ---
+
 
 
 
@@ -740,4 +749,121 @@ Phase 2 changed these files:
 pkg/adapters/claudecode/convert.go
 pkg/adapters/claudecode/convert_test.go
 ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/tasks.md
+```
+
+## Step 7: Phase 3 One-File Preview Command
+
+This step implemented the first CLI surface for the importer preview API: `go-minitrace preview session --source-session <path>`. It uses the same minitracedb auto-detection/conversion path as the Goja importer and emits the normalized `SessionPreview` as a Glazed row, so users can request JSON/YAML/table output through existing Glazed output flags.
+
+This is intentionally the one-file milestone from Phase 3, not the full directory/latest-N scanner. The command now makes it easy to validate a specific Pi, Codex, Claude Code, or native minitrace session before saving or querying it; directory scans and explicit privacy/sample flags remain open Phase 3 tasks.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue the phased implementation by exposing the importer preview through the CLI after Codex and Claude adapter work.
+
+**Inferred user intent:** Make previewing parsed sessions practical from the terminal, not only from Goja/xgoja scripts.
+
+**Commit (code):** 172731e5c5bf30b47cf53d865f107f213a5e81b3 — "preview: add session preview command"
+
+### What I did
+
+- Refactored `pkg/minitracejs/import_builder.go` so preview construction is available through exported `PreviewLoadedSession`.
+- Added a new command package:
+  - `cmd/go-minitrace/cmds/preview/root.go`
+  - `cmd/go-minitrace/cmds/preview/session.go`
+- Registered `preview` in `cmd/go-minitrace/main.go`.
+- Implemented:
+
+```bash
+go-minitrace preview session --source-session <path> --output json
+```
+
+- The command emits one row with:
+  - adapter/format/session identity,
+  - title/model/working directory,
+  - system prompt/thinking/image flags,
+  - turn/tool/subagent counts,
+  - role/tool count maps,
+  - sample turns/tools,
+  - diagnostics.
+- Smoke-tested with latest local Pi, Codex, and Claude Code files.
+
+### Why
+
+- The user asked for a way to print a preview and inspect whether roles, tools, subagents, system prompts, and images parsed correctly.
+- A CLI command lowers friction compared with writing a JavaScript snippet against `mt.importer()`.
+- Reusing `minitracedb.LoadSessionFileAuto` keeps CLI behavior aligned with Goja import behavior.
+
+### What worked
+
+- CLI package tests passed:
+
+```bash
+go test ./pkg/minitracejs ./cmd/go-minitrace/... -count=1
+```
+
+- Broader package tests had already passed after the adapter changes.
+- Smoke tests succeeded for:
+  - latest Pi session -> `adapter: pi`, `format: pi-jsonl`
+  - latest Codex session -> `adapter: codex`, `format: codex-jsonl`, `has_image_signals: true`
+  - latest Claude Code session -> `adapter: claude-code`, `format: claude-code-jsonl`
+
+### What didn't work
+
+- First compile failed after extracting `PreviewLoadedSession`:
+
+```text
+pkg/minitracejs/import_builder.go:283:18: too many return values
+    have (SessionPreview, nil)
+    want (SessionPreview)
+```
+
+- Root cause: `ImportBuilder.Preview()` returns `(SessionPreview, error)`, but the new helper returns only `SessionPreview`. I fixed the helper return to `return preview` and kept `ImportBuilder.Preview()` returning `PreviewLoadedSession(b.converted), nil`.
+
+### What I learned
+
+- The existing Glazed command infrastructure makes preview output format support mostly automatic once the command emits a row.
+- A single preview row can carry nested maps/slices for JSON/YAML output while still being usable in tabular formats for the scalar fields.
+- The smoke test immediately demonstrated the value of Phase 1 and Phase 2: Codex now reports image signals, and Claude latest files load through the same command.
+
+### What was tricky to build
+
+- Avoiding preview logic duplication required exporting a helper from `pkg/minitracejs`. That keeps the CLI aligned with Goja behavior, but it also makes `SessionPreview` more clearly part of the package API.
+- The command output has to balance structured nested fields with Glazed row semantics. I kept one row per session for now; directory mode may need one row per discovered session.
+
+### What warrants a second pair of eyes
+
+- Review whether `PreviewLoadedSession` belongs in `pkg/minitracejs` or should move to a lower-level package not named after JavaScript.
+- Review whether one-row nested output is the best CLI shape, especially for table output.
+- Review whether `--privacy structural|snippets|full` should alter `sample_turns` and `sample_tools` before directory mode is added.
+
+### What should be done in the future
+
+- Add directory/latest-N preview mode.
+- Add explicit `--sample-limit` and `--privacy` flags.
+- Add command-level tests or golden smoke fixtures for preview output.
+
+### Code review instructions
+
+- Start in `cmd/go-minitrace/cmds/preview/session.go` for the command behavior.
+- Review `pkg/minitracejs/import_builder.go` for `PreviewLoadedSession` extraction.
+- Review `cmd/go-minitrace/main.go` for root command registration.
+- Validate with:
+
+```bash
+cd go-minitrace
+go test ./pkg/minitracejs ./cmd/go-minitrace/... -count=1
+go run ./cmd/go-minitrace preview session --source-session <session.jsonl> --output json
+```
+
+### Technical details
+
+Smoke command shape used:
+
+```bash
+go run ./cmd/go-minitrace preview session --source-session "$PI" --output json
+go run ./cmd/go-minitrace preview session --source-session "$CODEX" --output json
+go run ./cmd/go-minitrace preview session --source-session "$CLAUDE" --output json
 ```

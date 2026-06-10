@@ -43,3 +43,13 @@ Phase 2: preserved latest Claude Code mode, permission-mode, ai-title, attachmen
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert.go — Claude metadata preservation
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert_test.go — Latest Claude fixture coverage
 
+
+## 2026-06-10
+
+Phase 3 partial: added go-minitrace preview session --source-session for one-file previews (commit 172731e).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go — One-file preview command
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — Shared preview builder
+

@@ -67,18 +67,18 @@ Goal: preserve recent Claude Code non-message records and make subagent/session 
 
 Goal: expose the new importer preview API without requiring users to write JavaScript.
 
-- [ ] Design command shape
-  - [ ] decide final command path (`go-minitrace preview session` or equivalent)
-  - [ ] define flags: `--source-session`, `--source-dir`, `--framework`, `--latest`, `--sample-limit`, `--privacy`
-  - [ ] define output formats supported by Glazed
-- [ ] Implement preview command
-  - [ ] call `minitracedb.LoadSessionFileAuto` / `minitracejs.ImportBuilder.Preview`
-  - [ ] support one-file preview first
-  - [ ] add directory/latest-N mode if straightforward
-  - [ ] keep structural/snippet privacy defaults bounded
-- [ ] Add command tests
+- [x] Design command shape
+  - [x] decide final command path (`go-minitrace preview session` or equivalent)
+  - [ ] define remaining flags: `--source-dir`, `--framework`, `--latest`, `--sample-limit`, `--privacy` (`--source-session` implemented)
+  - [x] define output formats supported by Glazed
+- [ ] Implement preview command (one-file mode complete; directory/latest/privacy modes remain)
+  - [x] call `minitracedb.LoadSessionFileAuto` / `minitracejs.PreviewLoadedSession`
+  - [x] support one-file preview first
+  - [ ] add directory/latest-N mode
+  - [x] keep structural/snippet privacy defaults bounded
+- [ ] Add command tests / smoke validation
   - [ ] unit-test preview object rendering if command harness supports it
-  - [ ] smoke-test one Pi/Codex/Claude fixture
+  - [x] smoke-test one Pi/Codex/Claude latest local session
 - [ ] Update JS/API docs and design guide
 - [ ] Run targeted tests and commit Phase 3
 
