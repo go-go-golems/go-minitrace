@@ -49,9 +49,12 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 	turns := make([]minitrace.Turn, 0, len(records))
 	toolCalls := make([]minitrace.ToolCall, 0)
 	annotations := make([]minitrace.Annotation, 0)
+	events := make([]minitrace.Event, 0)
 	allTimestamps := make([]time.Time, 0, len(records))
 	tokenTotals := &minitrace.TokenTotals{}
 	pendingToolCalls := map[string]int{}
+	piCustomConfig := map[string]any{}
+	sessionInfoName := ""
 	turnIndex := 0
 
 	for _, record := range records {
@@ -62,14 +65,47 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 			if ts, ok := minitrace.ParseTimestamp(stringValue(record["timestamp"])); ok {
 				allTimestamps = append(allTimestamps, ts)
 			}
+		case "session_info":
+			if ts, ok := minitrace.ParseTimestamp(stringValue(record["timestamp"])); ok {
+				allTimestamps = append(allTimestamps, ts)
+			}
+			sessionInfoName = firstNonEmpty(stringValue(record["name"]), sessionInfoName)
+			events = append(events, buildPiRecordEvent(record, len(events), "session_info", "Pi session info", sessionInfoName))
+		case "custom":
+			if ts, ok := minitrace.ParseTimestamp(stringValue(record["timestamp"])); ok {
+				allTimestamps = append(allTimestamps, ts)
+			}
+			customType := firstNonEmpty(stringValue(record["customType"]), "unknown")
+			if record["data"] != nil {
+				piCustomConfig[customType] = record["data"]
+			}
+			event := buildPiRecordEvent(record, len(events), "custom."+customType, "Pi custom record", customType)
+			event.FrameworkMetadata = map[string]any{"custom_type": customType, "data": record["data"]}
+			events = append(events, event)
+		case "compaction":
+			if ts, ok := minitrace.ParseTimestamp(stringValue(record["timestamp"])); ok {
+				allTimestamps = append(allTimestamps, ts)
+			}
+			details := mapValue(record["details"])
+			event := buildPiRecordEvent(record, len(events), "compaction", "Pi compaction", summarizePiCompaction(details))
+			event.FrameworkMetadata = piCompactionMetadata(details)
+			events = append(events, event)
 		case "model_change":
 			modelInfo["provider"] = record["provider"]
 			modelInfo["model"] = record["modelId"]
 			if api := stringValue(record["api"]); api != "" {
 				modelInfo["api"] = api
 			}
+			if ts, ok := minitrace.ParseTimestamp(stringValue(record["timestamp"])); ok {
+				allTimestamps = append(allTimestamps, ts)
+			}
+			events = append(events, buildPiRecordEvent(record, len(events), "model_change", "Pi model change", summarizePiModelChange(record)))
 		case "thinking_level_change":
 			modelInfo["thinking_level"] = record["thinkingLevel"]
+			if ts, ok := minitrace.ParseTimestamp(stringValue(record["timestamp"])); ok {
+				allTimestamps = append(allTimestamps, ts)
+			}
+			events = append(events, buildPiRecordEvent(record, len(events), "thinking_level_change", "Pi thinking level change", stringValue(record["thinkingLevel"])))
 		case "message":
 			msg := mapValue(record["message"])
 			if msg == nil {
@@ -268,7 +304,20 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 		normalized := minitrace.NormalizePath(cwd)
 		session.OperationalContext.WorkingDirectory = &normalized
 	}
-	if frameworkConfig := buildFrameworkConfig(modelInfo); frameworkConfig != nil {
+	frameworkConfig := buildFrameworkConfig(modelInfo)
+	if len(piCustomConfig) > 0 {
+		if frameworkConfig == nil {
+			frameworkConfig = map[string]any{}
+		}
+		frameworkConfig["pi_custom"] = piCustomConfig
+	}
+	if sessionInfoName != "" {
+		if frameworkConfig == nil {
+			frameworkConfig = map[string]any{}
+		}
+		frameworkConfig["session_info"] = map[string]any{"name": sessionInfoName}
+	}
+	if frameworkConfig != nil {
 		session.OperationalContext.FrameworkConfig = frameworkConfig
 	}
 
@@ -279,10 +328,14 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 
 	session.Environment.ToolsEnabled = uniqueToolNames(toolCalls)
 	session.Title = minitrace.ExtractTitle(turns, 80)
+	if sessionInfoName != "" {
+		session.Title = &sessionInfoName
+	}
 	session.Quality = &quality
 	session.Timing = timing
 	session.Turns = turns
 	session.ToolCalls = toolCalls
+	session.Events = events
 	session.Annotations = annotations
 	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, 0, tokenTotals)
 	session.Flags.NeedsCleaning = false
@@ -498,6 +551,100 @@ func classifyTurnRole(role string) (*string, string) {
 	default:
 		return ptr("framework"), "user"
 	}
+}
+
+func buildPiRecordEvent(record map[string]any, ordinal int, kind, title, summary string) minitrace.Event {
+	timestamp := optionalString(stringValue(record["timestamp"]))
+	event := minitrace.BuildEvent(fmt.Sprintf("pi-%s-%06d", sanitizeEventIDPart(kind), ordinal), timestamp, kind, title, summary, record)
+	event.Role = "system"
+	return event
+}
+
+func sanitizeEventIDPart(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return "event"
+	}
+	var builder strings.Builder
+	lastDash := false
+	for _, r := range value {
+		allowed := r >= 'a' && r <= 'z' || r >= '0' && r <= '9'
+		if allowed {
+			builder.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			builder.WriteRune('-')
+			lastDash = true
+		}
+	}
+	ret := strings.Trim(builder.String(), "-")
+	if ret == "" {
+		return "event"
+	}
+	return ret
+}
+
+func summarizePiModelChange(record map[string]any) string {
+	parts := []string{}
+	if provider := stringValue(record["provider"]); provider != "" {
+		parts = append(parts, "provider="+provider)
+	}
+	if model := stringValue(record["modelId"]); model != "" {
+		parts = append(parts, "model="+model)
+	}
+	if api := stringValue(record["api"]); api != "" {
+		parts = append(parts, "api="+api)
+	}
+	if len(parts) == 0 {
+		return "Pi model changed."
+	}
+	return strings.Join(parts, ", ")
+}
+
+func summarizePiCompaction(details map[string]any) string {
+	if details == nil {
+		return "Pi compaction record."
+	}
+	parts := []string{}
+	modifiedFiles := listValue(details["modifiedFiles"])
+	if len(modifiedFiles) > 0 {
+		parts = append(parts, fmt.Sprintf("modified_files=%d", len(modifiedFiles)))
+	}
+	if edited := mapValue(details["edited"]); len(edited) > 0 {
+		parts = append(parts, fmt.Sprintf("edited_keys=%d", len(edited)))
+	}
+	if _, ok := details["customInstructionsAppended"]; ok {
+		parts = append(parts, fmt.Sprintf("custom_instructions_appended=%t", boolValue(details["customInstructionsAppended"])))
+	}
+	if len(parts) == 0 {
+		return "Pi compaction completed."
+	}
+	return strings.Join(parts, ", ")
+}
+
+func piCompactionMetadata(details map[string]any) map[string]any {
+	metadata := map[string]any{}
+	if details == nil {
+		return metadata
+	}
+	if modifiedFiles := listValue(details["modifiedFiles"]); len(modifiedFiles) > 0 {
+		metadata["modified_file_count"] = len(modifiedFiles)
+		metadata["modified_files"] = modifiedFiles
+	}
+	if edited := mapValue(details["edited"]); len(edited) > 0 {
+		keys := make([]string, 0, len(edited))
+		for key := range edited {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		metadata["edited_keys"] = keys
+	}
+	if _, ok := details["customInstructionsAppended"]; ok {
+		metadata["custom_instructions_appended"] = boolValue(details["customInstructionsAppended"])
+	}
+	return metadata
 }
 
 func buildFrameworkConfig(modelInfo map[string]any) map[string]any {

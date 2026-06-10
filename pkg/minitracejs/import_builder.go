@@ -51,6 +51,96 @@ type ConvertedSession struct {
 	Diagnostics []minitracedb.ConversionDiagnostic `json:"diagnostics,omitempty"`
 }
 
+type SessionPreview struct {
+	SessionID         string                             `json:"sessionId"`
+	Format            string                             `json:"format"`
+	Adapter           string                             `json:"adapter,omitempty"`
+	Title             string                             `json:"title,omitempty"`
+	AgentFramework    string                             `json:"agentFramework,omitempty"`
+	Model             string                             `json:"model,omitempty"`
+	WorkingDir        string                             `json:"workingDirectory,omitempty"`
+	HasSystemPrompt   bool                               `json:"hasSystemPrompt"`
+	HasThinking       bool                               `json:"hasThinking"`
+	HasImageSignals   bool                               `json:"hasImageSignals"`
+	TurnCount         int                                `json:"turnCount"`
+	ToolCallCount     int                                `json:"toolCallCount"`
+	EventCount        int                                `json:"eventCount"`
+	AttachmentCount   int                                `json:"attachmentCount"`
+	SubagentCount     int                                `json:"subagentCount"`
+	RoleCounts        map[string]int                     `json:"roleCounts"`
+	ToolCounts        map[string]int                     `json:"toolCounts"`
+	EventCounts       map[string]int                     `json:"eventCounts"`
+	AttachmentCounts  map[string]int                     `json:"attachmentCounts"`
+	SampleTurns       []PreviewTurn                      `json:"sampleTurns,omitempty"`
+	SampleTools       []PreviewToolCall                  `json:"sampleTools,omitempty"`
+	SampleEvents      []PreviewEvent                     `json:"sampleEvents,omitempty"`
+	SampleAttachments []PreviewAttachment                `json:"sampleAttachments,omitempty"`
+	Diagnostics       []minitracedb.ConversionDiagnostic `json:"diagnostics,omitempty"`
+}
+
+type PreviewTurn struct {
+	Index       int      `json:"index"`
+	Role        string   `json:"role"`
+	Source      string   `json:"source,omitempty"`
+	Model       string   `json:"model,omitempty"`
+	ContentType string   `json:"contentType,omitempty"`
+	HasContent  bool     `json:"hasContent"`
+	HasThinking bool     `json:"hasThinking"`
+	ToolCalls   []string `json:"toolCalls,omitempty"`
+	Preview     string   `json:"preview,omitempty"`
+}
+
+type PreviewToolCall struct {
+	ID                 string `json:"id"`
+	TurnIndex          *int   `json:"turnIndex,omitempty"`
+	ToolName           string `json:"toolName"`
+	OperationType      string `json:"operationType"`
+	FilePath           string `json:"filePath,omitempty"`
+	Command            string `json:"command,omitempty"`
+	Success            bool   `json:"success"`
+	HasResult          bool   `json:"hasResult"`
+	HasError           bool   `json:"hasError"`
+	Truncated          bool   `json:"truncated"`
+	SpawnedAgentType   string `json:"spawnedAgentType,omitempty"`
+	SpawnedSubSession  string `json:"spawnedSubSession,omitempty"`
+	SpawnedAgentScope  string `json:"spawnedAgentScope,omitempty"`
+	OutputContentBytes int    `json:"outputContentBytes,omitempty"`
+}
+
+type PreviewEvent struct {
+	ID           string `json:"id"`
+	Timestamp    string `json:"timestamp,omitempty"`
+	Kind         string `json:"kind"`
+	Role         string `json:"role,omitempty"`
+	TurnIndex    *int   `json:"turnIndex,omitempty"`
+	ToolCallID   string `json:"toolCallId,omitempty"`
+	AttachmentID string `json:"attachmentId,omitempty"`
+	Title        string `json:"title,omitempty"`
+	Summary      string `json:"summary,omitempty"`
+	HasText      bool   `json:"hasText"`
+	Severity     string `json:"severity,omitempty"`
+	Collapsed    bool   `json:"collapsed"`
+}
+
+type PreviewAttachment struct {
+	ID         string `json:"id"`
+	Timestamp  string `json:"timestamp,omitempty"`
+	Kind       string `json:"kind"`
+	Name       string `json:"name,omitempty"`
+	MediaType  string `json:"mediaType,omitempty"`
+	Path       string `json:"path,omitempty"`
+	URL        string `json:"url,omitempty"`
+	ToolCallID string `json:"toolCallId,omitempty"`
+	EventID    string `json:"eventId,omitempty"`
+	HasPreview bool   `json:"hasPreview"`
+	Preview    string `json:"preview,omitempty"`
+}
+
+type PreviewOptions struct {
+	SampleLimit int
+	Privacy     string
+}
+
 func NewImportBuilder() *ImportBuilder {
 	return &ImportBuilder{strict: true, autoConvert: true}
 }
@@ -115,6 +205,10 @@ func importBuilderObject(vm *goja.Runtime, b *ImportBuilder) *goja.Object {
 		converted, err := b.Converted()
 		return toPlainMap(converted), err
 	})
+	_ = obj.Set("Preview", func() (map[string]any, error) {
+		preview, err := b.Preview()
+		return toPlainMap(preview), err
+	})
 	_ = obj.Set("Diagnostics", func() []map[string]any {
 		if b.converted == nil {
 			return nil
@@ -145,6 +239,147 @@ func (b *ImportBuilder) Converted() (ConvertedSession, error) {
 	}
 	session := b.converted.Session
 	return ConvertedSession{SessionID: session.ID, Format: b.converted.Format, Adapter: b.converted.Adapter, Title: stringPtr(session.Title), TurnCount: len(session.Turns), ToolCount: len(session.ToolCalls), Diagnostics: b.converted.Diagnostics}, nil
+}
+
+func (b *ImportBuilder) Preview() (SessionPreview, error) {
+	if b.converted == nil {
+		if _, err := b.Convert(); err != nil {
+			return SessionPreview{}, err
+		}
+	}
+	return PreviewLoadedSession(b.converted), nil
+}
+
+func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
+	return PreviewLoadedSessionWithOptions(loaded, PreviewOptions{})
+}
+
+func PreviewLoadedSessionWithOptions(loaded *minitracedb.LoadedSession, options PreviewOptions) SessionPreview {
+	if loaded == nil || loaded.Session == nil {
+		return SessionPreview{RoleCounts: map[string]int{}, ToolCounts: map[string]int{}}
+	}
+	limit := options.SampleLimit
+	if limit <= 0 {
+		limit = 12
+	}
+	privacy := strings.TrimSpace(options.Privacy)
+	if privacy == "" {
+		privacy = "snippets"
+	}
+	session := loaded.Session
+	preview := SessionPreview{
+		SessionID:        session.ID,
+		Format:           loaded.Format,
+		Adapter:          loaded.Adapter,
+		Title:            stringPtr(session.Title),
+		AgentFramework:   stringPtr(session.Environment.AgentFramework),
+		Model:            stringPtr(session.Environment.Model),
+		WorkingDir:       stringPtr(session.OperationalContext.WorkingDirectory),
+		HasSystemPrompt:  strings.TrimSpace(stringPtr(session.Environment.SystemPrompt)) != "",
+		TurnCount:        len(session.Turns),
+		ToolCallCount:    len(session.ToolCalls),
+		EventCount:       len(session.Events),
+		AttachmentCount:  len(session.Attachments),
+		SubagentCount:    session.Metrics.SubagentCount,
+		RoleCounts:       map[string]int{},
+		ToolCounts:       map[string]int{},
+		EventCounts:      map[string]int{},
+		AttachmentCounts: map[string]int{},
+		Diagnostics:      loaded.Diagnostics,
+	}
+	for _, turn := range session.Turns {
+		preview.RoleCounts[turn.Role]++
+		if strings.TrimSpace(stringPtr(turn.Thinking)) != "" {
+			preview.HasThinking = true
+		}
+		if hasImageSignal(turn.ContentType, turn.Content, turn.FrameworkMetadata) {
+			preview.HasImageSignals = true
+		}
+		if len(preview.SampleTurns) < limit {
+			preview.SampleTurns = append(preview.SampleTurns, PreviewTurn{
+				Index:       turn.Index,
+				Role:        turn.Role,
+				Source:      stringPtr(turn.Source),
+				Model:       stringPtr(turn.Model),
+				ContentType: stringPtr(turn.ContentType),
+				HasContent:  strings.TrimSpace(turn.Content) != "",
+				HasThinking: strings.TrimSpace(stringPtr(turn.Thinking)) != "",
+				ToolCalls:   append([]string(nil), turn.ToolCallsInTurn...),
+				Preview:     previewTextForPrivacy(turn.Content, privacy),
+			})
+		}
+	}
+	for _, event := range session.Events {
+		preview.EventCounts[event.Kind]++
+		if hasImageSignal(nil, event.Kind, event.FrameworkMetadata) || hasImageSignal(event.AttachmentID, event.Summary, event.RawJSON) {
+			preview.HasImageSignals = true
+		}
+		if len(preview.SampleEvents) < limit {
+			preview.SampleEvents = append(preview.SampleEvents, PreviewEvent{
+				ID:           event.ID,
+				Timestamp:    stringPtr(event.Timestamp),
+				Kind:         event.Kind,
+				Role:         event.Role,
+				TurnIndex:    event.TurnIndex,
+				ToolCallID:   stringPtr(event.ToolCallID),
+				AttachmentID: stringPtr(event.AttachmentID),
+				Title:        event.Title,
+				Summary:      previewTextForPrivacy(event.Summary, privacy),
+				HasText:      strings.TrimSpace(event.Text) != "",
+				Severity:     event.Severity,
+				Collapsed:    event.CollapsedByDefault,
+			})
+		}
+	}
+	for _, attachment := range session.Attachments {
+		preview.AttachmentCounts[attachment.Kind]++
+		if hasImageSignal(nil, attachment.Kind, attachment.FrameworkMetadata) || hasImageSignal(nil, attachment.MediaType, attachment.RawJSON) {
+			preview.HasImageSignals = true
+		}
+		if len(preview.SampleAttachments) < limit {
+			preview.SampleAttachments = append(preview.SampleAttachments, PreviewAttachment{
+				ID:         attachment.ID,
+				Timestamp:  stringPtr(attachment.Timestamp),
+				Kind:       attachment.Kind,
+				Name:       attachment.Name,
+				MediaType:  attachment.MediaType,
+				Path:       filePathForPrivacy(attachment.Path, privacy),
+				URL:        filePathForPrivacy(attachment.URL, privacy),
+				ToolCallID: stringPtr(attachment.ToolCallID),
+				EventID:    stringPtr(attachment.EventID),
+				HasPreview: strings.TrimSpace(attachment.TextPreview) != "",
+				Preview:    previewTextForPrivacy(attachment.TextPreview, privacy),
+			})
+		}
+	}
+	for _, toolCall := range session.ToolCalls {
+		preview.ToolCounts[toolCall.ToolName]++
+		if hasImageSignal(nil, toolCall.ToolName, toolCall.FrameworkMetadata) || hasImageSignal(toolCall.Output.ContentOrigin, stringPtr(toolCall.Output.Result), toolCall.Input.Arguments) {
+			preview.HasImageSignals = true
+		}
+		if len(preview.SampleTools) < limit {
+			sample := PreviewToolCall{
+				ID:                 toolCall.ID,
+				TurnIndex:          toolCall.EmittingTurnIndex,
+				ToolName:           toolCall.ToolName,
+				OperationType:      toolCall.OperationType,
+				FilePath:           filePathForPrivacy(stringPtr(toolCall.Input.FilePath), privacy),
+				Command:            commandForPrivacy(stringPtr(toolCall.Input.Command), privacy),
+				Success:            toolCall.Output.Success,
+				HasResult:          strings.TrimSpace(stringPtr(toolCall.Output.Result)) != "",
+				HasError:           strings.TrimSpace(stringPtr(toolCall.Output.Error)) != "",
+				Truncated:          toolCall.Output.Truncated,
+				OutputContentBytes: outputContentBytes(toolCall.Output.Result, toolCall.Output.Error),
+			}
+			if toolCall.SpawnedAgent != nil {
+				sample.SpawnedAgentType = toolCall.SpawnedAgent.AgentType
+				sample.SpawnedAgentScope = previewTextForPrivacy(toolCall.SpawnedAgent.TaskScope, privacy)
+				sample.SpawnedSubSession = stringPtr(toolCall.SpawnedAgent.SubSessionID)
+			}
+			preview.SampleTools = append(preview.SampleTools, sample)
+		}
+	}
+	return preview
 }
 
 func (b *ImportBuilder) Save() (SavedSession, error) {
@@ -208,6 +443,69 @@ func stringPtr(value *string) string {
 		return ""
 	}
 	return *value
+}
+
+func previewTextForPrivacy(value, privacy string) string {
+	value = strings.TrimSpace(value)
+	switch privacy {
+	case "structural":
+		return ""
+	case "full":
+		return value
+	default:
+		return truncatePreview(value, 240)
+	}
+}
+
+func commandForPrivacy(value, privacy string) string {
+	if privacy == "structural" {
+		return ""
+	}
+	if privacy == "full" {
+		return strings.TrimSpace(value)
+	}
+	return truncatePreview(value, 240)
+}
+
+func filePathForPrivacy(value, privacy string) string {
+	if privacy == "structural" {
+		return ""
+	}
+	return strings.TrimSpace(value)
+}
+
+func truncatePreview(value string, limit int) string {
+	value = strings.TrimSpace(value)
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+	return value[:limit] + "…"
+}
+
+func outputContentBytes(result, errorText *string) int {
+	if result != nil {
+		return len(*result)
+	}
+	if errorText != nil {
+		return len(*errorText)
+	}
+	return 0
+}
+
+func hasImageSignal(contentType *string, text string, metadata any) bool {
+	joined := strings.ToLower(strings.Join([]string{stringPtr(contentType), text, compactJSON(metadata)}, " "))
+	return strings.Contains(joined, "image") || strings.Contains(joined, "mime") || strings.Contains(joined, "base64") || strings.Contains(joined, "blob")
+}
+
+func compactJSON(value any) string {
+	if value == nil {
+		return ""
+	}
+	payload, err := json.Marshal(value)
+	if err != nil {
+		return ""
+	}
+	return string(payload)
 }
 
 func generateImportID(prefix string) string {

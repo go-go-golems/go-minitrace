@@ -26,7 +26,9 @@ type SessionSummaryResponse struct {
 
 type SessionSummaryDetailResponse struct {
 	SessionSummaryResponse
-	Provenance SessionProvenanceResponse `json:"provenance"`
+	Provenance  SessionProvenanceResponse   `json:"provenance"`
+	Events      []SessionEventResponse      `json:"events"`
+	Attachments []SessionAttachmentResponse `json:"attachments"`
 }
 
 type SessionDetailResponse struct {
@@ -88,6 +90,42 @@ type TurnUsageResponse struct {
 	OutputTokens    *int `json:"output_tokens,omitempty"`
 	CacheReadTokens *int `json:"cache_read_tokens,omitempty"`
 	ReasoningTokens *int `json:"reasoning_tokens,omitempty"`
+}
+
+type SessionEventResponse struct {
+	ID                 string         `json:"id"`
+	Timestamp          string         `json:"timestamp"`
+	TurnIndex          *int           `json:"turn_index,omitempty"`
+	Ordinal            *int           `json:"ordinal,omitempty"`
+	Kind               string         `json:"kind"`
+	Role               string         `json:"role"`
+	ToolCallID         *string        `json:"tool_call_id,omitempty"`
+	AnnotationID       *string        `json:"annotation_id,omitempty"`
+	AttachmentID       *string        `json:"attachment_id,omitempty"`
+	Title              string         `json:"title"`
+	Summary            string         `json:"summary"`
+	Text               string         `json:"text"`
+	Severity           string         `json:"severity"`
+	CollapsedByDefault bool           `json:"collapsed_by_default"`
+	FrameworkMetadata  map[string]any `json:"framework_metadata,omitempty"`
+}
+
+type SessionAttachmentResponse struct {
+	ID                string         `json:"id"`
+	Timestamp         string         `json:"timestamp"`
+	Kind              string         `json:"kind"`
+	Name              string         `json:"name"`
+	MediaType         string         `json:"media_type"`
+	Path              string         `json:"path"`
+	URL               string         `json:"url"`
+	SizeBytes         *int           `json:"size_bytes,omitempty"`
+	Hash              string         `json:"hash"`
+	ContentRef        string         `json:"content_ref"`
+	TextPreview       string         `json:"text_preview"`
+	TurnIndex         *int           `json:"turn_index,omitempty"`
+	ToolCallID        *string        `json:"tool_call_id,omitempty"`
+	EventID           *string        `json:"event_id,omitempty"`
+	FrameworkMetadata map[string]any `json:"framework_metadata,omitempty"`
 }
 
 type TurnResponse struct {
@@ -198,7 +236,9 @@ func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDeta
 			Environment:        normalizeEnvironment(session.Environment),
 			OperationalContext: normalizeOperationalContext(session.OperationalContext),
 		},
-		Provenance: normalizeProvenance(session.Provenance),
+		Provenance:  normalizeProvenance(session.Provenance),
+		Events:      normalizeEvents(session.Events),
+		Attachments: normalizeAttachments(session.Attachments),
 	}
 }
 
@@ -207,6 +247,54 @@ func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
 		SessionSummaryDetailResponse: normalizeSessionSummaryDetail(session),
 		Blocks:                       buildSessionBlocks(session),
 	}
+}
+
+func normalizeEvents(events []minitrace.Event) []SessionEventResponse {
+	ret := make([]SessionEventResponse, 0, len(events))
+	for _, event := range events {
+		ret = append(ret, SessionEventResponse{
+			ID:                 event.ID,
+			Timestamp:          stringValue(event.Timestamp),
+			TurnIndex:          event.TurnIndex,
+			Ordinal:            event.Ordinal,
+			Kind:               event.Kind,
+			Role:               event.Role,
+			ToolCallID:         event.ToolCallID,
+			AnnotationID:       event.AnnotationID,
+			AttachmentID:       event.AttachmentID,
+			Title:              event.Title,
+			Summary:            event.Summary,
+			Text:               event.Text,
+			Severity:           event.Severity,
+			CollapsedByDefault: event.CollapsedByDefault,
+			FrameworkMetadata:  normalizeArguments(event.FrameworkMetadata),
+		})
+	}
+	return ret
+}
+
+func normalizeAttachments(attachments []minitrace.Attachment) []SessionAttachmentResponse {
+	ret := make([]SessionAttachmentResponse, 0, len(attachments))
+	for _, attachment := range attachments {
+		ret = append(ret, SessionAttachmentResponse{
+			ID:                attachment.ID,
+			Timestamp:         stringValue(attachment.Timestamp),
+			Kind:              attachment.Kind,
+			Name:              attachment.Name,
+			MediaType:         attachment.MediaType,
+			Path:              attachment.Path,
+			URL:               attachment.URL,
+			SizeBytes:         attachment.SizeBytes,
+			Hash:              attachment.Hash,
+			ContentRef:        attachment.ContentRef,
+			TextPreview:       attachment.TextPreview,
+			TurnIndex:         attachment.TurnIndex,
+			ToolCallID:        attachment.ToolCallID,
+			EventID:           attachment.EventID,
+			FrameworkMetadata: normalizeArguments(attachment.FrameworkMetadata),
+		})
+	}
+	return ret
 }
 
 func normalizeTurn(turn minitrace.Turn, tcByID map[string]minitrace.ToolCall) TurnResponse {

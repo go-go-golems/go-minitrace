@@ -195,6 +195,8 @@ func protoSessionSummaryDetail(detail SessionSummaryDetailResponse) *apiv1.Sessi
 		Environment:        protoSessionEnvironment(detail.Environment),
 		OperationalContext: protoOperationalContext(detail.OperationalContext),
 		Provenance:         protoSessionProvenance(detail.Provenance),
+		Events:             protoSessionEvents(detail.Events),
+		Attachments:        protoSessionAttachments(detail.Attachments),
 	}
 }
 
@@ -215,7 +217,76 @@ func protoSessionDetail(detail SessionDetailResponse) (*apiv1.SessionDetail, err
 		OperationalContext: protoOperationalContext(detail.OperationalContext),
 		Provenance:         protoSessionProvenance(detail.Provenance),
 		Blocks:             blocks,
+		Events:             protoSessionEvents(detail.Events),
+		Attachments:        protoSessionAttachments(detail.Attachments),
 	}, nil
+}
+
+func protoSessionEvents(events []SessionEventResponse) []*apiv1.SessionEvent {
+	ret := make([]*apiv1.SessionEvent, 0, len(events))
+	for _, event := range events {
+		ret = append(ret, protoSessionEvent(event))
+	}
+	return ret
+}
+
+func protoSessionEvent(event SessionEventResponse) *apiv1.SessionEvent {
+	return &apiv1.SessionEvent{
+		Id:                 event.ID,
+		Timestamp:          event.Timestamp,
+		TurnIndex:          clampOptionalIntToUint32(event.TurnIndex),
+		Ordinal:            clampOptionalIntToUint32(event.Ordinal),
+		Kind:               event.Kind,
+		Role:               event.Role,
+		ToolCallId:         event.ToolCallID,
+		AnnotationId:       event.AnnotationID,
+		AttachmentId:       event.AttachmentID,
+		Title:              event.Title,
+		Summary:            event.Summary,
+		Text:               event.Text,
+		Severity:           event.Severity,
+		CollapsedByDefault: event.CollapsedByDefault,
+		FrameworkMetadata:  protoStruct(event.FrameworkMetadata),
+	}
+}
+
+func protoSessionAttachments(attachments []SessionAttachmentResponse) []*apiv1.SessionAttachment {
+	ret := make([]*apiv1.SessionAttachment, 0, len(attachments))
+	for _, attachment := range attachments {
+		ret = append(ret, protoSessionAttachment(attachment))
+	}
+	return ret
+}
+
+func protoSessionAttachment(attachment SessionAttachmentResponse) *apiv1.SessionAttachment {
+	return &apiv1.SessionAttachment{
+		Id:                attachment.ID,
+		Timestamp:         attachment.Timestamp,
+		Kind:              attachment.Kind,
+		Name:              attachment.Name,
+		MediaType:         attachment.MediaType,
+		Path:              attachment.Path,
+		Url:               attachment.URL,
+		SizeBytes:         clampOptionalIntToUint32(attachment.SizeBytes),
+		Hash:              attachment.Hash,
+		ContentRef:        attachment.ContentRef,
+		TextPreview:       attachment.TextPreview,
+		TurnIndex:         clampOptionalIntToUint32(attachment.TurnIndex),
+		ToolCallId:        attachment.ToolCallID,
+		EventId:           attachment.EventID,
+		FrameworkMetadata: protoStruct(attachment.FrameworkMetadata),
+	}
+}
+
+func protoStruct(value map[string]any) *structpb.Struct {
+	if len(value) == 0 {
+		return nil
+	}
+	ret, err := structpb.NewStruct(value)
+	if err != nil {
+		return nil
+	}
+	return ret
 }
 
 func protoSessionBlocks(blocks []SessionBlock) ([]*apiv1.SessionBlock, error) {

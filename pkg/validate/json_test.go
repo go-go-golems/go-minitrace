@@ -262,6 +262,75 @@ func TestValidatePath_InvalidAnnotations(t *testing.T) {
 	}
 }
 
+func TestValidateEventsAndAttachments_Valid(t *testing.T) {
+	session := `{
+		"id": "sess-001",
+		"events": [
+			{ "id": "event-001", "kind": "compaction", "title": "Compaction" }
+		],
+		"attachments": [
+			{ "id": "attachment-001", "kind": "image", "media_type": "image/png" }
+		]
+	}`
+
+	result := validateFileFromJSON(t, session)
+	if !result.Valid {
+		t.Errorf("expected valid events/attachments, got error: %s", result.Error)
+	}
+}
+
+func TestValidateEventsAndAttachments_NullAndEmpty(t *testing.T) {
+	session := `{"id": "sess-001", "events": null, "attachments": []}`
+	result := validateFileFromJSON(t, session)
+	if !result.Valid {
+		t.Errorf("expected valid null/empty events and attachments, got error: %s", result.Error)
+	}
+}
+
+func TestValidateEvents_NotAnArray(t *testing.T) {
+	session := `{"id": "sess-001", "events": "not-an-array"}`
+	result := validateFileFromJSON(t, session)
+	if result.Valid {
+		t.Error("expected invalid events field, got valid")
+	}
+	if !strings.Contains(result.Error, "events must be an array") {
+		t.Errorf("expected events array error, got: %s", result.Error)
+	}
+}
+
+func TestValidateEvents_MissingRequiredFields(t *testing.T) {
+	session := `{"id": "sess-001", "events": [{"id": "event-001"}, {"kind": "mode_change"}]}`
+	result := validateFileFromJSON(t, session)
+	if result.Valid {
+		t.Error("expected invalid events, got valid")
+	}
+	if !strings.Contains(result.Error, "kind") || !strings.Contains(result.Error, "id") {
+		t.Errorf("expected id and kind errors, got: %s", result.Error)
+	}
+}
+
+func TestValidateAttachments_NotAnArray(t *testing.T) {
+	session := `{"id": "sess-001", "attachments": "not-an-array"}`
+	result := validateFileFromJSON(t, session)
+	if result.Valid {
+		t.Error("expected invalid attachments field, got valid")
+	}
+	if !strings.Contains(result.Error, "attachments must be an array") {
+		t.Errorf("expected attachments array error, got: %s", result.Error)
+	}
+}
+
+func TestValidateAttachments_MissingRequiredFields(t *testing.T) {
+	session := `{"id": "sess-001", "attachments": [{"id": "attachment-001"}, {"kind": "image"}]}`
+	result := validateFileFromJSON(t, session)
+	if result.Valid {
+		t.Error("expected invalid attachments, got valid")
+	}
+	if !strings.Contains(result.Error, "kind") || !strings.Contains(result.Error, "id") {
+		t.Errorf("expected id and kind errors, got: %s", result.Error)
+	}
+}
+
 // validateFileFromJSON calls validateFile on a temp file with the given JSON content.
 func validateFileFromJSON(t *testing.T, content string) Result {
 	dir := t.TempDir()

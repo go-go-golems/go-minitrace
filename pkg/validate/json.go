@@ -83,12 +83,20 @@ func validateFile(path string) Result {
 		return result
 	}
 
+	var errs []string
 	if anns, ok := session["annotations"]; ok {
-		if errs := validateAnnotations(anns); len(errs) > 0 {
-			result.Valid = false
-			result.Error = strings.Join(errs, "; ")
-			return result
-		}
+		errs = append(errs, validateAnnotations(anns)...)
+	}
+	if events, ok := session["events"]; ok {
+		errs = append(errs, validateEvents(events)...)
+	}
+	if attachments, ok := session["attachments"]; ok {
+		errs = append(errs, validateAttachments(attachments)...)
+	}
+	if len(errs) > 0 {
+		result.Valid = false
+		result.Error = strings.Join(errs, "; ")
+		return result
 	}
 
 	return result
@@ -116,6 +124,43 @@ func validateAnnotations(field any) []string {
 
 		if innerErr := validateAnnotation(ann); innerErr != "" {
 			errs = append(errs, fmt.Sprintf("annotations[%d]: %s", i, innerErr))
+		}
+	}
+	return errs
+}
+
+func validateEvents(field any) []string {
+	return validateIDKindArray("events", field, "event")
+}
+
+func validateAttachments(field any) []string {
+	return validateIDKindArray("attachments", field, "attachment")
+}
+
+func validateIDKindArray(fieldName string, field any, objectName string) []string {
+	if field == nil {
+		return nil
+	}
+
+	items, ok := field.([]any)
+	if !ok {
+		return []string{fmt.Sprintf("%s must be an array, got %T", fieldName, field)}
+	}
+
+	var errs []string
+	for i, item := range items {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			errs = append(errs, fmt.Sprintf("%s[%d]: must be an object", fieldName, i))
+			continue
+		}
+		id, _ := obj["id"].(string)
+		if id == "" {
+			errs = append(errs, fmt.Sprintf("%s[%d]: %s missing required field \"id\"", fieldName, i, objectName))
+		}
+		kind, _ := obj["kind"].(string)
+		if kind == "" {
+			errs = append(errs, fmt.Sprintf("%s[%d]: %s missing required field \"kind\"", fieldName, i, objectName))
 		}
 	}
 	return errs

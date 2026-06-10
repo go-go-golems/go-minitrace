@@ -101,14 +101,21 @@ try {
 ### Upload/import flow
 
 ```js
-const saved = mt.importer()
+const importer = mt.importer()
   .Content(uploadText)
   .Name(filename)
-  .Into(sessionsDir)
-  .SessionID(sessionId)
   .AutoDetect()
   .Strict()
-  .Convert()
+  .Convert();
+
+const preview = importer.Preview();
+// Inspect preview.hasSystemPrompt, preview.sampleTurns, preview.sampleTools,
+// preview.sampleEvents, preview.sampleAttachments, preview.eventCounts,
+// preview.attachmentCounts, preview.subagentCount, and preview.hasImageSignals before saving.
+
+const saved = importer
+  .Into(sessionsDir)
+  .SessionID(sessionId)
   .Save();
 ```
 
@@ -144,9 +151,46 @@ Methods:
 | `.Overwrite(true|false)` | Allow replacing an existing session directory. |
 | `.Detect()` | Load/detect and return `{ format, adapter, diagnostics }`. |
 | `.Convert()` | Convert and keep the Go-owned converted session in the builder. |
-| `.Converted()` | Return a plain summary of the converted session. |
+| `.Converted()` | Return a plain count-level summary of the converted session. |
+| `.Preview()` | Return a transcript preview for validation: roles, tools, source events, attachments, sample turns/tool calls/events/attachments, system-prompt/thinking/image/subagent signals, and diagnostics. |
 | `.Diagnostics()` | Return conversion diagnostics. |
 | `.Save()` | Write `session.minitrace.json` and `metadata.json`. |
+
+### Preview from the CLI
+
+Use the CLI when you want the same importer preview behavior without writing JavaScript:
+
+```bash
+go-minitrace preview session --source-session /path/to/session.jsonl --output yaml
+```
+
+Directory/latest-N mode uses framework discovery and emits one row per previewed session:
+
+```bash
+go-minitrace preview session --framework codex --latest 5 --privacy structural --output json
+go-minitrace preview session --framework claude-code --source-dir ~/.claude/projects --latest 3 --sample-limit 2 --output yaml
+go-minitrace preview session --framework pi --source-dir ~/.pi/agent/sessions --latest 1
+```
+
+Preview privacy controls:
+
+| Privacy | Behavior |
+|---|---|
+| `structural` | Counts, roles, tools, event/attachment kinds, booleans, and diagnostics only; content snippets/commands/paths are suppressed in samples. |
+| `snippets` | Default; includes bounded snippets and commands for quick validation. |
+| `full` | Includes full sampled turn text and command strings; use only on trusted local output paths. |
+
+Important preview fields:
+
+| Field | Meaning |
+|---|---|
+| `turnCount`, `toolCallCount` | Normalized conversation/action counts. |
+| `eventCount`, `attachmentCount` | First-class source event/artifact counts. |
+| `roleCounts`, `toolCounts` | Breakdown maps for turns and tools. |
+| `eventCounts`, `attachmentCounts` | Breakdown maps by event kind and attachment kind. |
+| `sampleTurns`, `sampleTools` | Bounded samples for validating role/tool conversion. |
+| `sampleEvents`, `sampleAttachments` | Bounded samples for lifecycle facts and artifacts; raw JSON is not included. |
+| `hasImageSignals` | True if turns, tools, events, or attachments include image-like signals. |
 
 ## `mt.sources()`
 
@@ -247,6 +291,105 @@ Convenience methods:
 | `close()` | Close/release handle. |
 
 Queries are validated as read-only SQL and bounded by row, column, cell, and timeout limits.
+
+### Source events and attachments from JavaScript
+
+Normalized SQLite now includes first-class source lifecycle facts and artifact references:
+
+| Table | What it contains | How to use it from Goja |
+|---|---|---|
+| `events` | Derived renderable rows for turns/tools/annotations plus explicit source events. | Filter `kind NOT IN ('turn', 'tool_call', 'annotation')` when you want only source lifecycle facts. |
+| `attachments` | Durable references to images/files/artifacts associated with sessions, turns, tools, or events. | Join/link by `tool_call_id`, `event_id`, `attachment_id`, or `turn_index`; do not expect blob bytes. |
+
+Important source-event kinds include Pi `compaction`, `model_change`, `thinking_level_change`, Claude Code `mode_change`, `permission_mode_change`, `title_change`, `attachment`, and Codex `image_view`, `subagent_spawn`, `subagent_wait`, and `rate_limits`.
+
+Concrete examples:
+
+```js
+// Codex viewed an image. Render this as an image marker or attachment card,
+// not as a fake assistant text message.
+{
+  event_id: "event-image-1",
+  kind: "image_view",
+  title: "Codex image view",
+  summary: "/tmp/screenshots/failure.png",
+  tool_call_id: "call-view-image-1",
+  attachment_id: "attachment-image-1"
+}
+{
+  attachment_id: "attachment-image-1",
+  kind: "image",
+  name: "failure.png",
+  media_type: "image/png",
+  path: "/tmp/screenshots/failure.png",
+  tool_call_id: "call-view-image-1",
+  event_id: "event-image-1"
+}
+
+// Claude Code changed permission mode. Render this as a session/timeline badge
+// so later edits can be interpreted with the right autonomy context.
+{
+  event_id: "event-permission-mode-1",
+  kind: "permission_mode_change",
+  title: "Permission mode changed",
+  summary: "acceptEdits",
+  severity: "info"
+}
+
+// Pi compacted the conversation. Render this as a context-boundary marker
+// instead of scanning turn text for the word "compaction".
+{
+  event_id: "event-compaction-1",
+  kind: "compaction",
+  title: "Compaction",
+  summary: "Conversation was compacted; prior context summarized.",
+  collapsed_by_default: true
+}
+
+// Codex spawned a subagent and later waited for it. Render these as
+// orchestration facts linked to their tool calls.
+{
+  event_id: "event-subagent-spawn-1",
+  kind: "subagent_spawn",
+  title: "Subagent spawned",
+  summary: "agent_type=explorer",
+  tool_call_id: "call-spawn-agent-1"
+}
+{
+  event_id: "event-subagent-wait-1",
+  kind: "subagent_wait",
+  title: "Subagent completed",
+  summary: "status=completed",
+  tool_call_id: "call-wait-agent-1"
+}
+```
+
+Query them from JavaScript like this:
+
+```js
+const session = mt.session()
+  .File("/path/to/session.minitrace.json")
+  .InteractiveCache(".cache/minitrace")
+  .Open();
+try {
+  const sourceEvents = session.query(`
+    SELECT event_id, timestamp, turn_index, kind, title, summary, tool_call_id, attachment_id
+    FROM events
+    WHERE kind NOT IN ('turn', 'tool_call', 'annotation')
+    ORDER BY COALESCE(turn_index, 999999), COALESCE(ordinal, 999999), event_id
+  `);
+  const attachments = session.query(`
+    SELECT attachment_id, timestamp, kind, name, media_type, path, url, tool_call_id, event_id, text_preview
+    FROM attachments
+    ORDER BY COALESCE(turn_index, 999999), timestamp, attachment_id
+  `);
+  return { sourceEvents, attachments };
+} finally {
+  session.close();
+}
+```
+
+For UI code such as `ClubMedMeetup/minitrace-viz/lib/course-session-data.js`, the recommended pattern is to keep transcript messages derived from `turns` and `tool_calls`, then project source events/attachments into separate annotations, badges, or side panels. This avoids polluting the conversation text while still making compactions, subagents, mode changes, rate limits, and images visible.
 
 ## `mt.query()`
 

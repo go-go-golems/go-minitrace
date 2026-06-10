@@ -9,6 +9,7 @@ import (
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover"
+	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve"
 	validatecmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate"
@@ -42,6 +43,8 @@ func main() {
 	queryRepositoryFlags := minitracecmd.ExtractRepositoryFlagValuesFromArgs(os.Args[1:])
 	queryCmd, err := query.NewCommand(queryRepositoryFlags)
 	cobra.CheckErr(err)
+	previewCmd, err := preview.NewCommand()
+	cobra.CheckErr(err)
 	serveCmd, err := serve.NewCommand()
 	cobra.CheckErr(err)
 	validateCommand, err := validatecmd.NewCommand()
@@ -49,7 +52,7 @@ func main() {
 	annotateCmd, err := annotate.NewCommand()
 	cobra.CheckErr(err)
 
-	rootCmd.AddCommand(discoverCmd, convertCmd, queryCmd, serveCmd, validateCommand, annotateCmd)
+	rootCmd.AddCommand(discoverCmd, convertCmd, queryCmd, previewCmd, serveCmd, validateCommand, annotateCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
 }

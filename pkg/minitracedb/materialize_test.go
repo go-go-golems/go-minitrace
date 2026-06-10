@@ -30,6 +30,7 @@ func TestMaterializeSessionPopulatesCoreTables(t *testing.T) {
 	assertCount(t, db, "turn_tool_calls", 1)
 	assertCount(t, db, "files", 1)
 	assertCount(t, db, "metrics", 1)
+	assertCount(t, db, "attachments", 0)
 	assertCount(t, db, "events", 3)
 
 	runner, err := NewQueryRunner(db, AllowedTableNames(), QueryOptions{})
@@ -61,7 +62,8 @@ func TestMaterializeSessionPopulatesPhaseThreeFields(t *testing.T) {
 	}
 	assertCount(t, db, "annotations", 1)
 	assertCount(t, db, "handovers", 2)
-	assertCount(t, db, "events", 4)
+	assertCount(t, db, "attachments", 1)
+	assertCount(t, db, "events", 5)
 
 	runner, err := NewQueryRunner(db, AllowedTableNames(), QueryOptions{})
 	if err != nil {
@@ -120,6 +122,34 @@ func TestMaterializeSessionPopulatesPhaseThreeFields(t *testing.T) {
 	assertContains(t, annotationRow, "tags_json", "file-read")
 	assertContains(t, annotationRow, "minitrace_taxonomy_json", "taxonomy/risk")
 
+	eventRow, err := runner.QueryOne(ctx, `SELECT event_id, timestamp, kind, role, tool_call_id, attachment_id, title, summary, severity, collapsed_by_default, framework_metadata_json FROM events WHERE event_id = 'event-explicit-1'`)
+	if err != nil {
+		t.Fatalf("query explicit event: %v", err)
+	}
+	assertValue(t, eventRow, "kind", "compaction")
+	assertValue(t, eventRow, "role", "system")
+	assertValue(t, eventRow, "tool_call_id", "tool-1")
+	assertValue(t, eventRow, "attachment_id", "attachment-1")
+	assertValue(t, eventRow, "title", "Compaction")
+	assertValue(t, eventRow, "summary", "Context compacted")
+	assertValue(t, eventRow, "severity", "info")
+	assertValue(t, eventRow, "collapsed_by_default", int64(1))
+	assertContains(t, eventRow, "framework_metadata_json", "event-meta")
+
+	attachmentRow, err := runner.QueryOne(ctx, `SELECT attachment_id, kind, name, media_type, path, tool_call_id, event_id, text_preview, framework_metadata_json FROM attachments`)
+	if err != nil {
+		t.Fatalf("query attachments: %v", err)
+	}
+	assertValue(t, attachmentRow, "attachment_id", "attachment-1")
+	assertValue(t, attachmentRow, "kind", "image")
+	assertValue(t, attachmentRow, "name", "screenshot.png")
+	assertValue(t, attachmentRow, "media_type", "image/png")
+	assertValue(t, attachmentRow, "path", "images/screenshot.png")
+	assertValue(t, attachmentRow, "tool_call_id", "tool-1")
+	assertValue(t, attachmentRow, "event_id", "event-explicit-1")
+	assertValue(t, attachmentRow, "text_preview", "image preview")
+	assertContains(t, attachmentRow, "framework_metadata_json", "attachment-meta")
+
 	handoverRow, err := runner.QueryOne(ctx, `SELECT document, state_description FROM handovers WHERE direction = 'produced'`)
 	if err != nil {
 		t.Fatalf("query handovers: %v", err)
@@ -174,7 +204,8 @@ func TestMaterializeSessionGoldenRowsMatchFixture(t *testing.T) {
 		"annotations":     len(session.Annotations),
 		"handovers":       2,
 		"metrics":         1,
-		"events":          len(session.Turns) + len(session.ToolCalls) + len(session.Annotations),
+		"attachments":     len(session.Attachments),
+		"events":          len(session.Turns) + len(session.ToolCalls) + len(session.Annotations) + len(session.Events),
 	}
 	for table, want := range wantCounts {
 		assertCount(t, db, table, want)
@@ -415,6 +446,22 @@ func richFixtureSession() *minitrace.Session {
 		},
 		Classification: &classification,
 	}}
+	eventTimestamp := "2026-06-07T20:01:00Z"
+	explicitEvent := minitrace.BuildEvent("event-explicit-1", &eventTimestamp, "compaction", "Compaction", "Context compacted", map[string]any{"type": "compaction"})
+	explicitEvent.Role = "system"
+	explicitEvent.ToolCallID = &session.ToolCalls[0].ID
+	attachmentID := "attachment-1"
+	explicitEvent.AttachmentID = &attachmentID
+	explicitEvent.FrameworkMetadata = map[string]any{"event-meta": true}
+	session.Events = []minitrace.Event{explicitEvent}
+	attachmentTimestamp := "2026-06-07T20:02:00Z"
+	attachment := minitrace.BuildAttachment("attachment-1", &attachmentTimestamp, "image", "screenshot.png", "image/png", map[string]any{"type": "attachment"})
+	attachment.Path = "images/screenshot.png"
+	attachment.ToolCallID = &session.ToolCalls[0].ID
+	attachment.EventID = &explicitEvent.ID
+	attachment.TextPreview = "image preview"
+	attachment.FrameworkMetadata = map[string]any{"attachment-meta": true}
+	session.Attachments = []minitrace.Attachment{attachment}
 	readRatio := 1.0
 	timeToFirstAction := 0.5
 	idleRatio := 0.25

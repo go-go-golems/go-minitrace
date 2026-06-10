@@ -222,6 +222,183 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 	}
 }
 
+func TestConvertRecordsSessionJSONLPromotesLatestToolSemantics(t *testing.T) {
+	records := []map[string]any{
+		{
+			"timestamp": "2026-06-10T11:00:00Z",
+			"type":      "session_meta",
+			"payload": map[string]any{
+				"id":             "codex-latest",
+				"cwd":            "/tmp/project",
+				"model_provider": "openai",
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:01Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "call-spawn",
+				"name":      "spawn_agent",
+				"namespace": "multi_agent_v1",
+				"arguments": `{"agent_type":"explorer","message":"Review cmd/demo/main.go","reasoning_effort":"medium"}`,
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:02Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":    "function_call_output",
+				"call_id": "call-spawn",
+				"output":  "019eb210-1fd0-7d93-8c61-7f99c0dfe463",
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:03Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "call-wait",
+				"name":      "wait_agent",
+				"namespace": "multi_agent_v1",
+				"arguments": `{"targets":["019eb210-1fd0-7d93-8c61-7f99c0dfe463"],"timeout_ms":30000}`,
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:04Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":    "function_call_output",
+				"call_id": "call-wait",
+				"output":  `{"status":{"019eb210-1fd0-7d93-8c61-7f99c0dfe463":{"completed":"No findings."}},"timed_out":false}`,
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:05Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "call-image",
+				"name":      "view_image",
+				"arguments": `{"path":"/tmp/screenshot.png","detail":"high"}`,
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:06Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":    "function_call_output",
+				"call_id": "call-image",
+				"output":  "image loaded",
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:07Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":    "custom_tool_call",
+				"status":  "completed",
+				"call_id": "call-patch",
+				"name":    "apply_patch",
+				"input":   "*** Begin Patch\n*** Update File: cmd/demo/main.go\n*** End Patch\n",
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:08Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":    "custom_tool_call_output",
+				"call_id": "call-patch",
+				"output":  "Exit code: 0\nWall time: 0.1 seconds\nOutput:\nSuccess. Updated the following files:\nM cmd/demo/main.go\n",
+			},
+		},
+		{
+			"timestamp": "2026-06-10T11:00:09Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "call-stdin",
+				"name":      "write_stdin",
+				"arguments": `{"session_id":83612,"yield_time_ms":1000}`,
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/codex-latest.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 5 {
+		t.Fatalf("expected 5 tool calls, got %d", len(session.ToolCalls))
+	}
+	byID := map[string]minitrace.ToolCall{}
+	for _, toolCall := range session.ToolCalls {
+		byID[toolCall.ID] = toolCall
+	}
+
+	spawn := byID["call-spawn"]
+	if spawn.OperationType != "DELEGATE" || spawn.SpawnedAgent == nil {
+		t.Fatalf("expected spawn_agent delegate with spawned agent, got %+v", spawn)
+	}
+	if spawn.SpawnedAgent.AgentType != "explorer" || spawn.SpawnedAgent.TaskScope != "Review cmd/demo/main.go" {
+		t.Fatalf("unexpected spawned agent: %+v", spawn.SpawnedAgent)
+	}
+	if spawn.SpawnedAgent.SubSessionID == nil || *spawn.SpawnedAgent.SubSessionID != "019eb210-1fd0-7d93-8c61-7f99c0dfe463" {
+		t.Fatalf("expected spawned sub-session from output, got %+v", spawn.SpawnedAgent)
+	}
+
+	wait := byID["call-wait"]
+	if wait.OperationType != "DELEGATE" || wait.SpawnedAgent == nil || wait.SpawnedAgent.OutcomeSummary != "No findings." {
+		t.Fatalf("expected wait_agent delegate outcome, got %+v", wait)
+	}
+	waitMetadata := wait.FrameworkMetadata.(map[string]any)
+	if waitMetadata["targets"] == nil || waitMetadata["timed_out"] != false {
+		t.Fatalf("expected wait metadata targets/timed_out, got %+v", waitMetadata)
+	}
+
+	image := byID["call-image"]
+	if image.OperationType != "READ" || image.Input.FilePath == nil || *image.Input.FilePath != minitrace.NormalizePath("/tmp/screenshot.png") {
+		t.Fatalf("expected image read with normalized path, got %+v", image)
+	}
+	if image.Output.ContentOrigin == nil || *image.Output.ContentOrigin != "image" {
+		t.Fatalf("expected image content origin, got %+v", image.Output.ContentOrigin)
+	}
+	imageMetadata := image.FrameworkMetadata.(map[string]any)
+	if imageMetadata["has_image_signal"] != true {
+		t.Fatalf("expected image metadata signal, got %+v", imageMetadata)
+	}
+	if len(session.Attachments) != 1 {
+		t.Fatalf("expected one image attachment, got %d", len(session.Attachments))
+	}
+	attachment := session.Attachments[0]
+	if attachment.Kind != "image" || attachment.MediaType != "image/png" || attachment.Path != minitrace.NormalizePath("/tmp/screenshot.png") || attachment.ToolCallID == nil || *attachment.ToolCallID != "call-image" {
+		t.Fatalf("unexpected image attachment: %+v", attachment)
+	}
+	if len(session.Events) != 3 {
+		t.Fatalf("expected spawn/wait/image events, got %d: %+v", len(session.Events), session.Events)
+	}
+	if session.Events[0].Kind != "subagent_spawn" || session.Events[1].Kind != "subagent_wait" || session.Events[2].Kind != "image_view" {
+		t.Fatalf("unexpected Codex events: %+v", session.Events)
+	}
+	if session.Events[2].AttachmentID == nil || *session.Events[2].AttachmentID != attachment.ID {
+		t.Fatalf("expected image event to link attachment, got %+v", session.Events[2].AttachmentID)
+	}
+
+	patch := byID["call-patch"]
+	if patch.OperationType != "MODIFY" || patch.Output.ExitCode == nil || *patch.Output.ExitCode != 0 {
+		t.Fatalf("expected successful apply_patch modify call, got %+v", patch)
+	}
+	patchMetadata := patch.FrameworkMetadata.(map[string]any)
+	if patchMetadata["status"] != "completed" || patchMetadata["custom_tool"] != true {
+		t.Fatalf("expected custom tool metadata, got %+v", patchMetadata)
+	}
+
+	stdin := byID["call-stdin"]
+	if stdin.OperationType != "EXECUTE" {
+		t.Fatalf("expected write_stdin execute operation, got %+v", stdin.OperationType)
+	}
+}
+
 func TestConvertRecordsSessionJSONLPreservesFrameworkMetadata(t *testing.T) {
 	records := []map[string]any{
 		{
@@ -344,5 +521,11 @@ func TestConvertRecordsSessionJSONLPreservesFrameworkMetadata(t *testing.T) {
 	}
 	if toolMetadata["parsed_cmd"] == nil || toolMetadata["stdout"] != "main.go" {
 		t.Fatalf("expected parsed_cmd/stdout metadata, got %+v", toolMetadata)
+	}
+	if len(session.Events) != 1 || session.Events[0].Kind != "rate_limits" {
+		t.Fatalf("expected rate_limits source event, got %+v", session.Events)
+	}
+	if session.Events[0].FrameworkMetadata == nil {
+		t.Fatalf("expected rate_limits event metadata")
 	}
 }

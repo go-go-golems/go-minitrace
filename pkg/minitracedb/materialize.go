@@ -88,6 +88,16 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 			return err
 		}
 	}
+	for i, event := range session.Events {
+		if err := insertExplicitEvent(ctx, tx, session.ID, event, i); err != nil {
+			return err
+		}
+	}
+	for i, attachment := range session.Attachments {
+		if err := insertAttachment(ctx, tx, session.ID, attachment, i); err != nil {
+			return err
+		}
+	}
 	if err := insertHandover(ctx, tx, session.ID, "received", session.Handover.Received); err != nil {
 		return err
 	}
@@ -250,6 +260,60 @@ func insertAnnotationEvent(ctx context.Context, tx *sql.Tx, sessionID string, an
 		sessionID, eventID, ordinal, "annotation", "annotation", annotationID, annotation.Content.Title, annotation.Content.Category, annotation.Content.Detail, "info", 1, mustJSON(annotation))
 	if err != nil {
 		return fmt.Errorf("insert annotation event %s/%s: %w", sessionID, annotationID, err)
+	}
+	return nil
+}
+
+func insertExplicitEvent(ctx context.Context, tx *sql.Tx, sessionID string, event minitrace.Event, ordinal int) error {
+	eventID := event.ID
+	if eventID == "" {
+		eventID = fmt.Sprintf("event-%06d", ordinal)
+	}
+	eventOrdinal := any(ordinal)
+	if event.Ordinal != nil {
+		eventOrdinal = *event.Ordinal
+	}
+	kind := event.Kind
+	if kind == "" {
+		kind = "source_event"
+	}
+	severity := event.Severity
+	if severity == "" {
+		severity = "info"
+	}
+	columns := []string{
+		"session_id", "event_id", "timestamp", "turn_index", "ordinal", "kind", "role", "tool_call_id", "annotation_id", "attachment_id",
+		"title", "summary", "text", "severity", "collapsed_by_default", "framework_metadata_json", "raw_json",
+	}
+	args := []any{
+		sessionID, eventID, nullableString(event.Timestamp), nullableIntPointer(event.TurnIndex), eventOrdinal, kind, nullableStringValue(event.Role), nullableString(event.ToolCallID), nullableString(event.AnnotationID), nullableString(event.AttachmentID),
+		nullableStringValue(event.Title), nullableStringValue(event.Summary), nullableStringValue(event.Text), severity, boolInt(event.CollapsedByDefault), jsonNullable(event.FrameworkMetadata), mustJSON(event),
+	}
+	if err := insertRow(ctx, tx, "events", columns, args...); err != nil {
+		return fmt.Errorf("insert explicit event %s/%s: %w", sessionID, eventID, err)
+	}
+	return nil
+}
+
+func insertAttachment(ctx context.Context, tx *sql.Tx, sessionID string, attachment minitrace.Attachment, ordinal int) error {
+	attachmentID := attachment.ID
+	if attachmentID == "" {
+		attachmentID = fmt.Sprintf("attachment-%06d", ordinal)
+	}
+	kind := attachment.Kind
+	if kind == "" {
+		kind = "attachment"
+	}
+	columns := []string{
+		"session_id", "attachment_id", "timestamp", "kind", "name", "media_type", "path", "url", "size_bytes", "hash", "content_ref", "text_preview",
+		"turn_index", "tool_call_id", "event_id", "framework_metadata_json", "raw_json",
+	}
+	args := []any{
+		sessionID, attachmentID, nullableString(attachment.Timestamp), kind, nullableStringValue(attachment.Name), nullableStringValue(attachment.MediaType), nullableStringValue(attachment.Path), nullableStringValue(attachment.URL), nullableIntPointer(attachment.SizeBytes), nullableStringValue(attachment.Hash), nullableStringValue(attachment.ContentRef), nullableStringValue(attachment.TextPreview),
+		nullableIntPointer(attachment.TurnIndex), nullableString(attachment.ToolCallID), nullableString(attachment.EventID), jsonNullable(attachment.FrameworkMetadata), mustJSON(attachment),
+	}
+	if err := insertRow(ctx, tx, "attachments", columns, args...); err != nil {
+		return fmt.Errorf("insert attachment %s/%s: %w", sessionID, attachmentID, err)
 	}
 	return nil
 }

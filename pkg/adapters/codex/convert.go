@@ -121,6 +121,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 		))
 	}
 	minitrace.ComputeToolCallContext(toolCalls)
+	events, attachments := buildCodexEventsAndAttachments(toolCalls, metadata)
 
 	timing := minitrace.ComputeTiming(timestamps)
 	quality := minitrace.AssignQualityTier(turns, toolCalls)
@@ -131,6 +132,8 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	session.Timing = timing
 	session.Turns = turns
 	session.ToolCalls = toolCalls
+	session.Events = events
+	session.Attachments = attachments
 	session.Annotations = annotations
 	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, 0, tokenTotals)
 	session.Flags.ContainsPII = containsPII
@@ -163,6 +166,114 @@ type codexMetadata struct {
 	ContextWindow           int
 	TruncationPolicy        any
 	LatestRateLimits        any
+}
+
+func buildCodexEventsAndAttachments(toolCalls []minitrace.ToolCall, metadata codexMetadata) ([]minitrace.Event, []minitrace.Attachment) {
+	events := []minitrace.Event{}
+	attachments := []minitrace.Attachment{}
+	for _, toolCall := range toolCalls {
+		switch toolCall.ToolName {
+		case "view_image":
+			attachment := buildCodexImageAttachment(toolCall)
+			event := buildCodexToolEvent(toolCall, len(events), "image_view", "Codex image view", firstNonEmptyPointer(toolCall.Input.FilePath, toolCall.Output.Result))
+			event.AttachmentID = &attachment.ID
+			attachment.EventID = &event.ID
+			attachments = append(attachments, attachment)
+			events = append(events, event)
+		case "spawn_agent":
+			events = append(events, buildCodexToolEvent(toolCall, len(events), "subagent_spawn", "Codex subagent spawn", summarizeCodexSpawnedAgent(toolCall.SpawnedAgent)))
+		case "wait_agent":
+			events = append(events, buildCodexToolEvent(toolCall, len(events), "subagent_wait", "Codex subagent wait", summarizeCodexSpawnedAgent(toolCall.SpawnedAgent)))
+		}
+	}
+	if metadata.LatestRateLimits != nil {
+		event := minitrace.BuildEvent("codex-rate-limits", nil, "rate_limits", "Codex rate limits", "Latest Codex rate-limit snapshot", map[string]any{"rate_limits": metadata.LatestRateLimits})
+		event.Role = "system"
+		event.FrameworkMetadata = map[string]any{"rate_limits": metadata.LatestRateLimits}
+		events = append(events, event)
+	}
+	return events, attachments
+}
+
+func buildCodexImageAttachment(toolCall minitrace.ToolCall) minitrace.Attachment {
+	attachmentID := "codex-image-" + truncateID(toolCall.ID)
+	path := firstNonEmptyPointer(toolCall.Input.FilePath)
+	attachment := minitrace.BuildAttachment(attachmentID, toolCall.Timestamp, "image", baseName(path), mediaTypeFromPath(path), map[string]any{"tool_call_id": toolCall.ID, "tool_name": toolCall.ToolName})
+	attachment.Path = path
+	attachment.ToolCallID = &toolCall.ID
+	attachment.FrameworkMetadata = map[string]any{"tool_call_id": toolCall.ID, "has_image_signal": true}
+	return attachment
+}
+
+func buildCodexToolEvent(toolCall minitrace.ToolCall, ordinal int, kind, title, summary string) minitrace.Event {
+	event := minitrace.BuildEvent(fmt.Sprintf("codex-%s-%s", strings.ReplaceAll(kind, "_", "-"), truncateID(toolCall.ID)), toolCall.Timestamp, kind, title, summary, map[string]any{"tool_call_id": toolCall.ID, "tool_name": toolCall.ToolName})
+	event.Role = "tool"
+	event.ToolCallID = &toolCall.ID
+	if toolCall.EmittingTurnIndex != nil {
+		event.TurnIndex = toolCall.EmittingTurnIndex
+	}
+	event.Ordinal = &ordinal
+	event.FrameworkMetadata = toolCall.FrameworkMetadata
+	return event
+}
+
+func summarizeCodexSpawnedAgent(agent *minitrace.SpawnedAgent) string {
+	if agent == nil {
+		return "Codex subagent operation."
+	}
+	parts := []string{}
+	if agent.AgentType != "" {
+		parts = append(parts, "agent_type="+agent.AgentType)
+	}
+	if agent.TaskScope != "" {
+		parts = append(parts, "task="+truncateTitle(agent.TaskScope, 120))
+	}
+	if agent.SubSessionID != nil && *agent.SubSessionID != "" {
+		parts = append(parts, "sub_session="+*agent.SubSessionID)
+	}
+	if agent.OutcomeSummary != "" {
+		parts = append(parts, "outcome="+truncateTitle(agent.OutcomeSummary, 120))
+	}
+	if len(parts) == 0 {
+		return "Codex subagent operation."
+	}
+	return strings.Join(parts, "; ")
+}
+
+func mediaTypeFromPath(path string) string {
+	lower := strings.ToLower(path)
+	switch {
+	case strings.HasSuffix(lower, ".png"):
+		return "image/png"
+	case strings.HasSuffix(lower, ".jpg"), strings.HasSuffix(lower, ".jpeg"):
+		return "image/jpeg"
+	case strings.HasSuffix(lower, ".webp"):
+		return "image/webp"
+	case strings.HasSuffix(lower, ".gif"):
+		return "image/gif"
+	default:
+		return "image"
+	}
+}
+
+func firstNonEmptyPointer(values ...*string) string {
+	for _, value := range values {
+		if value != nil && strings.TrimSpace(*value) != "" {
+			return *value
+		}
+	}
+	return ""
+}
+
+func baseName(path string) string {
+	path = strings.TrimRight(path, "/")
+	if path == "" {
+		return "image"
+	}
+	if index := strings.LastIndex(path, "/"); index >= 0 && index < len(path)-1 {
+		return path[index+1:]
+	}
+	return path
 }
 
 func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.ToolCall, []minitrace.Annotation, []time.Time, *minitrace.TokenTotals, codexMetadata) {
@@ -330,67 +441,23 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 						currentThinking = append(currentThinking, text)
 					}
 				}
-			case "function_call":
+			case "function_call", "custom_tool_call":
 				callID := stringValue(payload["call_id"])
 				if callID == "" {
 					callID = fmt.Sprintf("tc-codex-%04d", toolCounter)
 				}
 				toolCounter++
-				funcName := firstNonEmpty(stringValue(payload["name"]), "unknown")
-				args := parseArguments(payload["arguments"])
-				command := ""
-				if funcName == "exec_command" {
-					command = stringValue(args["cmd"])
-				}
-				toolCall := minitrace.BuildToolCall(
-					callID,
-					nil,
-					timestampPtr,
-					funcName,
-					classifyFunction(funcName, args),
-					optionalString(extractFilePathFromCommand(command)),
-					optionalString(command),
-					args,
-					true,
-					nil,
-					nil,
-					nil,
-					codexFrameworkMetadata(funcName, args),
-					nil,
-					classifyContentOrigin(funcName),
-					nil,
-				)
-				if justification := stringValue(args["justification"]); justification != "" {
-					toolCall.Input.Justification = &justification
-				}
-				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexTurnMetadata(currentTurnID, nil, nil))
+				toolCall := buildCodexResponseToolCall(callID, timestampPtr, currentTurnID, payload)
 				toolCalls = append(toolCalls, toolCall)
 				pendingFunctionCalls[callID] = len(toolCalls) - 1
 				pendingTurnToolIDs[callID] = struct{}{}
-			case "function_call_output":
+			case "function_call_output", "custom_tool_call_output":
 				callID := stringValue(payload["call_id"])
 				index, ok := pendingFunctionCalls[callID]
 				if !ok {
 					continue
 				}
-				result, exitCode, durationMS := parseFunctionOutput(stringValue(payload["output"]))
-				truncated, fullBytes, fullHash := minitrace.TruncateContent(result, minitrace.TruncateLimit)
-				toolCalls[index].Output.Result = truncated
-				toolCalls[index].Output.Truncated = fullBytes != nil
-				toolCalls[index].Output.FullBytes = fullBytes
-				toolCalls[index].Output.FullHash = fullHash
-				toolCalls[index].Output.DurationMS = durationMS
-				toolCalls[index].Output.ExitCode = exitCode
-				if exitCode != nil {
-					toolCalls[index].Output.Success = *exitCode == 0
-					if *exitCode != 0 {
-						errorText := result
-						if len(errorText) > 1024 {
-							errorText = errorText[:1024]
-						}
-						toolCalls[index].Output.Error = &errorText
-					}
-				}
+				applyCodexFunctionOutput(&toolCalls[index], stringValue(payload["output"]))
 			}
 		}
 	}
@@ -592,6 +659,208 @@ func parseArguments(raw any) map[string]any {
 	}
 }
 
+func buildCodexResponseToolCall(callID string, timestamp *string, currentTurnID string, payload map[string]any) minitrace.ToolCall {
+	funcName := firstNonEmpty(stringValue(payload["name"]), "unknown")
+	args := parseArguments(payload["arguments"])
+	if stringValue(payload["type"]) == "custom_tool_call" {
+		args = map[string]any{"input": stringValue(payload["input"])}
+	}
+	command := commandForFunction(funcName, args)
+	filePath := filePathForFunction(funcName, args, command)
+	metadata := codexFrameworkMetadata(funcName, args)
+	if namespace := stringValue(payload["namespace"]); namespace != "" {
+		metadata["namespace"] = namespace
+	}
+	if status, ok := payload["status"]; ok {
+		metadata["status"] = status
+	}
+	if stringValue(payload["type"]) == "custom_tool_call" {
+		metadata["custom_tool"] = true
+	}
+	if funcName == "view_image" {
+		metadata["has_image_signal"] = true
+		if detail := stringValue(args["detail"]); detail != "" {
+			metadata["image_detail"] = detail
+		}
+	}
+	typeOrigin := classifyContentOrigin(funcName)
+	toolCall := minitrace.BuildToolCall(
+		callID,
+		nil,
+		timestamp,
+		funcName,
+		classifyFunction(funcName, args),
+		optionalNormalizedPath(filePath),
+		optionalString(command),
+		args,
+		true,
+		nil,
+		nil,
+		nil,
+		metadata,
+		buildCodexSpawnedAgent(funcName, args),
+		typeOrigin,
+		nil,
+	)
+	if justification := stringValue(args["justification"]); justification != "" {
+		toolCall.Input.Justification = &justification
+	}
+	toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexTurnMetadata(currentTurnID, nil, nil))
+	return toolCall
+}
+
+func applyCodexFunctionOutput(toolCall *minitrace.ToolCall, rawOutput string) {
+	result, exitCode, durationMS := parseFunctionOutput(rawOutput)
+	metadataOutput := result
+	if strings.TrimSpace(metadataOutput) == "" {
+		metadataOutput = rawOutput
+	}
+	truncated, fullBytes, fullHash := minitrace.TruncateContent(result, minitrace.TruncateLimit)
+	toolCall.Output.Result = truncated
+	toolCall.Output.Truncated = fullBytes != nil
+	toolCall.Output.FullBytes = fullBytes
+	toolCall.Output.FullHash = fullHash
+	toolCall.Output.DurationMS = durationMS
+	toolCall.Output.ExitCode = exitCode
+	if exitCode != nil {
+		toolCall.Output.Success = *exitCode == 0
+		if *exitCode != 0 {
+			errorText := result
+			if len(errorText) > 1024 {
+				errorText = errorText[:1024]
+			}
+			toolCall.Output.Error = &errorText
+		}
+	}
+	promoteCodexOutputMetadata(toolCall, metadataOutput)
+}
+
+func commandForFunction(functionName string, args map[string]any) string {
+	switch functionName {
+	case "exec_command":
+		return stringValue(args["cmd"])
+	case "write_stdin":
+		return "write_stdin"
+	case "apply_patch":
+		return "apply_patch"
+	default:
+		return ""
+	}
+}
+
+func filePathForFunction(functionName string, args map[string]any, command string) string {
+	switch functionName {
+	case "view_image":
+		return firstNonEmpty(stringValue(args["path"]), stringValue(args["file_path"]), stringValue(args["image_path"]))
+	case "read_file", "write_file", "edit_file", "apply_patch", "apply_diff":
+		return firstNonEmpty(stringValue(args["path"]), stringValue(args["file_path"]), extractFilePathFromPatch(stringValue(args["input"])))
+	case "exec_command":
+		return extractFilePathFromCommand(command)
+	default:
+		return ""
+	}
+}
+
+func buildCodexSpawnedAgent(functionName string, args map[string]any) *minitrace.SpawnedAgent {
+	if functionName != "spawn_agent" && functionName != "wait_agent" {
+		return nil
+	}
+	agentType := firstNonEmpty(stringValue(args["agent_type"]), stringValue(args["type"]), "codex")
+	taskScope := firstNonEmpty(stringValue(args["message"]), stringValue(args["task"]), stringValue(args["prompt"]), firstStringFromAnyList(args["targets"]))
+	return &minitrace.SpawnedAgent{AgentType: agentType, TaskScope: taskScope}
+}
+
+func promoteCodexOutputMetadata(toolCall *minitrace.ToolCall, output string) {
+	if toolCall == nil {
+		return
+	}
+	switch toolCall.ToolName {
+	case "spawn_agent":
+		if toolCall.SpawnedAgent == nil {
+			return
+		}
+		if id := extractCodexSessionID(output); id != "" {
+			toolCall.SpawnedAgent.SubSessionID = &id
+		}
+		if strings.TrimSpace(output) != "" && toolCall.SpawnedAgent.OutcomeSummary == "" {
+			toolCall.SpawnedAgent.OutcomeSummary = truncateTitle(strings.TrimSpace(output), 240)
+		}
+	case "wait_agent":
+		metadata := map[string]any{}
+		args := mapValue(toolCall.Input.Arguments)
+		if args != nil && args["targets"] != nil {
+			metadata["targets"] = args["targets"]
+		}
+		if summary, timedOut := summarizeWaitAgentOutput(output); summary != "" || timedOut != nil {
+			if summary != "" && toolCall.SpawnedAgent != nil {
+				toolCall.SpawnedAgent.OutcomeSummary = summary
+			}
+			if timedOut != nil {
+				metadata["timed_out"] = *timedOut
+			}
+		}
+		toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, metadata)
+	}
+}
+
+func summarizeWaitAgentOutput(output string) (string, *bool) {
+	var parsed map[string]any
+	if json.Unmarshal([]byte(strings.TrimSpace(output)), &parsed) != nil {
+		return truncateTitle(strings.TrimSpace(output), 240), nil
+	}
+	var timedOut *bool
+	if value, ok := parsed["timed_out"].(bool); ok {
+		timedOut = &value
+	}
+	status := mapValue(parsed["status"])
+	if status == nil {
+		return "", timedOut
+	}
+	for _, raw := range status {
+		entry := mapValue(raw)
+		if entry == nil {
+			continue
+		}
+		if completed := stringValue(entry["completed"]); completed != "" {
+			return truncateTitle(completed, 240), timedOut
+		}
+		if failed := stringValue(entry["failed"]); failed != "" {
+			return truncateTitle(failed, 240), timedOut
+		}
+	}
+	return "", timedOut
+}
+
+func extractCodexSessionID(output string) string {
+	output = strings.TrimSpace(output)
+	if regexp.MustCompile(`^[0-9a-f]{8,}-[0-9a-f-]{8,}$`).MatchString(output) {
+		return output
+	}
+	return ""
+}
+
+func firstStringFromAnyList(value any) string {
+	items := listValue(value)
+	for _, item := range items {
+		if s := stringValue(item); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func extractFilePathFromPatch(patch string) string {
+	for _, line := range strings.Split(patch, "\n") {
+		line = strings.TrimSpace(line)
+		for _, prefix := range []string{"*** Update File:", "*** Add File:", "*** Delete File:"} {
+			if strings.HasPrefix(line, prefix) {
+				return strings.TrimSpace(strings.TrimPrefix(line, prefix))
+			}
+		}
+	}
+	return ""
+}
+
 func codexFrameworkMetadata(functionName string, args map[string]any) map[string]any {
 	metadata := map[string]any{
 		"codex_function": functionName,
@@ -638,12 +907,16 @@ func classifyFunction(functionName string, args map[string]any) string {
 		return classifyOperationFromCommand(stringValue(args["cmd"]))
 	}
 	switch functionName {
-	case "read_file":
+	case "read_file", "view_image":
 		return "READ"
 	case "write_file":
 		return "NEW"
 	case "edit_file", "apply_patch", "apply_diff":
 		return "MODIFY"
+	case "write_stdin":
+		return "EXECUTE"
+	case "spawn_agent", "wait_agent":
+		return "DELEGATE"
 	default:
 		return "OTHER"
 	}
@@ -680,10 +953,12 @@ func extractFilePathFromCommand(command string) string {
 
 func classifyContentOrigin(functionName string) *string {
 	switch functionName {
-	case "exec_command":
+	case "exec_command", "write_stdin":
 		return ptr("local_exec")
 	case "read_file":
 		return ptr("local_file")
+	case "view_image":
+		return ptr("image")
 	case "write_file", "edit_file", "apply_patch", "apply_diff":
 		return ptr("model_echo")
 	default:
@@ -730,6 +1005,11 @@ func parseFunctionOutput(raw string) (string, *int, *int) {
 			}
 		case strings.HasPrefix(line, "Process exited with code "):
 			value := strings.TrimSpace(strings.TrimPrefix(line, "Process exited with code "))
+			if parsed, err := strconv.Atoi(value); err == nil {
+				exitCode = &parsed
+			}
+		case strings.HasPrefix(line, "Exit code: "):
+			value := strings.TrimSpace(strings.TrimPrefix(line, "Exit code: "))
 			if parsed, err := strconv.Atoi(value); err == nil {
 				exitCode = &parsed
 			}

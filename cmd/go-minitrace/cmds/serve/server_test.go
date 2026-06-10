@@ -376,6 +376,16 @@ func TestHandleGetSessionBlocksV2ReturnsEnvelope(t *testing.T) {
 func TestHandleGetSessionV2ReturnsDetailEnvelope(t *testing.T) {
 	archiveRoot := t.TempDir()
 	session := buildFixtureSession(t, "phase4-detail-v2")
+	event := minitrace.BuildEvent("event-1", session.Turns[1].Timestamp, "compaction", "Compaction", "Context compacted", map[string]any{"type": "compaction"})
+	event.ToolCallID = &session.ToolCalls[0].ID
+	event.AttachmentID = stringPtr("attachment-1")
+	event.FrameworkMetadata = map[string]any{"source": "test"}
+	attachment := minitrace.BuildAttachment("attachment-1", session.Turns[1].Timestamp, "image", "screenshot.png", "image/png", map[string]any{"type": "attachment"})
+	attachment.Path = "screenshots/screenshot.png"
+	attachment.ToolCallID = &session.ToolCalls[0].ID
+	attachment.EventID = &event.ID
+	session.Events = []minitrace.Event{event}
+	session.Attachments = []minitrace.Attachment{attachment}
 	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
@@ -416,6 +426,18 @@ func TestHandleGetSessionV2ReturnsDetailEnvelope(t *testing.T) {
 	}
 	if payload.Session.GetBlocks()[0].GetTurns()[1].GetToolCallsInTurn()[0].GetToolName() != "exec_command" {
 		t.Fatalf("unexpected tool name %q", payload.Session.GetBlocks()[0].GetTurns()[1].GetToolCallsInTurn()[0].GetToolName())
+	}
+	if len(payload.Session.GetEvents()) != 1 || payload.Session.GetEvents()[0].GetKind() != "compaction" {
+		t.Fatalf("expected compaction event, got %+v", payload.Session.GetEvents())
+	}
+	if payload.Session.GetEvents()[0].GetAttachmentId() != "attachment-1" {
+		t.Fatalf("expected event attachment link, got %+v", payload.Session.GetEvents()[0])
+	}
+	if len(payload.Session.GetAttachments()) != 1 || payload.Session.GetAttachments()[0].GetKind() != "image" {
+		t.Fatalf("expected image attachment, got %+v", payload.Session.GetAttachments())
+	}
+	if payload.Session.GetAttachments()[0].GetEventId() != "event-1" {
+		t.Fatalf("expected attachment event link, got %+v", payload.Session.GetAttachments()[0])
 	}
 }
 
