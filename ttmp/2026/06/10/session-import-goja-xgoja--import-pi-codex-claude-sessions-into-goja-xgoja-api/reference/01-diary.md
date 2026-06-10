@@ -11,6 +11,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: pkg/adapters/codex/convert.go
+      Note: Phase 1 latest Codex tool semantic promotion (commit 0b4ce59)
+    - Path: pkg/adapters/codex/convert_test.go
+      Note: Phase 1 minimized latest Codex fixtures (commit 0b4ce59)
     - Path: pkg/minitracejs/import_builder.go
       Note: Code change recorded in Step 2 (commit c1c1afa)
     - Path: pkg/minitracejs/import_builder_test.go
@@ -19,12 +23,15 @@ RelatedFiles:
       Note: Ticket survey script created in Step 1
     - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/sources/01-agent-session-shape-survey.md
       Note: Latest local session structural survey evidence
+    - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/tasks.md
+      Note: Detailed phased implementation checklist
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-06-10T14:30:52.478395442-04:00
 WhatFor: Chronological implementation diary for the session import goja/xgoja ticket.
 WhenToUse: Use before resuming the ticket to understand what changed, what failed, and what remains.
 ---
+
 
 
 # Diary
@@ -484,4 +491,132 @@ remarquee upload bundle \
   --remote-dir "/ai/2026/06/10/session-import-goja-xgoja" \
   --toc-depth 2 \
   --non-interactive
+```
+
+## Step 5: Phase 1 Codex Latest Tool Semantics
+
+This step completed the first implementation phase from the new ticket plan: recent Codex sessions now preserve richer tool semantics for delegated agents, image viewing, custom apply-patch records, and process stdin interactions. The implementation keeps these records in the existing `response_item` parser path instead of adding a separate latest-format importer, so normal `function_call` and newer `custom_tool_call` records share one conversion contract.
+
+The most important behavior change is that Codex multi-agent records no longer appear as generic `OTHER` tool calls. `spawn_agent` and `wait_agent` become `DELEGATE` calls with `SpawnedAgent` metadata, `view_image` becomes a `READ` call with image metadata and `content_origin=image`, `apply_patch` custom tool calls become `MODIFY`, and `write_stdin` becomes `EXECUTE`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, add detailed phases and for each phase a detailed list of tasks to the ticket, then work on them in sequence, committing at appropriat eintervals and keeping a detailed diary."
+
+**Assistant interpretation:** Expand the ticket into a phased execution plan, then start implementing the phases in order with focused commits and diary updates.
+
+**Inferred user intent:** Turn the prior design guide into an actionable implementation sequence and begin making the importer actually handle latest Claude/Codex sessions properly.
+
+**Commit (code):** 0b4ce5987695761ab7e0b48aa0b2f554c968d5eb — "codex: preserve latest tool semantics"
+
+### What I did
+
+- Rewrote `tasks.md` into four detailed phases:
+  - Phase 1: Codex latest-format semantic support
+  - Phase 2: Claude Code latest-format metadata and attachments
+  - Phase 3: first-class preview command
+  - Phase 4: end-to-end validation and documentation refresh
+- Added a minimized Codex latest-format test in `pkg/adapters/codex/convert_test.go` covering:
+  - `spawn_agent`
+  - `wait_agent`
+  - `view_image`
+  - `custom_tool_call` / `custom_tool_call_output` for `apply_patch`
+  - `write_stdin`
+- Refactored `pkg/adapters/codex/convert.go` so `function_call` and `custom_tool_call` share `buildCodexResponseToolCall`.
+- Refactored output handling through `applyCodexFunctionOutput`.
+- Added Codex helper logic for:
+  - command extraction by function name,
+  - file path extraction for image and patch records,
+  - spawned-agent construction,
+  - `wait_agent` JSON status summarization,
+  - spawned sub-session extraction from simple output IDs,
+  - custom tool metadata preservation.
+- Updated operation classification:
+  - `spawn_agent`, `wait_agent` -> `DELEGATE`
+  - `view_image` -> `READ`
+  - `write_stdin` -> `EXECUTE`
+  - `apply_patch` remains `MODIFY`
+- Updated content origin classification:
+  - `view_image` -> `image`
+  - `write_stdin` -> `local_exec`
+- Ran targeted and broader tests.
+
+### Why
+
+- Recent Codex sessions use these tool names and payload types in real local JSONL files.
+- Without this work, previews and downstream analysis would show delegated subagents and image operations as generic tool calls, hiding the session structure the user explicitly wants to inspect.
+- Sharing construction/output helpers reduces future drift between standard and custom Codex tool-call records.
+
+### What worked
+
+- The new minimized test now verifies latest Codex semantics without storing private transcript content.
+- The broader test set passed:
+
+```bash
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```
+
+- Phase 1 code was committed separately from ticket documentation.
+
+### What didn't work
+
+- The first run of the new Codex test failed because `wait_agent` output metadata was lost:
+
+```text
+--- FAIL: TestConvertRecordsSessionJSONLPromotesLatestToolSemantics (0.00s)
+    convert_test.go:352: expected wait_agent delegate outcome, got {ID:call-wait ... FrameworkMetadata:map[codex_function:wait_agent namespace:multi_agent_v1 targets:[019eb210-1fd0-7d93-8c61-7f99c0dfe463]] SpawnedAgent:...}
+FAIL
+```
+
+- Root cause: `parseFunctionOutput` treats any JSON object as the structured `{"output": ..., "metadata": ...}` format. A real `wait_agent` output is also JSON, but with a shape like `{"status":...,"timed_out":false}`. The generic parser returned an empty result string, so the status JSON was unavailable to the metadata promotion step.
+- Fix: `applyCodexFunctionOutput` now keeps `rawOutput` as `metadataOutput` when the parsed result is empty, allowing `summarizeWaitAgentOutput` to inspect the original JSON.
+
+### What I learned
+
+- Latest Codex uses both normal OpenAI-style `function_call` records and custom records like `custom_tool_call` / `custom_tool_call_output` for `apply_patch`.
+- `spawn_agent` output can be a plain child session/thread ID or an error string, so the converter should only set `SubSessionID` when the output looks like an ID and otherwise preserve the text as outcome summary.
+- `wait_agent` output may be structured JSON with `status` and `timed_out`; that needs metadata-specific parsing, not just shell-output parsing.
+
+### What was tricky to build
+
+- The tricky part was avoiding overfitting to one observed Codex sample. The helper functions use conservative promotion: they classify known tools and preserve raw arguments/metadata, but they do not assume every output contains a child session ID.
+- Another sharp edge was output parsing. The existing parser had a useful shortcut for `{"output": ...}` wrappers, but latest agent outputs also use JSON for semantic status data. The solution was not to remove the shortcut, but to keep raw output available for tool-specific metadata promotion.
+
+### What warrants a second pair of eyes
+
+- Review whether representing `wait_agent` itself as a `SpawnedAgent` carrier is the best schema fit, or whether it should only be a `DELEGATE` tool with targets/outcome metadata.
+- Review the `view_image` mapping: it currently marks `Output.ContentOrigin` as `image` and adds `has_image_signal` metadata, but does not create a separate attachment/blob entity.
+- Review `apply_patch` custom tool input storage. The patch is preserved in `Input.Arguments.input`; this is useful but can be large.
+
+### What should be done in the future
+
+- Add real-session smoke validation against the latest Codex files after Phase 2 or Phase 3 adds a CLI preview path.
+- Consider adding a bounded preview or hash for large custom tool inputs if full patch text becomes too heavy in materialized/query outputs.
+
+### Code review instructions
+
+- Start in `pkg/adapters/codex/convert_test.go`, test `TestConvertRecordsSessionJSONLPromotesLatestToolSemantics`.
+- Then review `pkg/adapters/codex/convert.go` helpers:
+  - `buildCodexResponseToolCall`
+  - `applyCodexFunctionOutput`
+  - `buildCodexSpawnedAgent`
+  - `promoteCodexOutputMetadata`
+  - `summarizeWaitAgentOutput`
+  - `classifyFunction`
+  - `classifyContentOrigin`
+- Validate with:
+
+```bash
+cd go-minitrace
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query -count=1
+```
+
+### Technical details
+
+Phase 1 changed these files:
+
+```text
+pkg/adapters/codex/convert.go
+pkg/adapters/codex/convert_test.go
+ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/tasks.md
 ```

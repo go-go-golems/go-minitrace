@@ -23,3 +23,13 @@ Validated ticket docs and uploaded reMarkable bundle to /ai/2026/06/10/session-i
 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/reference/01-diary.md — Delivery evidence
 
+
+## 2026-06-10
+
+Phase 1: preserved latest Codex tool semantics for spawn_agent, wait_agent, view_image, custom apply_patch, and write_stdin (commit 0b4ce59).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert.go — Codex latest tool semantic promotion
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert_test.go — Latest Codex fixture coverage
+
