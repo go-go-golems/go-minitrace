@@ -2,7 +2,7 @@
 
 ## TODO
 
-- [ ] 1. Establish backend session schema primitives.
+- [x] 1. Establish backend session schema primitives.
   - Add `Session.Events []Event` and `Session.Attachments []Attachment` to `pkg/minitrace/schema.go`.
   - Add builder helpers in `pkg/minitrace/builders.go` so adapters do not hand-roll default slices or timestamps.
   - Keep JSON fields optional with `omitempty` so existing archives remain readable.

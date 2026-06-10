@@ -9,13 +9,20 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: pkg/minitrace/builders.go
+      Note: Added default slices and builder helpers for events and attachments (commit d612015)
+    - Path: pkg/minitrace/minitrace_test.go
+      Note: Added schema/builder default tests for events and attachments (commit d612015)
+    - Path: pkg/minitrace/schema.go
+      Note: Added Event and Attachment structs plus Session fields (commit d612015)
 ExternalSources: []
-Summary: "Chronological implementation diary for first-class session events and attachments."
+Summary: Chronological implementation diary for first-class session events and attachments.
 LastUpdated: 2026-06-10T19:50:00-04:00
-WhatFor: "Use this to resume or review the implementation of Session.Events and Session.Attachments."
-WhenToUse: "Read before continuing the ticket or reviewing commits from this work."
+WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
+WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 # Diary
 
@@ -99,3 +106,75 @@ This step did not change runtime code. It established the technical direction an
   `go test ./pkg/minitrace ./pkg/minitracedb -count=1`.
 - Proposed broader pre-handoff test command:
   `go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/... -count=1`.
+
+## Step 2: Add canonical Event and Attachment schema primitives
+
+I implemented the first runtime phase by adding first-class `Event` and `Attachment` types to the canonical minitrace session schema. `Session` now has optional `events` and `attachments` arrays, and `BuildSessionSkeleton` initializes both to empty slices in the same style as `Turns`, `ToolCalls`, and `Annotations`.
+
+I also added small builder helpers so adapters can construct source events and attachment descriptors consistently. This keeps later Pi/Claude/Codex adapter work focused on mapping source semantics instead of hand-assembling default field values.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Begin implementing the ticket sequentially by adding the backend schema primitives first, then validate and commit the focused change.
+
+**Inferred user intent:** The user wants forward progress on the implementation, not only a design document, with commits and diary entries at appropriate phase boundaries.
+
+**Commit (code):** d6120151624c8ffa4f5f5ba5e6e69ce763349f90 — "minitrace: add event and attachment schema"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitrace/schema.go`:
+  - added `Session.Events []Event` with JSON field `events,omitempty`;
+  - added `Session.Attachments []Attachment` with JSON field `attachments,omitempty`;
+  - added `Event` and `Attachment` structs.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitrace/builders.go`:
+  - initialized `Events` and `Attachments` in `BuildSessionSkeleton`;
+  - added `BuildEvent`;
+  - added `BuildAttachment`.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitrace/minitrace_test.go`:
+  - asserted non-nil default slices;
+  - added builder default tests.
+- Ran formatting and tests:
+  - `gofmt -w pkg/minitrace/schema.go pkg/minitrace/builders.go pkg/minitrace/minitrace_test.go`
+  - `go test ./pkg/minitrace -count=1`
+- Checked task 1 in docmgr and updated changelog/relations.
+
+### Why
+- Later materialization and adapter work needs stable schema types to target.
+- Builders reduce duplication and make adapter mappings less error-prone.
+- Empty slice initialization preserves the existing style used by session skeletons.
+
+### What worked
+- `go test ./pkg/minitrace -count=1` passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/minitrace 0.002s`
+- The change was small enough to commit cleanly as one schema-focused commit.
+
+### What didn't work
+- No implementation command failed in this step.
+
+### What I learned
+- `BuildSessionSkeleton` is the right place to preserve non-nil slice defaults for newly added top-level arrays.
+- The existing schema has no generated code dependency for these structs, so adding the backend Go types is low risk by itself.
+
+### What was tricky to build
+- The main subtlety was deciding default event collapse behavior. I set `BuildEvent` to `CollapsedByDefault: true` because source lifecycle records such as compactions, attachments, and permission changes should usually be visible in counts/timelines but not expand raw detail by default.
+- Another subtlety was choosing `omitempty` for the new arrays. This preserves compact JSON for older-style sessions while `BuildSessionSkeleton` still gives in-memory users non-nil slices.
+
+### What warrants a second pair of eyes
+- Review whether `Event.RawJSON any` and `Attachment.RawJSON any` are acceptable in the canonical public schema or whether they should be named `SourcePayload`/`SourceRecord`.
+- Review whether `CollapsedByDefault` should default true for all builder-created events or be caller-controlled.
+- Review whether `Attachment.Path` should be normalized inside `BuildAttachment` or left to adapter-specific code.
+
+### What should be done in the future
+- Implement Task 2: materialize explicit events and attachments into SQLite.
+- Add tests that verify explicit event and attachment rows appear in normalized tables.
+
+### Code review instructions
+- Start with `pkg/minitrace/schema.go` and review the new struct field names and JSON tags.
+- Then review `pkg/minitrace/builders.go` for default semantics.
+- Validate with `go test ./pkg/minitrace -count=1`.
+
+### Technical details
+- New event fields include IDs, timestamps, optional turn/tool/annotation/attachment links, title/summary/text, severity, collapsed state, framework metadata, and raw JSON.
+- New attachment fields include IDs, timestamps, kind/name/media type, path/URL/hash/content ref, bounded text preview, optional turn/tool/event links, framework metadata, and raw JSON.
