@@ -86,4 +86,51 @@ func TestBuildSessionSkeletonDefaults(t *testing.T) {
 	if session.Flags.NeedsCleaning != true {
 		t.Fatalf("expected needs_cleaning=true")
 	}
+	if session.Events == nil {
+		t.Fatalf("expected non-nil events slice")
+	}
+	if session.Attachments == nil {
+		t.Fatalf("expected non-nil attachments slice")
+	}
+}
+
+func TestBuildEventDefaults(t *testing.T) {
+	timestamp := "2026-06-10T12:00:00Z"
+	raw := map[string]any{"type": "compaction"}
+	event := BuildEvent("event-1", &timestamp, "compaction", "Compaction", "Context compacted", raw)
+
+	if event.ID != "event-1" || event.Kind != "compaction" {
+		t.Fatalf("unexpected event identity: %+v", event)
+	}
+	if event.Timestamp == nil || *event.Timestamp != timestamp {
+		t.Fatalf("unexpected event timestamp: %+v", event.Timestamp)
+	}
+	if event.Severity != "info" {
+		t.Fatalf("expected info severity, got %q", event.Severity)
+	}
+	if !event.CollapsedByDefault {
+		t.Fatalf("expected source events to collapse by default")
+	}
+	if event.RawJSON == nil {
+		t.Fatalf("expected raw source payload")
+	}
+}
+
+func TestBuildAttachmentDefaults(t *testing.T) {
+	timestamp := "2026-06-10T12:00:00Z"
+	raw := map[string]any{"type": "attachment"}
+	attachment := BuildAttachment("attachment-1", &timestamp, "image", "screenshot.png", "image/png", raw)
+
+	if attachment.ID != "attachment-1" || attachment.Kind != "image" {
+		t.Fatalf("unexpected attachment identity: %+v", attachment)
+	}
+	if attachment.Timestamp == nil || *attachment.Timestamp != timestamp {
+		t.Fatalf("unexpected attachment timestamp: %+v", attachment.Timestamp)
+	}
+	if attachment.Name != "screenshot.png" || attachment.MediaType != "image/png" {
+		t.Fatalf("unexpected attachment labels: %+v", attachment)
+	}
+	if attachment.RawJSON == nil {
+		t.Fatalf("expected raw source payload")
+	}
 }

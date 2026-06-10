@@ -19,6 +19,8 @@ type Session struct {
 	Handover           Handover           `json:"handover"`
 	Turns              []Turn             `json:"turns"`
 	ToolCalls          []ToolCall         `json:"tool_calls"`
+	Events             []Event            `json:"events,omitempty"`
+	Attachments        []Attachment       `json:"attachments,omitempty"`
 	Outcome            *Outcome           `json:"outcome"`
 	Annotations        []Annotation       `json:"annotations"`
 	Metrics            Metrics            `json:"metrics"`
@@ -185,6 +187,44 @@ type Outcome struct {
 	Partial      bool     `json:"partial"`
 	FailureCodes []string `json:"failure_codes"`
 	OutcomeNotes *string  `json:"outcome_notes"`
+}
+
+type Event struct {
+	ID                 string  `json:"id"`
+	Timestamp          *string `json:"timestamp,omitempty"`
+	TurnIndex          *int    `json:"turn_index,omitempty"`
+	Ordinal            *int    `json:"ordinal,omitempty"`
+	Kind               string  `json:"kind"`
+	Role               string  `json:"role,omitempty"`
+	ToolCallID         *string `json:"tool_call_id,omitempty"`
+	AnnotationID       *string `json:"annotation_id,omitempty"`
+	AttachmentID       *string `json:"attachment_id,omitempty"`
+	Title              string  `json:"title,omitempty"`
+	Summary            string  `json:"summary,omitempty"`
+	Text               string  `json:"text,omitempty"`
+	Severity           string  `json:"severity,omitempty"`
+	CollapsedByDefault bool    `json:"collapsed_by_default,omitempty"`
+	FrameworkMetadata  any     `json:"framework_metadata,omitempty"`
+	RawJSON            any     `json:"raw_json,omitempty"`
+}
+
+type Attachment struct {
+	ID                string  `json:"id"`
+	Timestamp         *string `json:"timestamp,omitempty"`
+	Kind              string  `json:"kind"`
+	Name              string  `json:"name,omitempty"`
+	MediaType         string  `json:"media_type,omitempty"`
+	Path              string  `json:"path,omitempty"`
+	URL               string  `json:"url,omitempty"`
+	SizeBytes         *int    `json:"size_bytes,omitempty"`
+	Hash              string  `json:"hash,omitempty"`
+	ContentRef        string  `json:"content_ref,omitempty"`
+	TextPreview       string  `json:"text_preview,omitempty"`
+	TurnIndex         *int    `json:"turn_index,omitempty"`
+	ToolCallID        *string `json:"tool_call_id,omitempty"`
+	EventID           *string `json:"event_id,omitempty"`
+	FrameworkMetadata any     `json:"framework_metadata,omitempty"`
+	RawJSON           any     `json:"raw_json,omitempty"`
 }
 
 type Annotation struct {

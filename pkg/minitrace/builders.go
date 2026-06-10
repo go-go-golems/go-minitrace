@@ -65,6 +65,8 @@ func BuildSessionSkeleton(sessionID, agentFramework, sourceFormat, converterVers
 		},
 		Turns:       []Turn{},
 		ToolCalls:   []ToolCall{},
+		Events:      []Event{},
+		Attachments: []Attachment{},
 		Outcome:     nil,
 		Annotations: []Annotation{},
 		Metrics:     Metrics{},
@@ -151,6 +153,48 @@ func BuildToolCall(
 		},
 		FrameworkMetadata: frameworkMetadata,
 		SpawnedAgent:      spawnedAgent,
+	}
+}
+
+func BuildEvent(eventID string, timestamp *string, kind string, title string, summary string, raw any) Event {
+	return Event{
+		ID:                 eventID,
+		Timestamp:          timestamp,
+		TurnIndex:          nil,
+		Ordinal:            nil,
+		Kind:               kind,
+		Role:               "",
+		ToolCallID:         nil,
+		AnnotationID:       nil,
+		AttachmentID:       nil,
+		Title:              title,
+		Summary:            summary,
+		Text:               "",
+		Severity:           "info",
+		CollapsedByDefault: true,
+		FrameworkMetadata:  nil,
+		RawJSON:            raw,
+	}
+}
+
+func BuildAttachment(attachmentID string, timestamp *string, kind string, name string, mediaType string, raw any) Attachment {
+	return Attachment{
+		ID:                attachmentID,
+		Timestamp:         timestamp,
+		Kind:              kind,
+		Name:              name,
+		MediaType:         mediaType,
+		Path:              "",
+		URL:               "",
+		SizeBytes:         nil,
+		Hash:              "",
+		ContentRef:        "",
+		TextPreview:       "",
+		TurnIndex:         nil,
+		ToolCallID:        nil,
+		EventID:           nil,
+		FrameworkMetadata: nil,
+		RawJSON:           raw,
 	}
 }
 
