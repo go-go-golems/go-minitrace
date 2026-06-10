@@ -303,6 +303,69 @@ Normalized SQLite now includes first-class source lifecycle facts and artifact r
 
 Important source-event kinds include Pi `compaction`, `model_change`, `thinking_level_change`, Claude Code `mode_change`, `permission_mode_change`, `title_change`, `attachment`, and Codex `image_view`, `subagent_spawn`, `subagent_wait`, and `rate_limits`.
 
+Concrete examples:
+
+```js
+// Codex viewed an image. Render this as an image marker or attachment card,
+// not as a fake assistant text message.
+{
+  event_id: "event-image-1",
+  kind: "image_view",
+  title: "Codex image view",
+  summary: "/tmp/screenshots/failure.png",
+  tool_call_id: "call-view-image-1",
+  attachment_id: "attachment-image-1"
+}
+{
+  attachment_id: "attachment-image-1",
+  kind: "image",
+  name: "failure.png",
+  media_type: "image/png",
+  path: "/tmp/screenshots/failure.png",
+  tool_call_id: "call-view-image-1",
+  event_id: "event-image-1"
+}
+
+// Claude Code changed permission mode. Render this as a session/timeline badge
+// so later edits can be interpreted with the right autonomy context.
+{
+  event_id: "event-permission-mode-1",
+  kind: "permission_mode_change",
+  title: "Permission mode changed",
+  summary: "acceptEdits",
+  severity: "info"
+}
+
+// Pi compacted the conversation. Render this as a context-boundary marker
+// instead of scanning turn text for the word "compaction".
+{
+  event_id: "event-compaction-1",
+  kind: "compaction",
+  title: "Compaction",
+  summary: "Conversation was compacted; prior context summarized.",
+  collapsed_by_default: true
+}
+
+// Codex spawned a subagent and later waited for it. Render these as
+// orchestration facts linked to their tool calls.
+{
+  event_id: "event-subagent-spawn-1",
+  kind: "subagent_spawn",
+  title: "Subagent spawned",
+  summary: "agent_type=explorer",
+  tool_call_id: "call-spawn-agent-1"
+}
+{
+  event_id: "event-subagent-wait-1",
+  kind: "subagent_wait",
+  title: "Subagent completed",
+  summary: "status=completed",
+  tool_call_id: "call-wait-agent-1"
+}
+```
+
+Query them from JavaScript like this:
+
 ```js
 const session = mt.session()
   .File("/path/to/session.minitrace.json")

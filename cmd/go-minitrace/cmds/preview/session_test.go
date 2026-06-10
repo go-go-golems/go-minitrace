@@ -32,6 +32,47 @@ func TestDiscoverPreviewPathsLatestPi(t *testing.T) {
 	}
 }
 
+func TestDiscoverPreviewLocatorsPreservesFormatHint(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "exec-session.jsonl")
+	writeCodexExecFixture(t, path)
+
+	locators, err := discoverPreviewLocators("codex", dir, 1)
+	if err != nil {
+		t.Fatalf("discoverPreviewLocators: %v", err)
+	}
+	if len(locators) != 1 {
+		t.Fatalf("expected one locator, got %+v", locators)
+	}
+	if locators[0].SourcePath != path || locators[0].FormatHint != "exec-jsonl-v1" {
+		t.Fatalf("expected exec locator for %s, got %+v", path, locators[0])
+	}
+}
+
+func TestPreviewSessionLocatorPreservesCodexFormatHint(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "exec-session.jsonl")
+	writeCodexExecFixture(t, path)
+
+	locators, err := discoverPreviewLocators("codex", dir, 1)
+	if err != nil {
+		t.Fatalf("discoverPreviewLocators: %v", err)
+	}
+	preview, err := previewSessionLocator("codex", locators[0], minitracejs.PreviewOptions{SampleLimit: 2, Privacy: "structural"})
+	if err != nil {
+		t.Fatalf("previewSessionLocator: %v", err)
+	}
+	if preview.Adapter != "codex" || preview.Format != "exec-jsonl-v1" {
+		t.Fatalf("expected codex exec preview, got adapter=%q format=%q", preview.Adapter, preview.Format)
+	}
+	if preview.SessionID != "thread-1" {
+		t.Fatalf("expected thread session id, got %q", preview.SessionID)
+	}
+	if preview.ToolCounts["exec_command"] != 1 {
+		t.Fatalf("expected exec_command count, got %+v", preview.ToolCounts)
+	}
+}
+
 func TestPreviewSessionPathUsesOptions(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "2026-06-10T10-00-00-000Z_session.jsonl")
@@ -49,6 +90,17 @@ func TestPreviewSessionPathUsesOptions(t *testing.T) {
 	}
 	if preview.SampleTurns[0].Preview != "" {
 		t.Fatalf("expected structural privacy to suppress turn preview, got %q", preview.SampleTurns[0].Preview)
+	}
+}
+
+func writeCodexExecFixture(t *testing.T, path string) {
+	t.Helper()
+	content := `{"type":"thread.started","thread_id":"thread-1"}
+{"type":"item.completed","item":{"id":"cmd-1","type":"command_execution","command":"go test ./...","aggregated_output":"ok","exit_code":0,"status":"completed","turn_id":"turn-1","source":"exec-runner","parsed_cmd":[{"type":"test","cmd":"go test ./..."}],"stdout":"ok","stderr":""}}
+{"type":"item.completed","item":{"type":"agent_message","text":"Tests passed.","turn_id":"turn-1","phase":"commentary"}}
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
 	}
 }
 

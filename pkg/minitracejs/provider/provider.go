@@ -59,7 +59,6 @@ func Register(registry *providerapi.ProviderRegistry) error {
 			DefaultAs:    minitracejs.ModuleName,
 			Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
 			ConfigSchema: moduleConfigSchema,
-			TypeScript:   minitracejs.TypeScriptModule(),
 			NewModuleFactory: func(ctx providerapi.ModuleSetupContext) (require.ModuleLoader, error) {
 				var conn *sql.Conn
 				var commandName string

@@ -383,12 +383,3 @@ func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
 		t.Fatalf("expected parent tool call to backlink subagent, got %+v", parent.ToolCalls[0].SpawnedAgent)
 	}
 }
-
-func containsString(values []string, needle string) bool {
-	for _, value := range values {
-		if value == needle {
-			return true
-		}
-	}
-	return false
-}

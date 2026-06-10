@@ -20,6 +20,7 @@ import (
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/codex"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/pi"
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 )
@@ -103,22 +104,23 @@ func (c *SessionCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 		return emitPreviewRow(ctx, gp, path, preview, "")
 	}
 
-	paths, err := discoverPreviewPaths(settings_.Framework, settings_.SourceDir, settings_.Latest)
+	framework := normalizeFramework(settings_.Framework)
+	locators, err := discoverPreviewLocators(framework, settings_.SourceDir, settings_.Latest)
 	if err != nil {
 		return err
 	}
-	if len(paths) == 0 {
+	if len(locators) == 0 {
 		return fmt.Errorf("no sessions discovered for framework %q", settings_.Framework)
 	}
-	for _, path := range paths {
-		preview, err := previewSessionPath(path, previewOptions(settings_))
+	for _, locator := range locators {
+		preview, err := previewSessionLocator(framework, locator, previewOptions(settings_))
 		if err != nil {
-			if rowErr := emitPreviewRow(ctx, gp, path, minitracejs.SessionPreview{}, err.Error()); rowErr != nil {
+			if rowErr := emitPreviewRow(ctx, gp, locator.SourcePath, minitracejs.SessionPreview{}, err.Error()); rowErr != nil {
 				return rowErr
 			}
 			continue
 		}
-		if err := emitPreviewRow(ctx, gp, path, preview, ""); err != nil {
+		if err := emitPreviewRow(ctx, gp, locator.SourcePath, preview, ""); err != nil {
 			return err
 		}
 	}
@@ -141,7 +143,58 @@ func previewSessionPath(path string, options minitracejs.PreviewOptions) (minitr
 	return minitracejs.PreviewLoadedSessionWithOptions(loaded, options), nil
 }
 
-func discoverPreviewPaths(framework, sourceDir string, latest int) ([]string, error) {
+func previewSessionLocator(framework string, locator adapters.SessionLocator, options minitracejs.PreviewOptions) (minitracejs.SessionPreview, error) {
+	var (
+		loaded *minitracedb.LoadedSession
+		err    error
+	)
+	adapter := normalizeFramework(framework)
+	sourceName := filepath.Base(locator.SourcePath)
+	sourceFormat := locator.FormatHint
+	switch adapter {
+	case "pi":
+		loaded, err = loadAdapterLocator(locator, adapter, sourceName, "pi-jsonl", pi.ConvertLocator)
+	case "codex":
+		loaded, err = loadAdapterLocator(locator, adapter, sourceName, "codex-jsonl", codex.ConvertLocator)
+	case "claude-code":
+		loaded, err = loadAdapterLocator(locator, adapter, sourceName, "claude-code-jsonl", claudecode.ConvertLocator)
+	default:
+		err = fmt.Errorf("unsupported framework %q", framework)
+	}
+	if err != nil {
+		return minitracejs.SessionPreview{}, err
+	}
+	if sourceFormat != "" {
+		loaded.Format = sourceFormat
+	}
+	return minitracejs.PreviewLoadedSessionWithOptions(loaded, options), nil
+}
+
+func loadAdapterLocator(locator adapters.SessionLocator, adapter, sourceName, fallbackFormat string, convert func(adapters.SessionLocator) (*minitrace.Session, error)) (*minitracedb.LoadedSession, error) {
+	session, err := convert(locator)
+	if err != nil {
+		return nil, fmt.Errorf("convert discovered %s session %s as %s: %w", adapter, locator.SourcePath, locator.FormatHint, err)
+	}
+	format := locator.FormatHint
+	if format == "" {
+		format = fallbackFormat
+	}
+	return &minitracedb.LoadedSession{
+		Session: session,
+		Format:  format,
+		Adapter: adapter,
+		Diagnostics: []minitracedb.ConversionDiagnostic{{
+			Source:     sourceName,
+			Severity:   "info",
+			Format:     format,
+			Adapter:    adapter,
+			RecordRows: len(session.Turns) + len(session.ToolCalls) + len(session.Events),
+			Message:    "converted discovered source locator into minitrace session",
+		}},
+	}, nil
+}
+
+func discoverPreviewLocators(framework, sourceDir string, latest int) ([]adapters.SessionLocator, error) {
 	if latest <= 0 {
 		latest = 1
 	}
@@ -156,20 +209,28 @@ func discoverPreviewPaths(framework, sourceDir string, latest int) ([]string, er
 	if err != nil {
 		return nil, err
 	}
-	paths := make([]string, 0, len(locators))
-	for _, locator := range locators {
-		paths = append(paths, locator.SourcePath)
-	}
-	sort.SliceStable(paths, func(i, j int) bool {
-		left, leftOK := modTime(paths[i])
-		right, rightOK := modTime(paths[j])
+	sort.SliceStable(locators, func(i, j int) bool {
+		left, leftOK := modTime(locators[i].SourcePath)
+		right, rightOK := modTime(locators[j].SourcePath)
 		if leftOK && rightOK && !left.Equal(right) {
 			return left.After(right)
 		}
-		return paths[i] > paths[j]
+		return locators[i].SourcePath > locators[j].SourcePath
 	})
-	if latest < len(paths) {
-		paths = paths[:latest]
+	if latest < len(locators) {
+		locators = locators[:latest]
+	}
+	return locators, nil
+}
+
+func discoverPreviewPaths(framework, sourceDir string, latest int) ([]string, error) {
+	locators, err := discoverPreviewLocators(framework, sourceDir, latest)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(locators))
+	for _, locator := range locators {
+		paths = append(paths, locator.SourcePath)
 	}
 	return paths, nil
 }
@@ -220,7 +281,7 @@ func normalizePrivacy(privacy string) string {
 	}
 }
 
-func modTime(path string) (timeValue comparableTime, ok bool) {
+func modTime(path string) (comparableTime, bool) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return comparableTime{}, false
