@@ -234,6 +234,90 @@ func TestConvertRecordsPreservesClaudeFrameworkMetadata(t *testing.T) {
 	}
 }
 
+func TestConvertRecordsPreservesLatestClaudeSessionMetadata(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":             "mode",
+			"mode":             "plan",
+			"sessionId":        "session-latest",
+			"timestamp":        "2026-06-10T12:00:00Z",
+			"entrypoint":       "cli",
+			"agentId":          "agent-abc",
+			"parentUuid":       "parent-uuid",
+			"isSidechain":      true,
+			"attributionAgent": "reviewer",
+		},
+		{
+			"type":           "permission-mode",
+			"permissionMode": "bypassPermissions",
+			"sessionId":      "session-latest",
+			"timestamp":      "2026-06-10T12:00:01Z",
+		},
+		{
+			"type":      "ai-title",
+			"aiTitle":   "Investigate latest Claude session metadata",
+			"sessionId": "session-latest",
+		},
+		{
+			"type":        "attachment",
+			"uuid":        "attachment-1",
+			"timestamp":   "2026-06-10T12:00:02Z",
+			"entrypoint":  "cli",
+			"parentUuid":  "parent-uuid",
+			"isSidechain": true,
+			"agentId":     "agent-abc",
+			"sessionId":   "session-latest",
+			"attachment": map[string]any{
+				"type":      "image",
+				"fileName":  "screenshot.png",
+				"mediaType": "image/png",
+				"content":   "<blob omitted>",
+			},
+		},
+		{
+			"type":      "user",
+			"timestamp": "2026-06-10T12:00:03Z",
+			"agentId":   "agent-abc",
+			"sessionId": "session-latest",
+			"message": map[string]any{
+				"content": "Please inspect this screenshot.",
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback", "/tmp/claude-latest.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if session.Title == nil || *session.Title != "Investigate latest Claude session metadata" {
+		t.Fatalf("expected ai-title to become session title, got %+v", session.Title)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if config["mode"] != "plan" || config["permission_mode"] != "bypassPermissions" || config["ai_title"] != "Investigate latest Claude session metadata" {
+		t.Fatalf("expected mode/permission/title config, got %+v", config)
+	}
+	if config["agent_id"] != "agent-abc" || config["session_id"] != "session-latest" || config["parent_uuid"] != "parent-uuid" || config["is_sidechain"] != true {
+		t.Fatalf("expected subagent/session metadata in config, got %+v", config)
+	}
+	if len(session.Annotations) != 1 {
+		t.Fatalf("expected attachment annotation, got %d", len(session.Annotations))
+	}
+	annotation := session.Annotations[0]
+	if annotation.Scope.Type != "session" || annotation.Scope.TargetID != "fallback" {
+		t.Fatalf("unexpected attachment scope: %+v", annotation.Scope)
+	}
+	if annotation.Content.Category != "attachment" || !containsString(annotation.Content.Tags, "image") {
+		t.Fatalf("expected image attachment annotation, got %+v", annotation.Content)
+	}
+	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok || turnMetadata["agent_id"] != "agent-abc" || turnMetadata["session_id"] != "session-latest" {
+		t.Fatalf("expected turn agent/session metadata, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+}
+
 func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
 	parent := minitrace.BuildSessionSkeleton("parent-1", "claude-code", SourceFormatV2, AdapterVersion)
 	turnIndex := 0
@@ -286,4 +370,13 @@ func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
 	if parent.ToolCalls[0].SpawnedAgent == nil || parent.ToolCalls[0].SpawnedAgent.SubSessionID == nil || *parent.ToolCalls[0].SpawnedAgent.SubSessionID != "agent-123" {
 		t.Fatalf("expected parent tool call to backlink subagent, got %+v", parent.ToolCalls[0].SpawnedAgent)
 	}
+}
+
+func containsString(values []string, needle string) bool {
+	for _, value := range values {
+		if value == needle {
+			return true
+		}
+	}
+	return false
 }

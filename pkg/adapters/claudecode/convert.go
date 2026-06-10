@@ -94,13 +94,13 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 
 	turnIndex := 0
 	toolCounter := 0
+	attachmentCounter := 0
 	var sessionModel *string
+	aiTitle := ""
 	frameworkConfig := map[string]any{}
 
 	for _, record := range records {
-		if entrypoint := stringValue(record["entrypoint"]); entrypoint != "" {
-			frameworkConfig["entrypoint"] = entrypoint
-		}
+		captureClaudeSessionMetadata(frameworkConfig, record)
 
 		recordType := stringValue(record["type"])
 		if _, ok := discardTypes[recordType]; ok || recordType == "progress" {
@@ -114,6 +114,29 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 		timestampPtr := optionalString(timestamp)
 
 		switch recordType {
+		case "mode":
+			if mode := stringValue(record["mode"]); mode != "" {
+				frameworkConfig["mode"] = mode
+			}
+			continue
+		case "permission-mode":
+			if permissionMode := stringValue(record["permissionMode"]); permissionMode != "" {
+				frameworkConfig["permission_mode"] = permissionMode
+				if autonomy := mapClaudePermissionMode(permissionMode); autonomy != "" {
+					session.OperationalContext.AutonomyLevel = &autonomy
+				}
+			}
+			continue
+		case "ai-title":
+			if title := stringValue(record["aiTitle"]); title != "" {
+				aiTitle = title
+				frameworkConfig["ai_title"] = title
+			}
+			continue
+		case "attachment":
+			attachmentCounter++
+			annotations = append(annotations, buildClaudeAttachmentAnnotation(record, sessionID, attachmentCounter))
+			continue
 		case "system":
 			message := mapValue(record["message"])
 			content := flattenClaudeText(message["content"])
@@ -348,7 +371,11 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 	session.Environment.Model = sessionModel
 	session.Environment.ToolsEnabled = uniqueToolNames(toolCalls)
 	session.Quality = &quality
-	session.Title = minitrace.ExtractTitle(turns, 80)
+	if aiTitle != "" {
+		session.Title = &aiTitle
+	} else {
+		session.Title = minitrace.ExtractTitle(turns, 80)
+	}
 	session.Timing = timing
 	session.Turns = turns
 	session.ToolCalls = toolCalls
@@ -517,6 +544,127 @@ func parseJSONLFile(path string) ([]map[string]any, error) {
 	return records, nil
 }
 
+func captureClaudeSessionMetadata(config map[string]any, record map[string]any) {
+	if config == nil || record == nil {
+		return
+	}
+	if entrypoint := stringValue(record["entrypoint"]); entrypoint != "" {
+		config["entrypoint"] = entrypoint
+	}
+	if agentID := stringValue(record["agentId"]); agentID != "" {
+		config["agent_id"] = agentID
+	}
+	if sessionID := stringValue(record["sessionId"]); sessionID != "" {
+		config["session_id"] = sessionID
+	}
+	if parentUUID, ok := record["parentUuid"]; ok {
+		config["parent_uuid"] = parentUUID
+	}
+	if isSidechain, ok := record["isSidechain"]; ok {
+		config["is_sidechain"] = isSidechain
+	}
+	if userType := stringValue(record["userType"]); userType != "" {
+		config["user_type"] = userType
+	}
+	if attributionAgent := stringValue(record["attributionAgent"]); attributionAgent != "" {
+		config["attribution_agent"] = attributionAgent
+	}
+}
+
+func mapClaudePermissionMode(permissionMode string) string {
+	switch permissionMode {
+	case "bypassPermissions":
+		return "full-auto"
+	case "plan":
+		return "suggest"
+	default:
+		return ""
+	}
+}
+
+func buildClaudeAttachmentAnnotation(record map[string]any, sessionID string, ordinal int) minitrace.Annotation {
+	attachment := mapValue(record["attachment"])
+	attachmentType := firstNonEmpty(stringValue(attachment["type"]), "attachment")
+	attachmentID := firstNonEmpty(stringValue(record["uuid"]), fmt.Sprintf("attachment-%d", ordinal))
+	tags := []string{"claude-code", "attachment", attachmentType}
+	if hasClaudeImageSignal(attachment) {
+		tags = append(tags, "image")
+	}
+	title := "Claude Code attachment: " + attachmentType
+	return minitrace.BuildAnnotation(
+		"ann-attachment-"+truncateID(attachmentID),
+		"adapter",
+		"session",
+		sessionID,
+		"attachment",
+		title,
+		summarizeClaudeAttachment(record, attachment),
+		tags,
+		nil,
+	)
+}
+
+func summarizeClaudeAttachment(record map[string]any, attachment map[string]any) string {
+	if attachment == nil {
+		return "Claude Code attachment with no structured payload."
+	}
+	parts := []string{}
+	if uuid := stringValue(record["uuid"]); uuid != "" {
+		parts = append(parts, "uuid="+uuid)
+	}
+	if parentUUID := stringValue(record["parentUuid"]); parentUUID != "" {
+		parts = append(parts, "parent_uuid="+parentUUID)
+	}
+	if agentID := stringValue(record["agentId"]); agentID != "" {
+		parts = append(parts, "agent_id="+agentID)
+	}
+	if attachmentType := stringValue(attachment["type"]); attachmentType != "" {
+		parts = append(parts, "type="+attachmentType)
+	}
+	if fileName := stringValue(attachment["fileName"]); fileName != "" {
+		parts = append(parts, "file="+fileName)
+	}
+	if mediaType := firstNonEmpty(stringValue(attachment["mediaType"]), stringValue(attachment["mimeType"])); mediaType != "" {
+		parts = append(parts, "media="+mediaType)
+	}
+	if itemCount := minitrace.SafeInt(attachment["itemCount"], 0); itemCount != 0 {
+		parts = append(parts, fmt.Sprintf("items=%d", itemCount))
+	}
+	if content := stringValue(attachment["content"]); content != "" {
+		parts = append(parts, "content="+truncateText(content, 240))
+	}
+	if len(parts) == 0 {
+		return "Claude Code attachment metadata preserved."
+	}
+	return strings.Join(parts, "; ")
+}
+
+func truncateText(value string, maxLen int) string {
+	if len(value) <= maxLen {
+		return value
+	}
+	return value[:maxLen]
+}
+
+func hasClaudeImageSignal(attachment map[string]any) bool {
+	if attachment == nil {
+		return false
+	}
+	candidates := []string{
+		stringValue(attachment["type"]),
+		stringValue(attachment["fileName"]),
+		stringValue(attachment["mediaType"]),
+		stringValue(attachment["mimeType"]),
+	}
+	for _, value := range candidates {
+		value = strings.ToLower(value)
+		if strings.Contains(value, "image") || strings.HasSuffix(value, ".png") || strings.HasSuffix(value, ".jpg") || strings.HasSuffix(value, ".jpeg") || strings.HasSuffix(value, ".webp") {
+			return true
+		}
+	}
+	return false
+}
+
 func classifyOperation(toolName string) string {
 	switch toolName {
 	case "Read", "Glob", "Grep", "TaskGet", "TaskList", "TaskOutput", "WebFetch", "WebSearch", "ToolSearch":
@@ -667,6 +815,12 @@ func claudeTurnMetadata(record map[string]any, message map[string]any) any {
 	if slug := stringValue(record["slug"]); slug != "" {
 		metadata["slug"] = slug
 	}
+	if agentID := stringValue(record["agentId"]); agentID != "" {
+		metadata["agent_id"] = agentID
+	}
+	if sessionID := stringValue(record["sessionId"]); sessionID != "" {
+		metadata["session_id"] = sessionID
+	}
 	if parentUUID, ok := record["parentUuid"]; ok {
 		metadata["parent_uuid"] = parentUUID
 	}
@@ -703,6 +857,12 @@ func claudeToolMetadata(record map[string]any, block map[string]any) any {
 	if slug := stringValue(record["slug"]); slug != "" {
 		metadata["slug"] = slug
 	}
+	if agentID := stringValue(record["agentId"]); agentID != "" {
+		metadata["agent_id"] = agentID
+	}
+	if sessionID := stringValue(record["sessionId"]); sessionID != "" {
+		metadata["session_id"] = sessionID
+	}
 	if parentUUID, ok := record["parentUuid"]; ok {
 		metadata["parent_uuid"] = parentUUID
 	}
@@ -722,6 +882,12 @@ func claudeToolResultMetadata(record map[string]any) map[string]any {
 	}
 	if slug := stringValue(record["slug"]); slug != "" {
 		metadata["slug"] = slug
+	}
+	if agentID := stringValue(record["agentId"]); agentID != "" {
+		metadata["agent_id"] = agentID
+	}
+	if sessionID := stringValue(record["sessionId"]); sessionID != "" {
+		metadata["session_id"] = sessionID
 	}
 	if parentUUID, ok := record["parentUuid"]; ok {
 		metadata["parent_uuid"] = parentUUID
