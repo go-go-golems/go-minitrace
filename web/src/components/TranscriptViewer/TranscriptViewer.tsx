@@ -17,7 +17,7 @@ import Tab from "@mui/material/Tab";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import CommentIcon from "@mui/icons-material/Comment";
-import type { Annotation, SessionDetail } from "../../types";
+import type { Annotation, SessionAttachment, SessionDetail, SessionEvent } from "../../types";
 import { useGetSessionAnnotationsQuery } from "../../api/minitrace";
 import { useVirtualList } from "../shared/useVirtualList";
 import { ActiveBadge, FormatWallActive } from "../shared";
@@ -30,6 +30,121 @@ interface TranscriptViewerProps {
   session: SessionDetail;
   onBack: () => void;
   onQuerySession: (id: string) => void;
+}
+
+function SourceFactsPanel({
+  events,
+  attachments,
+}: {
+  events: SessionEvent[];
+  attachments: SessionAttachment[];
+}) {
+  if (events.length === 0 && attachments.length === 0) {
+    return null;
+  }
+
+  const visibleEvents = events.slice(0, 8);
+  const visibleAttachments = attachments.slice(0, 8);
+
+  return (
+    <Paper sx={{ mx: 2, mb: 2, p: 1.5, border: "1px solid", borderColor: "divider" }}>
+      <Stack spacing={1.25}>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+          <Typography variant="overline" color="text.secondary">
+            Source facts
+          </Typography>
+          {events.length > 0 && <Chip label={`${events.length} events`} size="small" variant="outlined" />}
+          {attachments.length > 0 && <Chip label={`${attachments.length} attachments`} size="small" variant="outlined" />}
+        </Stack>
+
+        {visibleEvents.length > 0 && (
+          <Stack spacing={0.75}>
+            {visibleEvents.map((event) => (
+              <Box
+                key={event.id}
+                sx={{
+                  p: 1,
+                  bgcolor: "background.default",
+                  borderRadius: 1,
+                  borderLeft: "3px solid",
+                  borderColor: event.severity === "error" ? "error.main" : "info.main",
+                }}
+              >
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip label={event.kind} size="small" color="info" variant="outlined" sx={{ height: 20 }} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {event.title || event.kind}
+                  </Typography>
+                  {event.timestamp && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
+                      {event.timestamp}
+                    </Typography>
+                  )}
+                  {event.tool_call_id && <Chip label={`tool ${event.tool_call_id}`} size="small" variant="outlined" sx={{ height: 20 }} />}
+                  {event.attachment_id && <Chip label={`attachment ${event.attachment_id}`} size="small" variant="outlined" sx={{ height: 20 }} />}
+                </Stack>
+                {event.summary && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                    {event.summary}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+            {events.length > visibleEvents.length && (
+              <Typography variant="caption" color="text.secondary">
+                +{events.length - visibleEvents.length} more source events
+              </Typography>
+            )}
+          </Stack>
+        )}
+
+        {visibleAttachments.length > 0 && (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {visibleAttachments.map((attachment) => (
+              <Box
+                key={attachment.id}
+                sx={{
+                  p: 1,
+                  minWidth: 220,
+                  maxWidth: 360,
+                  bgcolor: "background.default",
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip label={attachment.kind} size="small" color={attachment.kind === "image" ? "secondary" : "default"} variant="outlined" sx={{ height: 20 }} />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {attachment.name || attachment.id}
+                  </Typography>
+                </Stack>
+                {(attachment.media_type || attachment.path || attachment.url) && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mt: 0.5, fontFamily: "monospace", overflowWrap: "anywhere" }}
+                  >
+                    {[attachment.media_type, attachment.path, attachment.url].filter(Boolean).join(" · ")}
+                  </Typography>
+                )}
+                {attachment.text_preview && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                    {attachment.text_preview}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+            {attachments.length > visibleAttachments.length && (
+              <Typography variant="caption" color="text.secondary">
+                +{attachments.length - visibleAttachments.length} more attachments
+              </Typography>
+            )}
+          </Stack>
+        )}
+      </Stack>
+    </Paper>
+  );
 }
 
 export function TranscriptViewer({
@@ -361,6 +476,8 @@ export function TranscriptViewer({
           </Typography>
         </Stack>
       </Paper>
+
+      <SourceFactsPanel events={session.events} attachments={session.attachments} />
 
       <Box sx={{ px: 2, pb: 1 }}>
         <Tabs

@@ -8,6 +8,8 @@ import {
   type SessionSummaryDetail as PbSessionSummaryDetail,
   type SessionBlock as PbSessionBlock,
   type SessionDetail as PbSessionDetail,
+  type SessionEvent as PbSessionEvent,
+  type SessionAttachment as PbSessionAttachment,
   type Turn as PbTurn,
   type ToolCall as PbToolCall,
 } from "../gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js";
@@ -17,6 +19,8 @@ import type {
   SessionSummaryDetail,
   SessionBlock,
   SessionDetail,
+  SessionEvent,
+  SessionAttachment,
   Turn,
   ToolCall,
   ToolCallBadge as UiToolCallBadge,
@@ -111,6 +115,8 @@ function adaptSessionSummaryDetail(summary?: PbSessionSummaryDetail): SessionSum
       original_session_id: summary?.provenance?.originalSessionId ?? "",
       converted_at: summary?.provenance?.convertedAt ?? "",
     },
+    events: summary?.events.map(adaptSessionEvent) ?? [],
+    attachments: summary?.attachments.map(adaptSessionAttachment) ?? [],
   };
 }
 
@@ -151,6 +157,48 @@ function adaptSessionDetail(detail?: PbSessionDetail): SessionDetail {
       converted_at: detail?.provenance?.convertedAt ?? "",
     },
     blocks: detail?.blocks.map(adaptSessionBlock) ?? [],
+    events: detail?.events.map(adaptSessionEvent) ?? [],
+    attachments: detail?.attachments.map(adaptSessionAttachment) ?? [],
+  };
+}
+
+function adaptSessionEvent(event: PbSessionEvent): SessionEvent {
+  return {
+    id: event.id,
+    timestamp: event.timestamp,
+    turn_index: event.turnIndex ?? null,
+    ordinal: event.ordinal ?? null,
+    kind: event.kind,
+    role: event.role,
+    tool_call_id: event.toolCallId ?? null,
+    annotation_id: event.annotationId ?? null,
+    attachment_id: event.attachmentId ?? null,
+    title: event.title,
+    summary: event.summary,
+    text: event.text,
+    severity: event.severity,
+    collapsed_by_default: event.collapsedByDefault,
+    framework_metadata: event.frameworkMetadata ?? null,
+  };
+}
+
+function adaptSessionAttachment(attachment: PbSessionAttachment): SessionAttachment {
+  return {
+    id: attachment.id,
+    timestamp: attachment.timestamp,
+    kind: attachment.kind,
+    name: attachment.name,
+    media_type: attachment.mediaType,
+    path: attachment.path,
+    url: attachment.url,
+    size_bytes: attachment.sizeBytes ?? null,
+    hash: attachment.hash,
+    content_ref: attachment.contentRef,
+    text_preview: attachment.textPreview,
+    turn_index: attachment.turnIndex ?? null,
+    tool_call_id: attachment.toolCallId ?? null,
+    event_id: attachment.eventId ?? null,
+    framework_metadata: attachment.frameworkMetadata ?? null,
   };
 }
 

@@ -75,6 +75,44 @@ export type ToolCallBadge =
   | "diary-write"
   | "error";
 
+/** Source-observed lifecycle/timeline fact */
+export interface SessionEvent {
+  id: string;
+  timestamp: string;
+  turn_index?: number | null;
+  ordinal?: number | null;
+  kind: string;
+  role: string;
+  tool_call_id?: string | null;
+  annotation_id?: string | null;
+  attachment_id?: string | null;
+  title: string;
+  summary: string;
+  text: string;
+  severity: string;
+  collapsed_by_default: boolean;
+  framework_metadata?: Record<string, unknown> | null;
+}
+
+/** Artifact/reference captured from the source session */
+export interface SessionAttachment {
+  id: string;
+  timestamp: string;
+  kind: string;
+  name: string;
+  media_type: string;
+  path: string;
+  url: string;
+  size_bytes?: number | null;
+  hash: string;
+  content_ref: string;
+  text_preview: string;
+  turn_index?: number | null;
+  tool_call_id?: string | null;
+  event_id?: string | null;
+  framework_metadata?: Record<string, unknown> | null;
+}
+
 /** A single conversation turn */
 export interface Turn {
   idx: number;
@@ -125,6 +163,8 @@ export interface SessionSummaryDetail {
   environment: SessionEnvironment;
   operational_context: SessionOperationalContext;
   provenance: SessionProvenance;
+  events: SessionEvent[];
+  attachments: SessionAttachment[];
 }
 
 /** Full session detail returned by /api/v2/sessions/:id */

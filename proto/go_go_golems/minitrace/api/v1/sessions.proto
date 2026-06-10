@@ -28,6 +28,8 @@ message SessionSummaryDetail {
   SessionEnvironment environment = 7;
   SessionOperationalContext operational_context = 8;
   SessionProvenance provenance = 9;
+  repeated SessionEvent events = 10;
+  repeated SessionAttachment attachments = 11;
 }
 
 message ToolCallInput {
@@ -59,6 +61,42 @@ message TurnUsage {
   optional uint32 output_tokens = 2;
   optional uint32 cache_read_tokens = 3;
   optional uint32 reasoning_tokens = 4;
+}
+
+message SessionEvent {
+  string id = 1;
+  string timestamp = 2;
+  optional uint32 turn_index = 3;
+  optional uint32 ordinal = 4;
+  string kind = 5;
+  string role = 6;
+  optional string tool_call_id = 7;
+  optional string annotation_id = 8;
+  optional string attachment_id = 9;
+  string title = 10;
+  string summary = 11;
+  string text = 12;
+  string severity = 13;
+  bool collapsed_by_default = 14;
+  google.protobuf.Struct framework_metadata = 15;
+}
+
+message SessionAttachment {
+  string id = 1;
+  string timestamp = 2;
+  string kind = 3;
+  string name = 4;
+  string media_type = 5;
+  string path = 6;
+  string url = 7;
+  optional uint32 size_bytes = 8;
+  string hash = 9;
+  string content_ref = 10;
+  string text_preview = 11;
+  optional uint32 turn_index = 12;
+  optional string tool_call_id = 13;
+  optional string event_id = 14;
+  google.protobuf.Struct framework_metadata = 15;
 }
 
 message Turn {
@@ -96,6 +134,8 @@ message SessionDetail {
   SessionOperationalContext operational_context = 8;
   SessionProvenance provenance = 9;
   repeated SessionBlock blocks = 10;
+  repeated SessionEvent events = 11;
+  repeated SessionAttachment attachments = 12;
 }
 
 message ListSessionsResponse {
