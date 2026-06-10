@@ -85,7 +85,14 @@ This step did not change runtime code. It established the technical direction an
 
 ### Prompt Context
 
-**User prompt (verbatim):** "perfect, add a new ticket for these new additions, Create  a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable.\n\n\nThen add detailed list of tasks to the ticket, and work on them sequentially, committing at appropriat eintervals and keeping a frequent diary as you work."
+**User prompt (verbatim):**
+
+```text
+perfect, add a new ticket for these new additions, Create  a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable.
+
+
+Then add detailed list of tasks to the ticket, and work on them sequentially, committing at appropriat eintervals and keeping a frequent diary as you work.
+```
 
 **Assistant interpretation:** Create a fresh docmgr ticket for the proposed events/attachments additions, write a detailed intern-oriented design and implementation guide, add a detailed task list, upload the bundle to reMarkable, and then implement the tasks in order with commits and diary updates.
 
@@ -718,3 +725,76 @@ This was a documentation-only step, committed separately so reviewers can distin
 
 ### Technical details
 - No runtime code changed in this step.
+
+## Step 10: Validate, fix PDF rendering, and upload to reMarkable
+
+I ran the broad validation suite, ran docmgr doctor, and uploaded the final ticket bundle to reMarkable. The first upload attempt failed because the diary stored the original prompt with literal `\n` escapes inside normal Markdown prose, which LaTeX interpreted as an undefined control sequence. I fixed the prompt rendering by converting the first verbatim prompt entry into a `text` code block and retried the upload successfully.
+
+This completes the requested implementation loop: ticket, design guide, detailed tasks, sequential implementation commits, frequent diary updates, validation, and reMarkable delivery.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Finish the implementation by validating, closing ticket tasks, and delivering the documentation bundle to reMarkable.
+
+**Inferred user intent:** The user wants a clean handoff with tests passing, docs validated, and the long-form guide available on the reMarkable.
+
+**Commit (code):** pending docs/bookkeeping commit after this diary entry.
+
+### What I did
+- Ran broad tests:
+  - `go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./pkg/validate ./cmd/go-minitrace/... -count=1`
+- Ran docmgr doctor:
+  - `docmgr --root "$(pwd)/ttmp" doctor --ticket session-events-attachments --stale-after 30`
+- Attempted reMarkable upload and hit a Pandoc/LaTeX error.
+- Fixed the diary Markdown prompt rendering by replacing literal `\n` escapes with an actual fenced `text` block.
+- Re-ran reMarkable upload successfully:
+  - remote path: `/ai/2026/06/10/session-events-attachments/session events attachments guide.pdf`
+- Checked task 9 and updated the changelog.
+
+### Why
+- The full test suite verifies that schema, adapters, validation, preview, query, and serve packages still build together.
+- Doctor verifies ticket hygiene before handoff.
+- Upload makes the design/diary/tasks available in the requested reading workflow.
+
+### What worked
+- Broad test command passed for adapters, minitracedb, minitracejs, validate, and cmd packages.
+- `docmgr doctor` reported:
+  - `✅ All checks passed`
+- Final upload succeeded:
+  - `OK: uploaded session events attachments guide.pdf -> /ai/2026/06/10/session-events-attachments`
+
+### What didn't work
+- First upload failed:
+  - `Error: pandoc failed: Error producing PDF.`
+  - `! Undefined control sequence.`
+  - `l.1421 to remarkable.\n`
+  - command: `remarquee upload bundle ... --name "session events attachments guide" --remote-dir "/ai/2026/06/10/session-events-attachments" --toc-depth 2 --non-interactive`
+- Root cause: literal `\n` sequences from the prompt were in normal Markdown text, which became invalid LaTeX.
+- Fix: put the first verbatim user prompt in a fenced `text` code block.
+
+### What I learned
+- Markdown that is acceptable for Git review can still fail PDF rendering if it contains raw backslash sequences in prose.
+- For diary prompt preservation, fenced code blocks are safer than quoted strings when the prompt includes escaped newlines or other LaTeX-sensitive characters.
+
+### What was tricky to build
+- The tricky part at delivery was not code behavior but document rendering. The error pointed to the LaTeX line containing `\n`, which required searching for literal backslash-n in the diary and replacing only the first verbatim prompt occurrence while preserving later `(same as Step 1)` pointers.
+
+### What warrants a second pair of eyes
+- Review the final PDF if annotation/formatting quality matters on the reMarkable.
+- Review whether the ticket should now be closed with `docmgr ticket close --ticket session-events-attachments`.
+
+### What should be done in the future
+- Optional: add frontend/protobuf rendering for first-class events and attachments.
+- Optional: preserve exact timestamps for Codex rate-limit events.
+- Optional: add stricter event/attachment validation once adapter shapes stabilize.
+
+### Code review instructions
+- Review commits from `d612015` through `72dd30f` for runtime changes.
+- Run `go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./pkg/validate ./cmd/go-minitrace/... -count=1`.
+- Run `docmgr --root "$(pwd)/ttmp" doctor --ticket session-events-attachments --stale-after 30`.
+
+### Technical details
+- reMarkable upload command used a single bundle containing index, design guide, diary, tasks, and changelog.
+- Upload destination: `/ai/2026/06/10/session-events-attachments`.

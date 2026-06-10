@@ -97,3 +97,13 @@ Step 9: Updated JS API preview docs and design implementation status (commit 5e2
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md — JS API docs
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/design-doc/01-session-events-and-attachments-design-and-implementation-guide.md — Ticket design guide
 
+
+## 2026-06-10
+
+Step 10: Validation passed, fixed diary Markdown for PDF rendering, and uploaded the ticket bundle to reMarkable at /ai/2026/06/10/session-events-attachments/session events attachments guide.pdf.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/reference/01-diary.md — Final diary and PDF-rendering fix
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/tasks.md — All tasks checked
+

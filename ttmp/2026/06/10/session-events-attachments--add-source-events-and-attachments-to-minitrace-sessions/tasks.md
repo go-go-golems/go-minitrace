@@ -48,7 +48,7 @@
   - Add query examples for timeline events and image/file attachments.
   - Ensure the ticket design doc reflects actual implementation decisions.
 
-- [ ] 9. Validate, doctor, and deliver.
+- [x] 9. Validate, doctor, and deliver.
   - Run targeted tests after each phase and a broader test set before handoff.
   - Run `docmgr --root "$(pwd)/ttmp" doctor --ticket session-events-attachments --stale-after 30`.
   - Upload the ticket bundle to reMarkable under `/ai/2026/06/10/session-events-attachments`.
