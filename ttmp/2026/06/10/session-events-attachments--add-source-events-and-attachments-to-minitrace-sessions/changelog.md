@@ -77,3 +77,13 @@ Step 7: Added Codex subagent/image/rate-limit events and image attachments (comm
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert.go — Codex adapter mappings
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert_test.go — Codex adapter coverage
 
+
+## 2026-06-10
+
+Step 8: Extended Goja and CLI session previews with event/attachment counts and samples (commit 72dd30f).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go — CLI output
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — Preview API
+

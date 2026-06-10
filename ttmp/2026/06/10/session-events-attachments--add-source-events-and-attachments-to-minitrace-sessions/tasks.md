@@ -38,7 +38,7 @@
   - Keep existing normalized tool-call semantics intact.
   - Add or update tests in `pkg/adapters/codex/convert_test.go`.
 
-- [ ] 7. Expose the new primitives in preview/import surfaces.
+- [x] 7. Expose the new primitives in preview/import surfaces.
   - Extend `pkg/minitracejs` preview summaries with event and attachment counts and sample rows.
   - Update `go-minitrace preview session` output and tests.
   - Keep default preview privacy-safe: structural summaries first, snippets only when requested.

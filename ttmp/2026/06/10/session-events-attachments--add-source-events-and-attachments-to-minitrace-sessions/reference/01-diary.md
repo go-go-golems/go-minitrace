@@ -10,6 +10,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: cmd/go-minitrace/cmds/preview/session.go
+      Note: Emits event/attachment preview columns from CLI (commit 72dd30f)
     - Path: pkg/adapters/claudecode/convert.go
       Note: Mapped Claude mode/permission/title records to events and attachments to first-class artifacts (commit 673489f)
     - Path: pkg/adapters/claudecode/convert_test.go
@@ -42,6 +44,10 @@ RelatedFiles:
       Note: Asserted explicit event and attachment rows (commit 07f4ba5)
     - Path: pkg/minitracedb/schema.go
       Note: Added attachments table
+    - Path: pkg/minitracejs/import_builder.go
+      Note: Added preview counts and samples for events and attachments (commit 72dd30f)
+    - Path: pkg/minitracejs/import_builder_test.go
+      Note: Added preview event assertions (commit 72dd30f)
     - Path: pkg/validate/json.go
       Note: Validated events and attachments arrays in native JSON (commit adca28f)
     - Path: pkg/validate/json_test.go
@@ -52,6 +58,7 @@ LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -584,3 +591,68 @@ This implementation intentionally derives Codex events from normalized tool call
 ### Technical details
 - Image attachment IDs use `codex-image-<toolCallID>`.
 - Event IDs use `codex-<kind>-<toolCallID>` except `codex-rate-limits`.
+
+## Step 8: Expose event and attachment previews
+
+I extended the Goja/xgoja import preview API and the CLI preview command so users can see event and attachment counts, kind breakdowns, and bounded structural samples. This makes the new schema visible without requiring users to dump full converted transcripts.
+
+The default privacy behavior remains safe: structural mode suppresses text previews and paths/commands where the existing preview helpers already do so, snippets mode truncates, and full mode is still explicit.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the task list by exposing the new primitives through the preview surfaces used by CLI and Goja import workflows.
+
+**Inferred user intent:** The user wants a quick way to verify that events and attachments survived conversion without inspecting raw JSON manually.
+
+**Commit (code):** 72dd30f0dada706483b1c167b20a2aad421ccef8 — "preview: include events and attachments"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go`:
+  - added `EventCount`, `AttachmentCount`, `EventCounts`, and `AttachmentCounts` to `SessionPreview`;
+  - added `PreviewEvent` and `PreviewAttachment` sample structs;
+  - populated samples from `session.Events` and `session.Attachments`;
+  - folded event/attachment image signals into `HasImageSignals`.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go`:
+  - emitted event/attachment counts, breakdowns, and samples as CLI row fields.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder_test.go`:
+  - asserted that Pi model-change events appear in preview output.
+- Ran:
+  - `gofmt -w pkg/minitracejs/import_builder.go cmd/go-minitrace/cmds/preview/session.go pkg/minitracejs/import_builder_test.go`
+  - `go test ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/preview -count=1`
+
+### Why
+- The preview command is the easiest way to validate conversion quality across Pi, Claude, Codex, and native minitrace inputs.
+- Event and attachment samples need to be visible alongside turn/tool samples for the new schema to be useful.
+
+### What worked
+- Preview tests passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/minitracejs 0.003s`
+  - `ok github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider 0.198s`
+  - `ok github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview 0.008s`
+
+### What didn't work
+- No command failed in this step.
+
+### What I learned
+- The existing preview privacy helpers were reusable for event summaries and attachment previews.
+- Attachment paths can use the same privacy helper as file paths, keeping structural output path-free.
+
+### What was tricky to build
+- The tricky part was adding useful samples without creating another raw transcript dump. `PreviewEvent` reports identity, links, title/summary, severity, and text presence; `PreviewAttachment` reports identity, media/path/link fields, and whether a preview exists.
+- I kept raw JSON and framework metadata out of preview samples for default safety.
+
+### What warrants a second pair of eyes
+- Review whether attachment URLs should be suppressed in structural mode like paths.
+- Review whether event summaries should be shown in snippets mode or be structural-only by default.
+
+### What should be done in the future
+- Implement Task 8: final docs/examples/design updates.
+
+### Code review instructions
+- Start with `SessionPreview` in `pkg/minitracejs/import_builder.go`.
+- Validate with `go test ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/preview -count=1`.
+
+### Technical details
+- CLI rows now include `event_count`, `attachment_count`, `event_counts`, `attachment_counts`, `sample_events`, and `sample_attachments`.
