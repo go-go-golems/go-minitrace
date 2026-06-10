@@ -109,6 +109,8 @@ go-minitrace query duckdb \
 | `read-ratio-distribution` | Per-session breakdown of reads, modifies, creates, executes with read ratio |
 | `annotations` | All annotations unnested: session ID, framework, annotator, category, title, scope |
 
+Native minitrace JSON can also include `events` and `attachments` arrays. These are queryable with the same `UNNEST` pattern as turns, tool calls, and annotations.
+
 ### Output formatting
 
 Query results flow through Glazed, so all standard output options work:
@@ -173,6 +175,8 @@ The loaded table has these columns, all derived from the minitrace JSON schema:
 | `timing` | JSON | Nested: `timing->>'duration_seconds'` |
 | `turns` | JSON[] | Array: `UNNEST(turns)` |
 | `tool_calls` | JSON[] | Array: `UNNEST(tool_calls)` |
+| `events` | JSON[] | Array: `UNNEST(events)` |
+| `attachments` | JSON[] | Array: `UNNEST(attachments)` |
 | `annotations` | JSON[] | Array: `UNNEST(annotations)` |
 | `metrics` | JSON | Nested: `metrics->>'turn_count'` |
 
@@ -185,6 +189,22 @@ SELECT tc->>'tool_name'
 FROM sessions_base,
      UNNEST(tool_calls) AS t(tc)
 LIMIT 20;
+```
+
+Source events and attachments use the same pattern:
+
+```sql
+-- Explicit source lifecycle events such as compactions, mode changes, or rate-limit snapshots.
+SELECT id, ev->>'kind' AS kind, ev->>'title' AS title, ev->>'summary' AS summary
+FROM sessions_base,
+     UNNEST(events) AS e(ev)
+ORDER BY id, ev->>'timestamp';
+
+-- Artifact references such as images or uploaded files.
+SELECT id, a->>'kind' AS kind, a->>'media_type' AS media_type, a->>'path' AS path
+FROM sessions_base,
+     UNNEST(attachments) AS x(a)
+WHERE a->>'kind' = 'image';
 ```
 
 Two small but important DuckDB details:

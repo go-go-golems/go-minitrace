@@ -21,7 +21,7 @@ When go-minitrace loads an archive, it creates a table with these columns:
 
 - **Top-level strings**: `id`, `title`, `summary`, `classification`, `profile` — directly queryable
 - **JSON objects**: `provenance`, `flags`, `environment`, `operational_context`, `timing`, `metrics` — access fields with `->>`
-- **JSON arrays**: `turns`, `tool_calls`, `annotations` — iterate with `UNNEST`
+- **JSON arrays**: `turns`, `tool_calls`, `events`, `attachments`, `annotations` — iterate with `UNNEST`
 
 ## Accessing JSON fields
 
@@ -88,7 +88,7 @@ GROUP BY framework;
 
 ## Working with arrays: UNNEST
 
-The `turns`, `tool_calls`, and `annotations` columns are loaded as DuckDB `JSON[]` columns. The normal way to query individual elements is to `UNNEST` the array first:
+The `turns`, `tool_calls`, `events`, `attachments`, and `annotations` columns are loaded as DuckDB `JSON[]` columns. The normal way to query individual elements is to `UNNEST` the array first:
 
 ```sql
 -- Count tool calls by name across all sessions
@@ -102,6 +102,31 @@ ORDER BY invocations DESC;
 ```
 
 The `UNNEST(tool_calls) AS t(tc)` clause expands each tool call array element into a row. The variable `tc` holds one JSON element that you can query with either `->>` or `json_extract()`.
+
+The same pattern works for explicit source events and attachments:
+
+```sql
+-- Source lifecycle events: compactions, title changes, permission changes, rate-limit snapshots.
+SELECT
+  id,
+  ev->>'kind' AS event_kind,
+  ev->>'title' AS event_title,
+  ev->>'summary' AS event_summary
+FROM sessions_base,
+     UNNEST(events) AS e(ev)
+ORDER BY id, ev->>'timestamp';
+
+-- Artifact references: images, uploaded files, downloaded files, or future generated outputs.
+SELECT
+  id,
+  att->>'kind' AS attachment_kind,
+  att->>'media_type' AS media_type,
+  att->>'path' AS path,
+  att->>'tool_call_id' AS tool_call_id
+FROM sessions_base,
+     UNNEST(attachments) AS a(att)
+WHERE att->>'kind' = 'image';
+```
 
 ### Extracting fields from array elements
 

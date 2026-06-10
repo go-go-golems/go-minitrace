@@ -13,6 +13,15 @@ SectionType: GeneralTopic
 
 Each conversion subcommand uses an adapter that reads a native session format and maps it to the minitrace schema. This page documents what each adapter reads, what gets preserved, what gets synthesized, and what is lost.
 
+## Source events and attachments
+
+Minitrace now has two first-class primitives for source data that is not a conversational message or normalized tool call:
+
+- `events[]` stores source-observed lifecycle/timeline facts such as compactions, permission-mode changes, title changes, subagent lifecycle signals, or rate-limit snapshots.
+- `attachments[]` stores artifact references such as images, uploaded files, downloaded files, or future generated outputs. Attachments are references and bounded previews, not blob storage.
+
+Adapters should use annotations for human or derived review notes. They should use events/attachments for facts that came from the source transcript itself.
+
 ## Claude Code adapter
 
 **Source**: JSONL v2 transcripts in `~/.claude/projects/`
@@ -28,6 +37,8 @@ Claude Code stores one JSONL file per session. Each line is a JSON event with a 
 - **Tool result blocks** → tool call outputs with success/error status
 - **Usage metadata** → per-turn token counts (input, output, cache_read, cache_creation)
 - **Subagent directories** → separate minitrace sessions with parent backlinking
+- **Lifecycle records** → source events where they do not fit turns or tool calls
+- **Attachment records** → attachment references plus optional timeline events
 
 Additionally, dir-v1 tool-results sessions (an older format that stores tool results in a directory structure) are detected and converted.
 
@@ -44,6 +55,8 @@ Additionally, dir-v1 tool-results sessions (an older format that stores tool res
 | `title` | First 80 characters of the first human message |
 | `turns[].thinking` | Extracted from thinking blocks if present |
 | `turns[].usage` | Per-message token counts |
+| `events[]` | Source lifecycle records such as mode, permission-mode, title, and attachment events |
+| `attachments[]` | Attachment references with media/name/path-like metadata when available |
 
 ### Tool operation mapping
 
@@ -97,6 +110,8 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 - **Exec JSONL** → tool calls from `codex exec --json` output
 - **Command metadata** → exit codes and execution metadata when present
 - **Tool-call arguments** → command strings plus optional justification text
+- **Lifecycle/source signals** → source events when they describe timeline facts outside turns
+- **Image-view signals** → attachment references when a `view_image` tool call points at an image
 
 ### Known limitations
 
@@ -132,7 +147,7 @@ Codex keeps richer raw metadata in the adapter-specific metadata/config fields:
 
 ### What is not preserved
 
-- Some Codex source-specific records still collapse into the nearest session/turn/tool representation rather than being modeled as standalone event types
+- Some Codex source-specific records may still collapse into the nearest session/turn/tool representation until adapter-specific event mapping is fully implemented
 - Binary exec output is truncated
 
 ## Pi adapter
@@ -150,6 +165,7 @@ Pi stores one JSONL file per session in workspace-named directories (e.g., `--ho
 - **Tool calls** → tool calls with mapped operation types
 - **Tool results** → tool call outputs
 - **Token usage events** → per-turn usage counters
+- **Lifecycle records** → source events for session info, compactions, model changes, thinking-level changes, and custom records as support is added
 
 ### Field mapping
 
