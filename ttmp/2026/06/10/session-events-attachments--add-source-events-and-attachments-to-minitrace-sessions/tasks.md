@@ -26,7 +26,7 @@
   - Preserve existing `model_change` and `thinking_level_change` config behavior while adding lifecycle events.
   - Add minimized adapter tests in `pkg/adapters/pi/convert_test.go`.
 
-- [ ] 5. Map Claude Code attachments and lifecycle records.
+- [x] 5. Map Claude Code attachments and lifecycle records.
   - Convert `attachment` records to `Session.Attachments` instead of annotation-only preservation.
   - Add timeline events for `mode`, `permission-mode`, `ai-title`, and `attachment` records.
   - Keep existing framework config/title behavior intact.

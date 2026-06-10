@@ -57,3 +57,13 @@ Step 5: Mapped Pi non-message records to first-class source events and framework
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/pi/convert.go — Pi adapter mappings
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/pi/convert_test.go — Pi adapter coverage
 
+
+## 2026-06-10
+
+Step 6: Mapped Claude Code lifecycle records to events and attachment records to first-class attachments (commit 673489f).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert.go — Claude adapter mappings
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert_test.go — Claude adapter coverage
+

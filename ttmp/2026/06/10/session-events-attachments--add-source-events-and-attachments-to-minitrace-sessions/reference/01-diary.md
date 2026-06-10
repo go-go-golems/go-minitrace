@@ -10,6 +10,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: pkg/adapters/claudecode/convert.go
+      Note: Mapped Claude mode/permission/title records to events and attachments to first-class artifacts (commit 673489f)
+    - Path: pkg/adapters/claudecode/convert_test.go
+      Note: Updated Claude latest metadata tests for events and attachments (commit 673489f)
     - Path: pkg/adapters/pi/convert.go
       Note: Mapped Pi session_info/custom/compaction/model/thinking records to source events (commit fa73b81)
     - Path: pkg/adapters/pi/convert_test.go
@@ -44,6 +48,7 @@ LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -434,3 +439,77 @@ The most important semantic change is that Pi compactions and pinned-skill/custo
 - `session_info.name` overrides extracted prompt title.
 - `custom` records populate both `events[]` and `operational_context.framework_config.pi_custom`.
 - `compaction` records populate event summary/framework metadata and remain collapsed by default.
+
+## Step 6: Map Claude Code lifecycle records and attachments
+
+I updated the Claude Code adapter to emit explicit lifecycle events for `mode`, `permission-mode`, `ai-title`, and `attachment` records. Claude attachment records now become first-class `Session.Attachments` with a paired `attachment` event instead of being preserved only as annotations.
+
+The existing framework-config behavior remains intact: mode, permission mode, title, agent ID, session ID, parent UUID, and sidechain state are still available in `OperationalContext.FrameworkConfig`. The new event/attachment arrays add timeline and artifact queryability without removing those structural fields.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the task list by implementing Claude Code lifecycle and attachment mappings using the new source-event and attachment primitives.
+
+**Inferred user intent:** The user wants latest Claude Code non-message records and image/file attachments to load into first-class schema fields rather than being hidden in annotations or framework config only.
+
+**Commit (code):** 673489f1d3425da6f3c4424099a93ffe0e9baabc — "claudecode: map lifecycle events and attachments"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert.go`:
+  - added `events` and `attachments` accumulators;
+  - mapped `mode` to `Event{kind:"mode_change"}`;
+  - mapped `permission-mode` to `Event{kind:"permission_mode_change"}`;
+  - mapped `ai-title` to `Event{kind:"title_change"}`;
+  - mapped `attachment` to `Attachment` plus `Event{kind:"attachment"}`;
+  - removed the attachment-as-annotation helper.
+- Added helper functions:
+  - `buildClaudeLifecycleEvent`;
+  - `buildClaudeAttachment`;
+  - `buildClaudeAttachmentEvent`;
+  - `claudeRecordMetadata`.
+- Updated `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert_test.go` to assert event and attachment output.
+- Ran:
+  - `gofmt -w pkg/adapters/claudecode/convert.go pkg/adapters/claudecode/convert_test.go`
+  - `go test ./pkg/adapters/claudecode -count=1`
+
+### Why
+- Claude Code attachment records are source artifacts, not review notes.
+- Lifecycle records are timeline facts and should be queryable as events while preserving existing framework config fields.
+- Removing attachment annotations prevents the invalid/ambiguous `annotation.content.category = attachment` pattern from spreading.
+
+### What worked
+- `go test ./pkg/adapters/claudecode -count=1` passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode 0.002s`
+- The existing latest-metadata test now verifies four events and one image attachment.
+- Attachment/event links are bidirectional: `Attachment.EventID` points to the event and `Event.AttachmentID` points to the attachment.
+
+### What didn't work
+- No command failed in this step.
+
+### What I learned
+- Claude Code record-level metadata (`agentId`, `sessionId`, `parentUuid`, `isSidechain`, `entrypoint`) is useful on both lifecycle events and attachments.
+- The previous attachment annotation category was not part of the validator's known annotation categories, reinforcing the decision to move source attachments out of annotations.
+
+### What was tricky to build
+- The subtle part was keeping old config behavior while adding new schema output. `mode`, `permission-mode`, and `ai-title` still update framework config/title; the event is additive.
+- Attachment shape is not guaranteed, so `buildClaudeAttachment` pulls from common names (`fileName`, `mediaType`, `mimeType`, `path`, `filePath`, `url`, `sizeBytes`, `fileSize`) and leaves absent fields empty.
+
+### What warrants a second pair of eyes
+- Review whether Claude attachment event IDs should include the source UUID rather than ordinal-only IDs.
+- Review whether attachment `TextPreview` should preserve the source `content` field for image attachments or omit blob-like values entirely.
+- Review whether removing the compatibility annotation is acceptable for existing consumers.
+
+### What should be done in the future
+- Implement Task 6: map Codex image/subagent/source lifecycle details.
+- Later preview output should show attachment counts and structural samples without exposing raw content by default.
+
+### Code review instructions
+- Start with the Claude switch cases for `mode`, `permission-mode`, `ai-title`, and `attachment` in `pkg/adapters/claudecode/convert.go`.
+- Review attachment helper defaults near `summarizeClaudeAttachment`.
+- Validate with `go test ./pkg/adapters/claudecode -count=1`.
+
+### Technical details
+- Image detection reuses `hasClaudeImageSignal`.
+- Attachment kind becomes `image` when the attachment type/name/media type indicates an image; otherwise it uses the source attachment type or `attachment`.
