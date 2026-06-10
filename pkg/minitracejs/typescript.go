@@ -89,6 +89,7 @@ func TypeScriptModule() *spec.Module {
 			"  Detect(): Record<string, unknown>;",
 			"  Convert(): ImportBuilder;",
 			"  Converted(): Record<string, unknown>;",
+			"  Preview(): Record<string, unknown>;",
 			"  Diagnostics(): Array<Record<string, unknown>>;",
 			"  Save(): Record<string, unknown>;",
 			"}",

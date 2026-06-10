@@ -101,14 +101,20 @@ try {
 ### Upload/import flow
 
 ```js
-const saved = mt.importer()
+const importer = mt.importer()
   .Content(uploadText)
   .Name(filename)
-  .Into(sessionsDir)
-  .SessionID(sessionId)
   .AutoDetect()
   .Strict()
-  .Convert()
+  .Convert();
+
+const preview = importer.Preview();
+// Inspect preview.hasSystemPrompt, preview.sampleTurns, preview.sampleTools,
+// preview.toolCounts, preview.subagentCount, and preview.hasImageSignals before saving.
+
+const saved = importer
+  .Into(sessionsDir)
+  .SessionID(sessionId)
   .Save();
 ```
 
@@ -144,7 +150,8 @@ Methods:
 | `.Overwrite(true|false)` | Allow replacing an existing session directory. |
 | `.Detect()` | Load/detect and return `{ format, adapter, diagnostics }`. |
 | `.Convert()` | Convert and keep the Go-owned converted session in the builder. |
-| `.Converted()` | Return a plain summary of the converted session. |
+| `.Converted()` | Return a plain count-level summary of the converted session. |
+| `.Preview()` | Return a transcript preview for validation: roles, tools, sample turns/tool calls, system-prompt/thinking/image/subagent signals, and diagnostics. |
 | `.Diagnostics()` | Return conversion diagnostics. |
 | `.Save()` | Write `session.minitrace.json` and `metadata.json`. |
 
