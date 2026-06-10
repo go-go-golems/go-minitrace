@@ -110,7 +110,8 @@ const importer = mt.importer()
 
 const preview = importer.Preview();
 // Inspect preview.hasSystemPrompt, preview.sampleTurns, preview.sampleTools,
-// preview.toolCounts, preview.subagentCount, and preview.hasImageSignals before saving.
+// preview.sampleEvents, preview.sampleAttachments, preview.eventCounts,
+// preview.attachmentCounts, preview.subagentCount, and preview.hasImageSignals before saving.
 
 const saved = importer
   .Into(sessionsDir)
@@ -151,7 +152,7 @@ Methods:
 | `.Detect()` | Load/detect and return `{ format, adapter, diagnostics }`. |
 | `.Convert()` | Convert and keep the Go-owned converted session in the builder. |
 | `.Converted()` | Return a plain count-level summary of the converted session. |
-| `.Preview()` | Return a transcript preview for validation: roles, tools, sample turns/tool calls, system-prompt/thinking/image/subagent signals, and diagnostics. |
+| `.Preview()` | Return a transcript preview for validation: roles, tools, source events, attachments, sample turns/tool calls/events/attachments, system-prompt/thinking/image/subagent signals, and diagnostics. |
 | `.Diagnostics()` | Return conversion diagnostics. |
 | `.Save()` | Write `session.minitrace.json` and `metadata.json`. |
 
@@ -175,9 +176,21 @@ Preview privacy controls:
 
 | Privacy | Behavior |
 |---|---|
-| `structural` | Counts, roles, tools, booleans, and diagnostics only; content snippets/commands/paths are suppressed in samples. |
+| `structural` | Counts, roles, tools, event/attachment kinds, booleans, and diagnostics only; content snippets/commands/paths are suppressed in samples. |
 | `snippets` | Default; includes bounded snippets and commands for quick validation. |
 | `full` | Includes full sampled turn text and command strings; use only on trusted local output paths. |
+
+Important preview fields:
+
+| Field | Meaning |
+|---|---|
+| `turnCount`, `toolCallCount` | Normalized conversation/action counts. |
+| `eventCount`, `attachmentCount` | First-class source event/artifact counts. |
+| `roleCounts`, `toolCounts` | Breakdown maps for turns and tools. |
+| `eventCounts`, `attachmentCounts` | Breakdown maps by event kind and attachment kind. |
+| `sampleTurns`, `sampleTools` | Bounded samples for validating role/tool conversion. |
+| `sampleEvents`, `sampleAttachments` | Bounded samples for lifecycle facts and artifacts; raw JSON is not included. |
+| `hasImageSignals` | True if turns, tools, events, or attachments include image-like signals. |
 
 ## `mt.sources()`
 

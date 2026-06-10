@@ -627,9 +627,28 @@ WHERE a.kind = 'image';
 - **Annotation compatibility:** Some users may expect Claude attachments as annotations. Decide during implementation whether to keep a transition annotation or update tests/docs to reflect the cleaner semantics.
 - **Frontend mismatch:** The web UI/protobuf layer may not render attachments immediately. Mitigate by documenting backend-first scope and exposing SQL/preview access first.
 
+## Implementation status after first pass
+
+The first implementation pass completed the backend and preview scope described in this guide:
+
+- `Session.Events` and `Session.Attachments` exist in the canonical Go schema.
+- The normalized SQLite schema is now `normalized-sqlite-v2` and includes an `attachments` table.
+- The `events` table now accepts explicit source-event rows in addition to derived turn/tool/annotation events.
+- Native JSON validation accepts absent/null/empty event and attachment arrays and requires `id`/`kind` for present objects.
+- Pi maps `session_info`, `custom`, `compaction`, `model_change`, and `thinking_level_change` to events.
+- Claude Code maps `mode`, `permission-mode`, `ai-title`, and `attachment` records to events/attachments.
+- Codex derives `image_view`, `subagent_spawn`, `subagent_wait`, and `rate_limits` events plus image attachments from normalized tool/session metadata.
+- Goja and CLI preview output includes event/attachment counts, kind breakdowns, and privacy-aware samples.
+
+Known follow-up candidates:
+
+- Preserve exact timestamps for Codex `rate_limits` events instead of deriving them from latest metadata only.
+- Decide whether frontend/protobuf timeline rendering should expose events and attachments directly.
+- Consider stricter validation once adapter-produced event/attachment shapes settle.
+
 ## References
 
-- `pkg/minitrace/schema.go`: canonical session, turn, tool-call, annotation, and metrics structs.
+- `pkg/minitrace/schema.go`: canonical session, turn, tool-call, annotation, event, attachment, and metrics structs.
 - `pkg/minitrace/builders.go`: default constructors for sessions, turns, tool calls, and annotations.
 - `pkg/minitracedb/schema.go`: normalized SQLite table descriptors, including existing `events` table.
 - `pkg/minitracedb/materialize.go`: JSON-to-SQL materialization flow and derived timeline event insertion.
