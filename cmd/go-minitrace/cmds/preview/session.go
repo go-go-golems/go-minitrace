@@ -249,11 +249,17 @@ func emitPreviewRow(ctx context.Context, gp middlewares.Processor, sourcePath st
 		types.MRP("has_image_signals", preview.HasImageSignals),
 		types.MRP("turn_count", preview.TurnCount),
 		types.MRP("tool_call_count", preview.ToolCallCount),
+		types.MRP("event_count", preview.EventCount),
+		types.MRP("attachment_count", preview.AttachmentCount),
 		types.MRP("subagent_count", preview.SubagentCount),
 		types.MRP("role_counts", preview.RoleCounts),
 		types.MRP("tool_counts", preview.ToolCounts),
+		types.MRP("event_counts", preview.EventCounts),
+		types.MRP("attachment_counts", preview.AttachmentCounts),
 		types.MRP("sample_turns", preview.SampleTurns),
 		types.MRP("sample_tools", preview.SampleTools),
+		types.MRP("sample_events", preview.SampleEvents),
+		types.MRP("sample_attachments", preview.SampleAttachments),
 		types.MRP("diagnostics", preview.Diagnostics),
 	))
 }

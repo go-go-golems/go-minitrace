@@ -27,6 +27,9 @@ func TestImportBuilderPreviewSummarizesConvertedPiSession(t *testing.T) {
 	if preview.TurnCount != 2 || preview.ToolCallCount != 1 {
 		t.Fatalf("unexpected counts: turns=%d tools=%d", preview.TurnCount, preview.ToolCallCount)
 	}
+	if preview.EventCount != 1 || preview.EventCounts["model_change"] != 1 || len(preview.SampleEvents) != 1 {
+		t.Fatalf("unexpected event preview: count=%d counts=%+v samples=%+v", preview.EventCount, preview.EventCounts, preview.SampleEvents)
+	}
 	if !preview.HasThinking {
 		t.Fatalf("expected thinking signal")
 	}
