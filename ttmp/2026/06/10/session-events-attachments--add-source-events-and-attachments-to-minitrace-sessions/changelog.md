@@ -126,3 +126,14 @@ Uploaded refreshed frontend/protobuf integration bundle to reMarkable at /ai/202
 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-events-attachments--add-source-events-and-attachments-to-minitrace-sessions/design-doc/01-session-events-and-attachments-design-and-implementation-guide.md — Refreshed bundle content
 
+
+## 2026-06-10
+
+Step 12: Addressed PR #17 review/CI by preserving discovered preview locator format hints, restoring pinned provider API compatibility, and documenting concrete source facts examples (commit 2308a78).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go — Directory preview fix
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md — Concrete examples
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider.go — CI typecheck fix
+

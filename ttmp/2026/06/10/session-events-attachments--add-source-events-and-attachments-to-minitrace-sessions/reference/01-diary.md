@@ -11,7 +11,11 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: cmd/go-minitrace/cmds/preview/session.go
-      Note: Emits event/attachment preview columns from CLI (commit 72dd30f)
+      Note: |-
+        Emits event/attachment preview columns from CLI (commit 72dd30f)
+        Preserves discovered locator format hints in preview directory mode (commit 2308a78)
+    - Path: cmd/go-minitrace/cmds/preview/session_test.go
+      Note: Regression coverage for Codex exec-jsonl locator preview (commit 2308a78)
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions.go
       Note: Normalizes minitrace events/attachments for API responses (commit f8e542b)
     - Path: cmd/go-minitrace/cmds/serve/handlers_sessions_v2.go
@@ -31,7 +35,9 @@ RelatedFiles:
     - Path: pkg/doc/adapter-reference.md
       Note: Documented source events and attachment semantics (commit adca28f)
     - Path: pkg/doc/js-api-reference.md
-      Note: Documented preview event and attachment fields (commit 5e24a54)
+      Note: |-
+        Documented preview event and attachment fields (commit 5e24a54)
+        Adds concrete source facts examples for Goja users (commit 2308a78)
     - Path: pkg/doc/query.md
       Note: Documented events/attachments DuckDB arrays (commit adca28f)
     - Path: pkg/doc/writing-duckdb-queries.md
@@ -54,6 +60,8 @@ RelatedFiles:
       Note: Added preview counts and samples for events and attachments (commit 72dd30f)
     - Path: pkg/minitracejs/import_builder_test.go
       Note: Added preview event assertions (commit 72dd30f)
+    - Path: pkg/minitracejs/provider/provider.go
+      Note: Removes providerapi.Module TypeScript field usage for pinned dependency compatibility (commit 2308a78)
     - Path: pkg/validate/json.go
       Note: Validated events and attachments arrays in native JSON (commit adca28f)
     - Path: pkg/validate/json_test.go
@@ -72,6 +80,7 @@ LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -896,3 +905,74 @@ This step makes the backend work visible in the browser UI: users can now see so
 ### Technical details
 - The UI panel renders at most eight events and eight attachments and shows overflow counts.
 - The panel links event/attachment/tool IDs textually but does not yet scroll to linked tool calls.
+
+## Step 12: Address PR review and CI failures
+
+I fixed the PR feedback on directory/latest session preview by preserving the full discovered locator instead of reducing it to a path. Directory preview now calls the framework adapter's locator conversion path, so Codex `exec-jsonl-v1` files and Claude Code `dir-v1` session directories keep the format hint that discovery already computed.
+
+I also fixed the CI typecheck failure by removing the provider registry `TypeScript` field usage that only existed in the local workspace version of go-go-goja, not the go.mod-pinned dependency used by GitHub Actions. The TypeScript descriptor remains available from `minitracejs.TypeScriptModule()`, but it is no longer attached to `providerapi.Module` in this repository.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Address the code review comments and the failing jobs at https://github.com/go-go-golems/go-minitrace/pull/17"
+
+**Assistant interpretation:** Inspect PR #17 review comments and failing GitHub Actions jobs, then implement and validate fixes.
+
+**Inferred user intent:** The user wants the events/attachments PR to be merge-ready by addressing automated review feedback, CI failures, and missing docs/examples.
+
+**Commit (code):** 2308a78d5ad62077c8c93eaab56af8e7c1d0a9db — "preview: preserve discovered locator formats"
+
+### What I did
+- Read PR #17 metadata, review comments, and failed job logs with `gh pr view`, `gh api repos/go-go-golems/go-minitrace/pulls/17/comments`, and `gh run view`.
+- Updated `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go` so directory/latest mode preserves `adapters.SessionLocator` values and calls adapter `ConvertLocator` functions.
+- Added preview tests in `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session_test.go` for Codex `exec-jsonl-v1` discovery and preview.
+- Removed go-go-goja-local-only `providerapi.Module.TypeScript` usage from `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider.go` and adjusted `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/provider/provider_test.go`.
+- Removed an unused Claude Code test helper in `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert_test.go` found by golangci-lint.
+- Expanded `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md` with concrete source-event/attachment examples for Codex images, Claude Code permission-mode changes, Pi compactions, and Codex subagents.
+
+### Why
+- The PR review was correct: path-only directory preview loses adapter-specific format hints and breaks valid discovered sessions that cannot be loaded by generic auto-detection.
+- CI checked out the module without the local go.work replacement, so the provider package had to compile against the go.mod-pinned go-go-goja API.
+- The follow-up documentation needed real examples, not only abstract table descriptions.
+
+### What worked
+- `GOWORK=off go test ./cmd/go-minitrace/cmds/preview ./pkg/minitracejs/provider -count=1` passed.
+- `GOWORK=off go test ./... -count=1` passed.
+- `golangci-lint run --timeout=5m ./cmd/... ./pkg/...` passed with `0 issues`.
+- `GOWORK=off govulncheck ./...` reported `No vulnerabilities found` for called code.
+- `GOWORK=off gosec -exclude=G101,G304,G301,G306,G204 -exclude-dir=.history -exclude-dir=ttmp -exclude-dir=gen/proto ./...` reported `Issues : 0`.
+
+### What didn't work
+- The first CI logs showed all failed jobs were rooted in the same compile error:
+  - `pkg/minitracejs/provider/provider.go:62:4: unknown field TypeScript in struct literal of type providerapi.Module`
+  - `pkg/minitracejs/provider/provider_test.go:28:9: mod.TypeScript undefined (type providerapi.Module has no field or method TypeScript)`
+- Local `golangci-lint` initially also reported:
+  - `cmd/go-minitrace/cmds/preview/session.go:284:1: named return "timeValue" with type "comparableTime" found (nonamedreturns)`
+  - `pkg/adapters/claudecode/convert_test.go:387:6: func containsString is unused (unused)`
+- A broad local `gosec ./...` without the workflow excludes reported many pre-existing warnings and scanned `web/node_modules`; rerunning with the workflow's exclude arguments matched CI intent and passed.
+
+### What I learned
+- GitHub Actions runs with the go.mod-pinned go-go-goja API, while this workspace's go.work points at a newer local checkout. CI-sensitive provider code must compile against the pinned module unless the dependency is intentionally bumped.
+- Directory/latest preview should treat discovery results as rich locators, not as plain paths. The source path is only the display/load location; the format hint is part of the conversion contract.
+
+### What was tricky to build
+- The main trap was preserving backwards compatibility for single-file preview while changing directory preview. Single-file preview still uses `LoadSessionFileAuto`, because it has no framework/format locator. Directory mode now uses `ConvertLocator` because discovery already chose the adapter and format.
+- The provider TypeScript failure was easy to miss locally because go.work masked the older dependency API. I validated with `GOWORK=off` to reproduce CI's dependency shape.
+
+### What warrants a second pair of eyes
+- Review whether `previewSessionLocator` should move into `minitracedb` as a public loader helper if more commands need locator-aware conversion.
+- Review whether preview output should report `locator.FormatHint` (`exec-jsonl-v1`, `dir-v1`) or the normalized minitrace source format (`codex-exec-jsonl-v1`, `claude-code-dir-v1`) in the `format` field.
+
+### What should be done in the future
+- Consider adding a `minitracedb.LoadSessionLocatorAuto` helper so CLI and Goja code can share locator-aware loading.
+- If TypeScript descriptor registration is required in provider metadata, bump go-go-goja intentionally and update CI/dependency docs in a separate PR.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/preview/session.go`, especially `discoverPreviewLocators`, `previewSessionLocator`, and `loadAdapterLocator`.
+- Review `cmd/go-minitrace/cmds/preview/session_test.go` for the Codex `exec-jsonl-v1` regression case.
+- Review `pkg/minitracejs/provider/provider.go` and `provider_test.go` for the pinned go-go-goja compatibility fix.
+- Validate with `GOWORK=off go test ./... -count=1`, `golangci-lint run --timeout=5m ./cmd/... ./pkg/...`, `GOWORK=off govulncheck ./...`, and the workflow gosec command.
+
+### Technical details
+- The directory preview row still emits `source_path` from `locator.SourcePath`; only the conversion path changed.
+- The Codex regression fixture starts with `thread.started`, so generic JSONL detection would previously reject it as unsupported while locator-aware preview converts it as `exec-jsonl-v1`.
