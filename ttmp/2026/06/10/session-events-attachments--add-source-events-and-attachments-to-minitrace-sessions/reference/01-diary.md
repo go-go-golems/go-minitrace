@@ -16,12 +16,21 @@ RelatedFiles:
       Note: Added schema/builder default tests for events and attachments (commit d612015)
     - Path: pkg/minitrace/schema.go
       Note: Added Event and Attachment structs plus Session fields (commit d612015)
+    - Path: pkg/minitracedb/cache_test.go
+      Note: Updated cache-version test for schema v2 (commit 07f4ba5)
+    - Path: pkg/minitracedb/materialize.go
+      Note: Inserted explicit session events and attachments during materialization (commit 07f4ba5)
+    - Path: pkg/minitracedb/materialize_test.go
+      Note: Asserted explicit event and attachment rows (commit 07f4ba5)
+    - Path: pkg/minitracedb/schema.go
+      Note: Added attachments table
 ExternalSources: []
 Summary: Chronological implementation diary for first-class session events and attachments.
 LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 # Diary
@@ -178,3 +187,80 @@ I also added small builder helpers so adapters can construct source events and a
 ### Technical details
 - New event fields include IDs, timestamps, optional turn/tool/annotation/attachment links, title/summary/text, severity, collapsed state, framework metadata, and raw JSON.
 - New attachment fields include IDs, timestamps, kind/name/media type, path/URL/hash/content ref, bounded text preview, optional turn/tool/event links, framework metadata, and raw JSON.
+
+## Step 3: Materialize explicit events and attachments
+
+I implemented the normalized SQLite side of the feature. The database schema now has a first-class `attachments` table, the existing `events` table can hold explicit source-event metadata, and `MaterializeSession` inserts `session.Events` and `session.Attachments` in addition to the derived turn/tool/annotation timeline rows.
+
+This step keeps the original derived event behavior intact. Existing turns, tool calls, and annotations still synthesize timeline rows, while adapters can now add source-observed events without pretending they are annotations.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the task list by implementing normalized persistence for the schema primitives added in Step 2.
+
+**Inferred user intent:** The user wants the new JSON fields to be queryable through the existing minitracedb SQL layer, not only present in in-memory Go structs.
+
+**Commit (code):** 07f4ba5a522e6de12903ceb4ee20695b5ac93796 — "minitracedb: materialize events and attachments"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/schema.go`:
+  - bumped normalized SQLite schema version from `normalized-sqlite-v1` to `normalized-sqlite-v2`;
+  - added `attachmentsTable()`;
+  - registered `attachmentsTable()` in `Tables()`;
+  - added `timestamp`, `attachment_id`, and `framework_metadata_json` columns to `events`;
+  - added attachment lookup indexes.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize.go`:
+  - added insertion loops for `session.Events` and `session.Attachments`;
+  - added `insertExplicitEvent`;
+  - added `insertAttachment`.
+- Modified tests:
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize_test.go` now asserts explicit event and attachment rows;
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/schema_test.go` expects the `attachments` table;
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/cache_test.go` now uses `normalized-sqlite-v3` as the artificial changed-version value.
+- Ran:
+  - `gofmt -w pkg/minitracedb/schema.go pkg/minitracedb/materialize.go pkg/minitracedb/materialize_test.go pkg/minitracedb/schema_test.go pkg/minitracedb/cache_test.go`
+  - `go test ./pkg/minitracedb -count=1`
+
+### Why
+- The existing `events` table was already the right query surface for timeline rows, so extending it avoided a parallel event system.
+- Attachments need a separate table because they are durable artifacts, not timeline rows.
+- Bumping the schema version ensures cache keys change when the normalized SQL shape changes.
+
+### What worked
+- `go test ./pkg/minitracedb -count=1` passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/minitracedb 0.021s`
+- The explicit-event row can link to a tool call and attachment while keeping title, summary, severity, collapsed state, framework metadata, and raw JSON.
+- The attachment row can link back to both tool call and event.
+
+### What didn't work
+- No test failed after the first implementation pass.
+- I initially considered leaving the DB schema version unchanged, but that would make cache invalidation ambiguous. I changed it to `normalized-sqlite-v2` and updated the cache-version test accordingly.
+
+### What I learned
+- `insertRow` made the new materialization code compact because it already validates schema-owned table and column identifiers.
+- SQLite accepts derived event inserts that omit newly added nullable columns, so existing `insertTurnEvent`, `insertToolCallEvent`, and `insertAnnotationEvent` did not require invasive rewrites.
+
+### What was tricky to build
+- The tricky part was preserving two kinds of event rows in one table: derived rows and explicit source rows. Derived rows use stable prefixes like `turn-`, `tool-`, and `annotation-`; explicit rows use adapter-provided IDs or `event-%06d` fallback IDs.
+- Another subtle point was ordinal behavior. `insertExplicitEvent` uses the event's own ordinal when present, otherwise it falls back to the array index. This makes adapter-controlled ordering possible without making every adapter set an ordinal immediately.
+
+### What warrants a second pair of eyes
+- Review whether explicit events should be inserted before or after derived annotation events. The current order does not affect SQL ordering if queries use `turn_index`, `ordinal`, and IDs, but it affects overwrite behavior if IDs collide.
+- Review whether `attachments.event_id` and `events.attachment_id` should both exist or whether one direction is enough.
+- Review whether `normalized-sqlite-v2` should trigger any user-facing migration note.
+
+### What should be done in the future
+- Implement Task 3: native JSON validation for `events` and `attachments`, plus documentation updates.
+- Later adapter code should use source-specific event IDs to avoid collisions with derived rows.
+
+### Code review instructions
+- Start with `pkg/minitracedb/schema.go` to review table/column names and indexes.
+- Then review `pkg/minitracedb/materialize.go`, especially `insertExplicitEvent` and `insertAttachment`.
+- Validate with `go test ./pkg/minitracedb -count=1`.
+
+### Technical details
+- Explicit event rows write `framework_metadata_json` from `Event.FrameworkMetadata` and `raw_json` from the whole `Event` object.
+- Attachment rows write `framework_metadata_json` from `Attachment.FrameworkMetadata` and `raw_json` from the whole `Attachment` object.
+- Empty event IDs and attachment IDs are filled with deterministic ordinal-based fallbacks.

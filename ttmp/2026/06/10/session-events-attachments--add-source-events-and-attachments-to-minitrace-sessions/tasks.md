@@ -7,7 +7,7 @@
   - Add builder helpers in `pkg/minitrace/builders.go` so adapters do not hand-roll default slices or timestamps.
   - Keep JSON fields optional with `omitempty` so existing archives remain readable.
 
-- [ ] 2. Materialize explicit source events and attachments.
+- [x] 2. Materialize explicit source events and attachments.
   - Extend the existing `events` table with explicit-event fields needed by the new `Event` struct.
   - Add an `attachments` table to `pkg/minitracedb/schema.go`.
   - Insert `session.Events` separately from already-derived turn/tool/annotation events.

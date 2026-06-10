@@ -26,3 +26,14 @@ Step 2: Added first-class Event and Attachment structs, Session fields, builders
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitrace/minitrace_test.go — Validation of defaults and helpers
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitrace/schema.go — Canonical schema additions
 
+
+## 2026-06-10
+
+Step 3: Added attachments table, explicit event insertion, attachment insertion, schema version bump, and materialization tests (commit 07f4ba5).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize.go — Materialization path
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize_test.go — Coverage for new rows
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/schema.go — Normalized schema additions
+
