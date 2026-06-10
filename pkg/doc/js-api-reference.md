@@ -155,6 +155,30 @@ Methods:
 | `.Diagnostics()` | Return conversion diagnostics. |
 | `.Save()` | Write `session.minitrace.json` and `metadata.json`. |
 
+### Preview from the CLI
+
+Use the CLI when you want the same importer preview behavior without writing JavaScript:
+
+```bash
+go-minitrace preview session --source-session /path/to/session.jsonl --output yaml
+```
+
+Directory/latest-N mode uses framework discovery and emits one row per previewed session:
+
+```bash
+go-minitrace preview session --framework codex --latest 5 --privacy structural --output json
+go-minitrace preview session --framework claude-code --source-dir ~/.claude/projects --latest 3 --sample-limit 2 --output yaml
+go-minitrace preview session --framework pi --source-dir ~/.pi/agent/sessions --latest 1
+```
+
+Preview privacy controls:
+
+| Privacy | Behavior |
+|---|---|
+| `structural` | Counts, roles, tools, booleans, and diagnostics only; content snippets/commands/paths are suppressed in samples. |
+| `snippets` | Default; includes bounded snippets and commands for quick validation. |
+| `full` | Includes full sampled turn text and command strings; use only on trusted local output paths. |
+
 ## `mt.sources()`
 
 Methods: `.File(path)`, `.Archive(path)`, `.Files(paths)`, `.Dir(path)`, `.Glob(pattern)`, `.Content(text)`, `.Name(name)`, `.RuntimeArchives()`, `.Validate()`, `.Build()`.

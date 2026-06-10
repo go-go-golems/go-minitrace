@@ -44,6 +44,21 @@ This ticket adds a concrete preview surface to that import flow: `mt.importer().
 
 The latest local sessions show that the adapters are close but not complete for the newest formats. Pi latest sessions include `custom`, `session_info`, and `compaction` records in addition to `session`, `model_change`, `thinking_level_change`, and `message`. Codex latest sessions include newer tool names and payload shapes such as `spawn_agent`, `wait_agent`, `apply_patch`, `write_stdin`, `custom_tool_call`, and `view_image`. Claude Code latest sessions include `attachment`, `mode`, `permission-mode`, `ai-title`, `file-history-snapshot`, subagent files under `subagents/`, and assistant `diagnostics` / `stop_details` fields. The implementation plan below treats these as compatibility work, not a rewrite.
 
+## Implementation status update
+
+The follow-up implementation completed the highest-priority latest-format support described in this guide:
+
+- Codex `spawn_agent` and `wait_agent` now classify as `DELEGATE` and populate spawned-agent metadata where possible.
+- Codex `view_image` now classifies as `READ`, preserves the image path, marks `content_origin=image`, and trips preview image-signal detection.
+- Codex `custom_tool_call` / `custom_tool_call_output` records, including `apply_patch`, are normalized into tool calls with status/custom metadata and parsed outputs.
+- Codex `write_stdin` now classifies as `EXECUTE`.
+- Claude Code `mode`, `permission-mode`, and `ai-title` records are preserved in `OperationalContext.FrameworkConfig`, and `ai-title` becomes the session title when present.
+- Claude Code `attachment` records now become session-scoped annotations with bounded detail text and image tags when media/image signals are present.
+- Claude Code top-level `agentId`, `sessionId`, `parentUuid`, `isSidechain`, `userType`, and `attributionAgent` are preserved in framework metadata/config where relevant.
+- The CLI now exposes `go-minitrace preview session`, with one-file mode, framework directory/latest-N mode, `--sample-limit`, and `--privacy structural|snippets|full`.
+
+The remaining notable gap is Pi preservation of `custom`, `session_info`, and `compaction` records; this was outside the requested Claude/Codex continuation and remains a future adapter-hardening task.
+
 ## Problem statement and scope
 
 The goal is to make session import usable from the new Goja / xgoja API for three local agent ecosystems:

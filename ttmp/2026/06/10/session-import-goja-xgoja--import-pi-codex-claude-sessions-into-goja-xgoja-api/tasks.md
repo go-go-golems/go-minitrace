@@ -69,18 +69,18 @@ Goal: expose the new importer preview API without requiring users to write JavaS
 
 - [x] Design command shape
   - [x] decide final command path (`go-minitrace preview session` or equivalent)
-  - [ ] define remaining flags: `--source-dir`, `--framework`, `--latest`, `--sample-limit`, `--privacy` (`--source-session` implemented)
+  - [x] define flags: `--source-session`, `--source-dir`, `--framework`, `--latest`, `--sample-limit`, `--privacy`
   - [x] define output formats supported by Glazed
-- [ ] Implement preview command (one-file mode complete; directory/latest/privacy modes remain)
+- [x] Implement preview command
   - [x] call `minitracedb.LoadSessionFileAuto` / `minitracejs.PreviewLoadedSession`
   - [x] support one-file preview first
-  - [ ] add directory/latest-N mode
+  - [x] add directory/latest-N mode
   - [x] keep structural/snippet privacy defaults bounded
-- [ ] Add command tests / smoke validation
-  - [ ] unit-test preview object rendering if command harness supports it
+- [x] Add command tests / smoke validation
+  - [x] unit-test preview options and directory latest selection
   - [x] smoke-test one Pi/Codex/Claude latest local session
-- [ ] Update JS/API docs and design guide
-- [ ] Run targeted tests and commit Phase 3
+- [x] Update JS/API docs and design guide
+- [x] Run targeted tests and commit Phase 3
 
 ## Phase 4: End-to-end validation and documentation refresh
 

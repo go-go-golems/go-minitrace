@@ -15,6 +15,8 @@ RelatedFiles:
       Note: Preview command group registration (commit 172731e)
     - Path: cmd/go-minitrace/cmds/preview/session.go
       Note: Phase 3 one-file preview command (commit 172731e)
+    - Path: cmd/go-minitrace/cmds/preview/session_test.go
+      Note: Phase 3 directory latest preview test coverage (commit 4b21d79)
     - Path: cmd/go-minitrace/main.go
       Note: Root CLI registration for preview command (commit 172731e)
     - Path: pkg/adapters/claudecode/convert.go
@@ -25,10 +27,14 @@ RelatedFiles:
       Note: Phase 1 latest Codex tool semantic promotion (commit 0b4ce59)
     - Path: pkg/adapters/codex/convert_test.go
       Note: Phase 1 minimized latest Codex fixtures (commit 0b4ce59)
+    - Path: pkg/doc/js-api-reference.md
+      Note: Preview CLI and privacy documentation
     - Path: pkg/minitracejs/import_builder.go
       Note: |-
         Code change recorded in Step 2 (commit c1c1afa)
         Exported PreviewLoadedSession for CLI reuse (commit 172731e)
+    - Path: pkg/minitracejs/import_builder_options_test.go
+      Note: Phase 3 preview options test coverage (commit 4b21d79)
     - Path: pkg/minitracejs/import_builder_test.go
       Note: Preview behavior test recorded in Step 2 (commit c1c1afa)
     - Path: ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/scripts/01-survey-agent-session-shapes.py
@@ -43,6 +49,7 @@ LastUpdated: 2026-06-10T14:30:52.478395442-04:00
 WhatFor: Chronological implementation diary for the session import goja/xgoja ticket.
 WhenToUse: Use before resuming the ticket to understand what changed, what failed, and what remains.
 ---
+
 
 
 
@@ -866,4 +873,117 @@ Smoke command shape used:
 go run ./cmd/go-minitrace preview session --source-session "$PI" --output json
 go run ./cmd/go-minitrace preview session --source-session "$CODEX" --output json
 go run ./cmd/go-minitrace preview session --source-session "$CLAUDE" --output json
+```
+
+## Step 8: Complete Phase 3 Directory Preview, Privacy, and Tests
+
+This step completed the remaining Phase 3 preview-command work. The CLI can now preview either one explicitly named session file or the latest N discovered sessions for a framework, using the existing Pi, Codex, and Claude Code discovery helpers. It also exposes sample limits and privacy modes so previews can be used safely in terminals, logs, and review documents.
+
+The preview API itself now has option-aware construction through `PreviewLoadedSessionWithOptions`. The default Goja `Preview()` behavior remains compatible, while the CLI can request `structural`, `snippets`, or `full` output and a bounded number of sample turns/tools.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue from the partial Phase 3 preview command and finish the remaining command flags, tests, and documentation before moving to end-to-end validation.
+
+**Inferred user intent:** Make the preview command practical for real latest-session inspection, including safe structural output and directory sampling.
+
+**Commit (code):** 4b21d7974596422a837be5a2c02a6597c70e9fc0 — "preview: add directory mode and privacy controls"
+
+### What I did
+
+- Added `minitracejs.PreviewOptions` and `PreviewLoadedSessionWithOptions`.
+- Added preview privacy modes:
+  - `structural`: suppress sample text, commands, paths, and task scopes while preserving counts/flags.
+  - `snippets`: default bounded snippets.
+  - `full`: full sampled turn text and command strings.
+- Added `--source-dir`, `--framework`, `--latest`, `--sample-limit`, and `--privacy` to `go-minitrace preview session`.
+- Implemented directory/latest-N mode using existing framework discovery helpers:
+  - Pi: `pi.Discover`
+  - Codex: `codex.Discover`
+  - Claude Code: `claudecode.Discover`
+- Made directory mode tolerant of per-file conversion errors by emitting error rows instead of aborting the whole run.
+- Added tests:
+  - `pkg/minitracejs/import_builder_options_test.go`
+  - `cmd/go-minitrace/cmds/preview/session_test.go`
+- Updated `pkg/doc/js-api-reference.md` with CLI preview examples and privacy semantics.
+- Updated the ticket design guide with an implementation-status section.
+
+### Why
+
+- Single-file preview was useful but not enough for operator workflows over local session stores.
+- The user asked to inspect latest sessions, which requires directory discovery and latest-N sampling.
+- Privacy controls are needed because session previews may contain prompts, commands, file paths, or tool scopes.
+
+### What worked
+
+- Focused tests passed:
+
+```bash
+go test ./pkg/minitracejs ./cmd/go-minitrace/cmds/preview ./cmd/go-minitrace -count=1
+```
+
+- Full relevant tests passed:
+
+```bash
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/... -count=1
+```
+
+- Directory-mode smoke tests succeeded for Pi, Codex, and Claude Code:
+
+```bash
+go run ./cmd/go-minitrace preview session --framework pi --latest 1 --privacy structural --sample-limit 1 --output json
+go run ./cmd/go-minitrace preview session --framework codex --latest 1 --privacy snippets --sample-limit 2 --output json
+go run ./cmd/go-minitrace preview session --framework claude-code --latest 1 --privacy structural --sample-limit 1 --output json
+```
+
+### What didn't work
+
+- No test failures occurred after the Phase 3 continuation edits. The earlier signature mismatch was fixed in Step 7.
+
+### What I learned
+
+- Directory mode can reuse framework-specific discovery rather than scanning raw files, which preserves each adapter’s source-store assumptions.
+- The one-row-per-session shape works for JSON/YAML and keeps table output usable for scalar fields.
+- Separating privacy handling in `minitracejs` avoids CLI-only behavior drift.
+
+### What was tricky to build
+
+- Directory preview needed to handle unsupported or stale files without making latest-N workflows brittle. I chose per-file error rows in directory mode while keeping single-file mode fail-fast.
+- Privacy behavior had to avoid changing semantic counters. The implementation suppresses only sample text/path/command fields, not role counts, tool counts, diagnostics, or boolean signals.
+
+### What warrants a second pair of eyes
+
+- Review whether `structural` should also suppress `working_directory` at the top level; currently it only suppresses sampled file paths and command/text snippets.
+- Review whether `full` should be available without an explicit confirmation in future UI contexts.
+- Review whether directory mode should support `--framework all`; current behavior requires a specific framework.
+
+### What should be done in the future
+
+- Consider adding `--framework all` once the output shape for mixed stores is agreed.
+- Add golden CLI-output tests if Glazed output stability becomes important.
+
+### Code review instructions
+
+- Start in `cmd/go-minitrace/cmds/preview/session.go` for command flags and directory mode.
+- Review `pkg/minitracejs/import_builder.go` for privacy/sample-limit handling.
+- Review tests in:
+  - `pkg/minitracejs/import_builder_options_test.go`
+  - `cmd/go-minitrace/cmds/preview/session_test.go`
+- Validate with:
+
+```bash
+cd go-minitrace
+go test ./pkg/adapters/... ./pkg/minitracedb ./pkg/minitracejs/... ./cmd/go-minitrace/... -count=1
+```
+
+### Technical details
+
+Example commands:
+
+```bash
+go-minitrace preview session --source-session /path/to/session.jsonl --privacy snippets --sample-limit 12 --output yaml
+go-minitrace preview session --framework codex --latest 5 --privacy structural --output json
+go-minitrace preview session --framework claude-code --source-dir ~/.claude/projects --latest 3 --sample-limit 2 --output yaml
 ```

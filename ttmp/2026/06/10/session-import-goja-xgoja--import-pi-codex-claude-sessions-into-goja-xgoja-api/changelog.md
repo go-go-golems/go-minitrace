@@ -53,3 +53,15 @@ Phase 3 partial: added go-minitrace preview session --source-session for one-fil
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go — One-file preview command
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — Shared preview builder
 
+
+## 2026-06-10
+
+Phase 3 complete: added directory/latest-N preview mode, sample limits, privacy controls, tests, and docs (commit 4b21d79 plus docs).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/preview/session.go — Directory preview and privacy controls
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/js-api-reference.md — CLI preview documentation
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/import_builder.go — Preview options
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/10/session-import-goja-xgoja--import-pi-codex-claude-sessions-into-goja-xgoja-api/design-doc/01-session-import-design-and-implementation-guide.md — Implementation status update
+
