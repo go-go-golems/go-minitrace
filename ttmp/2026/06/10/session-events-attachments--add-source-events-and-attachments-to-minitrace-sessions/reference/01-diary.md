@@ -14,6 +14,10 @@ RelatedFiles:
       Note: Mapped Claude mode/permission/title records to events and attachments to first-class artifacts (commit 673489f)
     - Path: pkg/adapters/claudecode/convert_test.go
       Note: Updated Claude latest metadata tests for events and attachments (commit 673489f)
+    - Path: pkg/adapters/codex/convert.go
+      Note: Derived Codex subagent/image/rate-limit events and image attachments (commit cf00d11)
+    - Path: pkg/adapters/codex/convert_test.go
+      Note: Added Codex event and attachment assertions (commit cf00d11)
     - Path: pkg/adapters/pi/convert.go
       Note: Mapped Pi session_info/custom/compaction/model/thinking records to source events (commit fa73b81)
     - Path: pkg/adapters/pi/convert_test.go
@@ -48,6 +52,7 @@ LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -513,3 +518,69 @@ The existing framework-config behavior remains intact: mode, permission mode, ti
 ### Technical details
 - Image detection reuses `hasClaudeImageSignal`.
 - Attachment kind becomes `image` when the attachment type/name/media type indicates an image; otherwise it uses the source attachment type or `attachment`.
+
+## Step 7: Add Codex event and image attachment mappings
+
+I added Codex-derived source events and attachments after tool-call normalization. Codex `view_image` tool calls now produce image attachments and image-view events, `spawn_agent`/`wait_agent` tool calls produce subagent lifecycle events, and latest rate-limit metadata produces a collapsed `rate_limits` event.
+
+This implementation intentionally derives Codex events from normalized tool calls rather than threading new return values through the session JSONL parser. That keeps existing latest Codex tool semantics untouched while adding a queryable timeline/artifact layer on top.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the adapter phase by mapping Codex image, subagent, and rate-limit signals to first-class events/attachments.
+
+**Inferred user intent:** The user wants latest Codex sessions to preserve image and subagent signals in a structured way that can be queried and previewed.
+
+**Commit (code):** cf00d117f869b9d3bf1f658d70fcb65a54e7a9ba — "codex: add event and image attachment mappings"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert.go`:
+  - added `buildCodexEventsAndAttachments`;
+  - added image attachment creation for `view_image`;
+  - added `image_view`, `subagent_spawn`, `subagent_wait`, and `rate_limits` events;
+  - assigned `session.Events` and `session.Attachments` in `ConvertRecords`.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert_test.go`:
+  - asserted image attachment fields and links;
+  - asserted spawn/wait/image event kinds;
+  - asserted `rate_limits` event output from token-count metadata.
+- Ran:
+  - `gofmt -w pkg/adapters/codex/convert.go pkg/adapters/codex/convert_test.go`
+  - `go test ./pkg/adapters/codex -count=1`
+
+### Why
+- Codex already has strong normalized tool calls for `view_image`, `spawn_agent`, and `wait_agent`; events and attachments add timeline/artifact queryability without changing tool semantics.
+- Rate-limit snapshots are session lifecycle facts and should be visible beyond framework config.
+
+### What worked
+- `go test ./pkg/adapters/codex -count=1` passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/adapters/codex 0.002s`
+- The event/attachment derivation layer is compact and happens after deduplication/context computation.
+
+### What didn't work
+- No command failed in this step.
+
+### What I learned
+- Deriving events from normalized tool calls is simpler than expanding parser return signatures for Codex because the relevant image/subagent information is already present on `ToolCall`.
+- `view_image` already had `content_origin=image` and normalized file paths, making attachment creation straightforward.
+
+### What was tricky to build
+- The main nuance was avoiding duplicate or competing semantics. `spawn_agent` and `wait_agent` remain `ToolCall{OperationType: "DELEGATE"}`; the events are timeline summaries linked back via `ToolCallID`.
+- Another nuance was rate-limit timestamps. The adapter stores only the latest rate-limit payload in metadata, so the first version of the event has no timestamp. A future parser-level event pass could preserve exact token-count timestamps.
+
+### What warrants a second pair of eyes
+- Review whether rate-limit events need exact timestamps in this phase.
+- Review whether image attachment `RawJSON` should include the whole tool-call object rather than a compact source reference.
+- Review whether `image_view` should be named `attachment_view` for non-image future artifacts.
+
+### What should be done in the future
+- Implement Task 7: expose event/attachment counts and samples in preview/Goja surfaces.
+
+### Code review instructions
+- Start with `buildCodexEventsAndAttachments` in `pkg/adapters/codex/convert.go`.
+- Validate with `go test ./pkg/adapters/codex -count=1`.
+
+### Technical details
+- Image attachment IDs use `codex-image-<toolCallID>`.
+- Event IDs use `codex-<kind>-<toolCallID>` except `codex-rate-limits`.

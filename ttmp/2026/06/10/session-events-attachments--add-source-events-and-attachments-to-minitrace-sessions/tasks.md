@@ -32,7 +32,7 @@
   - Keep existing framework config/title behavior intact.
   - Add or update tests in `pkg/adapters/claudecode/convert_test.go`.
 
-- [ ] 6. Map Codex image/subagent/source lifecycle details.
+- [x] 6. Map Codex image/subagent/source lifecycle details.
   - Convert `view_image` calls to image attachments linked to tool calls.
   - Add events for `spawn_agent`, `wait_agent`, token/rate-limit signals, and source lifecycle records where appropriate.
   - Keep existing normalized tool-call semantics intact.

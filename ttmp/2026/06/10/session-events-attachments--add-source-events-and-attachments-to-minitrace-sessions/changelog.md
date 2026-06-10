@@ -67,3 +67,13 @@ Step 6: Mapped Claude Code lifecycle records to events and attachment records to
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert.go — Claude adapter mappings
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/claudecode/convert_test.go — Claude adapter coverage
 
+
+## 2026-06-10
+
+Step 7: Added Codex subagent/image/rate-limit events and image attachments (commit cf00d11).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert.go — Codex adapter mappings
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/adapters/codex/convert_test.go — Codex adapter coverage
+
