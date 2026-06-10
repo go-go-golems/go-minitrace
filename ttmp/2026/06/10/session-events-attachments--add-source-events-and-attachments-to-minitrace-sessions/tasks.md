@@ -14,7 +14,7 @@
   - Insert `session.Attachments` with bounded metadata and raw JSON.
   - Add tests in `pkg/minitracedb/materialize_test.go` and update schema tests.
 
-- [ ] 3. Validate and document native JSON behavior.
+- [x] 3. Validate and document native JSON behavior.
   - Update `pkg/validate/json.go` for `events` and `attachments` shape checks.
   - Add validator tests for valid, empty, null, and malformed arrays.
   - Update query/API documentation that lists normalized tables and JSON arrays.

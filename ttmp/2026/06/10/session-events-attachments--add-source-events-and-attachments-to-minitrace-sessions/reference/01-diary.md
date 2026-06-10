@@ -10,6 +10,12 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: pkg/doc/adapter-reference.md
+      Note: Documented source events and attachment semantics (commit adca28f)
+    - Path: pkg/doc/query.md
+      Note: Documented events/attachments DuckDB arrays (commit adca28f)
+    - Path: pkg/doc/writing-duckdb-queries.md
+      Note: Documented UNNEST patterns for events and attachments (commit adca28f)
     - Path: pkg/minitrace/builders.go
       Note: Added default slices and builder helpers for events and attachments (commit d612015)
     - Path: pkg/minitrace/minitrace_test.go
@@ -24,12 +30,17 @@ RelatedFiles:
       Note: Asserted explicit event and attachment rows (commit 07f4ba5)
     - Path: pkg/minitracedb/schema.go
       Note: Added attachments table
+    - Path: pkg/validate/json.go
+      Note: Validated events and attachments arrays in native JSON (commit adca28f)
+    - Path: pkg/validate/json_test.go
+      Note: Added valid/null/malformed event and attachment tests (commit adca28f)
 ExternalSources: []
 Summary: Chronological implementation diary for first-class session events and attachments.
 LastUpdated: 2026-06-10T19:50:00-04:00
 WhatFor: Use this to resume or review the implementation of Session.Events and Session.Attachments.
 WhenToUse: Read before continuing the ticket or reviewing commits from this work.
 ---
+
 
 
 
@@ -264,3 +275,77 @@ This step keeps the original derived event behavior intact. Existing turns, tool
 - Explicit event rows write `framework_metadata_json` from `Event.FrameworkMetadata` and `raw_json` from the whole `Event` object.
 - Attachment rows write `framework_metadata_json` from `Attachment.FrameworkMetadata` and `raw_json` from the whole `Attachment` object.
 - Empty event IDs and attachment IDs are filled with deterministic ordinal-based fallbacks.
+
+## Step 4: Validate native JSON and document query semantics
+
+I added native JSON validation for the new `events` and `attachments` arrays and documented how users should query them. The validator now accepts absent, null, and empty arrays while requiring each event/attachment object to have `id` and `kind` when present.
+
+I also updated query-facing documentation so readers know that `events` and `attachments` behave like the existing `turns`, `tool_calls`, and `annotations` JSON arrays in DuckDB. This keeps the public contract aligned with the schema and materialization work from the prior steps.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue the sequential implementation by covering validation and user-facing docs for native JSON events and attachments.
+
+**Inferred user intent:** The user wants the new primitives to be understandable and safe for downstream users, not just silently accepted by Go structs.
+
+**Commit (code):** adca28f06249af558f39835d68438a538bbb5381 — "validate: accept events and attachments"
+
+### What I did
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/validate/json.go`:
+  - validation now accumulates annotation, event, and attachment errors;
+  - added `validateEvents`;
+  - added `validateAttachments`;
+  - added shared `validateIDKindArray` helper.
+- Modified `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/validate/json_test.go`:
+  - added valid event/attachment fixture;
+  - added null/empty fixture;
+  - added malformed non-array tests;
+  - added missing `id`/`kind` tests.
+- Updated docs:
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/query.md`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/writing-duckdb-queries.md`
+  - `/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/adapter-reference.md`
+- Ran:
+  - `gofmt -w pkg/validate/json.go pkg/validate/json_test.go`
+  - `go test ./pkg/validate -count=1`
+
+### Why
+- Native JSON should fail fast when an `events` or `attachments` field is accidentally a scalar/object instead of an array.
+- `id` and `kind` are the minimal identity/classification fields later adapters and query users need.
+- Query docs need to mention the arrays before adapters start producing them.
+
+### What worked
+- `go test ./pkg/validate -count=1` passed:
+  - `ok github.com/go-go-golems/go-minitrace/pkg/validate 0.004s`
+- The validation helper is intentionally small and avoids over-validating optional metadata before adapter behavior stabilizes.
+
+### What didn't work
+- No command failed in this step.
+
+### What I learned
+- The validator was annotation-specific before this change. Accumulating errors across annotations/events/attachments gives better feedback when multiple optional arrays are malformed.
+- The existing query docs already had a clear JSON-array pattern, so events and attachments could be documented by extending that pattern rather than inventing a new query style.
+
+### What was tricky to build
+- The tricky part was deciding validation strictness. Too much validation now would lock down optional fields before adapters prove the field set. Too little validation would miss obvious malformed arrays.
+- I chose a minimal contract: if present, `events` and `attachments` must be arrays; each item must be an object with non-empty string-like `id` and `kind` values.
+
+### What warrants a second pair of eyes
+- Review whether `id` and `kind` are enough required fields for Phase 1 validation.
+- Review docs for DuckDB arrow precedence; later doc cleanup may parenthesize every `->>` expression in `ORDER BY`/`WHERE` examples for consistency.
+
+### What should be done in the future
+- Implement Task 4: map Pi non-message records to first-class events.
+- Update docs again after adapters produce concrete event and attachment kinds.
+
+### Code review instructions
+- Start with `pkg/validate/json.go` to review the minimal validation contract.
+- Run `go test ./pkg/validate -count=1`.
+- Review `pkg/doc/query.md` and `pkg/doc/writing-duckdb-queries.md` for query examples.
+
+### Technical details
+- `events: null` and `attachments: null` remain valid.
+- `events: []` and `attachments: []` remain valid.
+- Malformed values return messages such as `events must be an array` or `attachments[0]: attachment missing required field "kind"`.

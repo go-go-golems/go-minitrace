@@ -37,3 +37,13 @@ Step 3: Added attachments table, explicit event insertion, attachment insertion,
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/materialize_test.go — Coverage for new rows
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracedb/schema.go — Normalized schema additions
 
+
+## 2026-06-10
+
+Step 4: Added native JSON validation for events/attachments and updated query/adapter docs (commit adca28f).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/doc/query.md — Query documentation
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/validate/json.go — Validation logic
+
