@@ -207,11 +207,18 @@ func (b *ImportBuilder) Preview() (SessionPreview, error) {
 			return SessionPreview{}, err
 		}
 	}
-	session := b.converted.Session
+	return PreviewLoadedSession(b.converted), nil
+}
+
+func PreviewLoadedSession(loaded *minitracedb.LoadedSession) SessionPreview {
+	if loaded == nil || loaded.Session == nil {
+		return SessionPreview{RoleCounts: map[string]int{}, ToolCounts: map[string]int{}}
+	}
+	session := loaded.Session
 	preview := SessionPreview{
 		SessionID:       session.ID,
-		Format:          b.converted.Format,
-		Adapter:         b.converted.Adapter,
+		Format:          loaded.Format,
+		Adapter:         loaded.Adapter,
 		Title:           stringPtr(session.Title),
 		AgentFramework:  stringPtr(session.Environment.AgentFramework),
 		Model:           stringPtr(session.Environment.Model),
@@ -222,7 +229,7 @@ func (b *ImportBuilder) Preview() (SessionPreview, error) {
 		SubagentCount:   session.Metrics.SubagentCount,
 		RoleCounts:      map[string]int{},
 		ToolCounts:      map[string]int{},
-		Diagnostics:     b.converted.Diagnostics,
+		Diagnostics:     loaded.Diagnostics,
 	}
 	for _, turn := range session.Turns {
 		preview.RoleCounts[turn.Role]++
@@ -273,7 +280,7 @@ func (b *ImportBuilder) Preview() (SessionPreview, error) {
 			preview.SampleTools = append(preview.SampleTools, sample)
 		}
 	}
-	return preview, nil
+	return preview
 }
 
 func (b *ImportBuilder) Save() (SavedSession, error) {
