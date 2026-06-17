@@ -21,6 +21,12 @@ RelatedFiles:
       Note: Closest existing JSONL adapter and mapping reference
     - Path: pkg/adapters/codex/discover.go
       Note: Discovery pattern to mirror for Copilot session-state
+    - Path: pkg/adapters/copilot/discover.go
+      Note: New Copilot CLI session-state discovery implementation
+    - Path: pkg/adapters/copilot/discover_test.go
+      Note: Discovery tests for Copilot home
+    - Path: pkg/adapters/copilot/logcopter.go
+      Note: Package logger stub matching adapter conventions
     - Path: pkg/adapters/types.go
     - Path: pkg/minitrace/builders.go
       Note: Constructor APIs recommended for the adapter
@@ -40,6 +46,7 @@ LastUpdated: 2026-06-17T16:45:00-04:00
 WhatFor: Use this before implementing the Copilot CLI adapter; it explains the source format, existing minitrace architecture, mapping rules, test plan, and rollout sequence.
 WhenToUse: When reviewing, implementing, or testing GitHub Copilot CLI session support in go-minitrace.
 ---
+
 
 
 # GitHub Copilot CLI Session Support Design and Implementation Guide

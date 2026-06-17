@@ -221,3 +221,67 @@ This is the stopping point requested by the user. No Copilot adapter implementat
 ### Technical details
 - Successful upload line: `OK: uploaded MINITRACE COPILOT CLI Design.pdf -> /ai/2026/06/17/MINITRACE-COPILOT-CLI`.
 - Final validation command: `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30`.
+
+## Step 4: Implement Copilot session-state discovery
+
+I started implementation with the smallest safe slice: discovering Copilot CLI session directories without converting transcript content. This establishes the adapter package and verifies that the command-facing discovery contract can find `~/.copilot/session-state/<session-id>/events.jsonl` style layouts before adding event parsing.
+
+The implementation intentionally accepts three input shapes: a Copilot home directory containing `session-state/`, a direct `session-state/` directory, or one specific session directory containing `events.jsonl`. It skips scaffold-only directories without `events.jsonl` so empty Copilot state does not produce bogus conversion rows.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add tasks if you haven't yet to the ticket, and then implement step by step, committing at appropriate intervals, keeping a detailed diary."
+
+**Assistant interpretation:** Replace the placeholder task list with concrete implementation tasks, then proceed through the design phases with focused commits and diary updates.
+
+**Inferred user intent:** The user reviewed enough of the design to authorize implementation, but still wants disciplined task tracking and incremental commits.
+
+**Commit (code):** pending — discovery implementation commit will follow this diary update.
+
+### What I did
+- Replaced the placeholder task with concrete implementation tasks in `tasks.md`.
+- Added `pkg/adapters/copilot/discover.go` with `Discover`, `ReadWorkspace`, home expansion, and session directory detection.
+- Added `pkg/adapters/copilot/discover_test.go` with temp-dir tests for Copilot home, direct `session-state`, direct session directory, workspace ID extraction, scaffold skipping, and stable sorting.
+- Added `pkg/adapters/copilot/logcopter.go` to match existing adapter package conventions.
+- Ran `gofmt -w pkg/adapters/copilot/discover.go pkg/adapters/copilot/discover_test.go pkg/adapters/copilot/logcopter.go`.
+- Ran `go test ./pkg/adapters/copilot -count=1`.
+- Checked task 1 and updated docmgr relations/changelog.
+
+### Why
+- Discovery is independently testable and low-risk.
+- A correct locator layer lets both CLI and converter code share one source enumeration path.
+- Skipping scaffold-only directories avoids false positives from Copilot state folders that are not real transcript sessions.
+
+### What worked
+- `go test ./pkg/adapters/copilot -count=1` passed.
+- The discovery tests verify the core path-resolution cases described in the design document.
+- `workspace.yaml` parsing can use the existing `gopkg.in/yaml.v3` dependency already present in `go.mod`.
+
+### What didn't work
+- N/A for this slice; the first implementation and tests passed.
+
+### What I learned
+- The repository already depends on `gopkg.in/yaml.v3`, so no new dependency is needed for `workspace.yaml`.
+- The existing `SessionLocator` type is sufficient for Copilot discovery even though the source is a directory-backed session; using the `events.jsonl` path as `SourcePath` keeps it consistent with JSONL adapters.
+
+### What was tricky to build
+- The main invariant is deciding what `sourceDir` means. The helper now normalizes three likely caller inputs instead of forcing users to always pass `~/.copilot`.
+- `workspace.yaml` can be absent or malformed; discovery ignores workspace parse errors and falls back to the directory name so one bad metadata file does not hide the session.
+
+### What warrants a second pair of eyes
+- Review whether silently ignoring `workspace.yaml` parse errors during discovery is acceptable, or whether discover output should surface a warning row later.
+- Review whether `SourcePath` should remain the `events.jsonl` file or become the session directory path; converter code can derive the session directory from the file path.
+
+### What should be done in the future
+- Implement event parsing and conversion using the locators returned here.
+- Add CLI discovery command rows that expose optional metadata such as `workspace_path` and `has_session_db`.
+
+### Code review instructions
+- Start with `pkg/adapters/copilot/discover.go` and read `Discover` plus `discoverSessionDirs`.
+- Then review `pkg/adapters/copilot/discover_test.go` for input path cases.
+- Validate with `go test ./pkg/adapters/copilot -count=1`.
+
+### Technical details
+- New source format constant: `copilot-cli-events-jsonl-v1`.
+- Default future CLI source should be `~/.copilot`.
+- Discovery returns no locator for a directory that only has `workspace.yaml` and no `events.jsonl`.
