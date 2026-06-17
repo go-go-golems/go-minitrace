@@ -495,3 +495,76 @@ All implementation tasks are now checked. I did not close the ticket because the
 - Local non-dry summary: `turn_count=13`, `tool_call_count=7`, `annotation_count=0`, `quality=B`.
 - Validation output marked the generated session JSON and manifests as valid JSON.
 - Ticket doctor result: all checks passed.
+
+## Step 8: Wire Copilot into minitracejs/xgoja ImportBuilder Convert
+
+The Copilot CLI command path worked, but `mt.importer().File(...).AutoDetect().Convert()` uses the `minitracedb.LoadSession*Auto` path rather than the CLI adapter command directly. I checked that path and found it only knew about Pi, Codex, and Claude Code JSONL formats, so Copilot sessions were not yet loadable through the xgoja/minitracejs importer verbs.
+
+I added Copilot JSONL detection and conversion to `pkg/minitracedb`, then added coverage at three layers: the database autoconverter, the Go `ImportBuilder`, and the xgoja module provider running JavaScript importer verbs. Finally, I ran a temporary xgoja/goja smoke program against the real local Copilot `events.jsonl`; it returned `adapter: copilot`, `format: copilot-jsonl`, `turnCount: 13`, and `toolCallCount: 7`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can they be loaded by the convert() using xgoja verbs?"
+
+**Assistant interpretation:** Verify whether Copilot sessions are supported by the minitracejs/xgoja `importer().File(...).AutoDetect().Convert()` flow, not only by the new CLI commands, and wire it up if missing.
+
+**Inferred user intent:** Ensure Copilot sessions can be consumed by scriptable xgoja workflows and not just by the Cobra/Glazed CLI conversion command.
+
+**Commit (code):** pending — xgoja/importer support commit will follow this diary update.
+
+### What I did
+- Inspected `pkg/minitracedb/convert.go` and confirmed auto-conversion only detected Pi, Codex, and Claude Code JSONL.
+- Added Copilot import to `pkg/minitracedb/convert.go`.
+- Added `copilot-jsonl` detection for dotted Copilot event types such as `session.*`, `assistant.*`, `tool.*`, `permission.*`, and `hook.*` when a `data` envelope is present.
+- Added a `copilot.ConvertRawRecords` helper so `minitracedb` can pass generic parsed JSONL maps into the Copilot adapter.
+- Added tests:
+  - `pkg/minitracedb/convert_test.go`: `LoadSessionContentAuto` converts Copilot JSONL.
+  - `pkg/minitracejs/import_builder_test.go`: `ImportBuilder.Converted()` supports Copilot JSONL.
+  - `pkg/minitracejs/provider/provider_test.go`: xgoja JavaScript verbs `mt.importer().Content(...).Name(...).AutoDetect().Convert().Converted()` support Copilot JSONL.
+- Ran targeted tests and full tests.
+- Ran a temporary real-session xgoja/goja smoke program with `mt.importer().File(realEventsPath).AutoDetect().Convert()`.
+- Checked the new task 12 and updated the changelog.
+
+### Why
+- xgoja/minitracejs import flows share `minitracedb.LoadSessionFileAuto` and `LoadSessionContentAuto`; implementing only the CLI path does not automatically make importer verbs work.
+- The user specifically asked about `convert()` using xgoja verbs, so the behavior needed a direct provider-level test.
+
+### What worked
+- `go test ./pkg/minitracedb ./pkg/minitracejs ./pkg/minitracejs/provider -count=1` passed.
+- `go test ./... -count=1` passed.
+- The real local session loaded through xgoja importer verbs and produced:
+  - `adapter: copilot`
+  - `format: copilot-jsonl`
+  - `recordRows: 72`
+  - `sessionId: e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a`
+  - `turnCount: 13`
+  - `toolCallCount: 7`
+
+### What didn't work
+- Before this step, Copilot JSONL was not supported by `minitracedb.LoadSessionContentAuto`; it would have detected `unknown-jsonl` and failed for importer/xgoja conversion.
+- No test failed after implementation, but this was a missing integration path rather than a broken CLI path.
+
+### What I learned
+- There are two conversion entrypoints to keep aligned: CLI commands call adapter discovery/conversion directly, while minitracejs/xgoja importer and DB builders call `minitracedb.LoadSession*Auto`.
+- The xgoja provider test is the most direct regression guard for JavaScript verb behavior.
+
+### What was tricky to build
+- The Copilot adapter's main `ConvertRecords` takes typed `EventEnvelope` records plus optional workspace metadata, while `minitracedb` parses generic `map[string]any` records. I added `ConvertRawRecords` at the adapter boundary rather than duplicating conversion logic in `minitracedb`.
+- File-based xgoja conversion can recover `workspace.yaml` only if `SourcePath` points at the real `events.jsonl`; content-based conversion cannot infer adjacent workspace metadata. The content tests therefore focus on event-stream conversion, while the real file smoke validates adjacent-path behavior.
+
+### What warrants a second pair of eyes
+- Review the `DetectJSONLFormat` heuristic order to ensure Copilot dotted event types do not steal formats from future adapters.
+- Review whether the externally visible format string should be `copilot-jsonl` or `copilot-cli-events-jsonl-v1` for consistency with CLI source format names.
+
+### What should be done in the future
+- Add documentation examples for `mt.importer().File("~/.copilot/session-state/<id>/events.jsonl").AutoDetect().Convert()`.
+- Consider adding `SourceSet`/DB builder real-session smoke coverage if xgoja DB workflows become a primary Copilot use case.
+
+### Code review instructions
+- Start with `pkg/minitracedb/convert.go` and review `DetectJSONLFormat` plus the `copilot-jsonl` switch branch.
+- Then review `pkg/minitracejs/provider/provider_test.go` for the xgoja JavaScript verb regression test.
+- Validate with `go test ./pkg/minitracedb ./pkg/minitracejs ./pkg/minitracejs/provider -count=1` and `go test ./... -count=1`.
+
+### Technical details
+- Real-session smoke script used `mt.importer().File(path).AutoDetect().Convert(); importer.Converted()` against `/home/manuel/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a/events.jsonl`.
+- Smoke output included `diagnostics[0].message = "converted source into minitrace session"` and `diagnostics[0].recordRows = 72`.

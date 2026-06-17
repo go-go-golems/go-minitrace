@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/codex"
+	"github.com/go-go-golems/go-minitrace/pkg/adapters/copilot"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/pi"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
@@ -82,6 +83,10 @@ func LoadSessionContentAuto(payload []byte, opts LoadOptions) (*LoadedSession, e
 	case "claude-code-jsonl":
 		adapter = "claude-code"
 		session, err = claudecode.ConvertRecords(records, fallbackID, opts.SourcePath)
+	case "copilot-jsonl":
+		adapter = "copilot"
+		workspace, _ := copilot.ReadWorkspace(filepath.Join(filepath.Dir(opts.SourcePath), "workspace.yaml"))
+		session, err = copilot.ConvertRawRecords(records, workspace, fallbackID, opts.SourcePath)
 	default:
 		return nil, fmt.Errorf("%s JSONL format is unsupported", source)
 	}
@@ -106,6 +111,11 @@ func DetectJSONLFormat(records []map[string]any) string {
 		}
 		if (t == "system" || t == "user" || t == "assistant") && record["message"] != nil {
 			return "claude-code-jsonl"
+		}
+		if strings.HasPrefix(t, "session.") || strings.HasPrefix(t, "assistant.") || strings.HasPrefix(t, "tool.") || strings.HasPrefix(t, "permission.") || strings.HasPrefix(t, "hook.") {
+			if record["data"] != nil {
+				return "copilot-jsonl"
+			}
 		}
 	}
 	return "unknown-jsonl"

@@ -14,3 +14,4 @@
 - [x] Collect external references into ticket sources
 - [x] Write intern-ready design and implementation guide
 - [x] Validate ticket and upload bundle to reMarkable
+- [x] Wire Copilot JSONL into xgoja/minitracejs ImportBuilder AutoDetect/Convert

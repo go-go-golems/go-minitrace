@@ -58,6 +58,23 @@ func TestLoadSessionContentAutoConvertsClaudeCodeJSONL(t *testing.T) {
 	}
 }
 
+func TestLoadSessionContentAutoConvertsCopilotJSONL(t *testing.T) {
+	loaded, err := LoadSessionContentAuto(jsonl(t, []map[string]any{
+		{"type": "session.start", "id": "ev-1", "timestamp": "2026-06-17T10:00:00Z", "data": map[string]any{"sessionId": "copilot-1", "copilotVersion": "1.0.0"}},
+		{"type": "user.message", "id": "ev-2", "timestamp": "2026-06-17T10:00:01Z", "data": map[string]any{"content": "Read app.go", "interactionId": "int-1"}},
+		{"type": "assistant.message", "id": "ev-3", "timestamp": "2026-06-17T10:00:02Z", "data": map[string]any{"content": "I will inspect it.", "model": "gpt-test", "turnId": "turn-1"}},
+	}), LoadOptions{SourceName: "copilot.jsonl", AutoConvert: true})
+	if err != nil {
+		t.Fatalf("LoadSessionContentAuto: %v", err)
+	}
+	if loaded.Format != "copilot-jsonl" || loaded.Adapter != "copilot" || loaded.Session.ID != "copilot-1" {
+		t.Fatalf("unexpected load result: format=%s adapter=%s id=%s", loaded.Format, loaded.Adapter, loaded.Session.ID)
+	}
+	if len(loaded.Session.Turns) != 2 {
+		t.Fatalf("expected 2 turns, got %d", len(loaded.Session.Turns))
+	}
+}
+
 func TestLoadSessionContentAutoRequiresAutoConvertForJSONL(t *testing.T) {
 	_, err := LoadSessionContentAuto(jsonl(t, []map[string]any{{"type": "session", "id": "pi-1"}}), LoadOptions{SourceName: "pi.jsonl"})
 	if err == nil {

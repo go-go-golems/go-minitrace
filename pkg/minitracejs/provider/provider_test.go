@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dop251/goja"
@@ -855,6 +856,49 @@ func TestModuleLoaderImporterSavesJSONLContent(t *testing.T) {
 	}
 	if _, err := os.Stat(got.Saved.MetadataPath); err != nil {
 		t.Fatalf("expected saved metadata: %v", err)
+	}
+}
+
+func TestModuleLoaderImporterConvertSupportsCopilotJSONL(t *testing.T) {
+	content := strings.Join([]string{
+		`{"type":"session.start","id":"ev-1","timestamp":"2026-06-17T10:00:00Z","data":{"sessionId":"copilot-xgoja","copilotVersion":"1.0.0"}}`,
+		`{"type":"user.message","id":"ev-2","timestamp":"2026-06-17T10:00:01Z","data":{"content":"Inspect README.md","interactionId":"int-1"}}`,
+		`{"type":"assistant.message","id":"ev-3","timestamp":"2026-06-17T10:00:02Z","data":{"content":"I inspected it.","model":"gpt-test","turnId":"turn-1"}}`,
+	}, "\n")
+	mod := resolveModule(t)
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Context: context.Background()})
+	if err != nil {
+		t.Fatalf("create loader: %v", err)
+	}
+	vm := goja.New()
+	moduleObj := vm.NewObject()
+	exports := vm.NewObject()
+	_ = moduleObj.Set("exports", exports)
+	loader(vm, moduleObj)
+	_ = vm.Set("mt", exports)
+	_ = vm.Set("jsonlContent", content)
+	value, err := vm.RunString(`
+		const importer = mt.importer()
+		  .Content(jsonlContent)
+		  .Name("copilot-events.jsonl")
+		  .AutoDetect()
+		  .Convert();
+		JSON.stringify(importer.Converted());
+	`)
+	if err != nil {
+		t.Fatalf("run importer script: %v", err)
+	}
+	var got struct {
+		SessionID string `json:"sessionId"`
+		Format    string `json:"format"`
+		Adapter   string `json:"adapter"`
+		TurnCount int    `json:"turnCount"`
+	}
+	if err := json.Unmarshal([]byte(value.String()), &got); err != nil {
+		t.Fatalf("unmarshal importer result: %v", err)
+	}
+	if got.SessionID != "copilot-xgoja" || got.Format != "copilot-jsonl" || got.Adapter != "copilot" || got.TurnCount != 2 {
+		t.Fatalf("unexpected converted summary: %#v", got)
 	}
 }
 

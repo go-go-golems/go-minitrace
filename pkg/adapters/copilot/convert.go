@@ -114,6 +114,29 @@ func ConvertRecords(records []EventEnvelope, workspace *WorkspaceMetadata, sessi
 	return ConvertParsed(ParseResult{Events: records}, workspace, sessionID, sourcePath)
 }
 
+func ConvertRawRecords(records []map[string]any, workspace *WorkspaceMetadata, sessionID, sourcePath string) (*minitrace.Session, error) {
+	events := make([]EventEnvelope, 0, len(records))
+	for _, record := range records {
+		dataMap := mapValue(record["data"])
+		if dataMap == nil {
+			dataMap = map[string]any{}
+		}
+		event := EventEnvelope{
+			Type:      stringValue(record["type"]),
+			Data:      dataMap,
+			ID:        stringValue(record["id"]),
+			Timestamp: stringValue(record["timestamp"]),
+			ParentID:  optionalString(stringValue(record["parentId"])),
+			Raw:       record,
+		}
+		if ephemeral, ok := record["ephemeral"].(bool); ok {
+			event.Ephemeral = &ephemeral
+		}
+		events = append(events, event)
+	}
+	return ConvertParsed(ParseResult{Events: events}, workspace, sessionID, sourcePath)
+}
+
 func ConvertParsed(parsed ParseResult, workspace *WorkspaceMetadata, sessionID, sourcePath string) (*minitrace.Session, error) {
 	state := newConversionState(workspace, sessionID, sourcePath)
 	for _, event := range parsed.Events {

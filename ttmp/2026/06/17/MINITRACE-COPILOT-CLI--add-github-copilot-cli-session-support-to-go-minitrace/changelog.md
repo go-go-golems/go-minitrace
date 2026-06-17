@@ -67,3 +67,15 @@ Completed validation: local non-dry conversion wrote valid JSON archive, full go
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/cmd/go-minitrace/cmds/convert/copilot.go — Validated non-dry archive writing path
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Validated through local conversion and full test suite
 
+
+## 2026-06-17
+
+Wired Copilot JSONL into minitracedb/minitracejs AutoDetect/Convert and verified xgoja importer verbs against the real local Copilot events.jsonl.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/minitracedb/convert.go — Auto-detects copilot-jsonl and calls the Copilot adapter
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/minitracedb/convert_test.go — Autoconvert coverage for Copilot JSONL
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/minitracejs/import_builder_test.go — ImportBuilder Convert coverage for Copilot JSONL
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/minitracejs/provider/provider_test.go — xgoja importer verb coverage for Copilot JSONL
+
