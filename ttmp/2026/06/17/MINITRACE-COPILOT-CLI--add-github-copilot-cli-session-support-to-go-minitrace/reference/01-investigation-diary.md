@@ -158,3 +158,66 @@ The guide is written for a new intern: it explains minitrace concepts, Copilot C
 - Design doc path: `ttmp/2026/06/17/MINITRACE-COPILOT-CLI--add-github-copilot-cli-session-support-to-go-minitrace/design-doc/01-github-copilot-cli-session-support-design-and-implementation-guide.md`.
 - Key command: `docmgr doc relate --doc ... --file-note ...` with absolute paths for schema, builders, Codex adapter, CLI commands, and analyzer script.
 - Changelog entry: `Completed evidence gathering and intern-ready Copilot CLI adapter design package; no implementation started.`
+
+## Step 3: Validation and reMarkable delivery
+
+I validated the ticket with `docmgr doctor` and fixed the only hygiene issues before upload: source documents needed docmgr frontmatter and numeric filename prefixes, and the new topic values needed vocabulary entries. After the doctor passed, I uploaded a bundled PDF containing the design guide, diary, and source evidence to reMarkable.
+
+This is the stopping point requested by the user. No Copilot adapter implementation was started after the upload.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Validate and deliver the documentation package, then stop for review.
+
+**Inferred user intent:** Ensure the design is reviewable on reMarkable before any engineering changes begin.
+
+**Commit (code):** 45e87aec6a7e4bb14bbba76fc78f7f526d0ac945 — "Docs: validate Copilot CLI ticket sources"
+
+### What I did
+- Ran `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30`.
+- Fixed source document frontmatter and renamed source files with numeric prefixes.
+- Added vocabulary topics `conversion`, `copilot`, and `design`.
+- Re-ran `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30`, which passed.
+- Ran a reMarkable dry-run bundle upload.
+- Uploaded the bundle with `remarquee upload bundle ... --name "MINITRACE COPILOT CLI Design" --remote-dir "/ai/2026/06/17/MINITRACE-COPILOT-CLI" --toc-depth 2 --non-interactive`.
+- Checked task 6 and updated the changelog.
+
+### Why
+- The ticket should be clean before delivery so the reviewer can trust the workspace structure and source references.
+- The bundle includes both the primary guide and the supporting evidence so review can happen offline on the device.
+
+### What worked
+- `docmgr doctor` passed after the source/frontmatter and vocabulary fixes.
+- The dry-run reported all intended documents in the bundle.
+- The real upload succeeded with: `OK: uploaded MINITRACE COPILOT CLI Design.pdf -> /ai/2026/06/17/MINITRACE-COPILOT-CLI`.
+
+### What didn't work
+- The first doctor run failed because downloaded Defuddle/source markdown files had no frontmatter and no numeric prefixes. Exact finding example: `invalid_frontmatter — Failed to parse frontmatter ... frontmatter delimiters '---' not found`.
+- The first doctor run also warned about unknown topics: `conversion`, `copilot`, and `design`.
+
+### What I learned
+- `docmgr doctor` checks source markdown under `sources/`, so downloaded references need frontmatter and naming hygiene too.
+- The upload command can bundle many markdown files directly and reported success without requiring a separate cloud listing.
+
+### What was tricky to build
+- Adding frontmatter shifted line numbers in the design evidence references. I adjusted source line references after adding the frontmatter so the guide remained line-anchored.
+- The reMarkable bundle includes source evidence, which makes the PDF longer, but it also keeps the review package self-contained.
+
+### What warrants a second pair of eyes
+- Review whether the bundle should include all source evidence or only the design guide and diary in future uploads.
+- Review the design guide before any code implementation starts.
+
+### What should be done in the future
+- Wait for user review.
+- After approval, start Phase 1 from the design document in a separate implementation step.
+
+### Code review instructions
+- Verify `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30` still passes.
+- Confirm the final upload path is `/ai/2026/06/17/MINITRACE-COPILOT-CLI`.
+- Confirm no production adapter code was modified.
+
+### Technical details
+- Successful upload line: `OK: uploaded MINITRACE COPILOT CLI Design.pdf -> /ai/2026/06/17/MINITRACE-COPILOT-CLI`.
+- Final validation command: `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30`.
