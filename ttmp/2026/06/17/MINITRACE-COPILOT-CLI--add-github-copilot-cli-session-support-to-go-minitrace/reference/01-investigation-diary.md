@@ -93,3 +93,68 @@ Don't start working after uploading the doc though, i need to review first"
 - Ticket path: `ttmp/2026/06/17/MINITRACE-COPILOT-CLI--add-github-copilot-cli-session-support-to-go-minitrace`.
 - Local sample analyzed: `/home/manuel/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a`.
 - Structural output: `sources/local-copilot-session-structural-analysis.md`.
+
+## Step 2: Architecture analysis and design guide writing
+
+I mapped the existing `go-minitrace` conversion architecture and wrote the primary design document. The design intentionally mirrors existing `codex` adapter boundaries but keeps Copilot CLI parsing in a separate `pkg/adapters/copilot` package because the event envelope and event names are different.
+
+The guide is written for a new intern: it explains minitrace concepts, Copilot CLI storage, the discovery and conversion flow, field mappings, pseudocode, decisions, fixture strategy, testing commands, and review questions. It remains a design package only; no production adapter code was added.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Produce a file-backed technical design and implementation plan, not just a summary.
+
+**Inferred user intent:** Enable review before implementation and make the later implementation approachable for a new engineer.
+
+**Commit (code):** 3b2643c74c88ee452b49859d05093d2464e1ba52 — "Docs: collect Copilot CLI session research sources"
+
+### What I did
+- Inspected `pkg/minitrace/schema.go` and `pkg/minitrace/builders.go` for the target data model and builder APIs.
+- Inspected `pkg/adapters/types.go`, `pkg/adapters/codex/discover.go`, `pkg/adapters/codex/convert.go`, `cmd/go-minitrace/cmds/discover/codex.go`, and `cmd/go-minitrace/cmds/convert/codex.go` for existing adapter patterns.
+- Wrote `design-doc/01-github-copilot-cli-session-support-design-and-implementation-guide.md` with evidence, mapping rules, pseudocode, decision records, test plans, and file-level implementation phases.
+- Related the design document to the key source files and the analysis script with `docmgr doc relate`.
+- Checked tasks 2 through 5 and updated the changelog.
+
+### Why
+- The future adapter should fit the project’s existing command and adapter architecture instead of introducing a one-off flow.
+- The design needs enough detail that implementation can proceed after review without re-discovering the same storage model and schema mapping decisions.
+
+### What worked
+- The Codex adapter provided a strong implementation template for discovery, JSONL parsing, stateful tool-call joining, command classification, and manifest writing.
+- The minitrace builder APIs provided clear construction points for normalized sessions, turns, tools, events, attachments, and annotations.
+- The local structural analysis gave enough field-shape evidence to design the first version without committing private transcript content.
+
+### What didn't work
+- There is no stable public Copilot CLI event schema in the retrieved sources, so the guide has to treat event shapes as observed behavior rather than a formal contract.
+- The generated docmgr task list included a placeholder task `[1] Add tasks here`; I left it unchecked and used tasks 2-6 for actual work tracking.
+
+### What I learned
+- Copilot CLI `events.jsonl` has a different envelope from Codex: `type` + `data` + `id` + `timestamp` + `parentId` rather than Codex’s `type` + `payload` session records.
+- Permission events are first-class enough to model as minitrace events and also attach to tool metadata.
+- The per-session `session.db` in the local sample is not necessary for first-pass transcript conversion.
+
+### What was tricky to build
+- The design had to distinguish official guarantees from observed local shapes. I called out observed shapes as sample evidence and used decision records where format uncertainty affects implementation choices.
+- Tool/turn association is not simply sequential: Copilot emits `tool.execution_start` and `tool.execution_complete` around assistant turns, so the adapter should join by `toolCallId` and `turnId` before attaching `ToolCallsInTurn`.
+
+### What warrants a second pair of eyes
+- Review the recommendation to emit one assistant turn per `assistant.message` instead of concatenating messages by `turnId`.
+- Review the privacy recommendation to redact raw metadata while preserving normalized transcript fields.
+- Review whether bad JSON lines should be skipped with annotations by default or fail conversion by default.
+
+### What should be done in the future
+- After review, implement phases 1-5 from the design document.
+- Add a real sanitized fixture based on the documented shapes.
+- Consider a second pass for `session-store.db` discovery acceleration only after per-session conversion works.
+
+### Code review instructions
+- Start with `design-doc/01-github-copilot-cli-session-support-design-and-implementation-guide.md`.
+- Cross-check the evidence links against `sources/local-copilot-session-structural-analysis.md` and `sources/code-evidence-excerpts.md`.
+- Confirm no production adapter code was added in this step.
+
+### Technical details
+- Design doc path: `ttmp/2026/06/17/MINITRACE-COPILOT-CLI--add-github-copilot-cli-session-support-to-go-minitrace/design-doc/01-github-copilot-cli-session-support-design-and-implementation-guide.md`.
+- Key command: `docmgr doc relate --doc ... --file-note ...` with absolute paths for schema, builders, Codex adapter, CLI commands, and analyzer script.
+- Changelog entry: `Completed evidence gathering and intern-ready Copilot CLI adapter design package; no implementation started.`
