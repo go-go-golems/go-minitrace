@@ -427,3 +427,71 @@ I also ran a dry-run smoke test against the local Copilot session that originall
 ### Technical details
 - Default source directory for both commands: `~/.copilot`.
 - Dry-run local sample summary: `turn_count=13`, `tool_call_count=7`, `annotation_count=0`, `quality=B`.
+
+## Step 7: Final validation and implementation handoff
+
+I ran the full validation pass after the CLI wiring was committed. This included a non-dry conversion of the local Copilot CLI sample into a temporary minitrace archive, JSON validation of the written archive files, the full Go test suite, and `docmgr doctor` for ticket hygiene.
+
+All implementation tasks are now checked. I did not close the ticket because the user asked for step-by-step implementation and diary keeping, not ticket closure; the implementation is ready for review.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 4)
+
+**Assistant interpretation:** Finish implementation only after tests and documentation bookkeeping are complete.
+
+**Inferred user intent:** Provide a clean, reviewable implementation with reproducible validation evidence.
+
+**Commit (code):** pending — validation/diary commit will follow this update.
+
+### What I did
+- Ran a non-dry local conversion into a temporary output directory:
+  - `go run ./cmd/go-minitrace convert copilot --source-dir ~/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a --output-dir "$TMP/out" --output json`
+- Validated the generated archive JSON files:
+  - `go run ./cmd/go-minitrace validate --path "$TMP/out" --recursive --output json`
+- Ran the full test suite:
+  - `go test ./... -count=1`
+- Ran ticket validation:
+  - `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30`
+- Checked tasks 5 and 6 and updated the changelog.
+
+### Why
+- Dry-run conversion verifies semantic conversion, but non-dry conversion also exercises `minitrace.WriteSession` and manifest writing.
+- Full test and docmgr validation provide a clean handoff for code review.
+
+### What worked
+- Non-dry conversion wrote one Copilot minitrace session and manifests to a temp directory.
+- `go-minitrace validate --recursive` reported `valid_json: true` for the session and manifest files.
+- `go test ./... -count=1` passed.
+- `docmgr doctor --ticket MINITRACE-COPILOT-CLI --stale-after 30` passed.
+
+### What didn't work
+- N/A for final validation; all commands passed.
+
+### What I learned
+- The complete conversion path produces the same plausible summary as dry-run: one local sample session, 13 turns, 7 tool calls, and quality `B`.
+- The existing validation command currently checks JSON syntax, which is enough to catch archive write corruption but not full schema semantics.
+
+### What was tricky to build
+- The final validation command writes to a temp directory to avoid polluting the repository or committing generated transcript archives.
+- The generated output includes both a root manifest and an active-period manifest; validation should scan recursively to cover both.
+
+### What warrants a second pair of eyes
+- Review the generated minitrace JSON from a local scratch conversion if deeper semantic validation is desired.
+- Review the adapter's raw metadata redaction and operation-classification heuristics before relying on aggregate research metrics.
+
+### What should be done in the future
+- Add broader fixtures as more Copilot event variants appear.
+- Consider schema-level validation once `go-minitrace validate` supports full minitrace semantic validation.
+- Consider a follow-up ticket for `session-store.db` discovery acceleration and richer session history summaries.
+
+### Code review instructions
+- Start with commits `c45e61e`, `f5498d3`, and `0709fdc` in order.
+- Run `go test ./... -count=1`.
+- Smoke-test with `go run ./cmd/go-minitrace convert copilot --source-dir ~/.copilot/session-state/<id> --dry-run --output json`.
+- For non-dry validation, write to a temp directory and run `go run ./cmd/go-minitrace validate --path "$TMP/out" --recursive --output json`.
+
+### Technical details
+- Local non-dry summary: `turn_count=13`, `tool_call_count=7`, `annotation_count=0`, `quality=B`.
+- Validation output marked the generated session JSON and manifests as valid JSON.
+- Ticket doctor result: all checks passed.

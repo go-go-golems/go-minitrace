@@ -6,8 +6,8 @@
 - [x] Implement Copilot event parsing and conversion into minitrace sessions
 - [x] Add Copilot discover/convert CLI commands and register them
 - [x] Add synthetic fixtures and tests for discovery, conversion, permissions, token metrics, and malformed JSONL
-- [ ] Run formatting and validation tests
-- [ ] Update diary, changelog, and file relations for implementation commits
+- [x] Run formatting and validation tests
+- [x] Update diary, changelog, and file relations for implementation commits
 
 - [x] Inspect existing go-minitrace converter/discover architecture
 - [x] Analyze local GitHub Copilot CLI session-state sample
