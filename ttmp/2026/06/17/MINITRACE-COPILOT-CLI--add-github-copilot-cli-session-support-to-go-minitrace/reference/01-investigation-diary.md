@@ -50,7 +50,7 @@ Don't start working after uploading the doc though, i need to review first"
   - `defuddle parse https://github.com/github/copilot-cli/issues/3520 --md`
   - `defuddle parse https://github.com/github/copilot-cli/issues/2012 --md`
 - Wrote `scripts/01-analyze-copilot-session-state.py` and ran it against `/home/manuel/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a`.
-- Captured code evidence excerpts with line numbers into `sources/code-evidence-excerpts.md`.
+- Captured code evidence excerpts with line numbers into `sources/07-code-evidence-excerpts.md`.
 
 ### Why
 - The ticket workspace keeps the research, scripts, and deliverables together.
@@ -92,7 +92,7 @@ Don't start working after uploading the doc though, i need to review first"
 ### Technical details
 - Ticket path: `ttmp/2026/06/17/MINITRACE-COPILOT-CLI--add-github-copilot-cli-session-support-to-go-minitrace`.
 - Local sample analyzed: `/home/manuel/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a`.
-- Structural output: `sources/local-copilot-session-structural-analysis.md`.
+- Structural output: `sources/06-local-copilot-session-structural-analysis.md`.
 
 ## Step 2: Architecture analysis and design guide writing
 
@@ -151,7 +151,7 @@ The guide is written for a new intern: it explains minitrace concepts, Copilot C
 
 ### Code review instructions
 - Start with `design-doc/01-github-copilot-cli-session-support-design-and-implementation-guide.md`.
-- Cross-check the evidence links against `sources/local-copilot-session-structural-analysis.md` and `sources/code-evidence-excerpts.md`.
+- Cross-check the evidence links against `sources/06-local-copilot-session-structural-analysis.md` and `sources/07-code-evidence-excerpts.md`.
 - Confirm no production adapter code was added in this step.
 
 ### Technical details

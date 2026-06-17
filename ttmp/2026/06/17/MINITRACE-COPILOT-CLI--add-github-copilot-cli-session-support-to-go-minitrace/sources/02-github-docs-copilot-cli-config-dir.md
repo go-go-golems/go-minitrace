@@ -1,3 +1,12 @@
+---
+Title: Github Docs Copilot Cli Config Dir
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 Copilot CLI stores its configuration, session history, logs, and customizations in a single 
 directory on your machine. By default, this directory is `~/.copilot` (that is, `$HOME/.copilot`).
 

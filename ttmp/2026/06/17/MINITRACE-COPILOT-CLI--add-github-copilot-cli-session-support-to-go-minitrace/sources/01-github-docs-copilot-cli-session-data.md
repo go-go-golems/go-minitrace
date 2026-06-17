@@ -1,3 +1,12 @@
+---
+Title: Github Docs Copilot Cli Session Data
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 ## Introduction
 
 Every time you use Copilot CLI, your session data is recorded on your local machine. This includes 

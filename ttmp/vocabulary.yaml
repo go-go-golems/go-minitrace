@@ -39,6 +39,12 @@ topics:
       description: MiniMax AI models
     - slug: configuration
       description: Configuration files, environment variables, and CLI flag wiring
+    - slug: conversion
+      description: conversion topic
+    - slug: copilot
+      description: copilot topic
+    - slug: design
+      description: design topic
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes

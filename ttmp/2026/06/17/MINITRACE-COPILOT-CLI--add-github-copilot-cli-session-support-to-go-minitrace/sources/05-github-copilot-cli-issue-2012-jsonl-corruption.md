@@ -1,3 +1,12 @@
+---
+Title: Github Copilot Cli Issue 2012 Jsonl Corruption
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 ## Bug
 
 `/resume` fails with `SyntaxError: Unterminated string in JSON` when `events.jsonl` contains raw 

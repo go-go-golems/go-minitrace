@@ -1,3 +1,12 @@
+---
+Title: Github Copilot Cli Issue 3520 Ephemeral Field
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 ## Summary
 
 Copilot CLI **1.0.54** writes session events to `~/.copilot/session-state/<sessionId>/events.jsonl` 

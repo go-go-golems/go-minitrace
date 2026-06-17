@@ -1,3 +1,12 @@
+---
+Title: Jonmagic Copilot Session Search Resume
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 Last week I switched to [copilot-cli](https://docs.github.com/en/copilot/how-tos/copilot-cli) as my 
 full-time coding agent. I’d been splitting my time between it and 
 [opencode](https://opencode.ai/) for months, using Copilot a few times a week, gravitating back to 

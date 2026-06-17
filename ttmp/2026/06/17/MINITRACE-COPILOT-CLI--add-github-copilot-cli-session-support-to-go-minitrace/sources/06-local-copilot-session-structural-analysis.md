@@ -1,3 +1,12 @@
+---
+Title: Local Copilot Session Structural Analysis
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 # Local Copilot CLI session-state structural analysis
 
 - Session directory: `/home/manuel/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a`

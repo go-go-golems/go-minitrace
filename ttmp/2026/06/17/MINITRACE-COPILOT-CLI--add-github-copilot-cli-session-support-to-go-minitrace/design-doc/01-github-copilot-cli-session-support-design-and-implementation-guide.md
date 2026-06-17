@@ -29,12 +29,12 @@ RelatedFiles:
     - Path: ttmp/2026/06/17/MINITRACE-COPILOT-CLI--add-github-copilot-cli-session-support-to-go-minitrace/scripts/01-analyze-copilot-session-state.py
       Note: Privacy-preserving local Copilot session structural analyzer
 ExternalSources:
-    - ../sources/github-docs-copilot-cli-session-data.md
-    - ../sources/github-docs-copilot-cli-config-dir.md
-    - ../sources/jonmagic-copilot-session-search-resume.md
-    - ../sources/github-copilot-cli-issue-3520-ephemeral-field.md
-    - ../sources/github-copilot-cli-issue-2012-jsonl-corruption.md
-    - ../sources/local-copilot-session-structural-analysis.md
+    - ../sources/01-github-docs-copilot-cli-session-data.md
+    - ../sources/02-github-docs-copilot-cli-config-dir.md
+    - ../sources/03-jonmagic-copilot-session-search-resume.md
+    - ../sources/04-github-copilot-cli-issue-3520-ephemeral-field.md
+    - ../sources/05-github-copilot-cli-issue-2012-jsonl-corruption.md
+    - ../sources/06-local-copilot-session-structural-analysis.md
 Summary: Design and implementation guide for adding GitHub Copilot CLI session-state discovery and conversion support to go-minitrace.
 LastUpdated: 2026-06-17T16:45:00-04:00
 WhatFor: Use this before implementing the Copilot CLI adapter; it explains the source format, existing minitrace architecture, mapping rules, test plan, and rollout sequence.
@@ -86,20 +86,20 @@ Today `go-minitrace` does not have a Copilot CLI adapter. A user who wants to an
 
 ### External source evidence
 
-Official GitHub documentation says that every Copilot CLI session is recorded locally and includes user prompts, Copilot responses, actions taken, and files modified (`sources/github-docs-copilot-cli-session-data.md:3-6`). It also says every Copilot CLI session is persisted under `~/.copilot/session-state/` (`sources/github-docs-copilot-cli-session-data.md:30-37`) and that local session data is accessible only to the local user account (`sources/github-docs-copilot-cli-session-data.md:57-63`).
+Official GitHub documentation says that every Copilot CLI session is recorded locally and includes user prompts, Copilot responses, actions taken, and files modified (`sources/01-github-docs-copilot-cli-session-data.md:12-15`). It also says every Copilot CLI session is persisted under `~/.copilot/session-state/` (`sources/01-github-docs-copilot-cli-session-data.md:39-46`) and that local session data is accessible only to the local user account (`sources/01-github-docs-copilot-cli-session-data.md:66-72`).
 
 The configuration-directory reference identifies the relevant top-level storage areas:
 
-- `session-state/` stores session history and workspace data (`sources/github-docs-copilot-cli-config-dir.md:28`).
-- `session-store.db` is a cross-session SQLite database (`sources/github-docs-copilot-cli-config-dir.md:30`, `sources/github-docs-copilot-cli-config-dir.md:155-159`).
-- Each session directory stores an event log and workspace artifacts (`sources/github-docs-copilot-cli-config-dir.md:135-138`).
+- `session-state/` stores session history and workspace data (`sources/02-github-docs-copilot-cli-config-dir.md:37`).
+- `session-store.db` is a cross-session SQLite database (`sources/02-github-docs-copilot-cli-config-dir.md:39`, `sources/02-github-docs-copilot-cli-config-dir.md:164-168`).
+- Each session directory stores an event log and workspace artifacts (`sources/02-github-docs-copilot-cli-config-dir.md:144-147`).
 
-A third-party exploration by Jon Magic independently observed the same high-level structure: one directory per session under `session-state/`, with `events.jsonl` and `workspace.yaml`, plus a separate `session-store.db` for cross-session indexing (`sources/jonmagic-copilot-session-search-resume.md:27-38`). This is not a formal API contract, but it is useful corroborating evidence.
+A third-party exploration by Jon Magic independently observed the same high-level structure: one directory per session under `session-state/`, with `events.jsonl` and `workspace.yaml`, plus a separate `session-store.db` for cross-session indexing (`sources/03-jonmagic-copilot-session-search-resume.md:36-47`). This is not a formal API contract, but it is useful corroborating evidence.
 
 Known issue reports matter because they define parser hazards:
 
-- Copilot CLI issue 3520 reports `events.jsonl` records without a required `ephemeral` field in one CLI version (`sources/github-copilot-cli-issue-3520-ephemeral-field.md:3-7`). The adapter should not require `ephemeral`.
-- Copilot CLI issue 2012 reports malformed JSON when raw `U+2028`/`U+2029` characters appear in `events.jsonl` (`sources/github-copilot-cli-issue-2012-jsonl-corruption.md:3-39`). The adapter should report bad lines clearly and optionally skip them in non-strict mode.
+- Copilot CLI issue 3520 reports `events.jsonl` records without a required `ephemeral` field in one CLI version (`sources/04-github-copilot-cli-issue-3520-ephemeral-field.md:12-16`). The adapter should not require `ephemeral`.
+- Copilot CLI issue 2012 reports malformed JSON when raw `U+2028`/`U+2029` characters appear in `events.jsonl` (`sources/05-github-copilot-cli-issue-2012-jsonl-corruption.md:12-48`). The adapter should report bad lines clearly and optionally skip them in non-strict mode.
 
 ### Local sample evidence
 
@@ -111,25 +111,25 @@ The local sample inspected for this ticket is:
 
 The structural analyzer intentionally redacted content bodies and reported only shapes. It found:
 
-- `workspace.yaml` (596 bytes), `events.jsonl` (250,841 bytes), `session.db` (28,672 bytes), checkpoint and rewind files (`sources/local-copilot-session-structural-analysis.md:7-13`).
-- Workspace keys including `id`, `cwd`, `git_root`, `branch`, `repository`, `client_name`, `host_type`, `created_at`, `updated_at`, and model-context ids (`sources/local-copilot-session-structural-analysis.md:15-31`).
-- 72 parseable JSONL records and zero bad JSON lines in this sample (`sources/local-copilot-session-structural-analysis.md:34-38`).
-- Event types including `session.start`, `session.model_change`, `system.message`, `user.message`, `assistant.turn_start`, `assistant.message`, `assistant.turn_end`, `tool.execution_start`, `tool.execution_complete`, `permission.requested`, `permission.completed`, and `session.shutdown` (`sources/local-copilot-session-structural-analysis.md:46-62`).
-- `assistant.message` records include content, model, phase, output token count, opaque reasoning, and tool request fields (`sources/local-copilot-session-structural-analysis.md:76`).
-- Tool execution records include arguments, model, tool call id, tool name, turn id, result content, success flag, and telemetry (`sources/local-copilot-session-structural-analysis.md:78-81`).
-- `session.shutdown` includes token details, model metrics, current model, events file size, code-change summary, total API duration, and premium-request metrics (`sources/local-copilot-session-structural-analysis.md:84`).
-- The per-session `session.db` sample contains `todos`, `todo_deps`, and `inbox_entries` tables with zero rows (`sources/local-copilot-session-structural-analysis.md:86-117`).
+- `workspace.yaml` (596 bytes), `events.jsonl` (250,841 bytes), `session.db` (28,672 bytes), checkpoint and rewind files (`sources/06-local-copilot-session-structural-analysis.md:16-22`).
+- Workspace keys including `id`, `cwd`, `git_root`, `branch`, `repository`, `client_name`, `host_type`, `created_at`, `updated_at`, and model-context ids (`sources/06-local-copilot-session-structural-analysis.md:24-40`).
+- 72 parseable JSONL records and zero bad JSON lines in this sample (`sources/06-local-copilot-session-structural-analysis.md:43-47`).
+- Event types including `session.start`, `session.model_change`, `system.message`, `user.message`, `assistant.turn_start`, `assistant.message`, `assistant.turn_end`, `tool.execution_start`, `tool.execution_complete`, `permission.requested`, `permission.completed`, and `session.shutdown` (`sources/06-local-copilot-session-structural-analysis.md:55-71`).
+- `assistant.message` records include content, model, phase, output token count, opaque reasoning, and tool request fields (`sources/06-local-copilot-session-structural-analysis.md:85`).
+- Tool execution records include arguments, model, tool call id, tool name, turn id, result content, success flag, and telemetry (`sources/06-local-copilot-session-structural-analysis.md:87-90`).
+- `session.shutdown` includes token details, model metrics, current model, events file size, code-change summary, total API duration, and premium-request metrics (`sources/06-local-copilot-session-structural-analysis.md:93`).
+- The per-session `session.db` sample contains `todos`, `todo_deps`, and `inbox_entries` tables with zero rows (`sources/06-local-copilot-session-structural-analysis.md:95-126`).
 
 ### Existing `go-minitrace` architecture evidence
 
 `go-minitrace` already uses an adapter pattern:
 
-- `pkg/adapters/types.go` defines the minimal `SessionLocator` contract with `ID`, `FormatHint`, and `SourcePath` (`sources/code-evidence-excerpts.md:131-136`).
-- `cmd/go-minitrace/cmds/discover/root.go` creates the `discover` command group and registers first-class adapter subcommands (`sources/code-evidence-excerpts.md:84-108`).
-- `cmd/go-minitrace/cmds/convert/root.go` creates the `convert` command group and registers conversion subcommands (`sources/code-evidence-excerpts.md:5-45`).
+- `pkg/adapters/types.go` defines the minimal `SessionLocator` contract with `ID`, `FormatHint`, and `SourcePath` (`sources/07-code-evidence-excerpts.md:140-145`).
+- `cmd/go-minitrace/cmds/discover/root.go` creates the `discover` command group and registers first-class adapter subcommands (`sources/07-code-evidence-excerpts.md:93-117`).
+- `cmd/go-minitrace/cmds/convert/root.go` creates the `convert` command group and registers conversion subcommands (`sources/07-code-evidence-excerpts.md:14-54`).
 - The Codex discovery command demonstrates the Glazed command shape: it decodes `--source-dir`, calls adapter discovery, and emits one row per locator (`cmd/go-minitrace/cmds/discover/codex.go`).
 - The Codex convert command demonstrates the conversion command shape: discover locators, convert each locator, write minitrace sessions, emit rows, and write manifests (`cmd/go-minitrace/cmds/convert/codex.go`).
-- The minitrace schema has explicit top-level sections for provenance, flags, environment, operational context, timing, turns, tool calls, events, attachments, annotations, and metrics (`sources/code-evidence-excerpts.md:365-579`).
+- The minitrace schema has explicit top-level sections for provenance, flags, environment, operational context, timing, turns, tool calls, events, attachments, annotations, and metrics (`sources/07-code-evidence-excerpts.md:374-588`).
 - `pkg/minitrace/builders.go` provides constructors such as `BuildSessionSkeleton`, `BuildTurn`, `BuildToolCall`, `BuildEvent`, `BuildAttachment`, and `BuildAnnotation`.
 
 The existing Codex adapter is the closest model because it maps an agent JSONL event stream into the same concepts Copilot CLI exposes. However, the record shape is different. Codex persisted sessions use `type` plus `payload` and event types like `session_meta`, `turn_context`, `event_msg`, and `response_item` (`pkg/adapters/codex/convert.go`). Copilot CLI uses `type` plus `data`, with event names such as `assistant.message`, `tool.execution_start`, and `permission.requested`.
@@ -1082,13 +1082,13 @@ Only run a non-dry conversion to a scratch output directory after checking that 
 
 ### Ticket sources
 
-- `../sources/github-docs-copilot-cli-session-data.md`
-- `../sources/github-docs-copilot-cli-config-dir.md`
-- `../sources/jonmagic-copilot-session-search-resume.md`
-- `../sources/github-copilot-cli-issue-3520-ephemeral-field.md`
-- `../sources/github-copilot-cli-issue-2012-jsonl-corruption.md`
-- `../sources/local-copilot-session-structural-analysis.md`
-- `../sources/code-evidence-excerpts.md`
+- `../sources/01-github-docs-copilot-cli-session-data.md`
+- `../sources/02-github-docs-copilot-cli-config-dir.md`
+- `../sources/03-jonmagic-copilot-session-search-resume.md`
+- `../sources/04-github-copilot-cli-issue-3520-ephemeral-field.md`
+- `../sources/05-github-copilot-cli-issue-2012-jsonl-corruption.md`
+- `../sources/06-local-copilot-session-structural-analysis.md`
+- `../sources/07-code-evidence-excerpts.md`
 
 ### Repository files
 

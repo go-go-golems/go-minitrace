@@ -1,3 +1,12 @@
+---
+Title: Code Evidence Excerpts
+Ticket: MINITRACE-COPILOT-CLI
+DocType: reference
+Topics: [go-minitrace, copilot, conversion]
+Status: active
+Intent: source-evidence
+---
+
 # Code evidence excerpts
 ## convert/root.go
      1	package convert
