@@ -41,7 +41,11 @@ the actual conversion engine is ported.`,
 	if err != nil {
 		return nil, err
 	}
+	copilotCmd, err := NewCopilotCommand()
+	if err != nil {
+		return nil, err
+	}
 
-	root.AddCommand(claudeCmd, codexCmd, piCmd, claudeAICmd, chatGPTCmd, chatGPTJSONCmd, turnsDBCmd)
+	root.AddCommand(claudeCmd, codexCmd, piCmd, claudeAICmd, chatGPTCmd, chatGPTJSONCmd, turnsDBCmd, copilotCmd)
 	return root, nil
 }

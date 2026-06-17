@@ -13,10 +13,16 @@ Owners: []
 RelatedFiles:
     - Path: cmd/go-minitrace/cmds/convert/codex.go
       Note: CLI conversion command pattern to mirror
+    - Path: cmd/go-minitrace/cmds/convert/copilot.go
+      Note: CLI conversion command for Copilot sessions
     - Path: cmd/go-minitrace/cmds/convert/root.go
+      Note: Copilot convert command registration
     - Path: cmd/go-minitrace/cmds/discover/codex.go
       Note: CLI discovery command pattern to mirror
+    - Path: cmd/go-minitrace/cmds/discover/copilot.go
+      Note: CLI discovery command for Copilot sessions
     - Path: cmd/go-minitrace/cmds/discover/root.go
+      Note: Copilot discover command registration
     - Path: pkg/adapters/codex/convert.go
       Note: Closest existing JSONL adapter and mapping reference
     - Path: pkg/adapters/codex/discover.go
@@ -50,6 +56,7 @@ LastUpdated: 2026-06-17T16:45:00-04:00
 WhatFor: Use this before implementing the Copilot CLI adapter; it explains the source format, existing minitrace architecture, mapping rules, test plan, and rollout sequence.
 WhenToUse: When reviewing, implementing, or testing GitHub Copilot CLI session support in go-minitrace.
 ---
+
 
 
 

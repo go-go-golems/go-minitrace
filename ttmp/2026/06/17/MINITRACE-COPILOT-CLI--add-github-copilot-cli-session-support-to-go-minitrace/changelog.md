@@ -45,3 +45,15 @@ Implemented Copilot events.jsonl conversion with turns, tools, permissions, shut
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Copilot event parsing and minitrace conversion
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Synthetic conversion
 
+
+## 2026-06-17
+
+Added Copilot discover/convert CLI commands, registered them, and smoke-tested against the local Copilot session in dry-run mode.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/cmd/go-minitrace/cmds/convert/copilot.go — New convert copilot command
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/cmd/go-minitrace/cmds/convert/root.go — Registers convert copilot
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/cmd/go-minitrace/cmds/discover/copilot.go — New discover copilot command
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/cmd/go-minitrace/cmds/discover/root.go — Registers discover copilot
+

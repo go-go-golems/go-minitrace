@@ -362,3 +362,68 @@ The converter stays defensive: it treats `workspace.yaml` as optional metadata, 
 - Provider hint: `github-copilot`.
 - Malformed JSONL lines become `data-quality` annotations on the session.
 - Opaque/encrypted assistant fields are represented as boolean metadata flags, not readable `Thinking`.
+
+## Step 6: Add Copilot CLI commands and smoke-test local dry run
+
+I wired the adapter into the user-facing CLI by adding `discover copilot` and `convert copilot` commands. The command implementations follow the existing Codex command pattern: decode Glazed settings, call adapter discovery/conversion, emit rows, and write minitrace sessions/manifests when not in dry-run mode.
+
+I also ran a dry-run smoke test against the local Copilot session that originally informed the design. Discovery found the expected session directory, and conversion dry-run produced a summary row with 13 turns, 7 tool calls, quality `B`, and no data-quality annotations.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 4)
+
+**Assistant interpretation:** Continue implementing the approved adapter and verify each slice before committing.
+
+**Inferred user intent:** Make the feature usable through the normal `go-minitrace` CLI, not just as a package-level adapter.
+
+**Commit (code):** pending — CLI command commit will follow this diary update.
+
+### What I did
+- Added `cmd/go-minitrace/cmds/discover/copilot.go`.
+- Added `cmd/go-minitrace/cmds/convert/copilot.go`.
+- Registered `discover copilot` in `cmd/go-minitrace/cmds/discover/root.go`.
+- Registered `convert copilot` in `cmd/go-minitrace/cmds/convert/root.go`.
+- Ran `gofmt` on the new/modified command files.
+- Ran `go test ./cmd/go-minitrace/cmds/discover ./cmd/go-minitrace/cmds/convert ./pkg/adapters/copilot -count=1`.
+- Ran local smoke commands:
+  - `go run ./cmd/go-minitrace discover copilot --source-dir ~/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a --output json`
+  - `go run ./cmd/go-minitrace convert copilot --source-dir ~/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a --dry-run --output json`
+- Checked tasks 3 and 4 and updated changelog/file relations.
+
+### Why
+- Users need the same CLI surface for Copilot sessions that exists for Codex, Claude Code, and Pi sessions.
+- Dry-run smoke testing against a real local session verifies that discovery and conversion cooperate before writing any archive files.
+
+### What worked
+- Package/command tests passed.
+- `discover copilot` found the expected local `events.jsonl`, `workspace.yaml`, and `session.db` paths.
+- `convert copilot --dry-run` converted the local sample without writing output and reported `turn_count: 13`, `tool_call_count: 7`, and `annotation_count: 0`.
+
+### What didn't work
+- N/A for this slice; command tests and dry-run smoke tests passed.
+
+### What I learned
+- The local sample's conversion output is plausible but not necessarily perfect: 13 turns vs. the structural analyzer's 4 user and 9 assistant messages means all message events are represented.
+- Quality `B` is expected because the converted session has useful turns/tools but may lack enough complete metadata for an `A` rating.
+
+### What was tricky to build
+- The command names conflicted with existing `NewCopilotCommand` possibilities only by package, not by symbol, because `discover` and `convert` are separate Go packages. Keeping names parallel with existing `NewCodexCommand` made registration straightforward.
+- The discover command reports derived `workspace_path` and `session_db_path` without stat checks. These are useful expected paths, but future CLI polish could add booleans like `has_session_db`.
+
+### What warrants a second pair of eyes
+- Review whether discover output should include `has_workspace`, `has_session_db`, and event counts instead of only paths.
+- Review the dry-run row fields for consistency with other adapters.
+
+### What should be done in the future
+- Run the full repository validation suite and docmgr doctor.
+- Optionally perform a non-dry conversion into a temporary directory and validate the written archive before finalizing.
+
+### Code review instructions
+- Start with `cmd/go-minitrace/cmds/convert/copilot.go`, especially dry-run vs. write behavior.
+- Then review `cmd/go-minitrace/cmds/discover/copilot.go` for row fields.
+- Validate with the two local smoke commands listed above.
+
+### Technical details
+- Default source directory for both commands: `~/.copilot`.
+- Dry-run local sample summary: `turn_count=13`, `tool_call_count=7`, `annotation_count=0`, `quality=B`.

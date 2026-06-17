@@ -22,7 +22,11 @@ rows describing the sessions that would be considered for conversion.`,
 	if err != nil {
 		return nil, err
 	}
+	copilotCmd, err := NewCopilotCommand()
+	if err != nil {
+		return nil, err
+	}
 
-	root.AddCommand(claudeCmd, codexCmd, piCmd)
+	root.AddCommand(claudeCmd, codexCmd, piCmd, copilotCmd)
 	return root, nil
 }
