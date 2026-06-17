@@ -35,3 +35,13 @@ Implemented Copilot session-state discovery package and tests.
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/discover.go — Discovery implementation
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/discover_test.go — Discovery coverage
 
+
+## 2026-06-17
+
+Implemented Copilot events.jsonl conversion with turns, tools, permissions, shutdown token metrics, malformed-line annotations, and synthetic tests.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Copilot event parsing and minitrace conversion
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Synthetic conversion
+

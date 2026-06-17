@@ -3,7 +3,7 @@
 ## TODO
 
 - [x] Implement Copilot adapter discovery for ~/.copilot/session-state layouts
-- [ ] Implement Copilot event parsing and conversion into minitrace sessions
+- [x] Implement Copilot event parsing and conversion into minitrace sessions
 - [ ] Add Copilot discover/convert CLI commands and register them
 - [ ] Add synthetic fixtures and tests for discovery, conversion, permissions, token metrics, and malformed JSONL
 - [ ] Run formatting and validation tests

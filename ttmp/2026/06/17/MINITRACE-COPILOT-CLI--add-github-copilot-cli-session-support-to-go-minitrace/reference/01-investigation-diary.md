@@ -285,3 +285,80 @@ The implementation intentionally accepts three input shapes: a Copilot home dire
 - New source format constant: `copilot-cli-events-jsonl-v1`.
 - Default future CLI source should be `~/.copilot`.
 - Discovery returns no locator for a directory that only has `workspace.yaml` and no `events.jsonl`.
+
+## Step 5: Implement Copilot event conversion
+
+I implemented the core Copilot CLI `events.jsonl` converter. This step turns the observed Copilot event envelope into normalized minitrace sessions with user turns, assistant turns, tool calls, permission events, lifecycle events, shutdown token totals, and data-quality annotations for malformed JSONL lines.
+
+The converter stays defensive: it treats `workspace.yaml` as optional metadata, skips malformed JSONL records while annotating them, joins tool start/completion records by `toolCallId`, and links tools back to assistant turns by `turnId`. It also redacts duplicate raw content fields in framework metadata so normalized transcript fields remain useful without storing extra raw copies of sensitive content.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 4)
+
+**Assistant interpretation:** Continue the approved implementation plan with focused, tested slices and diary updates.
+
+**Inferred user intent:** Build the adapter carefully while maintaining reviewable history and ticket bookkeeping.
+
+**Commit (code):** pending — conversion implementation commit will follow this diary update.
+
+### What I did
+- Added `pkg/adapters/copilot/convert.go` with:
+  - `EventEnvelope`, `ParseResult`, and `BadJSONLine` models.
+  - `ConvertLocator`, `ConvertRecords`, and `ConvertParsed` entrypoints.
+  - JSONL parsing with large scanner buffer and bad-line collection.
+  - Conversion state for turns, tools, permissions, events, token totals, and metadata.
+  - Tool start/completion joining by `toolCallId` and assistant linkage by `turnId`.
+  - Permission request/completion events and permission metadata on tools.
+  - Shutdown token metric extraction from `tokenDetails`.
+  - Sensitive raw metadata redaction.
+- Added `pkg/adapters/copilot/convert_test.go` with synthetic fixtures for normal conversion, malformed JSONL annotation, and `ConvertLocator` reading `workspace.yaml` beside `events.jsonl`.
+- Ran `gofmt -w pkg/adapters/copilot/convert.go pkg/adapters/copilot/convert_test.go`.
+- Ran `go test ./pkg/adapters/copilot -count=1`.
+- Checked task 2 and updated changelog/file relations.
+
+### Why
+- This is the main semantic bridge from Copilot's event stream to minitrace's normalized schema.
+- Synthetic fixtures avoid committing private `~/.copilot` content while still testing the observed event shapes.
+- Keeping malformed-line handling in the parse result lets conversion preserve good records and document data-quality problems.
+
+### What worked
+- `go test ./pkg/adapters/copilot -count=1` passed.
+- The synthetic fixture maps to two turns, one READ tool call, permission events, and shutdown token totals.
+- `ConvertLocator` can derive the workspace path from the events file path returned by discovery.
+
+### What didn't work
+- Package tests passed, but the first commit attempt failed during the pre-commit lint hook with:
+  - Command: `git commit -m "Add Copilot event conversion adapter"`
+  - Error: `pkg/adapters/copilot/convert.go:625:3: variable copy has same name as predeclared identifier (predeclared)`
+- I fixed this by renaming the local variable from `copy` to `indexCopy` in `turnIndexForTurnID`.
+
+### What I learned
+- It is simpler and more robust to keep Copilot raw event decoding mostly map-based for the first pass. Typed structs can come later if the event schema stabilizes.
+- The minitrace builders already handle result truncation and path normalization, so the adapter should feed them normalized intent rather than duplicate that logic.
+
+### What was tricky to build
+- Tool/turn ordering is subtle because a tool may complete before the assistant message that should reference it. The converter stores `toolIDsByTurnID` and retroactively updates either the turn or the tool when the matching side appears.
+- Permission events may arrive before or after tool start/completion. The converter stores permission metadata by `toolCallId` and also updates pending tools when possible.
+- Token totals can exist both per assistant message and in shutdown totals. The implementation keeps per-turn output tokens but uses shutdown `tokenDetails` for session totals when present.
+
+### What warrants a second pair of eyes
+- Review the redaction list in `redactRaw`; it intentionally redacts duplicate raw content fields but may need more Copilot-specific keys later.
+- Review operation classification for Copilot shell commands and tool names. It is intentionally conservative and can be refined as more fixtures appear.
+- Review non-strict malformed JSONL behavior. The adapter skips bad lines and annotates instead of failing conversion.
+
+### What should be done in the future
+- Add CLI command wiring so users can run `discover copilot` and `convert copilot`.
+- Add a smoke test or manual dry-run against the real local sample after CLI wiring.
+- Consider extracting shared command-classification helpers with Codex if duplication grows.
+
+### Code review instructions
+- Start with `ConvertParsed` in `pkg/adapters/copilot/convert.go` to understand event dispatch.
+- Then review `startTool`, `completeTool`, `permissionRequested`, and `addAssistantMessage` for join semantics.
+- Validate with `go test ./pkg/adapters/copilot -count=1`.
+
+### Technical details
+- Source format: `copilot-cli-events-jsonl-v1`.
+- Provider hint: `github-copilot`.
+- Malformed JSONL lines become `data-quality` annotations on the session.
+- Opaque/encrypted assistant fields are represented as boolean metadata flags, not readable `Thinking`.
