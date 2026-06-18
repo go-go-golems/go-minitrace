@@ -80,6 +80,38 @@ func TestConvertParsedMapsTurnsToolsPermissionsAndShutdown(t *testing.T) {
 	}
 }
 
+func TestConvertParsedUsesParentChainWhenTurnIDsRepeat(t *testing.T) {
+	parsed := parseJSONLBytes([]byte(strings.Join([]string{
+		`{"type":"user.message","id":"u1","timestamp":"2026-06-17T10:00:00Z","data":{"content":"first","interactionId":"i1"}}`,
+		`{"type":"assistant.message","id":"a1","parentId":"u1","timestamp":"2026-06-17T10:00:01Z","data":{"content":"first assistant","turnId":"0","interactionId":"i1","toolRequests":[{"id":"tool-1"},{"id":"tool-2"}]}}`,
+		`{"type":"tool.execution_start","id":"ts1","parentId":"a1","timestamp":"2026-06-17T10:00:02Z","data":{"toolCallId":"tool-1","toolName":"bash","turnId":"0","arguments":{"command":"ls"}}}`,
+		`{"type":"tool.execution_start","id":"ts2","parentId":"ts1","timestamp":"2026-06-17T10:00:03Z","data":{"toolCallId":"tool-2","toolName":"bash","turnId":"0","arguments":{"command":"pwd"}}}`,
+		`{"type":"tool.execution_complete","id":"tc1","parentId":"ts2","timestamp":"2026-06-17T10:00:04Z","data":{"toolCallId":"tool-1","turnId":"0","success":true,"result":{"content":"ok"}}}`,
+		`{"type":"tool.execution_complete","id":"tc2","parentId":"tc1","timestamp":"2026-06-17T10:00:05Z","data":{"toolCallId":"tool-2","turnId":"0","success":true,"result":{"content":"ok"}}}`,
+		`{"type":"user.message","id":"u2","timestamp":"2026-06-17T10:01:00Z","data":{"content":"second","interactionId":"i2"}}`,
+		`{"type":"assistant.message","id":"a2","parentId":"u2","timestamp":"2026-06-17T10:01:01Z","data":{"content":"second assistant","turnId":"0","interactionId":"i2"}}`,
+	}, "\n")))
+
+	session, err := ConvertParsed(parsed, nil, "repeat-turn-ids", "/tmp/events.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertParsed returned error: %v", err)
+	}
+	if len(session.Turns) != 4 {
+		t.Fatalf("expected 4 turns, got %d", len(session.Turns))
+	}
+	if got := session.Turns[1].ToolCallsInTurn; len(got) != 2 || got[0] != "tool-1" || got[1] != "tool-2" {
+		t.Fatalf("expected first assistant turn to own both tools, got %+v", got)
+	}
+	if got := session.Turns[3].ToolCallsInTurn; len(got) != 0 {
+		t.Fatalf("expected reused turnId on later interaction not to steal old tools, got %+v", got)
+	}
+	for _, tool := range session.ToolCalls {
+		if tool.EmittingTurnIndex == nil || *tool.EmittingTurnIndex != 1 {
+			t.Fatalf("expected tool %s to emit from turn 1, got %+v", tool.ID, tool.EmittingTurnIndex)
+		}
+	}
+}
+
 func TestConvertParsedCarriesPermissionRequestedBeforeToolStart(t *testing.T) {
 	parsed := parseJSONLBytes([]byte(strings.Join([]string{
 		`{"type":"permission.requested","id":"ev-1","timestamp":"2026-06-17T10:00:00Z","data":{"requestId":"perm-1","permissionRequest":{"toolCallId":"tool-1","intention":"Write generated file","kind":"command","possiblePaths":["generated.txt"],"hasWriteFileRedirection":true}}}`,

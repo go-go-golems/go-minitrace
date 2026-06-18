@@ -58,18 +58,20 @@ type conversionState struct {
 	turnIndexByTurnID  map[string]int
 	toolIDsByTurnID    map[string][]string
 	permissionByToolID map[string]map[string]any
+	eventTurnIndexByID map[string]int
 }
 
 type pendingTool struct {
-	ID          string
-	ToolName    string
-	TurnID      string
-	Timestamp   *string
-	Arguments   map[string]any
-	Model       string
-	StartRaw    map[string]any
-	Permission  map[string]any
-	Description string
+	ID                string
+	ToolName          string
+	TurnID            string
+	Timestamp         *string
+	Arguments         map[string]any
+	Model             string
+	StartRaw          map[string]any
+	Permission        map[string]any
+	EmittingTurnIndex *int
+	Description       string
 }
 
 var readCommandPatterns = []*regexp.Regexp{
@@ -217,6 +219,7 @@ func newConversionState(workspace *WorkspaceMetadata, sessionID, sourcePath stri
 		turnIndexByTurnID:  map[string]int{},
 		toolIDsByTurnID:    map[string][]string{},
 		permissionByToolID: map[string]map[string]any{},
+		eventTurnIndexByID: map[string]int{},
 	}
 	if workspace != nil {
 		state.metadata["workspace"] = redactRaw(workspace.Raw)
@@ -310,6 +313,9 @@ func (s *conversionState) addAssistantMessage(event EventEnvelope) {
 		}
 	}
 	s.turns = append(s.turns, turn)
+	if event.ID != "" {
+		s.eventTurnIndexByID[event.ID] = turnIndex
+	}
 }
 
 func (s *conversionState) addTurnLifecycle(event EventEnvelope, kind, title string) {
@@ -334,19 +340,26 @@ func (s *conversionState) startTool(event EventEnvelope) {
 		args = map[string]any{}
 	}
 	turnID := stringValue(event.Data["turnId"])
+	emittingTurnIndex := s.turnIndexForParent(event.ParentID)
 	pending := &pendingTool{
-		ID:          toolCallID,
-		ToolName:    firstNonEmpty(stringValue(event.Data["toolName"]), "unknown"),
-		TurnID:      turnID,
-		Timestamp:   optionalString(event.Timestamp),
-		Arguments:   args,
-		Model:       stringValue(event.Data["model"]),
-		StartRaw:    event.Raw,
-		Permission:  s.permissionByToolID[toolCallID],
-		Description: stringValue(args["description"]),
+		ID:                toolCallID,
+		ToolName:          firstNonEmpty(stringValue(event.Data["toolName"]), "unknown"),
+		TurnID:            turnID,
+		Timestamp:         optionalString(event.Timestamp),
+		Arguments:         args,
+		Model:             stringValue(event.Data["model"]),
+		StartRaw:          event.Raw,
+		Permission:        s.permissionByToolID[toolCallID],
+		EmittingTurnIndex: emittingTurnIndex,
+		Description:       stringValue(args["description"]),
 	}
 	s.pendingTools[toolCallID] = pending
-	if turnID != "" {
+	if emittingTurnIndex != nil {
+		s.attachToolIDToTurn(*emittingTurnIndex, toolCallID)
+		if event.ID != "" {
+			s.eventTurnIndexByID[event.ID] = *emittingTurnIndex
+		}
+	} else if turnID != "" {
 		s.toolIDsByTurnID[turnID] = appendUnique(s.toolIDsByTurnID[turnID], toolCallID)
 	}
 }
@@ -356,11 +369,13 @@ func (s *conversionState) completeTool(event EventEnvelope) {
 	pending := s.pendingTools[toolCallID]
 	if pending == nil {
 		pending = &pendingTool{
-			ID:        firstNonEmpty(toolCallID, "copilot-tool-"+stableID(event)),
-			ToolName:  "unknown",
-			TurnID:    stringValue(event.Data["turnId"]),
-			Timestamp: optionalString(event.Timestamp),
-			Arguments: map[string]any{},
+			ID:                firstNonEmpty(toolCallID, "copilot-tool-"+stableID(event)),
+			ToolName:          "unknown",
+			TurnID:            stringValue(event.Data["turnId"]),
+			Timestamp:         optionalString(event.Timestamp),
+			Arguments:         map[string]any{},
+			Permission:        s.permissionByToolID[toolCallID],
+			EmittingTurnIndex: s.turnIndexForParent(event.ParentID),
 		}
 	}
 	toolCall := s.buildToolCall(pending, event, true)
@@ -399,7 +414,7 @@ func (s *conversionState) buildToolCall(pending *pendingTool, event EventEnvelop
 	}
 	toolCall := minitrace.BuildToolCall(
 		pending.ID,
-		s.turnIndexForTurnID(pending.TurnID),
+		firstNonNilInt(pending.EmittingTurnIndex, s.turnIndexForTurnID(pending.TurnID)),
 		firstTimestamp(pending.Timestamp, optionalString(event.Timestamp)),
 		pending.ToolName,
 		classifyCopilotOperation(pending.ToolName, command, pending.Arguments, pending.Permission),
@@ -428,6 +443,10 @@ func (s *conversionState) buildToolCall(pending *pendingTool, event EventEnvelop
 func (s *conversionState) appendToolCall(toolCall minitrace.ToolCall, turnID string) {
 	s.toolIndexByID[toolCall.ID] = len(s.toolCalls)
 	s.toolCalls = append(s.toolCalls, toolCall)
+	if toolCall.EmittingTurnIndex != nil {
+		s.attachToolIDToTurn(*toolCall.EmittingTurnIndex, toolCall.ID)
+		return
+	}
 	if turnID != "" {
 		s.toolIDsByTurnID[turnID] = appendUnique(s.toolIDsByTurnID[turnID], toolCall.ID)
 		if turnIndex, ok := s.turnIndexByTurnID[turnID]; ok && turnIndex >= 0 && turnIndex < len(s.turns) {
@@ -648,6 +667,33 @@ func (s *conversionState) turnIndexForTurnID(turnID string) *int {
 	if index, ok := s.turnIndexByTurnID[turnID]; ok {
 		indexCopy := index
 		return &indexCopy
+	}
+	return nil
+}
+
+func (s *conversionState) turnIndexForParent(parentID *string) *int {
+	if parentID == nil || strings.TrimSpace(*parentID) == "" {
+		return nil
+	}
+	if index, ok := s.eventTurnIndexByID[*parentID]; ok {
+		indexCopy := index
+		return &indexCopy
+	}
+	return nil
+}
+
+func (s *conversionState) attachToolIDToTurn(turnIndex int, toolID string) {
+	if turnIndex < 0 || turnIndex >= len(s.turns) {
+		return
+	}
+	s.turns[turnIndex].ToolCallsInTurn = appendUnique(s.turns[turnIndex].ToolCallsInTurn, toolID)
+}
+
+func firstNonNilInt(values ...*int) *int {
+	for _, value := range values {
+		if value != nil {
+			return value
+		}
 	}
 	return nil
 }

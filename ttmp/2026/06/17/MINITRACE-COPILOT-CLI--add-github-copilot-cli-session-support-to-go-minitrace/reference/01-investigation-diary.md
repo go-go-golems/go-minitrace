@@ -636,3 +636,68 @@ I added focused regression tests for both review comments before committing. The
 - Validation commands passed:
   - `go test ./pkg/adapters/copilot -count=1`
   - `go test ./... -count=1`
+
+## Step 10: Fix Copilot tool ordering for reused turn IDs
+
+I converted the real Copilot session and printed a chronological table of messages, tool calls, and permission events. That exposed a real ordering/association bug: Copilot `turnId` values are reused across user interactions (`0`, `1`, `2`), so using `turnId` as a global key caused early tools to be attached again to later assistant turns with the same local turn id.
+
+I looked at the Python converters in `https://github.com/wesen/minitrace` for the general pattern: adapters keep tool calls tied to the concrete assistant turn that emitted them, not to a globally ambiguous framework-local id. For Copilot, the reliable signal is the event parent chain: `tool.execution_start.parentId` points to the assistant message that requested the tool, or to a previous tool start in the same assistant message batch. I changed the Go adapter to track `eventID -> minitrace turn index` and resolve tool starts through that parent chain.
+
+### Prompt Context
+
+**User prompt (verbatim):** "You can potentially look at converters here: https://github.com/wesen/minitrace . In case that helps with like ordering"
+
+**Assistant interpretation:** Use the reference converters as a sanity check for ordering/association semantics, then fix the discovered Copilot ordering issue.
+
+**Inferred user intent:** Ensure the converted transcript table presents tools under the assistant turns that actually emitted them, not merely in count-correct form.
+
+**Commit (code):** pending — ordering fix commit will follow this diary update.
+
+### What I did
+- Cloned `https://github.com/wesen/minitrace` to a temporary directory and inspected adapter ordering patterns.
+- Re-converted the real Copilot session and printed a table of messages/tools/events.
+- Identified that Copilot `turnId` is local to each interaction and is reused across interactions.
+- Added `eventTurnIndexByID` to conversion state.
+- Stored the minitrace turn index for each assistant message event id.
+- Resolved `tool.execution_start` to the emitting turn via `parentId` and propagated the same turn index through chained tool-start parents.
+- Updated `pendingTool` to carry an explicit `EmittingTurnIndex`.
+- Added `TestConvertParsedUsesParentChainWhenTurnIDsRepeat`.
+- Ran `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+- Added and checked task 14 and updated the changelog.
+
+### Why
+- Correct chronological rendering depends on both timestamp order and correct `emitting_turn_index`/`tool_calls_in_turn` associations.
+- Copilot's `turnId` cannot be treated as globally unique; doing so silently corrupts tool ownership when later interactions reuse `turnId: "0"` or `turnId: "1"`.
+
+### What worked
+- The fixed table now shows each tool immediately after the assistant message that requested it.
+- Earlier tools are no longer attached to later assistant turns that reuse the same Copilot `turnId`.
+- The new regression test covers both repeated turn ids and chained tool starts where the second tool start's parent is the first tool start.
+
+### What didn't work
+- The original conversion table was count-correct but order/association-wrong: early `bash`, `glob`, `view`, and write tools were attached to later turns because the global `turnIndexByTurnID` map was overwritten by reused Copilot turn ids.
+
+### What I learned
+- Copilot event `parentId` is more useful for tool ownership than `turnId` alone.
+- The Python minitrace adapters reinforce the invariant that `tool_calls_in_turn` should represent the concrete assistant turn that emitted/requested the tool.
+
+### What was tricky to build
+- Parallel tool calls can be chained by event parentage: the first tool start's parent is the assistant message, while the second tool start's parent can be the first tool start. The fix therefore records event ids for tool starts too, after resolving their emitting turn.
+- The existing fallback `turnId` maps are still useful for unusual event orders, but the primary path now uses the parent chain whenever available.
+
+### What warrants a second pair of eyes
+- Review whether permission events should also get turn indices by following their parent chain, so they render between the message and tool more naturally.
+- Review any other framework-local ids for uniqueness assumptions.
+
+### What should be done in the future
+- Add a transcript-table debug helper or query recipe that makes this kind of ordering bug easier to see.
+- Consider comparing real-session conversion output against raw event order in an automated smoke test with sanitized fixtures.
+
+### Code review instructions
+- Review `startTool`, `turnIndexForParent`, and `attachToolIDToTurn` in `pkg/adapters/copilot/convert.go`.
+- Review `TestConvertParsedUsesParentChainWhenTurnIDsRepeat` in `pkg/adapters/copilot/convert_test.go`.
+- Validate with `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+
+### Technical details
+- Real-session symptom before fix: tools from the first interaction were attached to later turns with reused `turnId` values.
+- Real-session result after fix: tools appear at turns 3, 4, 7, 10, and 11, matching the raw event parent chain.
