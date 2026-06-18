@@ -112,6 +112,33 @@ func TestConvertParsedUsesParentChainWhenTurnIDsRepeat(t *testing.T) {
 	}
 }
 
+func TestConvertParsedAttachesPermissionEventsToParentTurn(t *testing.T) {
+	parsed := parseJSONLBytes([]byte(strings.Join([]string{
+		`{"type":"user.message","id":"u1","timestamp":"2026-06-17T10:00:00Z","data":{"content":"write","interactionId":"i1"}}`,
+		`{"type":"assistant.message","id":"a1","parentId":"u1","timestamp":"2026-06-17T10:00:01Z","data":{"content":"writing","turnId":"0","interactionId":"i1"}}`,
+		`{"type":"tool.execution_start","id":"ts1","parentId":"a1","timestamp":"2026-06-17T10:00:02Z","data":{"toolCallId":"tool-1","toolName":"bash","turnId":"0","arguments":{"command":"printf hi > note.txt"}}}`,
+		`{"type":"permission.requested","id":"pr1","parentId":"ts1","timestamp":"2026-06-17T10:00:03Z","data":{"requestId":"perm-1","permissionRequest":{"toolCallId":"tool-1","intention":"Write note","kind":"command","possiblePaths":["note.txt"],"hasWriteFileRedirection":true}}}`,
+		`{"type":"permission.completed","id":"pc1","parentId":"pr1","timestamp":"2026-06-17T10:00:04Z","data":{"requestId":"perm-1","toolCallId":"tool-1","result":{"kind":"approved"}}}`,
+	}, "\n")))
+
+	session, err := ConvertParsed(parsed, nil, "permission-turn", "/tmp/events.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertParsed returned error: %v", err)
+	}
+	seen := 0
+	for _, event := range session.Events {
+		if event.Kind == "permission_request" || event.Kind == "permission_decision" {
+			seen++
+			if event.TurnIndex == nil || *event.TurnIndex != 1 {
+				t.Fatalf("expected permission event %s to attach to assistant turn 1, got %+v", event.Kind, event.TurnIndex)
+			}
+		}
+	}
+	if seen != 2 {
+		t.Fatalf("expected two permission events, got %d", seen)
+	}
+}
+
 func TestConvertParsedCarriesPermissionRequestedBeforeToolStart(t *testing.T) {
 	parsed := parseJSONLBytes([]byte(strings.Join([]string{
 		`{"type":"permission.requested","id":"ev-1","timestamp":"2026-06-17T10:00:00Z","data":{"requestId":"perm-1","permissionRequest":{"toolCallId":"tool-1","intention":"Write generated file","kind":"command","possiblePaths":["generated.txt"],"hasWriteFileRedirection":true}}}`,

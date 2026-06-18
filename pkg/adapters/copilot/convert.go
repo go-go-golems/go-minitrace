@@ -380,6 +380,9 @@ func (s *conversionState) completeTool(event EventEnvelope) {
 	}
 	toolCall := s.buildToolCall(pending, event, true)
 	s.appendToolCall(toolCall, pending.TurnID)
+	if event.ID != "" && toolCall.EmittingTurnIndex != nil {
+		s.eventTurnIndexByID[event.ID] = *toolCall.EmittingTurnIndex
+	}
 	delete(s.pendingTools, toolCallID)
 }
 
@@ -479,6 +482,7 @@ func (s *conversionState) permissionRequested(event EventEnvelope) {
 	if toolCallID != "" {
 		ev.ToolCallID = &toolCallID
 	}
+	s.attachEventToParentTurn(&ev, event)
 	s.events = append(s.events, ev)
 }
 
@@ -505,6 +509,7 @@ func (s *conversionState) permissionCompleted(event EventEnvelope) {
 	if toolCallID != "" {
 		ev.ToolCallID = &toolCallID
 	}
+	s.attachEventToParentTurn(&ev, event)
 	s.events = append(s.events, ev)
 }
 
@@ -560,6 +565,7 @@ func (s *conversionState) addGenericEvent(event EventEnvelope, kind, title, summ
 	ev := minitrace.BuildEvent("copilot-"+kind+"-"+stableID(event), optionalString(event.Timestamp), kind, title, truncateTitle(summary, 200), redactRaw(event.Raw))
 	ev.Role = "system"
 	ev.FrameworkMetadata = map[string]any{"copilot_event_id": event.ID, "copilot_type": event.Type}
+	s.attachEventToParentTurn(&ev, event)
 	s.events = append(s.events, ev)
 }
 
@@ -687,6 +693,17 @@ func (s *conversionState) attachToolIDToTurn(turnIndex int, toolID string) {
 		return
 	}
 	s.turns[turnIndex].ToolCallsInTurn = appendUnique(s.turns[turnIndex].ToolCallsInTurn, toolID)
+}
+
+func (s *conversionState) attachEventToParentTurn(event *minitrace.Event, envelope EventEnvelope) {
+	turnIndex := s.turnIndexForParent(envelope.ParentID)
+	if turnIndex == nil {
+		return
+	}
+	event.TurnIndex = turnIndex
+	if envelope.ID != "" {
+		s.eventTurnIndexByID[envelope.ID] = *turnIndex
+	}
 }
 
 func firstNonNilInt(values ...*int) *int {

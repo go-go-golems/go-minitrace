@@ -17,3 +17,4 @@
 - [x] Wire Copilot JSONL into xgoja/minitracejs ImportBuilder AutoDetect/Convert
 - [x] Address PR #18 automated code review issues
 - [x] Fix Copilot tool ordering for reused turn IDs
+- [x] Attach Copilot permission events to emitting turns

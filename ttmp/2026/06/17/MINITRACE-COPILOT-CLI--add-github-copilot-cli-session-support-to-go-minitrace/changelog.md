@@ -99,3 +99,13 @@ Fixed Copilot tool ordering by associating tool starts through parent-event chai
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Parent-chain tool-to-turn association
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Regression test for reused Copilot turn IDs
 
+
+## 2026-06-17
+
+Attached Copilot permission events to emitting turns via the parent-event chain and added regression coverage.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Permission event turn-index propagation
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Permission event turn-index regression test
+

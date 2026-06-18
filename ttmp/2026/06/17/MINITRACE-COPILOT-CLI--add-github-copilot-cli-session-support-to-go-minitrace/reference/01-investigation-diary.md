@@ -701,3 +701,61 @@ I looked at the Python converters in `https://github.com/wesen/minitrace` for th
 ### Technical details
 - Real-session symptom before fix: tools from the first interaction were attached to later turns with reused `turnId` values.
 - Real-session result after fix: tools appear at turns 3, 4, 7, 10, and 11, matching the raw event parent chain.
+
+## Step 11: Attach Copilot permission events to emitting turns
+
+I continued the ordering cleanup by attaching permission request/decision events to the same minitrace turn as their parent event chain. The previous fix put tool calls under the right assistant messages, but permission events still had no `turn_index`, so transcript views could sort them chronologically but could not group them with the emitting assistant turn.
+
+The adapter now uses the same `eventID -> turn index` map for generic events and permission events. When a permission event's `parentId` points to a tool start or prior permission event, it inherits that turn index and records its own event id in the map so later children can continue the chain.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue the ordering follow-up from the prior turn by addressing the remaining caveat: permission events were timestamp-ordered but not turn-indexed.
+
+**Inferred user intent:** Finish making the converted transcript order/grouping correct and reviewable.
+
+**Commit (code):** pending — permission-event ordering commit will follow this diary update.
+
+### What I did
+- Added `attachEventToParentTurn` to set event `TurnIndex` from `parentId` when possible.
+- Applied it to permission request/completion events and generic events.
+- Recorded tool completion event ids in the parent-chain map so later hook/permission children can inherit the correct turn.
+- Added `TestConvertParsedAttachesPermissionEventsToParentTurn`.
+- Re-ran the real-session table and confirmed permission events now show turn 4 and turn 11, matching the corresponding write/apply-patch assistant turns.
+- Ran `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+- Added and checked task 15 and updated the changelog.
+
+### Why
+- Permission prompts are part of the action sequence emitted by a specific assistant turn. Keeping them unindexed makes grouped transcript/timeline rendering less precise.
+- Reusing the parent-chain map keeps the ordering logic consistent across tools, hooks, permissions, and completions.
+
+### What worked
+- The real-session table now shows permission events attached to the correct turns:
+  - note-file permission events: turn 4
+  - apply-patch permission events: turn 11
+- Full tests passed.
+
+### What didn't work
+- N/A for this slice; tests passed after implementation.
+
+### What I learned
+- Copilot hook and permission events form a continuous parent chain around tool execution; recording event ids for non-message events makes later association much more reliable.
+
+### What was tricky to build
+- `permission.completed` can point to a prior permission event, hook, or even a different tool completion in the same assistant action chain. The generalized parent-chain map is more robust than special-casing by `toolCallId` alone.
+
+### What warrants a second pair of eyes
+- Review whether all generic lifecycle events should receive turn indices or whether only tool-adjacent events should be indexed.
+
+### What should be done in the future
+- Add a UI/query smoke test for transcript rows that verifies permissions render near their tools.
+
+### Code review instructions
+- Review `attachEventToParentTurn` and its callers in `pkg/adapters/copilot/convert.go`.
+- Review `TestConvertParsedAttachesPermissionEventsToParentTurn`.
+- Validate with `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+
+### Technical details
+- Validation table after fix shows permission rows with `turn=4` and `turn=11` instead of blank turn indices.
