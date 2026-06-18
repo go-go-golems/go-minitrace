@@ -53,23 +53,29 @@ type conversionState struct {
 	systemPrompt string
 	containsErr  bool
 
-	pendingTools       map[string]*pendingTool
-	toolIndexByID      map[string]int
-	turnIndexByTurnID  map[string]int
-	toolIDsByTurnID    map[string][]string
-	permissionByToolID map[string]map[string]any
+	pendingTools         map[string]*pendingTool
+	toolIndexByID        map[string]int
+	turnIndexByTurnID    map[string]int
+	toolIDsByTurnID      map[string][]string
+	permissionByToolID   map[string]map[string]any
+	eventTurnIndexByID   map[string]int
+	eventTurnKeyByID     map[string]string
+	scopedTurnIndexByKey map[string]int
+	toolIDsByTurnKey     map[string][]string
 }
 
 type pendingTool struct {
-	ID          string
-	ToolName    string
-	TurnID      string
-	Timestamp   *string
-	Arguments   map[string]any
-	Model       string
-	StartRaw    map[string]any
-	Permission  map[string]any
-	Description string
+	ID                string
+	ToolName          string
+	TurnID            string
+	Timestamp         *string
+	Arguments         map[string]any
+	Model             string
+	StartRaw          map[string]any
+	Permission        map[string]any
+	EmittingTurnIndex *int
+	TurnKey           string
+	Description       string
 }
 
 var readCommandPatterns = []*regexp.Regexp{
@@ -202,21 +208,25 @@ func newConversionState(workspace *WorkspaceMetadata, sessionID, sourcePath stri
 		sessionID = "copilot-session"
 	}
 	state := &conversionState{
-		sessionID:          sessionID,
-		sourcePath:         sourcePath,
-		workspace:          workspace,
-		turns:              []minitrace.Turn{},
-		toolCalls:          []minitrace.ToolCall{},
-		events:             []minitrace.Event{},
-		annotations:        []minitrace.Annotation{},
-		timestamps:         []time.Time{},
-		tokenTotals:        &minitrace.TokenTotals{},
-		metadata:           map[string]any{},
-		pendingTools:       map[string]*pendingTool{},
-		toolIndexByID:      map[string]int{},
-		turnIndexByTurnID:  map[string]int{},
-		toolIDsByTurnID:    map[string][]string{},
-		permissionByToolID: map[string]map[string]any{},
+		sessionID:            sessionID,
+		sourcePath:           sourcePath,
+		workspace:            workspace,
+		turns:                []minitrace.Turn{},
+		toolCalls:            []minitrace.ToolCall{},
+		events:               []minitrace.Event{},
+		annotations:          []minitrace.Annotation{},
+		timestamps:           []time.Time{},
+		tokenTotals:          &minitrace.TokenTotals{},
+		metadata:             map[string]any{},
+		pendingTools:         map[string]*pendingTool{},
+		toolIndexByID:        map[string]int{},
+		turnIndexByTurnID:    map[string]int{},
+		toolIDsByTurnID:      map[string][]string{},
+		permissionByToolID:   map[string]map[string]any{},
+		eventTurnIndexByID:   map[string]int{},
+		eventTurnKeyByID:     map[string]string{},
+		scopedTurnIndexByKey: map[string]int{},
+		toolIDsByTurnKey:     map[string][]string{},
 	}
 	if workspace != nil {
 		state.metadata["workspace"] = redactRaw(workspace.Raw)
@@ -299,10 +309,14 @@ func (s *conversionState) addAssistantMessage(event EventEnvelope) {
 	if outputTokens > 0 {
 		turn.Usage = &minitrace.Usage{OutputTokens: &outputTokens}
 	}
+	turnKey := scopedTurnKey(stringValue(event.Data["interactionId"]), turnID)
 	if turnID != "" {
 		s.turnIndexByTurnID[turnID] = turnIndex
-		turn.ToolCallsInTurn = append(turn.ToolCallsInTurn, s.toolIDsByTurnID[turnID]...)
-		for _, toolID := range s.toolIDsByTurnID[turnID] {
+	}
+	if turnKey != "" {
+		s.scopedTurnIndexByKey[turnKey] = turnIndex
+		turn.ToolCallsInTurn = append(turn.ToolCallsInTurn, s.toolIDsByTurnKey[turnKey]...)
+		for _, toolID := range s.toolIDsByTurnKey[turnKey] {
 			if index, ok := s.toolIndexByID[toolID]; ok {
 				indexCopy := turnIndex
 				s.toolCalls[index].EmittingTurnIndex = &indexCopy
@@ -310,13 +324,25 @@ func (s *conversionState) addAssistantMessage(event EventEnvelope) {
 		}
 	}
 	s.turns = append(s.turns, turn)
+	if event.ID != "" {
+		s.eventTurnIndexByID[event.ID] = turnIndex
+		if turnKey != "" {
+			s.eventTurnKeyByID[event.ID] = turnKey
+		}
+	}
 }
 
 func (s *conversionState) addTurnLifecycle(event EventEnvelope, kind, title string) {
 	turnID := stringValue(event.Data["turnId"])
 	metadata := map[string]any{"copilot_event_id": event.ID, "turn_id": turnID}
-	if interactionID := stringValue(event.Data["interactionId"]); interactionID != "" {
+	interactionID := stringValue(event.Data["interactionId"])
+	if interactionID != "" {
 		metadata["interaction_id"] = interactionID
+	}
+	if event.ID != "" {
+		if turnKey := scopedTurnKey(interactionID, turnID); turnKey != "" {
+			s.eventTurnKeyByID[event.ID] = turnKey
+		}
 	}
 	ev := minitrace.BuildEvent("copilot-"+kind+"-"+stableID(event), optionalString(event.Timestamp), kind, title, turnID, metadata)
 	ev.Role = "assistant"
@@ -334,20 +360,36 @@ func (s *conversionState) startTool(event EventEnvelope) {
 		args = map[string]any{}
 	}
 	turnID := stringValue(event.Data["turnId"])
+	emittingTurnIndex := s.turnIndexForParent(event.ParentID)
+	turnKey := s.turnKeyForParent(event.ParentID)
+	if turnKey == "" {
+		turnKey = scopedTurnKey(stringValue(event.Data["interactionId"]), turnID)
+	}
 	pending := &pendingTool{
-		ID:          toolCallID,
-		ToolName:    firstNonEmpty(stringValue(event.Data["toolName"]), "unknown"),
-		TurnID:      turnID,
-		Timestamp:   optionalString(event.Timestamp),
-		Arguments:   args,
-		Model:       stringValue(event.Data["model"]),
-		StartRaw:    event.Raw,
-		Permission:  s.permissionByToolID[toolCallID],
-		Description: stringValue(args["description"]),
+		ID:                toolCallID,
+		ToolName:          firstNonEmpty(stringValue(event.Data["toolName"]), "unknown"),
+		TurnID:            turnID,
+		Timestamp:         optionalString(event.Timestamp),
+		Arguments:         args,
+		Model:             stringValue(event.Data["model"]),
+		StartRaw:          event.Raw,
+		Permission:        s.permissionByToolID[toolCallID],
+		EmittingTurnIndex: emittingTurnIndex,
+		TurnKey:           turnKey,
+		Description:       stringValue(args["description"]),
 	}
 	s.pendingTools[toolCallID] = pending
-	if turnID != "" {
-		s.toolIDsByTurnID[turnID] = appendUnique(s.toolIDsByTurnID[turnID], toolCallID)
+	if emittingTurnIndex != nil {
+		s.attachToolIDToTurn(*emittingTurnIndex, toolCallID)
+		if event.ID != "" {
+			s.eventTurnIndexByID[event.ID] = *emittingTurnIndex
+		}
+	}
+	if turnKey != "" {
+		s.toolIDsByTurnKey[turnKey] = appendUnique(s.toolIDsByTurnKey[turnKey], toolCallID)
+		if event.ID != "" {
+			s.eventTurnKeyByID[event.ID] = turnKey
+		}
 	}
 }
 
@@ -355,16 +397,27 @@ func (s *conversionState) completeTool(event EventEnvelope) {
 	toolCallID := stringValue(event.Data["toolCallId"])
 	pending := s.pendingTools[toolCallID]
 	if pending == nil {
+		turnID := stringValue(event.Data["turnId"])
+		turnKey := s.turnKeyForParent(event.ParentID)
+		if turnKey == "" {
+			turnKey = scopedTurnKey(stringValue(event.Data["interactionId"]), turnID)
+		}
 		pending = &pendingTool{
-			ID:        firstNonEmpty(toolCallID, "copilot-tool-"+stableID(event)),
-			ToolName:  "unknown",
-			TurnID:    stringValue(event.Data["turnId"]),
-			Timestamp: optionalString(event.Timestamp),
-			Arguments: map[string]any{},
+			ID:                firstNonEmpty(toolCallID, "copilot-tool-"+stableID(event)),
+			ToolName:          "unknown",
+			TurnID:            turnID,
+			Timestamp:         optionalString(event.Timestamp),
+			Arguments:         map[string]any{},
+			Permission:        s.permissionByToolID[toolCallID],
+			EmittingTurnIndex: s.turnIndexForParent(event.ParentID),
+			TurnKey:           turnKey,
 		}
 	}
 	toolCall := s.buildToolCall(pending, event, true)
-	s.appendToolCall(toolCall, pending.TurnID)
+	s.appendToolCall(toolCall, pending.TurnID, pending.TurnKey)
+	if event.ID != "" && toolCall.EmittingTurnIndex != nil {
+		s.eventTurnIndexByID[event.ID] = *toolCall.EmittingTurnIndex
+	}
 	delete(s.pendingTools, toolCallID)
 }
 
@@ -399,7 +452,7 @@ func (s *conversionState) buildToolCall(pending *pendingTool, event EventEnvelop
 	}
 	toolCall := minitrace.BuildToolCall(
 		pending.ID,
-		s.turnIndexForTurnID(pending.TurnID),
+		firstNonNilInt(pending.EmittingTurnIndex, s.turnIndexForTurnKey(pending.TurnKey), s.turnIndexForTurnID(pending.TurnID)),
 		firstTimestamp(pending.Timestamp, optionalString(event.Timestamp)),
 		pending.ToolName,
 		classifyCopilotOperation(pending.ToolName, command, pending.Arguments, pending.Permission),
@@ -425,12 +478,16 @@ func (s *conversionState) buildToolCall(pending *pendingTool, event EventEnvelop
 	return toolCall
 }
 
-func (s *conversionState) appendToolCall(toolCall minitrace.ToolCall, turnID string) {
+func (s *conversionState) appendToolCall(toolCall minitrace.ToolCall, turnID, turnKey string) {
 	s.toolIndexByID[toolCall.ID] = len(s.toolCalls)
 	s.toolCalls = append(s.toolCalls, toolCall)
-	if turnID != "" {
-		s.toolIDsByTurnID[turnID] = appendUnique(s.toolIDsByTurnID[turnID], toolCall.ID)
-		if turnIndex, ok := s.turnIndexByTurnID[turnID]; ok && turnIndex >= 0 && turnIndex < len(s.turns) {
+	if toolCall.EmittingTurnIndex != nil {
+		s.attachToolIDToTurn(*toolCall.EmittingTurnIndex, toolCall.ID)
+		return
+	}
+	if turnKey != "" {
+		s.toolIDsByTurnKey[turnKey] = appendUnique(s.toolIDsByTurnKey[turnKey], toolCall.ID)
+		if turnIndex, ok := s.scopedTurnIndexByKey[turnKey]; ok && turnIndex >= 0 && turnIndex < len(s.turns) {
 			s.turns[turnIndex].ToolCallsInTurn = appendUnique(s.turns[turnIndex].ToolCallsInTurn, toolCall.ID)
 			turnIndexCopy := turnIndex
 			s.toolCalls[len(s.toolCalls)-1].EmittingTurnIndex = &turnIndexCopy
@@ -460,6 +517,7 @@ func (s *conversionState) permissionRequested(event EventEnvelope) {
 	if toolCallID != "" {
 		ev.ToolCallID = &toolCallID
 	}
+	s.attachEventToParentTurn(&ev, event)
 	s.events = append(s.events, ev)
 }
 
@@ -486,6 +544,7 @@ func (s *conversionState) permissionCompleted(event EventEnvelope) {
 	if toolCallID != "" {
 		ev.ToolCallID = &toolCallID
 	}
+	s.attachEventToParentTurn(&ev, event)
 	s.events = append(s.events, ev)
 }
 
@@ -522,7 +581,7 @@ func (s *conversionState) flushIncompleteTools() {
 		toolCall.Output.Success = false
 		msg := "tool execution start had no matching completion"
 		toolCall.Output.Error = &msg
-		s.appendToolCall(toolCall, pending.TurnID)
+		s.appendToolCall(toolCall, pending.TurnID, pending.TurnKey)
 		s.annotations = append(s.annotations, minitrace.BuildAnnotation(
 			"ann-copilot-incomplete-tool-"+truncateID(id),
 			"adapter",
@@ -541,6 +600,7 @@ func (s *conversionState) addGenericEvent(event EventEnvelope, kind, title, summ
 	ev := minitrace.BuildEvent("copilot-"+kind+"-"+stableID(event), optionalString(event.Timestamp), kind, title, truncateTitle(summary, 200), redactRaw(event.Raw))
 	ev.Role = "system"
 	ev.FrameworkMetadata = map[string]any{"copilot_event_id": event.ID, "copilot_type": event.Type}
+	s.attachEventToParentTurn(&ev, event)
 	s.events = append(s.events, ev)
 }
 
@@ -648,6 +708,79 @@ func (s *conversionState) turnIndexForTurnID(turnID string) *int {
 	if index, ok := s.turnIndexByTurnID[turnID]; ok {
 		indexCopy := index
 		return &indexCopy
+	}
+	return nil
+}
+
+func (s *conversionState) turnIndexForParent(parentID *string) *int {
+	if parentID == nil || strings.TrimSpace(*parentID) == "" {
+		return nil
+	}
+	if index, ok := s.eventTurnIndexByID[*parentID]; ok {
+		indexCopy := index
+		return &indexCopy
+	}
+	if turnKey := s.eventTurnKeyByID[*parentID]; turnKey != "" {
+		return s.turnIndexForTurnKey(turnKey)
+	}
+	return nil
+}
+
+func (s *conversionState) turnIndexForTurnKey(turnKey string) *int {
+	if turnKey == "" {
+		return nil
+	}
+	if index, ok := s.scopedTurnIndexByKey[turnKey]; ok {
+		indexCopy := index
+		return &indexCopy
+	}
+	return nil
+}
+
+func (s *conversionState) turnKeyForParent(parentID *string) string {
+	if parentID == nil || strings.TrimSpace(*parentID) == "" {
+		return ""
+	}
+	return s.eventTurnKeyByID[*parentID]
+}
+
+func (s *conversionState) attachToolIDToTurn(turnIndex int, toolID string) {
+	if turnIndex < 0 || turnIndex >= len(s.turns) {
+		return
+	}
+	s.turns[turnIndex].ToolCallsInTurn = appendUnique(s.turns[turnIndex].ToolCallsInTurn, toolID)
+}
+
+func (s *conversionState) attachEventToParentTurn(event *minitrace.Event, envelope EventEnvelope) {
+	turnIndex := s.turnIndexForParent(envelope.ParentID)
+	turnKey := s.turnKeyForParent(envelope.ParentID)
+	if turnIndex != nil {
+		event.TurnIndex = turnIndex
+	}
+	if envelope.ID != "" {
+		if turnIndex != nil {
+			s.eventTurnIndexByID[envelope.ID] = *turnIndex
+		}
+		if turnKey != "" {
+			s.eventTurnKeyByID[envelope.ID] = turnKey
+		}
+	}
+}
+
+func scopedTurnKey(interactionID, turnID string) string {
+	interactionID = strings.TrimSpace(interactionID)
+	turnID = strings.TrimSpace(turnID)
+	if interactionID == "" || turnID == "" {
+		return ""
+	}
+	return interactionID + ":" + turnID
+}
+
+func firstNonNilInt(values ...*int) *int {
+	for _, value := range values {
+		if value != nil {
+			return value
+		}
 	}
 	return nil
 }

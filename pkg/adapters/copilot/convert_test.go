@@ -80,6 +80,95 @@ func TestConvertParsedMapsTurnsToolsPermissionsAndShutdown(t *testing.T) {
 	}
 }
 
+func TestConvertParsedUsesParentChainWhenTurnIDsRepeat(t *testing.T) {
+	parsed := parseJSONLBytes([]byte(strings.Join([]string{
+		`{"type":"user.message","id":"u1","timestamp":"2026-06-17T10:00:00Z","data":{"content":"first","interactionId":"i1"}}`,
+		`{"type":"assistant.message","id":"a1","parentId":"u1","timestamp":"2026-06-17T10:00:01Z","data":{"content":"first assistant","turnId":"0","interactionId":"i1","toolRequests":[{"id":"tool-1"},{"id":"tool-2"}]}}`,
+		`{"type":"tool.execution_start","id":"ts1","parentId":"a1","timestamp":"2026-06-17T10:00:02Z","data":{"toolCallId":"tool-1","toolName":"bash","turnId":"0","arguments":{"command":"ls"}}}`,
+		`{"type":"tool.execution_start","id":"ts2","parentId":"ts1","timestamp":"2026-06-17T10:00:03Z","data":{"toolCallId":"tool-2","toolName":"bash","turnId":"0","arguments":{"command":"pwd"}}}`,
+		`{"type":"tool.execution_complete","id":"tc1","parentId":"ts2","timestamp":"2026-06-17T10:00:04Z","data":{"toolCallId":"tool-1","turnId":"0","success":true,"result":{"content":"ok"}}}`,
+		`{"type":"tool.execution_complete","id":"tc2","parentId":"tc1","timestamp":"2026-06-17T10:00:05Z","data":{"toolCallId":"tool-2","turnId":"0","success":true,"result":{"content":"ok"}}}`,
+		`{"type":"user.message","id":"u2","timestamp":"2026-06-17T10:01:00Z","data":{"content":"second","interactionId":"i2"}}`,
+		`{"type":"assistant.message","id":"a2","parentId":"u2","timestamp":"2026-06-17T10:01:01Z","data":{"content":"second assistant","turnId":"0","interactionId":"i2"}}`,
+	}, "\n")))
+
+	session, err := ConvertParsed(parsed, nil, "repeat-turn-ids", "/tmp/events.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertParsed returned error: %v", err)
+	}
+	if len(session.Turns) != 4 {
+		t.Fatalf("expected 4 turns, got %d", len(session.Turns))
+	}
+	if got := session.Turns[1].ToolCallsInTurn; len(got) != 2 || got[0] != "tool-1" || got[1] != "tool-2" {
+		t.Fatalf("expected first assistant turn to own both tools, got %+v", got)
+	}
+	if got := session.Turns[3].ToolCallsInTurn; len(got) != 0 {
+		t.Fatalf("expected reused turnId on later interaction not to steal old tools, got %+v", got)
+	}
+	for _, tool := range session.ToolCalls {
+		if tool.EmittingTurnIndex == nil || *tool.EmittingTurnIndex != 1 {
+			t.Fatalf("expected tool %s to emit from turn 1, got %+v", tool.ID, tool.EmittingTurnIndex)
+		}
+	}
+}
+
+func TestConvertParsedAttachesPermissionEventsToParentTurn(t *testing.T) {
+	parsed := parseJSONLBytes([]byte(strings.Join([]string{
+		`{"type":"user.message","id":"u1","timestamp":"2026-06-17T10:00:00Z","data":{"content":"write","interactionId":"i1"}}`,
+		`{"type":"assistant.message","id":"a1","parentId":"u1","timestamp":"2026-06-17T10:00:01Z","data":{"content":"writing","turnId":"0","interactionId":"i1"}}`,
+		`{"type":"tool.execution_start","id":"ts1","parentId":"a1","timestamp":"2026-06-17T10:00:02Z","data":{"toolCallId":"tool-1","toolName":"bash","turnId":"0","arguments":{"command":"printf hi > note.txt"}}}`,
+		`{"type":"permission.requested","id":"pr1","parentId":"ts1","timestamp":"2026-06-17T10:00:03Z","data":{"requestId":"perm-1","permissionRequest":{"toolCallId":"tool-1","intention":"Write note","kind":"command","possiblePaths":["note.txt"],"hasWriteFileRedirection":true}}}`,
+		`{"type":"permission.completed","id":"pc1","parentId":"pr1","timestamp":"2026-06-17T10:00:04Z","data":{"requestId":"perm-1","toolCallId":"tool-1","result":{"kind":"approved"}}}`,
+	}, "\n")))
+
+	session, err := ConvertParsed(parsed, nil, "permission-turn", "/tmp/events.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertParsed returned error: %v", err)
+	}
+	seen := 0
+	for _, event := range session.Events {
+		if event.Kind == "permission_request" || event.Kind == "permission_decision" {
+			seen++
+			if event.TurnIndex == nil || *event.TurnIndex != 1 {
+				t.Fatalf("expected permission event %s to attach to assistant turn 1, got %+v", event.Kind, event.TurnIndex)
+			}
+		}
+	}
+	if seen != 2 {
+		t.Fatalf("expected two permission events, got %d", seen)
+	}
+}
+
+func TestConvertParsedDefersUnresolvedParentToolsByScopedTurnKey(t *testing.T) {
+	parsed := parseJSONLBytes([]byte(strings.Join([]string{
+		`{"type":"user.message","id":"u1","timestamp":"2026-06-17T10:00:00Z","data":{"content":"first","interactionId":"i1"}}`,
+		`{"type":"assistant.turn_start","id":"s1","parentId":"u1","timestamp":"2026-06-17T10:00:01Z","data":{"turnId":"0","interactionId":"i1"}}`,
+		`{"type":"tool.execution_start","id":"ts1","parentId":"s1","timestamp":"2026-06-17T10:00:02Z","data":{"toolCallId":"tool-1","toolName":"bash","turnId":"0","arguments":{"command":"ls"}}}`,
+		`{"type":"tool.execution_complete","id":"tc1","parentId":"ts1","timestamp":"2026-06-17T10:00:03Z","data":{"toolCallId":"tool-1","turnId":"0","success":true,"result":{"content":"ok"}}}`,
+		`{"type":"assistant.message","id":"a1","parentId":"tc1","timestamp":"2026-06-17T10:00:04Z","data":{"content":"first assistant","turnId":"0","interactionId":"i1"}}`,
+		`{"type":"user.message","id":"u2","timestamp":"2026-06-17T10:01:00Z","data":{"content":"second","interactionId":"i2"}}`,
+		`{"type":"assistant.turn_start","id":"s2","parentId":"u2","timestamp":"2026-06-17T10:01:01Z","data":{"turnId":"0","interactionId":"i2"}}`,
+		`{"type":"assistant.message","id":"a2","parentId":"s2","timestamp":"2026-06-17T10:01:02Z","data":{"content":"second assistant","turnId":"0","interactionId":"i2"}}`,
+	}, "\n")))
+
+	session, err := ConvertParsed(parsed, nil, "defer-parent", "/tmp/events.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertParsed returned error: %v", err)
+	}
+	if len(session.Turns) != 4 {
+		t.Fatalf("expected 4 turns, got %d", len(session.Turns))
+	}
+	if got := session.Turns[1].ToolCallsInTurn; len(got) != 1 || got[0] != "tool-1" {
+		t.Fatalf("expected deferred tool to attach to first assistant turn, got %+v", got)
+	}
+	if got := session.Turns[3].ToolCallsInTurn; len(got) != 0 {
+		t.Fatalf("expected reused turnId on second interaction not to inherit stale tool, got %+v", got)
+	}
+	if session.ToolCalls[0].EmittingTurnIndex == nil || *session.ToolCalls[0].EmittingTurnIndex != 1 {
+		t.Fatalf("expected tool emitting turn index 1, got %+v", session.ToolCalls[0].EmittingTurnIndex)
+	}
+}
+
 func TestConvertParsedCarriesPermissionRequestedBeforeToolStart(t *testing.T) {
 	parsed := parseJSONLBytes([]byte(strings.Join([]string{
 		`{"type":"permission.requested","id":"ev-1","timestamp":"2026-06-17T10:00:00Z","data":{"requestId":"perm-1","permissionRequest":{"toolCallId":"tool-1","intention":"Write generated file","kind":"command","possiblePaths":["generated.txt"],"hasWriteFileRedirection":true}}}`,

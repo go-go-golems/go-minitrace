@@ -89,3 +89,33 @@ Addressed PR #18 code review: carry queued permission metadata into later tool s
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Review fixes for permission metadata and operation vocabulary
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Regression tests for permission-before-tool and NEW classification
 
+
+## 2026-06-17
+
+Fixed Copilot tool ordering by associating tool starts through parent-event chains instead of globally reused turn IDs; added regression coverage.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Parent-chain tool-to-turn association
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Regression test for reused Copilot turn IDs
+
+
+## 2026-06-17
+
+Attached Copilot permission events to emitting turns via the parent-event chain and added regression coverage.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Permission event turn-index propagation
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Permission event turn-index regression test
+
+
+## 2026-06-17
+
+Addressed PR #19 review: defer unresolved tool starts with scoped interaction+turn keys instead of global reused turn IDs.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Scoped deferred tool association for unresolved parent chains
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Regression test for tools emitted under assistant.turn_start before assistant.message
+
