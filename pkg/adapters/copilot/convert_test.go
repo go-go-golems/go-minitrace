@@ -3,6 +3,7 @@ package copilot
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -76,6 +77,39 @@ func TestConvertParsedMapsTurnsToolsPermissionsAndShutdown(t *testing.T) {
 	}
 	if session.Metrics.TotalCacheReadTokens == nil || *session.Metrics.TotalCacheReadTokens != 5 {
 		t.Fatalf("expected shutdown cache read tokens, got %+v", session.Metrics.TotalCacheReadTokens)
+	}
+}
+
+func TestConvertParsedCarriesPermissionRequestedBeforeToolStart(t *testing.T) {
+	parsed := parseJSONLBytes([]byte(strings.Join([]string{
+		`{"type":"permission.requested","id":"ev-1","timestamp":"2026-06-17T10:00:00Z","data":{"requestId":"perm-1","permissionRequest":{"toolCallId":"tool-1","intention":"Write generated file","kind":"command","possiblePaths":["generated.txt"],"hasWriteFileRedirection":true}}}`,
+		`{"type":"tool.execution_start","id":"ev-2","timestamp":"2026-06-17T10:00:01Z","data":{"toolCallId":"tool-1","toolName":"bash","turnId":"turn-1","arguments":{"command":"printf hello > generated.txt"}}}`,
+		`{"type":"tool.execution_complete","id":"ev-3","timestamp":"2026-06-17T10:00:02Z","data":{"toolCallId":"tool-1","turnId":"turn-1","success":true,"result":{"content":""}}}`,
+	}, "\n")))
+
+	session, err := ConvertParsed(parsed, nil, "permission-before-start", "/tmp/events.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertParsed returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 1 {
+		t.Fatalf("expected one tool call, got %d", len(session.ToolCalls))
+	}
+	tool := session.ToolCalls[0]
+	if tool.OperationType != "MODIFY" {
+		t.Fatalf("expected permission hasWriteFileRedirection to classify MODIFY, got %s", tool.OperationType)
+	}
+	if tool.Input.FilePath == nil || *tool.Input.FilePath != "generated.txt" {
+		t.Fatalf("expected possiblePaths file path to be preserved, got %+v", tool.Input.FilePath)
+	}
+	if tool.Input.Justification == nil || *tool.Input.Justification != "Write generated file" {
+		t.Fatalf("expected permission intention justification, got %+v", tool.Input.Justification)
+	}
+}
+
+func TestClassifyCopilotCreateOperationUsesNewVocabulary(t *testing.T) {
+	operation := classifyCopilotOperation("create_file", "", map[string]any{"mode": "create"}, nil)
+	if operation != "NEW" {
+		t.Fatalf("expected NEW operation type for creation, got %q", operation)
 	}
 }
 

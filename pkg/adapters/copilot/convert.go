@@ -342,6 +342,7 @@ func (s *conversionState) startTool(event EventEnvelope) {
 		Arguments:   args,
 		Model:       stringValue(event.Data["model"]),
 		StartRaw:    event.Raw,
+		Permission:  s.permissionByToolID[toolCallID],
 		Description: stringValue(args["description"]),
 	}
 	s.pendingTools[toolCallID] = pending
@@ -663,9 +664,9 @@ func classifyCopilotOperation(toolName, command string, args map[string]any, per
 	if strings.Contains(lowerTool, "read") || strings.Contains(lowerTool, "list") || strings.Contains(lowerTool, "search") || strings.Contains(lowerTool, "grep") {
 		return "READ"
 	}
-	if strings.Contains(lowerTool, "write") || strings.Contains(lowerTool, "edit") || strings.Contains(lowerTool, "patch") {
+	if strings.Contains(lowerTool, "write") || strings.Contains(lowerTool, "edit") || strings.Contains(lowerTool, "patch") || strings.Contains(lowerTool, "create") {
 		if strings.Contains(lowerTool, "create") || stringValue(args["mode"]) == "create" {
-			return "CREATE"
+			return "NEW"
 		}
 		return "MODIFY"
 	}

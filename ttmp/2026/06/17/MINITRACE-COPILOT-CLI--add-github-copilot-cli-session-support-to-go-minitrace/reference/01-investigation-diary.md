@@ -568,3 +568,71 @@ I added Copilot JSONL detection and conversion to `pkg/minitracedb`, then added 
 ### Technical details
 - Real-session smoke script used `mt.importer().File(path).AutoDetect().Convert(); importer.Converted()` against `/home/manuel/.copilot/session-state/e5b2d4a3-1027-4b0c-a6c4-fb5955855b2a/events.jsonl`.
 - Smoke output included `diagnostics[0].message = "converted source into minitrace session"` and `diagnostics[0].recordRows = 72`.
+
+## Step 9: Address PR #18 automated code review issues
+
+I pulled the inline review threads from GitHub PR #18 and addressed both automated Codex review comments. The fixes are small but important for correctness: permission metadata that arrives before `tool.execution_start` now affects the eventual tool call, and Copilot creation operations now use minitrace's existing `NEW` operation vocabulary instead of a non-standard `CREATE` value.
+
+I added focused regression tests for both review comments before committing. The tests cover the exact event ordering called out in the review and verify that creation classification contributes the same operation type used by existing metrics/query code.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Address these code review issues: https://github.com/go-go-golems/go-minitrace/pull/18"
+
+**Assistant interpretation:** Read the PR #18 review comments, implement the requested code changes, add regression coverage, validate, update ticket bookkeeping, and commit.
+
+**Inferred user intent:** Resolve outstanding automated review feedback so the PR is ready for another review/merge pass.
+
+**Commit (code):** pending — PR review fix commit will follow this diary update.
+
+### What I did
+- Queried PR #18 review threads with GitHub GraphQL via `gh api graphql`.
+- Fixed `startTool` in `pkg/adapters/copilot/convert.go` to initialize `pendingTool.Permission` from `s.permissionByToolID[toolCallID]` when `permission.requested` arrived earlier.
+- Changed Copilot creation classification from `CREATE` to `NEW` and widened the tool-name check to include tool names containing `create`.
+- Added `TestConvertParsedCarriesPermissionRequestedBeforeToolStart`.
+- Added `TestClassifyCopilotCreateOperationUsesNewVocabulary`.
+- Ran `gofmt`.
+- Ran `go test ./pkg/adapters/copilot -count=1`.
+- Ran `go test ./... -count=1`.
+- Added and checked task 13, then updated the changelog.
+
+### Why
+- Without carrying queued permission metadata into `startTool`, permission-first event ordering loses `possiblePaths`, `hasWriteFileRedirection`, and `intention`, which can cause missing file paths, missing justifications, and wrong operation classification.
+- Minitrace metrics use `NEW` for creation operations, so emitting `CREATE` would make Copilot creation tools invisible to create-count metrics and inconsistent with other adapters.
+
+### What worked
+- Both focused adapter tests passed.
+- The full repository test suite passed with `go test ./... -count=1`.
+
+### What didn't work
+- The first version of the `NEW` regression test failed because `classifyCopilotOperation("create_file", ...)` returned `EXECUTE`; the code only entered the creation branch for tool names containing `write`, `edit`, or `patch`.
+- I fixed that by including `strings.Contains(lowerTool, "create")` in the write/edit/patch/create branch.
+
+### What I learned
+- The adapter already stored permission metadata by tool id in `permissionRequested`; the missing piece was reading it back when the tool start arrived later.
+- Existing minitrace vocabulary is stricter than the human-readable term "CREATE"; adapter code should match metrics vocabulary exactly.
+
+### What was tricky to build
+- The permission-ordering bug is only visible when the permission event precedes tool start and the command itself is insufficient to infer the target path/operation. The regression test uses `possiblePaths` and `hasWriteFileRedirection` so it fails for the exact missed metadata propagation.
+- The creation classifier needed both vocabulary correction and routing correction: returning `NEW` is not enough if `create_file` never reaches the creation branch.
+
+### What warrants a second pair of eyes
+- Review whether other operation classifiers in the Copilot adapter should be aligned further with Codex helper behavior.
+- Review whether permission completion metadata should also be propagated to already-completed tool calls in a future follow-up; this review only flagged permission requested before tool start.
+
+### What should be done in the future
+- Rerun PR checks after pushing this commit.
+- Resolve the GitHub review threads once the commit is pushed and visible on PR #18.
+
+### Code review instructions
+- Review `pkg/adapters/copilot/convert.go` around `startTool` and `classifyCopilotOperation`.
+- Review `pkg/adapters/copilot/convert_test.go` for the two regression tests.
+- Validate with `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+
+### Technical details
+- PR comments addressed:
+  - Carry queued permission metadata into new tools.
+  - Use `NEW` for creation operations.
+- Validation commands passed:
+  - `go test ./pkg/adapters/copilot -count=1`
+  - `go test ./... -count=1`

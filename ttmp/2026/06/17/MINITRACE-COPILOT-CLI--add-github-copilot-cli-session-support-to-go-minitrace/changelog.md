@@ -79,3 +79,13 @@ Wired Copilot JSONL into minitracedb/minitracejs AutoDetect/Convert and verified
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/minitracejs/import_builder_test.go — ImportBuilder Convert coverage for Copilot JSONL
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/minitracejs/provider/provider_test.go — xgoja importer verb coverage for Copilot JSONL
 
+
+## 2026-06-17
+
+Addressed PR #18 code review: carry queued permission metadata into later tool starts and use NEW operation type for creation tools.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Review fixes for permission metadata and operation vocabulary
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Regression tests for permission-before-tool and NEW classification
+
