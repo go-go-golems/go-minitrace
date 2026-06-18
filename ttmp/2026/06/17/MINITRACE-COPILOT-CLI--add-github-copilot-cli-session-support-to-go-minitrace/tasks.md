@@ -18,3 +18,4 @@
 - [x] Address PR #18 automated code review issues
 - [x] Fix Copilot tool ordering for reused turn IDs
 - [x] Attach Copilot permission events to emitting turns
+- [x] Address PR #19 unresolved parent-chain tool ordering review

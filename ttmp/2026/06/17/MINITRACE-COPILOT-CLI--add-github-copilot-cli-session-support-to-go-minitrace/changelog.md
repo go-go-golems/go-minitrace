@@ -109,3 +109,13 @@ Attached Copilot permission events to emitting turns via the parent-event chain 
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Permission event turn-index propagation
 - /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Permission event turn-index regression test
 
+
+## 2026-06-17
+
+Addressed PR #19 review: defer unresolved tool starts with scoped interaction+turn keys instead of global reused turn IDs.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert.go — Scoped deferred tool association for unresolved parent chains
+- /home/manuel/workspaces/2026-06-17/minitrace-copilot-cli/go-minitrace/pkg/adapters/copilot/convert_test.go — Regression test for tools emitted under assistant.turn_start before assistant.message
+

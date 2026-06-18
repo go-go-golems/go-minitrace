@@ -759,3 +759,80 @@ The adapter now uses the same `eventID -> turn index` map for generic events and
 
 ### Technical details
 - Validation table after fix shows permission rows with `turn=4` and `turn=11` instead of blank turn indices.
+
+## Step 12: Defer unresolved Copilot tools with scoped turn keys
+
+I addressed the new PR review comment about the remaining fallback path in `startTool`. The reviewer correctly pointed out that if a tool starts under `assistant.turn_start` before `assistant.message` exists, the parent chain is not yet resolvable to a minitrace turn index. Falling back to raw Copilot `turnId` in that state is unsafe because Copilot reuses `turnId` values across interactions.
+
+The adapter now carries a scoped key derived from `interactionId + turnId` through `assistant.turn_start` and unresolved child events. Tool starts whose parent has no concrete turn index yet are deferred under that scoped key, not the global `turnId`. When the matching `assistant.message` arrives, it attaches only the tools from the same interaction/turn scope and backfills their `EmittingTurnIndex`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "pkg/adapters/copilot/convert.go
+Comment on lines +362 to 363
+    } else if turnID != \"\" {
+        s.toolIDsByTurnID[turnID] = appendUnique(s.toolIDsByTurnID[turnID], toolCallID)
+@chatgpt-codex-connector
+chatgpt-codex-connector Bot
+2 minutes ago
+
+P2 Badge Avoid falling back to reused turn IDs before parent resolution
+
+When a tool start's parentId is not yet in eventTurnIndexByID, this fallback stores the tool under the raw Copilot turnId. In the package's own Copilot fixture shape, tools/permissions can be emitted under assistant.turn_start before the later assistant.message seeds the parent map; if a later interaction reuses turnId: \"0\", addAssistantMessage will append these stale IDs to the new assistant turn and can also rewrite the tool's EmittingTurnIndex. That leaves the reused-turn-ID ordering bug unfixed for this real event order, so unresolved parent chains need to be deferred or scoped more narrowly than the global turn ID.
+
+Useful? React with 👍 / 👎."
+
+**Assistant interpretation:** Remove the unsafe global `turnId` fallback for unresolved parent chains and add regression coverage for the exact ordering described in the review.
+
+**Inferred user intent:** Fully resolve PR #19's ordering review so the follow-up PR is safe to merge.
+
+**Commit (code):** pending — review fix commit will follow this diary update.
+
+### What I did
+- Added scoped turn state to the Copilot converter:
+  - `eventTurnKeyByID`
+  - `scopedTurnIndexByKey`
+  - `toolIDsByTurnKey`
+- Added `TurnKey` to `pendingTool`.
+- Stored `interactionId:turnId` keys for `assistant.turn_start` events.
+- Changed unresolved `tool.execution_start` handling to defer by scoped turn key instead of raw `turnId`.
+- Changed `addAssistantMessage` to attach deferred tools from the scoped key and backfill their emitting turn index.
+- Removed the unsafe global raw-`turnId` fallback from `appendToolCall` for unresolved tools.
+- Added `TestConvertParsedDefersUnresolvedParentToolsByScopedTurnKey`.
+- Ran `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+- Added and checked task 16 and updated the changelog.
+
+### Why
+- Raw Copilot `turnId` is not globally unique. It is only safe when scoped to an interaction or when the parent chain already resolves to a concrete minitrace turn.
+- Tools emitted before their assistant message need a deferred association path, but that path must not leak across later interactions that reuse the same local turn id.
+
+### What worked
+- The new regression covers the exact problematic order: `assistant.turn_start` -> tool start/complete -> later `assistant.message`, followed by another interaction reusing `turnId: "0"`.
+- Full tests passed.
+
+### What didn't work
+- N/A after implementation. The issue was in the prior fallback design, not a new failing command.
+
+### What I learned
+- `assistant.turn_start` is useful even though it is not a conversational turn: it carries the interaction scope needed to safely defer tool ownership until the assistant message is created.
+
+### What was tricky to build
+- The adapter now has two related concepts: concrete minitrace turn index and deferred scoped turn key. The concrete index wins when available; the scoped key is only a holding area until the matching assistant message arrives.
+- Some events have parent-chain keys without concrete turn indices. The helper logic must propagate keys separately from turn indices.
+
+### What warrants a second pair of eyes
+- Review whether any remaining use of `turnIndexByTurnID` should be removed entirely in a future cleanup. It is still present as a fallback but no longer used for unresolved tool starts.
+
+### What should be done in the future
+- Resolve the PR #19 thread once this commit is pushed.
+
+### Code review instructions
+- Review `startTool`, `addAssistantMessage`, `appendToolCall`, and the scoped key helper functions in `pkg/adapters/copilot/convert.go`.
+- Review `TestConvertParsedDefersUnresolvedParentToolsByScopedTurnKey`.
+- Validate with `go test ./pkg/adapters/copilot -count=1` and `go test ./... -count=1`.
+
+### Technical details
+- Scoped key format: `interactionId + ":" + turnId`.
+- Validation commands passed:
+  - `go test ./pkg/adapters/copilot -count=1`
+  - `go test ./... -count=1`
