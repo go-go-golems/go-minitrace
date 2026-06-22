@@ -30,3 +30,4 @@
 - [x] Migrate xgoja command-provider example and validate make smoke
 - [x] Run final repository validation including GOWORK=off
 - [x] Add self-contained minitrace xgoja jsverbs example
+- [x] Expand xgoja jsverbs example into a minitrace JS API tour

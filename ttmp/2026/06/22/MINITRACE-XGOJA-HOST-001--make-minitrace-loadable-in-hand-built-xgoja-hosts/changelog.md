@@ -88,3 +88,14 @@ Post-close follow-up: added a self-contained xgoja jsverbs example with summary 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-jsverbs/xgoja.yaml — New xgoja spec
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/07-minitrace-jsverbs-example-smoke.txt — Smoke output
 
+
+## 2026-06-22
+
+Post-PR follow-up: expanded the minitrace xgoja jsverbs example into an API tour covering importer preview, auto-convert DB construction with sources/import policy/cache/limits, and saving converted archives (commit edebb99).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-jsverbs/data/session-pi.jsonl — Raw JSONL sample
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-jsverbs/verbs/inspect.js — Expanded API tour verbs
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/08-minitrace-jsverbs-api-tour-smoke.txt — Smoke output
+

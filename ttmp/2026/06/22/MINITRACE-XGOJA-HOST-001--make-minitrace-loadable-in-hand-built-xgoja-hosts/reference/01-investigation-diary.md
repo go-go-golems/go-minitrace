@@ -20,6 +20,8 @@ RelatedFiles:
       Note: Smoke target builds and runs both verbs
     - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/README.md
       Note: Example usage documentation
+    - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/data/session-pi.jsonl
+      Note: Raw Pi JSONL fixture for auto-detect and auto-convert API tour
     - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/verbs/inspect.js
       Note: summary and tools verbs that read a minitrace file using require minitrace
     - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/xgoja.yaml
@@ -44,6 +46,8 @@ RelatedFiles:
       Note: Captured final go test
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/07-minitrace-jsverbs-example-smoke.txt
       Note: Captured successful smoke output for self-contained example
+    - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/08-minitrace-jsverbs-api-tour-smoke.txt
+      Note: Captured successful smoke output for expanded API tour
 ExternalSources:
     - https://github.com/go-go-golems/go-minitrace/issues/20
 Summary: Chronological investigation diary for the minitrace hand-built xgoja host analysis and design ticket.
@@ -51,6 +55,7 @@ LastUpdated: 2026-06-22T17:15:00-04:00
 WhatFor: Use this to resume the investigation, understand what evidence was gathered, and reproduce the module-loading and xgoja example checks.
 WhenToUse: Before implementing MINITRACE-XGOJA-HOST-001 or reviewing the associated design document.
 ---
+
 
 
 
@@ -579,3 +584,67 @@ The new example lives at `examples/xgoja/minitrace-jsverbs`. It builds a generat
 ### Technical details
 - Commit hash: `6a74d8be7b57887b03c4a51fe32c2c9f0278b33a`
 - Smoke output: `../sources/07-minitrace-jsverbs-example-smoke.txt`
+
+## Step 8: Expand the jsverbs example into an API tour
+
+The user asked to make the self-contained xgoja example exercise more interesting minitrace JavaScript APIs, especially automatic conversion from raw files. I expanded `examples/xgoja/minitrace-jsverbs` from two archive-only verbs into a small API tour that covers importer preview, auto-converting raw Pi JSONL into a queryable DB, cache/source/import-policy/limits builders, and saving converted archives.
+
+The example still stays small: one generated binary, one converted fixture, one raw JSONL fixture, one JavaScript file, and one `make smoke` target. The smoke now runs five verbs and verifies both JSON output and the saved converted archive file.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can we test the more interesting JS APIs of minitrace in the example as well, to give the user a bit of a tour? say, converting from files uatomatically and all that?"
+
+**Assistant interpretation:** Expand the new xgoja jsverbs example so it demonstrates richer minitrace APIs, including automatic conversion from raw session files.
+
+**Inferred user intent:** Make the PR's example educational, not just a minimal require smoke test.
+
+**Commit (code):** edebb9952927f30e0f0d10f2ba412401b2f8ca62 — "Expand minitrace xgoja jsverbs API tour"
+
+### What I did
+- Added `examples/xgoja/minitrace-jsverbs/data/session-pi.jsonl`, a raw Pi JSONL fixture.
+- Expanded `examples/xgoja/minitrace-jsverbs/verbs/inspect.js` with three additional verbs:
+  - `preview`: `mt.importer().File(file).AutoDetect().Convert().Preview()`.
+  - `auto-convert`: `mt.sources()`, `mt.importPolicy()`, `mt.cache()`, `mt.limits()`, and `mt.db().Sources(...).Import(...).Cache(...).Limits(...)`.
+  - `save-converted`: `mt.importer().File(file).AutoDetect().Into(out).Overwrite().Convert().Save()`.
+- Updated the example README to describe all verbs and the APIs they demonstrate.
+- Updated the Makefile smoke target to run and grep all five verbs.
+- Ran `make smoke` and captured the output in `sources/08-minitrace-jsverbs-api-tour-smoke.txt`.
+- Ran `make clean` to remove generated artifacts.
+- Added and checked task 26.
+
+### Why
+- The example should teach users how to use minitrace JS as an embedding API, not only prove that `require("minitrace")` resolves.
+- Automatic conversion is central to the ergonomic story: callers can point at raw session exports and let minitrace convert/query/save them.
+
+### What worked
+- `make smoke` passed after adding the expanded verbs.
+- The preview verb detected `pi-jsonl` and `pi-jsverbs-tour`.
+- The auto-convert verb built a SQLite DB from raw JSONL and returned session/role/cache/diagnostic information.
+- The save verb wrote `dist/converted/pi-jsverbs-tour/session.minitrace.json`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The builder APIs compose cleanly enough for a compact demo: sources, import policy, cache, limits, DB builder, importer, and query APIs all fit in one readable `inspect.js` file.
+
+### What was tricky to build
+- The main challenge was keeping the example broad enough to be a tour but still small enough to understand. I avoided adding template/fs dependencies here and focused on minitrace APIs only.
+- I also kept generated outputs under `dist/` so the smoke can prove conversion/save behavior without committing artifacts.
+
+### What warrants a second pair of eyes
+- Check whether the raw Pi JSONL fixture is representative enough.
+- Review the `auto-convert` verb for API clarity; it intentionally shows several builders rather than using the shortest possible `mt.db().File(file).AutoConvert(true).Build()` form.
+
+### What should be done in the future
+- If this example becomes part of release documentation, consider linking it from the root README examples section.
+
+### Code review instructions
+- Start with `examples/xgoja/minitrace-jsverbs/README.md` to understand the intended tour.
+- Then review `verbs/inspect.js`, especially `preview`, `autoConvert`, and `saveConverted`.
+- Validate with `cd examples/xgoja/minitrace-jsverbs && make smoke`.
+
+### Technical details
+- Commit hash: `edebb9952927f30e0f0d10f2ba412401b2f8ca62`
+- Smoke output: `../sources/08-minitrace-jsverbs-api-tour-smoke.txt`
