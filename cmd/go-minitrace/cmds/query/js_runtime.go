@@ -59,7 +59,11 @@ func RunJSCommandIntoProcessor(
 
 	factory, err := gggengine.NewRuntimeFactoryBuilder().
 		WithRequireOptions(noderequire.WithLoader(registry.RequireLoader())).
-		UseModuleMiddleware(gggengine.Pipeline()).
+		// The command runtime installs a command-scoped minitrace loader below so
+		// RuntimeArchives() can see --archive-glob and related query settings. Now
+		// that pkg/minitracejs also self-registers as a default module for embedded
+		// hosts, exclude the default instance here to avoid overriding this loader.
+		UseModuleMiddleware(gggengine.MiddlewareExclude(minitracejs.ModuleName)).
 		WithModules(
 			gggengine.NativeModuleRegistrar{
 				ModuleID:   "minitrace-runtime",
