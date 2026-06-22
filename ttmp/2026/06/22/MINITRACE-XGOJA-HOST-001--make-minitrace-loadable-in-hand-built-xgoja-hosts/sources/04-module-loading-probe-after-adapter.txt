@@ -1,0 +1,3 @@
+middleware-add={"minitrace":true,"fs":true,"template":true} err=<nil>
+plain={"minitrace":true,"fs":true,"template":true} err=<nil>
+explicit={"minitrace":true,"fs":"GoError: Invalid module","template":"GoError: Invalid module"} err=<nil>

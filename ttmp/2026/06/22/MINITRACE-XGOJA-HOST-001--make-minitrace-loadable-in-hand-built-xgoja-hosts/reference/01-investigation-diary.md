@@ -10,6 +10,12 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: go-minitrace/cmd/go-minitrace/cmds/query/js_runtime.go
+      Note: Command-scoped loader now excludes default minitrace to preserve RuntimeArchives settings in commit 0836dda
+    - Path: go-minitrace/pkg/minitracejs/default_module.go
+      Note: Default-registry native module adapter added in commit 0836dda
+    - Path: go-minitrace/pkg/minitracejs/default_module_test.go
+      Note: Runtime integration test for plain builder minitrace require added in commit 0836dda
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/scripts/01-probe-module-loading.sh
       Note: Reproduces plain
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/scripts/02-check-xgoja-example.sh
@@ -18,6 +24,8 @@ RelatedFiles:
       Note: Captured module-loading probe output
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/03-xgoja-example-check-output.txt
       Note: Captured xgoja example smoke/migration output
+    - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/04-module-loading-probe-after-adapter.txt
+      Note: Captured successful post-adapter module-loading probe
 ExternalSources:
     - https://github.com/go-go-golems/go-minitrace/issues/20
 Summary: Chronological investigation diary for the minitrace hand-built xgoja host analysis and design ticket.
@@ -25,6 +33,7 @@ LastUpdated: 2026-06-22T17:15:00-04:00
 WhatFor: Use this to resume the investigation, understand what evidence was gathered, and reproduce the module-loading and xgoja example checks.
 WhenToUse: Before implementing MINITRACE-XGOJA-HOST-001 or reviewing the associated design document.
 ---
+
 
 
 # Diary
@@ -208,3 +217,97 @@ The commit contains the design guide, diary, issue capture, reproduction scripts
 ### Technical details
 - Commit command: `git commit -m "Document minitrace xgoja host implementation plan"`
 - Commit hash command: `git rev-parse HEAD`
+
+## Step 3: Add the default-registry module adapter
+
+I implemented the first source-code phase: `pkg/minitracejs` now registers itself as a go-go-goja default-registry native module when linked into a host binary. I also added a runtime integration test that creates a plain engine runtime and verifies that JavaScript can require `minitrace` and a normal default module in the same runtime.
+
+The first commit attempt exposed an important runtime-ordering bug. Query-command runtimes intentionally install a command-scoped minitrace loader with archive-glob settings, but once minitrace self-registered, the default-registry loader could override that command-scoped loader. I fixed the query runtime to exclude the default `minitrace` module when registering its explicit command-scoped loader.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Implement the documented self-registration plan, validate each increment, and keep the ticket diary and tasks current.
+
+**Inferred user intent:** Move from design to code while retaining a clear record of failures, fixes, commands, and commit hashes.
+
+**Commit (code):** 0836ddac5ec86301a9f5537b8a0cbfdad19fb0da — "Register minitrace JavaScript module by default"
+
+### What I did
+- Added `pkg/minitracejs/default_module.go` with a `modules.NativeModule` adapter.
+- Forwarded the module's TypeScript descriptor through `modules.TypeScriptDeclarer`.
+- Added `pkg/minitracejs/default_module_test.go` to verify plain builder module loading.
+- Updated `cmd/go-minitrace/cmds/query/js_runtime.go` to exclude the default `minitrace` module when the command runtime registers its explicit runtime-settings-aware loader.
+- Ran `gofmt`.
+- Ran focused validation: `go test ./pkg/minitracejs ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`.
+- Re-ran the ticket module-loading probe and stored the output in `sources/04-module-loading-probe-after-adapter.txt`.
+- Committed the source changes.
+- Checked tasks 13, 14, 20, and 21.
+
+### Why
+- Self-registration is the smallest go-minitrace-owned change that makes `require("minitrace")` work for hand-built hosts using `engine.NewRuntimeFactoryBuilder().Build()`.
+- The command runtime exclusion is necessary because command JS relies on `RuntimeArchives()` seeing CLI/runtime archive globs.
+
+### What worked
+- Focused tests passed:
+
+  ```text
+  ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	0.025s
+  ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	0.984s
+  ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	0.644s
+  ```
+
+- The post-adapter probe showed the desired plain-builder behavior:
+
+  ```text
+  middleware-add={"minitrace":true,"fs":true,"template":true} err=<nil>
+  plain={"minitrace":true,"fs":true,"template":true} err=<nil>
+  explicit={"minitrace":true,"fs":"GoError: Invalid module","template":"GoError: Invalid module"} err=<nil>
+  ```
+
+- The final commit hook passed `go test ./...` and lint.
+
+### What didn't work
+- The first commit attempt failed during the pre-commit `go test ./...` hook. The exact failing symptom was:
+
+  ```text
+  Error: GoError: minitrace.db: [runtime archive glob is not configured] at github.com/go-go-golems/go-minitrace/pkg/minitracejs.builderObject.func29 (native)
+  FAIL	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	1.267s
+  --- FAIL: TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive (0.05s)
+      server_test.go:1168: expected 200, got 400 with body {"error":"GoError: minitrace.db: [runtime archive glob is not configured] at github.com/go-go-golems/go-minitrace/pkg/minitracejs.builderObject.func29 (native)"}
+  ```
+
+- Root cause: `RunJSCommandIntoProcessor` used module middleware to include default modules and also registered an explicit minitrace loader. After self-registration, the default loader was selected too and overrode the command-scoped loader, losing runtime settings.
+- Fix: `UseModuleMiddleware(gggengine.MiddlewareExclude(minitracejs.ModuleName))` in `cmd/go-minitrace/cmds/query/js_runtime.go`.
+
+### What I learned
+- Default-registry self-registration changes all runtimes that select default modules, not only hand-built hosts.
+- Existing explicit runtime loaders must be protected from default-registry duplicate names when they need command-specific settings.
+- The engine's explicit/default ordering means duplicate module names can become behaviorally significant.
+
+### What was tricky to build
+- The adapter itself was small; the tricky part was preserving the existing query-command behavior. Query commands use `RuntimeArchives()` and depend on a loader configured with `ArchiveGlob`, `DBPath`, `TableName`, and `PersistLoaded`. A default adapter necessarily has empty runtime settings, so it must not override command-scoped loaders.
+- The failure only appeared in broader tests, not in the focused `pkg/minitracejs` test, which is why the pre-commit hook was useful.
+
+### What warrants a second pair of eyes
+- Review `cmd/go-minitrace/cmds/query/js_runtime.go` carefully to confirm excluding default `minitrace` is the right duplicate-loader policy for query commands.
+- Confirm no other runtime construction path registers a settings-aware minitrace loader while also selecting all default registry modules.
+- Review whether the module documentation string should mention security boundaries for untrusted JavaScript.
+
+### What should be done in the future
+- Add README documentation for the new hand-built host path.
+- Migrate and validate the xgoja example.
+- Run final `GOWORK=off` validation.
+
+### Code review instructions
+- Start with `pkg/minitracejs/default_module.go`; it should only adapt and delegate to `NewLoader`, not duplicate exports.
+- Then review `pkg/minitracejs/default_module_test.go` for the plain-builder acceptance criterion.
+- Finally review `cmd/go-minitrace/cmds/query/js_runtime.go` for the default-module exclusion that preserves command runtime settings.
+- Validation commands:
+  - `go test ./pkg/minitracejs ./cmd/go-minitrace/cmds/query ./cmd/go-minitrace/cmds/serve -count=1`
+  - `./ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/scripts/01-probe-module-loading.sh`
+
+### Technical details
+- Commit hash: `0836ddac5ec86301a9f5537b8a0cbfdad19fb0da`
+- Post-adapter probe output: `../sources/04-module-loading-probe-after-adapter.txt`

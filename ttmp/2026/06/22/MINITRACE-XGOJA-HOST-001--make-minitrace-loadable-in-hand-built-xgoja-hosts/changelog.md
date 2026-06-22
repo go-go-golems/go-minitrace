@@ -33,3 +33,14 @@ Step 2: committed initial ticket documentation before code changes (commit 41ae3
 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/reference/01-investigation-diary.md — Diary to update with commit checkpoint
 
+
+## 2026-06-22
+
+Step 3: implemented default-registry minitrace module adapter and integration test; fixed command runtime duplicate-loader ordering so RuntimeArchives keeps command settings (commit 0836dda).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/cmd/go-minitrace/cmds/query/js_runtime.go — Exclude default minitrace when command-scoped loader is registered
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/default_module.go — Default adapter
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/default_module_test.go — Plain builder require smoke test
+

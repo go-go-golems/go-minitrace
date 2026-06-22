@@ -17,15 +17,15 @@
 
 ## Future implementation tasks
 
-- [ ] Implement `pkg/minitracejs` default-registry native module adapter.
-- [ ] Add runtime integration test for plain builder `require("minitrace")`.
+- [x] Implement `pkg/minitracejs` default-registry native module adapter.
+- [x] Add runtime integration test for plain builder `require("minitrace")`.
 - [ ] Update README with hand-built host example.
 - [ ] Migrate `examples/xgoja/minitrace-command-provider` to current xgoja v2 spec.
 - [ ] Validate `make smoke` in the xgoja example.
 - [ ] Validate `GOWORK=off go test ./... -count=1` before release.
 - [x] Commit initial ticket documentation before code changes
-- [ ] Implement default-registry minitracejs module adapter
-- [ ] Add runtime integration tests for default builder require("minitrace")
+- [x] Implement default-registry minitracejs module adapter
+- [x] Add runtime integration tests for default builder require("minitrace")
 - [ ] Document hand-built host usage in README
 - [ ] Migrate xgoja command-provider example and validate make smoke
 - [ ] Run final repository validation including GOWORK=off
