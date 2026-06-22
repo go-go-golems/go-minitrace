@@ -1,7 +1,7 @@
 ---
 Title: Make minitrace loadable in hand-built xgoja hosts
 Ticket: MINITRACE-XGOJA-HOST-001
-Status: active
+Status: complete
 Topics:
     - minitrace
     - xgoja
@@ -11,12 +11,13 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources:
-    - "https://github.com/go-go-golems/go-minitrace/issues/20"
-Summary: "Ticket workspace for analyzing and implementing require(\"minitrace\") support in hand-built go-go-goja/xgoja hosts."
-LastUpdated: 2026-06-22T17:15:00-04:00
-WhatFor: "Use this ticket to implement GitHub issue #20 and understand the related minitracejs, go-go-goja module registry, and xgoja provider-example architecture."
-WhenToUse: "Before changing pkg/minitracejs module registration or refreshing examples/xgoja/minitrace-command-provider."
+    - https://github.com/go-go-golems/go-minitrace/issues/20
+Summary: Ticket workspace for analyzing and implementing require("minitrace") support in hand-built go-go-goja/xgoja hosts.
+LastUpdated: 2026-06-22T17:34:44.406149953-04:00
+WhatFor: 'Use this ticket to implement GitHub issue #20 and understand the related minitracejs, go-go-goja module registry, and xgoja provider-example architecture.'
+WhenToUse: Before changing pkg/minitracejs module registration or refreshing examples/xgoja/minitrace-command-provider.
 ---
+
 
 # Make minitrace loadable in hand-built xgoja hosts
 
