@@ -1,0 +1,15 @@
+== current make smoke ==
+cd /home/manuel/workspaces/2026-06-07/club-meetup-site/go-go-goja && GOWORK=off go run ./cmd/xgoja doctor -f /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml
+Error: /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml appears to be a legacy xgoja spec; run xgoja migrate-spec -f /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml --out xgoja.v2.yaml
+exit status 1
+make: *** [Makefile:13: doctor] Error 1
+make smoke: failed as expected before example refresh
+== temporary v2 migration and build ==
+warning: packages[0].replace: migrated as provider.module.replace; prefer workspace.mode=auto when this replacement is already covered by go.work
+wrote migrated xgoja/v2 spec /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.v2.tmp.yaml
+validated xgoja/v2 plan for /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.v2.tmp.yaml
+generated build workspace: /tmp/xgoja-build-518249774
+generated module: xgoja.generated/minitrace-command-provider
+xgoja builds from the generated module root: cd /tmp/xgoja-build-518249774 && go mod tidy && go build -buildvcs=false .
+release note: if you check this generated host into a repository as a nested Go module, configure GoReleaser with dir: <generated-module-dir> and main: .
+xgoja build ok: /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/x.tmp
