@@ -153,3 +153,58 @@ The symptoms looked like a go-go-goja builder problem at first because explicit 
 - Reproduction scripts:
   - `../scripts/01-probe-module-loading.sh`
   - `../scripts/02-check-xgoja-example.sh`
+
+## Step 2: Commit the initial ticket package
+
+I committed the initial ticket documentation before touching source code. This gives the implementation work a clean baseline and keeps the research/design deliverable separately reviewable from the code changes that follow.
+
+The commit contains the design guide, diary, issue capture, reproduction scripts, command outputs, task list, and ticket bookkeeping created in Step 1. After committing, I checked the task that records this checkpoint and added a changelog entry pointing at the commit.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue from the documented implementation plan, add explicit ticket tasks, then implement and commit the work incrementally while keeping the diary current.
+
+**Inferred user intent:** Make progress on the actual issue while preserving reviewable checkpoints and continuation-friendly documentation.
+
+**Commit (code):** 41ae31bf6ec0d92116e9e9a4ccb140011d22a267 — "Document minitrace xgoja host implementation plan"
+
+### What I did
+- Ran `docmgr --root go-minitrace/ttmp doctor --ticket MINITRACE-XGOJA-HOST-001 --stale-after 30`; it passed.
+- Staged only the new ticket workspace under `ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts`.
+- Committed the initial documentation package.
+- Checked task 19: `Commit initial ticket documentation before code changes`.
+- Added a changelog entry for the checkpoint commit.
+
+### Why
+- Keep the evidence/design package reviewable independently from source changes.
+- Provide a safe rollback boundary before editing runtime module code.
+
+### What worked
+- The pre-commit hook skipped Go test/lint because only docs were staged.
+- The commit succeeded and produced hash `41ae31bf6ec0d92116e9e9a4ccb140011d22a267`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The ticket was already healthy enough for `docmgr doctor` before source implementation started.
+
+### What was tricky to build
+- The main trick was commit hygiene: the repository already had no source modifications, so I staged the ticket workspace explicitly instead of using broad `git add -A`.
+
+### What warrants a second pair of eyes
+- Confirm the ticket docs are an appropriate level of detail for a new intern before using them as implementation instructions.
+
+### What should be done in the future
+- Continue with the source-code adapter and runtime tests in a separate focused commit.
+
+### Code review instructions
+- Review commit `41ae31b` as documentation only.
+- Start with the design guide and then the diary.
+- Validate with `docmgr --root go-minitrace/ttmp doctor --ticket MINITRACE-XGOJA-HOST-001 --stale-after 30`.
+
+### Technical details
+- Commit command: `git commit -m "Document minitrace xgoja host implementation plan"`
+- Commit hash command: `git rev-parse HEAD`

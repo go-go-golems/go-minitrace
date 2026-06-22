@@ -23,7 +23,7 @@
 - [ ] Migrate `examples/xgoja/minitrace-command-provider` to current xgoja v2 spec.
 - [ ] Validate `make smoke` in the xgoja example.
 - [ ] Validate `GOWORK=off go test ./... -count=1` before release.
-- [ ] Commit initial ticket documentation before code changes
+- [x] Commit initial ticket documentation before code changes
 - [ ] Implement default-registry minitracejs module adapter
 - [ ] Add runtime integration tests for default builder require("minitrace")
 - [ ] Document hand-built host usage in README
