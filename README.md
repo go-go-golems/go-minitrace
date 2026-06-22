@@ -321,6 +321,77 @@ See `go-minitrace help js-api-reference` for the complete `require("minitrace")`
 
 ---
 
+## Embedding `require("minitrace")` in a hand-built Goja host
+
+You can embed the JavaScript API in your own Go binary without shelling out to the `go-minitrace` CLI or generating an xgoja application. Link the module package for its side effect, build a plain go-go-goja runtime, and then use `require("minitrace")` from JavaScript.
+
+```go
+package main
+
+import (
+	"context"
+
+	"github.com/dop251/goja"
+	"github.com/go-go-golems/go-go-goja/pkg/engine"
+
+	// Side-effect imports register these packages in modules.DefaultRegistry.
+	_ "github.com/go-go-golems/go-minitrace/pkg/minitracejs"
+	_ "github.com/go-go-golems/goja-text/pkg/template"
+)
+
+func main() {
+	factory, err := engine.NewRuntimeFactoryBuilder().Build()
+	if err != nil {
+		panic(err)
+	}
+
+	rt, err := factory.NewRuntime(
+		engine.WithStartupContext(context.Background()),
+		engine.WithLifetimeContext(context.Background()),
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer func() { _ = rt.Close(context.Background()) }()
+
+	_, err = rt.Owner.Call(context.Background(), "render-report", func(_ context.Context, vm *goja.Runtime) (any, error) {
+		return vm.RunString(`
+			const mt = require("minitrace");
+			const template = require("template");
+			const fs = require("fs");
+
+			const session = mt.session()
+				.File("./output/active/example/session.minitrace.json")
+				.InteractiveCache("./.cache/minitrace")
+				.Open();
+
+			try {
+				const markdown = template.renderText("# {{ .Title }}\n\nSession: {{ .SessionID }}\n", {
+					Title: "Embedded minitrace report",
+					SessionID: session.id(),
+				}).Text;
+				fs.writeFileSync("./dist/minitrace-report.md", markdown);
+			} finally {
+				session.close();
+			}
+		`)
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+```
+
+Important details:
+
+- Go does not dynamically discover modules by JavaScript name. The blank import of `pkg/minitracejs` links the package into the binary and runs its `init()` registration.
+- `require("fs")` comes from go-go-goja's default registry. `require("template")` comes from the optional `goja-text` side-effect import shown above.
+- The default minitrace module has empty runtime settings. In embedded hosts, prefer explicit sources such as `.File(...)`, `.Files(...)`, `.Glob(...)`, `.Dir(...)`, or `.Content(...)`.
+- Generated query-command runtimes still use a command-scoped loader so `.RuntimeArchives()` can read `--archive-glob` and related runtime settings.
+- If you call `WithModules(...)` directly, you are choosing an explicit module set and must register every module that JavaScript should be able to require.
+
+---
+
 ## The web UI
 
 `go-minitrace serve` starts an HTTP server that loads the archive into an in-memory DuckDB table and exposes:
