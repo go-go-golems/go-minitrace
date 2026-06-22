@@ -4,6 +4,7 @@ WORKSPACE_ROOT := $(abspath ../../../..)
 XGOJA_ROOT := $(WORKSPACE_ROOT)/go-go-goja
 BIN := $(CURDIR)/dist/minitrace-jsverbs
 SAMPLE := $(CURDIR)/data/session-a.minitrace.json
+RAW_SAMPLE := $(CURDIR)/data/session-pi.jsonl
 XGOJA := cd $(XGOJA_ROOT) && GOWORK=off go run ./cmd/xgoja
 
 .PHONY: smoke doctor list build run clean
@@ -27,6 +28,15 @@ run:
 	$(BIN) verbs inspect tools $(SAMPLE) --limit 5 --output json > $(CURDIR)/dist/tools.json
 	grep -q '"tool_name"' $(CURDIR)/dist/tools.json
 	grep -q '"calls"' $(CURDIR)/dist/tools.json
+	$(BIN) verbs inspect preview $(RAW_SAMPLE) --output json > $(CURDIR)/dist/preview.json
+	grep -q '"format": "pi-jsonl"' $(CURDIR)/dist/preview.json
+	grep -q '"sessionId": "pi-jsverbs-tour"' $(CURDIR)/dist/preview.json
+	$(BIN) verbs inspect auto-convert $(RAW_SAMPLE) --cache-dir $(CURDIR)/dist/cache --limit 10 --output json > $(CURDIR)/dist/auto-convert.json
+	grep -q '"session_id": "pi-jsverbs-tour"' $(CURDIR)/dist/auto-convert.json
+	grep -q '"diagnostics"' $(CURDIR)/dist/auto-convert.json
+	$(BIN) verbs inspect save-converted $(RAW_SAMPLE) --out $(CURDIR)/dist/converted --output json > $(CURDIR)/dist/save-converted.json
+	grep -q '"sessionId": "pi-jsverbs-tour"' $(CURDIR)/dist/save-converted.json
+	test -f $(CURDIR)/dist/converted/pi-jsverbs-tour/session.minitrace.json
 
 clean:
 	rm -rf $(CURDIR)/dist
