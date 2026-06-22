@@ -1,0 +1,37 @@
+cd /home/manuel/workspaces/2026-06-07/club-meetup-site/go-go-goja && GOWORK=off go run ./cmd/xgoja doctor -f /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml
++-------------------+--------+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------+--------------------------------------+---------+------------------------------------------------------------------+-----------------+-------------------+-----------------------+
+| check             | status | path                                 | file                                                                                                                  | message          | module_path                          | version | local_dir                                                        | resolution_kind | resolution_source | required_by           |
++-------------------+--------+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------+--------------------------------------+---------+------------------------------------------------------------------+-----------------+-------------------+-----------------------+
+| schema            | ok     | schema                               | /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml | xgoja/v2         |                                      |         |                                                                  |                 |                   |                       |
+| module-resolution | ok     | github.com/go-go-golems/go-minitrace | /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml | explicit-replace | github.com/go-go-golems/go-minitrace | v0.0.0  | /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace | replace         | explicit-replace  | provider:go-minitrace |
++-------------------+--------+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------+------------------+--------------------------------------+---------+------------------------------------------------------------------+-----------------+-------------------+-----------------------+
+cd /home/manuel/workspaces/2026-06-07/club-meetup-site/go-go-goja && GOWORK=off go run ./cmd/xgoja list-modules -f /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml
++-----------------------------------------------------------------------------------------------------------------------+--------------+-----------+-----------+
+| file                                                                                                                  | package      | module    | alias     |
++-----------------------------------------------------------------------------------------------------------------------+--------------+-----------+-----------+
+| /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml | go-minitrace | minitrace | minitrace |
++-----------------------------------------------------------------------------------------------------------------------+--------------+-----------+-----------+
+cd /home/manuel/workspaces/2026-06-07/club-meetup-site/go-go-goja && GOWORK=off go run ./cmd/xgoja build -f /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml --output /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/minitrace-command-provider --xgoja-replace /home/manuel/workspaces/2026-06-07/club-meetup-site/go-go-goja --keep-work
+validated xgoja/v2 plan for /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml
+generated build workspace: /tmp/xgoja-build-614293333
+generated module: xgoja.generated/minitrace-command-provider
+xgoja builds from the generated module root: cd /tmp/xgoja-build-614293333 && go mod tidy && go build -buildvcs=false .
+release note: if you check this generated host into a repository as a nested Go module, configure GoReleaser with dir: <generated-module-dir> and main: .
+xgoja build ok: /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/minitrace-command-provider
+rm -rf /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/report
+/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/minitrace-command-provider traces reports markdown-summary \
+	--archive-glob '/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/data/*.minitrace.json' \
+	--out /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/report \
+	--title 'Minitrace Smoke Report' \
+	--output json
+[
+{
+  "first_title": "Wire command providers into generated binaries",
+  "report_path": "/home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/report/minitrace-summary.md",
+  "session_count": 2,
+  "tool_call_count": 5
+}
+]
+test -f /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/report/minitrace-summary.md
+grep -q '# Minitrace Smoke Report' /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/report/minitrace-summary.md
+grep -q 'Wire command providers into generated binaries' /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/dist/report/minitrace-summary.md

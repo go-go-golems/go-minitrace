@@ -14,6 +14,8 @@ RelatedFiles:
       Note: Hand-built host require minitrace documentation added in commit 5e7d52a
     - Path: go-minitrace/cmd/go-minitrace/cmds/query/js_runtime.go
       Note: Command-scoped loader now excludes default minitrace to preserve RuntimeArchives settings in commit 0836dda
+    - Path: go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml
+      Note: xgoja v2 migration committed in 4c8fb8d
     - Path: go-minitrace/pkg/minitracejs/default_module.go
       Note: Default-registry native module adapter added in commit 0836dda
     - Path: go-minitrace/pkg/minitracejs/default_module_test.go
@@ -28,6 +30,8 @@ RelatedFiles:
       Note: Captured xgoja example smoke/migration output
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/04-module-loading-probe-after-adapter.txt
       Note: Captured successful post-adapter module-loading probe
+    - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/05-xgoja-example-smoke-after-migration.txt
+      Note: Captured successful make smoke after example migration
 ExternalSources:
     - https://github.com/go-go-golems/go-minitrace/issues/20
 Summary: Chronological investigation diary for the minitrace hand-built xgoja host analysis and design ticket.
@@ -35,6 +39,7 @@ LastUpdated: 2026-06-22T17:15:00-04:00
 WhatFor: Use this to resume the investigation, understand what evidence was gathered, and reproduce the module-loading and xgoja example checks.
 WhenToUse: Before implementing MINITRACE-XGOJA-HOST-001 or reviewing the associated design document.
 ---
+
 
 
 
@@ -367,3 +372,63 @@ The section also documents the important caveat discovered in Step 3: the defaul
 
 ### Technical details
 - Commit hash: `5e7d52a0f0bc3bc8be81f84c554e031cf2d2a3ae`
+
+## Step 5: Migrate and smoke-test the xgoja example
+
+I migrated the checked-in xgoja command-provider example from the legacy spec shape to `schema: xgoja/v2`. The Makefile already points at `xgoja.yaml`, so keeping the canonical filename avoided extra Makefile churn.
+
+After migration, `make smoke` successfully ran the full example workflow: doctor, list modules, build the generated binary, run the mounted `traces reports markdown-summary` command, write the markdown report, and verify expected report content.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue with the next implementation task from the ticket: refresh and validate the stale xgoja command-provider example.
+
+**Inferred user intent:** Ensure both the hand-built host path and the generated xgoja provider reference path are working examples for future users.
+
+**Commit (code):** 4c8fb8dd1dcb16e5d0b96f2e8f39ef612adec9e7 — "Migrate minitrace xgoja provider example"
+
+### What I did
+- Ran `xgoja migrate-spec` with the current workspace xgoja tool to inspect the v2 output.
+- Replaced `examples/xgoja/minitrace-command-provider/xgoja.yaml` with the migrated v2 shape.
+- Preserved the same provider import, local replace, runtime module alias, mounted command set, query repository, and binary output path.
+- Ran `make smoke` in `examples/xgoja/minitrace-command-provider`.
+- Captured the successful smoke output in `sources/05-xgoja-example-smoke-after-migration.txt`.
+- Ran `make clean` to remove ignored generated artifacts.
+- Checked tasks 16, 17, and 23.
+
+### Why
+- Issue #20 named this example as the canonical reference for the xgoja generated-host path, but the old spec failed at `xgoja doctor`.
+- Keeping the example green gives interns and users a working reference for provider command sets, not only direct embedding.
+
+### What worked
+- `xgoja doctor` now reports `schema: ok` with `xgoja/v2`.
+- `xgoja list-modules` reports `go-minitrace minitrace` aliased as `minitrace`.
+- `xgoja build` succeeds.
+- The generated binary writes `dist/report/minitrace-summary.md` and the Makefile greps expected content.
+
+### What didn't work
+- N/A in the final run.
+
+### What I learned
+- The earlier RuntimePlan compile skew from the GitHub issue is no longer present in the current workspace xgoja toolchain.
+- The example needed a spec migration, not custom generated-code repair.
+
+### What was tricky to build
+- The important choice was whether to keep the canonical filename as `xgoja.yaml` or introduce a separate `xgoja.v2.yaml`. I kept `xgoja.yaml` so existing `make smoke` commands continue to work and the example has only one source of truth.
+
+### What warrants a second pair of eyes
+- Confirm the migrated `go.version: "1.26"` is the right generated-module Go version for this repository's release expectations.
+- Confirm the explicit provider module replace `../../..` should remain rather than relying only on `workspace.mode: auto`.
+
+### What should be done in the future
+- Run final repository validation, including `GOWORK=off`, and update ticket status.
+
+### Code review instructions
+- Review `examples/xgoja/minitrace-command-provider/xgoja.yaml` as a format migration with preserved semantics.
+- Validate with `cd examples/xgoja/minitrace-command-provider && make smoke`.
+
+### Technical details
+- Commit hash: `4c8fb8dd1dcb16e5d0b96f2e8f39ef612adec9e7`
+- Smoke output: `../sources/05-xgoja-example-smoke-after-migration.txt`

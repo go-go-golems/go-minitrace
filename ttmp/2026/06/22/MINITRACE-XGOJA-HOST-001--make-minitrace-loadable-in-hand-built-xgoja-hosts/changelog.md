@@ -53,3 +53,13 @@ Step 4: documented hand-built embedded minitrace module usage in README, includi
 
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/README.md — Embedded minitrace documentation
 
+
+## 2026-06-22
+
+Step 5: migrated the minitrace xgoja command-provider example to xgoja/v2 and validated make smoke successfully (commit 4c8fb8d).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml — xgoja v2 spec
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/05-xgoja-example-smoke-after-migration.txt — Smoke output
+
