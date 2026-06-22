@@ -77,3 +77,14 @@ Step 6: final validation passed with go test ./..., GOWORK=off go test ./..., an
 
 Ticket closed
 
+
+## 2026-06-22
+
+Post-close follow-up: added a self-contained xgoja jsverbs example with summary and tools verbs that read a minitrace file; make smoke passes (commit 6a74d8b).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-jsverbs/verbs/inspect.js — New example verbs
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-jsverbs/xgoja.yaml — New xgoja spec
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/07-minitrace-jsverbs-example-smoke.txt — Smoke output
+

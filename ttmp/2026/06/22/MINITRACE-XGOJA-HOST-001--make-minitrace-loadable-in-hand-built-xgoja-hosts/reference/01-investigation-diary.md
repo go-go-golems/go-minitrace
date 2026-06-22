@@ -16,6 +16,14 @@ RelatedFiles:
       Note: Command-scoped loader now excludes default minitrace to preserve RuntimeArchives settings in commit 0836dda
     - Path: go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml
       Note: xgoja v2 migration committed in 4c8fb8d
+    - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/Makefile
+      Note: Smoke target builds and runs both verbs
+    - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/README.md
+      Note: Example usage documentation
+    - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/verbs/inspect.js
+      Note: summary and tools verbs that read a minitrace file using require minitrace
+    - Path: go-minitrace/examples/xgoja/minitrace-jsverbs/xgoja.yaml
+      Note: Self-contained xgoja jsverbs example spec added in commit 6a74d8b
     - Path: go-minitrace/pkg/minitracejs/default_module.go
       Note: Default-registry native module adapter added in commit 0836dda
     - Path: go-minitrace/pkg/minitracejs/default_module_test.go
@@ -34,6 +42,8 @@ RelatedFiles:
       Note: Captured successful make smoke after example migration
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/06-final-validation.txt
       Note: Captured final go test
+    - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/07-minitrace-jsverbs-example-smoke.txt
+      Note: Captured successful smoke output for self-contained example
 ExternalSources:
     - https://github.com/go-go-golems/go-minitrace/issues/20
 Summary: Chronological investigation diary for the minitrace hand-built xgoja host analysis and design ticket.
@@ -41,6 +51,7 @@ LastUpdated: 2026-06-22T17:15:00-04:00
 WhatFor: Use this to resume the investigation, understand what evidence was gathered, and reproduce the module-loading and xgoja example checks.
 WhenToUse: Before implementing MINITRACE-XGOJA-HOST-001 or reviewing the associated design document.
 ---
+
 
 
 
@@ -503,3 +514,68 @@ This step checked the remaining validation tasks. The only remaining work is ord
 
 ### Technical details
 - Final validation output: `../sources/06-final-validation.txt`
+
+## Step 7: Add a self-contained xgoja jsverbs example
+
+After closing the ticket, the user asked whether the branch included a small self-contained xgoja example with a couple of verbs that read a minitrace file and output information. It did not, so I added one before opening the PR.
+
+The new example lives at `examples/xgoja/minitrace-jsverbs`. It builds a generated xgoja binary with embedded JavaScript verbs. The `summary` verb reads one `.minitrace.json` file and returns session metadata; the `tools` verb reads the same file and returns grouped tool-call counts.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Add the missing self-contained xgoja example before opening the PR.
+
+**Inferred user intent:** Ensure the PR includes a concrete small generated-binary example, not only README prose and the larger command-provider smoke.
+
+**Commit (code):** 6a74d8be7b57887b03c4a51fe32c2c9f0278b33a — "Add minitrace xgoja jsverbs example"
+
+### What I did
+- Added `examples/xgoja/minitrace-jsverbs/xgoja.yaml` with an xgoja/v2 spec selecting the go-minitrace provider module and a local jsverbs source set.
+- Added `examples/xgoja/minitrace-jsverbs/verbs/inspect.js` with two verbs:
+  - `verbs inspect summary <file>`
+  - `verbs inspect tools <file> --limit N`
+- Added `examples/xgoja/minitrace-jsverbs/data/session-a.minitrace.json` as a tiny sample archive.
+- Added a Makefile that runs `doctor`, `list-modules`, `build`, and both verbs, then greps expected JSON output.
+- Added a README explaining the example and commands.
+- Ran `make smoke` successfully and captured output in `sources/07-minitrace-jsverbs-example-smoke.txt`.
+- Ran `make clean` to remove generated `dist/` artifacts.
+- Added and checked task 25.
+
+### Why
+- The branch needed a minimal generated-binary example that directly demonstrates `require("minitrace")` from embedded jsverbs.
+- The existing command-provider example is useful but has more moving parts; this new example is easier for a new user to copy.
+
+### What worked
+- `xgoja doctor` accepted the new v2 spec.
+- `xgoja list-modules` showed the `go-minitrace` `minitrace` module alias.
+- `xgoja build` produced `dist/minitrace-jsverbs`.
+- Both smoke commands passed:
+  - `dist/minitrace-jsverbs verbs inspect summary data/session-a.minitrace.json --output json`
+  - `dist/minitrace-jsverbs verbs inspect tools data/session-a.minitrace.json --limit 5 --output json`
+
+### What didn't work
+- N/A
+
+### What I learned
+- Built-in xgoja jsverbs are a good small example surface for minitrace because the verbs can be embedded in the binary while the `.minitrace.json` file remains a normal runtime input.
+
+### What was tricky to build
+- The example needed to be self-contained without being misleading. I chose to include a tiny checked-in sample archive and keep generated `dist/` ignored/cleaned, so `make smoke` is reproducible without committing binary artifacts.
+
+### What warrants a second pair of eyes
+- Confirm whether duplicating `session-a.minitrace.json` from the command-provider example is acceptable, or whether both examples should share a common fixture.
+- Confirm whether the command path `verbs inspect ...` is the desired shape for this example.
+
+### What should be done in the future
+- Consider adding this example to any higher-level examples index if one is introduced.
+
+### Code review instructions
+- Start with `examples/xgoja/minitrace-jsverbs/README.md`.
+- Review `verbs/inspect.js` to see how the two verbs use `mt.db().File(file).QueryCommandDefaults().Build()`.
+- Validate with `cd examples/xgoja/minitrace-jsverbs && make smoke`.
+
+### Technical details
+- Commit hash: `6a74d8be7b57887b03c4a51fe32c2c9f0278b33a`
+- Smoke output: `../sources/07-minitrace-jsverbs-example-smoke.txt`

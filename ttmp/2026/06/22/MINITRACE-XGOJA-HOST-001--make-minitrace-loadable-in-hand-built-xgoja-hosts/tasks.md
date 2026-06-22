@@ -29,3 +29,4 @@
 - [x] Document hand-built host usage in README
 - [x] Migrate xgoja command-provider example and validate make smoke
 - [x] Run final repository validation including GOWORK=off
+- [x] Add self-contained minitrace xgoja jsverbs example
