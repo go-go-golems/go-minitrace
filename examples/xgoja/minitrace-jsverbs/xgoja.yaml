@@ -1,9 +1,9 @@
 schema: xgoja/v2
-name: minitrace-command-provider
+name: minitrace-jsverbs
 app:
-    name: minitrace-command-provider
+    name: minitrace-jsverbs
 go:
-    module: xgoja.generated/minitrace-command-provider
+    module: xgoja.generated/minitrace-jsverbs
     version: "1.26"
 workspace:
     mode: auto
@@ -19,17 +19,21 @@ runtime:
         - provider: go-minitrace
           name: minitrace
           as: minitrace
+sources:
+    - id: local
+      kind: jsverbs
+      from:
+        dir: ./verbs
+      language: javascript
 commands:
-    - id: minitrace-queries
-      type: provider.command-set
-      name: queries
-      mount: traces
-      provider: go-minitrace
-      config:
-        appName: minitrace-command-provider-smoke
-        queryRepositories:
-            - ./queries
+    - id: verbs
+      type: builtin.jsverbs
+      name: verbs
+      sources:
+        - local
 artifacts:
     - id: binary
       type: binary
-      output: dist/minitrace-command-provider
+      output: dist/minitrace-jsverbs
+      sources:
+        - local

@@ -1,0 +1,6 @@
+{"type":"session","id":"pi-jsverbs-tour","version":3,"timestamp":"2026-06-22T12:00:00Z","cwd":"/workspaces/minitrace-jsverbs-tour"}
+{"type":"model_change","provider":"pi","modelId":"claude-opus-4-6","timestamp":"2026-06-22T12:00:01Z"}
+{"type":"message","message":{"role":"user","timestamp":"2026-06-22T12:00:02Z","content":[{"type":"text","text":"Please inspect this repository and summarize the tool usage."}]}}
+{"type":"message","message":{"role":"assistant","timestamp":"2026-06-22T12:00:03Z","model":"claude-opus-4-6","provider":"pi","content":[{"type":"text","text":"I will inspect the files."},{"type":"toolCall","id":"tool-1","name":"bash","arguments":{"command":"ls -la"}}]}}
+{"type":"message","message":{"role":"toolResult","timestamp":"2026-06-22T12:00:04Z","toolCallId":"tool-1","toolName":"bash","isError":false,"content":"total 8\n-rw-r--r-- 1 user user 123 README.md"}}
+{"type":"message","message":{"role":"assistant","timestamp":"2026-06-22T12:00:05Z","model":"claude-opus-4-6","provider":"pi","content":[{"type":"text","text":"The repository contains a README and one successful bash tool call."}]}}
