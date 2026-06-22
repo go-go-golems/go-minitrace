@@ -10,6 +10,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: go-minitrace/README.md
+      Note: Hand-built host require minitrace documentation added in commit 5e7d52a
     - Path: go-minitrace/cmd/go-minitrace/cmds/query/js_runtime.go
       Note: Command-scoped loader now excludes default minitrace to preserve RuntimeArchives settings in commit 0836dda
     - Path: go-minitrace/pkg/minitracejs/default_module.go
@@ -33,6 +35,7 @@ LastUpdated: 2026-06-22T17:15:00-04:00
 WhatFor: Use this to resume the investigation, understand what evidence was gathered, and reproduce the module-loading and xgoja example checks.
 WhenToUse: Before implementing MINITRACE-XGOJA-HOST-001 or reviewing the associated design document.
 ---
+
 
 
 
@@ -311,3 +314,56 @@ The first commit attempt exposed an important runtime-ordering bug. Query-comman
 ### Technical details
 - Commit hash: `0836ddac5ec86301a9f5537b8a0cbfdad19fb0da`
 - Post-adapter probe output: `../sources/04-module-loading-probe-after-adapter.txt`
+
+## Step 4: Document embedded host usage
+
+I updated the top-level README with a concrete hand-built host example. The new section explains how a Go binary links `pkg/minitracejs` for side effects, builds a plain go-go-goja runtime, and then uses `require("minitrace")`, `require("template")`, and `require("fs")` from JavaScript.
+
+The section also documents the important caveat discovered in Step 3: the default minitrace module has empty runtime settings, so embedded hosts should pass sources directly with `.File`, `.Files`, `.Glob`, `.Dir`, or `.Content` unless they intentionally build a custom loader.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue implementing the issue, including the requested README/onboarding material, with reviewable commits and diary entries.
+
+**Inferred user intent:** Make the new runtime behavior discoverable to users and future maintainers, not just present in code.
+
+**Commit (code):** 5e7d52a0f0bc3bc8be81f84c554e031cf2d2a3ae — "Document embedded minitrace module usage"
+
+### What I did
+- Added a README section titled `Embedding require("minitrace") in a hand-built Goja host`.
+- Included a complete Go embedding example with blank imports for `pkg/minitracejs` and `goja-text/pkg/template`.
+- Included JavaScript that opens a minitrace session, renders a small template, writes a report with `fs`, and closes the session.
+- Documented blank-import registration, default module provenance, runtime-settings caveats, generated query-command behavior, and explicit `WithModules(...)` behavior.
+- Checked tasks 15 and 22.
+
+### Why
+- The GitHub issue explicitly asked for a short README section or example showing a hand-written Go host.
+- The runtime behavior relies on Go linking semantics, which users need to understand to avoid assuming JavaScript module names dynamically load Go packages.
+
+### What worked
+- The README-only commit passed pre-commit; Go test/lint were skipped because no Go files were staged.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The documentation needs to be precise about the difference between default-registry embedded hosts and generated query-command runtimes because they both expose `require("minitrace")` but with different runtime settings.
+
+### What was tricky to build
+- The tricky part was writing an example that is simple enough for onboarding but still honest about module linking. The final version keeps the Go host minimal and moves the caveats into bullets after the example.
+
+### What warrants a second pair of eyes
+- Confirm the example path `./output/active/example/session.minitrace.json` is acceptable as illustrative documentation.
+- Confirm mentioning `goja-text/pkg/template` in the README is acceptable even though it is an optional external module for embedding examples.
+
+### What should be done in the future
+- Migrate and validate the xgoja example so generated-host users have an equally current reference.
+
+### Code review instructions
+- Review the new README section around the JavaScript command handlers and before the web UI section.
+- Validate that the bullets accurately describe self-registration and explicit module selection.
+
+### Technical details
+- Commit hash: `5e7d52a0f0bc3bc8be81f84c554e031cf2d2a3ae`

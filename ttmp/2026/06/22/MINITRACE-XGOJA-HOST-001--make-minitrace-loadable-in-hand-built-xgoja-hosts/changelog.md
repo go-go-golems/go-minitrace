@@ -44,3 +44,12 @@ Step 3: implemented default-registry minitrace module adapter and integration te
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/default_module.go — Default adapter
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/pkg/minitracejs/default_module_test.go — Plain builder require smoke test
 
+
+## 2026-06-22
+
+Step 4: documented hand-built embedded minitrace module usage in README, including blank-import registration and runtime-settings caveats (commit 5e7d52a).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/README.md — Embedded minitrace documentation
+
