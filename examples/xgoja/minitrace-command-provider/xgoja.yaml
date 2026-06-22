@@ -1,31 +1,35 @@
+schema: xgoja/v2
 name: minitrace-command-provider
-target:
-  kind: xgoja
-  output: dist/minitrace-command-provider
-packages:
-  - id: go-minitrace
-    import: github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider
-    version: v0.0.0
-    replace: ../../..
-modules:
-  - package: go-minitrace
-    name: minitrace
-    as: minitrace
+app:
+    name: minitrace-command-provider
+go:
+    module: xgoja.generated/minitrace-command-provider
+    version: "1.26"
+workspace:
+    mode: auto
+providers:
+    - id: go-minitrace
+      import: github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider
+      register: Register
+      module:
+        version: v0.0.0
+        replace: ../../..
+runtime:
+    modules:
+        - provider: go-minitrace
+          name: minitrace
+          as: minitrace
 commands:
-  eval:
-    enabled: false
-  run:
-    enabled: false
-  repl:
-    enabled: false
-  jsverbs:
-    enabled: false
-commandProviders:
-  - id: minitrace-queries
-    package: go-minitrace
-    name: queries
-    mount: traces
-    config:
-      appName: minitrace-command-provider-smoke
-      queryRepositories:
-        - ./queries
+    - id: minitrace-queries
+      type: provider.command-set
+      name: queries
+      mount: traces
+      provider: go-minitrace
+      config:
+        appName: minitrace-command-provider-smoke
+        queryRepositories:
+            - ./queries
+artifacts:
+    - id: binary
+      type: binary
+      output: dist/minitrace-command-provider
