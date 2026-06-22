@@ -63,3 +63,12 @@ Step 5: migrated the minitrace xgoja command-provider example to xgoja/v2 and va
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/examples/xgoja/minitrace-command-provider/xgoja.yaml — xgoja v2 spec
 - /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/05-xgoja-example-smoke-after-migration.txt — Smoke output
 
+
+## 2026-06-22
+
+Step 6: final validation passed with go test ./..., GOWORK=off go test ./..., and docmgr doctor; all implementation tasks checked.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-07/club-meetup-site/go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/06-final-validation.txt — Final validation evidence
+

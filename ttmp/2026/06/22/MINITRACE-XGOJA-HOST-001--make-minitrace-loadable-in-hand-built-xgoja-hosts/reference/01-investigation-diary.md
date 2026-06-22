@@ -32,6 +32,8 @@ RelatedFiles:
       Note: Captured successful post-adapter module-loading probe
     - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/05-xgoja-example-smoke-after-migration.txt
       Note: Captured successful make smoke after example migration
+    - Path: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/06-final-validation.txt
+      Note: Captured final go test
 ExternalSources:
     - https://github.com/go-go-golems/go-minitrace/issues/20
 Summary: Chronological investigation diary for the minitrace hand-built xgoja host analysis and design ticket.
@@ -39,6 +41,7 @@ LastUpdated: 2026-06-22T17:15:00-04:00
 WhatFor: Use this to resume the investigation, understand what evidence was gathered, and reproduce the module-loading and xgoja example checks.
 WhenToUse: Before implementing MINITRACE-XGOJA-HOST-001 or reviewing the associated design document.
 ---
+
 
 
 
@@ -432,3 +435,71 @@ After migration, `make smoke` successfully ran the full example workflow: doctor
 ### Technical details
 - Commit hash: `4c8fb8dd1dcb16e5d0b96f2e8f39ef612adec9e7`
 - Smoke output: `../sources/05-xgoja-example-smoke-after-migration.txt`
+
+## Step 6: Run final validation and close out implementation tasks
+
+I ran the final validation suite after the source and example commits were in place. Both workspace-mode and isolated-module-mode tests passed, and `docmgr doctor` passed for the ticket.
+
+This step checked the remaining validation tasks. The only remaining work is ordinary review/PR handling; the ticket's implementation checklist is complete.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Complete validation, mark the ticket tasks done, and record the final state.
+
+**Inferred user intent:** Ensure the implementation is ready for review with evidence that it works in both workspace and release-like module modes.
+
+**Commit (code):** N/A — validation and ticket documentation only.
+
+### What I did
+- Ran `go test ./... -count=1`.
+- Ran `GOWORK=off go test ./... -count=1`.
+- Ran `docmgr --root go-minitrace/ttmp doctor --ticket MINITRACE-XGOJA-HOST-001 --stale-after 30`.
+- Captured the output in `sources/06-final-validation.txt`.
+- Checked tasks 18 and 24.
+
+### Why
+- `GOWORK=off` validates that the change works with the module's declared dependencies, not only the surrounding workspace.
+- `docmgr doctor` verifies the ticket remains structurally healthy after multiple diary and task updates.
+
+### What worked
+- Workspace tests passed.
+- Isolated module tests passed.
+- `docmgr doctor` passed.
+
+### What didn't work
+- My first attempt to tee final validation output used a path relative to `go-minitrace` but included `go-minitrace/` again. The command still ran the tests successfully, but `tee` failed with:
+
+  ```text
+  tee: go-minitrace/ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/06-final-validation.txt: No such file or directory
+  ```
+
+- I reran the validation from the workspace root with the correct output path and captured the final log.
+
+### What I learned
+- The new code is compatible with `GOWORK=off`, so it does not depend on unreleased workspace-only go-go-goja APIs.
+- The final validation log's initial `git status` line sees the output file as untracked because `tee` creates it before the status command prints; this is expected for that captured log.
+
+### What was tricky to build
+- The final validation itself was straightforward; the only sharp edge was path handling while teeing output from nested directories.
+
+### What warrants a second pair of eyes
+- Review the final validation log and decide whether to close the docmgr ticket now or leave it active until PR review is complete.
+
+### What should be done in the future
+- Open or update the PR for issue #20.
+- Optionally upload an updated post-implementation documentation bundle to reMarkable if the reviewer wants the final diary included there too.
+
+### Code review instructions
+- Review commits in this order:
+  1. `0836dda` — runtime module adapter and tests.
+  2. `5e7d52a` — README documentation.
+  3. `4c8fb8d` — xgoja example migration.
+- Validate with:
+  - `go test ./... -count=1`
+  - `GOWORK=off go test ./... -count=1`
+  - `cd examples/xgoja/minitrace-command-provider && make smoke`
+
+### Technical details
+- Final validation output: `../sources/06-final-validation.txt`

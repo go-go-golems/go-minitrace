@@ -1,0 +1,71 @@
+== git status before validation ==
+?? ttmp/2026/06/22/MINITRACE-XGOJA-HOST-001--make-minitrace-loadable-in-hand-built-xgoja-hosts/sources/06-final-validation.txt
+== go test ./... -count=1 ==
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	0.036s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	0.807s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	0.617s
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+?   	github.com/go-go-golems/go-minitrace/pkg/adapters	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	0.008s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	0.006s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	0.013s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	0.010s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	0.036s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	0.027s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	0.101s
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	0.175s
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	0.016s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.107s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	0.108s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	0.016s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	0.347s
+ok  	github.com/go-go-golems/go-minitrace/pkg/query	0.065s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	0.012s
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]
+== GOWORK=off go test ./... -count=1 ==
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	0.054s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	0.977s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	0.607s
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+?   	github.com/go-go-golems/go-minitrace/pkg/adapters	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	0.007s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	0.011s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	0.025s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	0.017s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	0.035s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	0.009s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	0.071s
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	0.196s
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	0.006s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.128s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	0.079s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	0.028s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	0.354s
+ok  	github.com/go-go-golems/go-minitrace/pkg/query	0.082s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	0.011s
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]
+== docmgr doctor ==
+## Doctor Report (1 findings)
+
+### MINITRACE-XGOJA-HOST-001
+
+- ✅ All checks passed
+
