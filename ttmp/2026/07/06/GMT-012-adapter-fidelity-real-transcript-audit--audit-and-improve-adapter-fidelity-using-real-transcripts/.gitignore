@@ -1,0 +1,10 @@
+# Generated from local private transcript stores; do not commit raw/derived transcript content.
+sources/converted-corpus/
+sources/source-shape-inventory/*-sample-list.txt
+sources/source-shape-inventory/*.json
+sources/coverage-profile/*.json
+scripts/logs/
+
+# Keep the generated Markdown coverage profile if reviewed; it is redaction-safe
+# and docmgr-compatible, while the machine JSON/log artifacts remain local.
+!sources/coverage-profile/01-coverage-profile.md

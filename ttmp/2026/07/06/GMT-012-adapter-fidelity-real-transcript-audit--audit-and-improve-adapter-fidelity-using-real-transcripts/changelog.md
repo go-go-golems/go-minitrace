@@ -1,0 +1,46 @@
+# Changelog
+
+## 2026-07-06
+
+- Initial workspace created
+
+
+## 2026-07-06
+
+Added intern implementation guide and first evidence pass scripts for real-transcript adapter fidelity audit; inventoried local sources, converted sampled Pi/Codex/Claude Code sessions, and queried initial fidelity metrics.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/design-doc/02-adapter-fidelity-intern-implementation-guide.md — Intern-facing adapter fidelity guide
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/01-inventory-source-shapes.py — Inventory script
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/03-query-converted-fidelity.sh — Fidelity query script
+
+
+## 2026-07-06
+
+Uploaded GMT-012 adapter fidelity guide bundle to reMarkable at /ai/2026/07/06/GMT-012/GMT-012 Adapter Fidelity Intern Guide.pdf.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/design-doc/02-adapter-fidelity-intern-implementation-guide.md — Uploaded intern guide
+
+
+## 2026-07-06
+
+Added source-vs-archive coverage profiler, investigation guide, and missing functionality report; created GitHub issue #23 for JS-first documentation cleanup.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/analysis/01-source-vs-archive-coverage-investigation-guide.md — Coverage workflow guide
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/analysis/02-missing-adapter-functionality-report.md — Missing functionality report
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py — Coverage profiler
+
+
+## 2026-07-06
+
+Uploaded GMT-012 coverage investigation and missing functionality report bundle to reMarkable at /ai/2026/07/06/GMT-012.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/analysis/02-missing-adapter-functionality-report.md — Uploaded missing functionality report
+
