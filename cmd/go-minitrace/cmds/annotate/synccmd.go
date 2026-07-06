@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
-	"github.com/go-go-golems/go-minitrace/pkg/query"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
 	"github.com/spf13/cobra"
 )
 
@@ -109,7 +109,7 @@ func runSync(cmd *cobra.Command, _ []string) error {
 // buildSessionIndex expands archiveGlob and reads each file to extract the session ID,
 // returning a map from session ID to absolute file path.
 func buildSessionIndex(archiveGlob string) (map[string]string, error) {
-	files, err := query.ExpandArchiveGlobs([]string{archiveGlob})
+	files, err := minitracedb.ExpandArchiveGlobs([]string{archiveGlob})
 	if err != nil {
 		return nil, err
 	}

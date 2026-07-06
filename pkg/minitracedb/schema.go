@@ -7,7 +7,13 @@ import (
 	"strings"
 )
 
-const SchemaVersion = "normalized-sqlite-v2"
+const SchemaVersion = "normalized-sqlite-v3"
+
+// SessionsBaseCompatView is a compatibility VIEW that reconstructs the legacy
+// DuckDB `sessions_base` shape (5 scalar columns plus JSON blob columns) from
+// the normalized sessions table, so session-level saved SQL written for the
+// old engine keeps working on SQLite >= 3.38 (`->`/`->>` on JSON text).
+const SessionsBaseCompatView = "sessions_base"
 
 type ColumnDescriptor struct {
 	Name        string `json:"name"`
@@ -58,6 +64,26 @@ func AllowedTableNames() []string {
 	return ret
 }
 
+// AllowedObjectNames returns every table and compatibility view a sandboxed
+// query is allowed to read.
+func AllowedObjectNames() []string {
+	return append(AllowedTableNames(), SessionsBaseCompatView)
+}
+
+// AnnotationsAttachSchema is the schema name under which serve ATTACHes the
+// live annotation store (annotations.db) next to the normalized database, so
+// sandboxed SQL can read live annotations as anno.annotations.
+const AnnotationsAttachSchema = "anno"
+
+// AllowedObjectNamesWithLiveAnnotations extends the sandbox allowlist with the
+// tables of the attached live annotation store. The SQLite authorizer sees
+// bare object names (without the schema qualifier), so "annotations" is
+// already covered by the normalized schema table of the same name; only the
+// store's sync_state table needs adding.
+func AllowedObjectNamesWithLiveAnnotations() []string {
+	return append(AllowedObjectNames(), "sync_state")
+}
+
 func CreateSchema(ctx context.Context, db *sql.DB) error {
 	if db == nil {
 		return fmt.Errorf("db is nil")
@@ -75,8 +101,29 @@ func CreateSchema(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("create index: %w", err)
 		}
 	}
+	if _, err := db.ExecContext(ctx, sessionsBaseCompatViewSQL); err != nil {
+		return fmt.Errorf("create view %s: %w", SessionsBaseCompatView, err)
+	}
 	return nil
 }
+
+const sessionsBaseCompatViewSQL = `CREATE VIEW IF NOT EXISTS sessions_base AS
+SELECT
+	session_id AS id,
+	title,
+	summary,
+	classification,
+	profile,
+	json_extract(raw_json, '$.provenance') AS provenance,
+	json_extract(raw_json, '$.flags') AS flags,
+	json_extract(raw_json, '$.environment') AS environment,
+	json_extract(raw_json, '$.operational_context') AS operational_context,
+	json_extract(raw_json, '$.timing') AS timing,
+	json_extract(raw_json, '$.turns') AS turns,
+	json_extract(raw_json, '$.tool_calls') AS tool_calls,
+	json_extract(raw_json, '$.annotations') AS annotations,
+	json_extract(raw_json, '$.metrics') AS metrics
+FROM sessions;`
 
 func sessionsTable() TableDescriptor {
 	return TableDescriptor{

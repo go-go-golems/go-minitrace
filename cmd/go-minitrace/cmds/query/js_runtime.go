@@ -2,8 +2,9 @@ package query
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	glazedvalues "github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
+	glazedsettings "github.com/go-go-golems/glazed/pkg/settings"
 	"github.com/go-go-golems/glazed/pkg/types"
 	gggengine "github.com/go-go-golems/go-go-goja/pkg/engine"
 	"github.com/go-go-golems/go-go-goja/pkg/jsverbs"
@@ -27,7 +29,6 @@ func RunJSCommandIntoProcessor(
 	runtimeSettings *MinitraceQueryRuntimeSettings,
 	vals *glazedvalues.Values,
 	overrides map[string]any,
-	conn *sql.Conn,
 	gp middlewares.Processor,
 ) error {
 	if command == nil || command.JS == nil {
@@ -68,7 +69,7 @@ func RunJSCommandIntoProcessor(
 			gggengine.NativeModuleRegistrar{
 				ModuleID:   "minitrace-runtime",
 				ModuleName: minitracejs.ModuleName,
-				Loader: minitracejs.NewLoader(ctx, conn, command.Name, minitracejs.RuntimeSettings{
+				Loader: minitracejs.NewLoader(ctx, nil, command.Name, minitracejs.RuntimeSettings{
 					ArchiveGlob:   runtimeSettings.ArchiveGlob,
 					DBPath:        runtimeSettings.DBPath,
 					TableName:     runtimeSettings.TableName,
@@ -88,9 +89,102 @@ func RunJSCommandIntoProcessor(
 
 	result, err := registry.InvokeInRuntime(ctx, runtime, verb, parsedValues)
 	if err != nil {
-		return err
+		return wrapJSCommandError(command, vals, err)
 	}
 	return emitJSResult(ctx, gp, result)
+}
+
+// jsErrorEnvelope is the compact, structured representation of a failed JS
+// command run. It is what `--output json` prints on failure and what the
+// human-readable error message is built from.
+type jsErrorEnvelope struct {
+	Error    string `json:"error"`
+	Location string `json:"location,omitempty"`
+	Command  string `json:"command,omitempty"`
+}
+
+// wrapJSCommandError converts a raw goja error (which stringifies to a full
+// native JS stack trace) into a compact error: the first line of the JS error
+// plus the first stack-frame location. When the run was invoked with
+// --output json, a JSON error object is printed to stdout so JSON consumers
+// receive a parseable envelope instead of nothing.
+func wrapJSCommandError(command *minitracecmd.MinitraceCommand, vals *glazedvalues.Values, err error) error {
+	if err == nil {
+		return nil
+	}
+	envelope := jsErrorEnvelope{Error: firstErrorLine(err), Location: firstJSStackLocation(err)}
+	if command != nil {
+		envelope.Command = command.Name
+	}
+
+	if jsOutputFormat(vals) == "json" {
+		if payload, marshalErr := json.Marshal(envelope); marshalErr == nil {
+			fmt.Fprintln(os.Stdout, string(payload))
+		}
+	}
+
+	if envelope.Location != "" {
+		return fmt.Errorf("%s (%s)", envelope.Error, envelope.Location)
+	}
+	return fmt.Errorf("%s", envelope.Error)
+}
+
+func firstErrorLine(err error) string {
+	message := strings.TrimSpace(err.Error())
+	if idx := strings.IndexByte(message, '\n'); idx >= 0 {
+		message = strings.TrimSpace(message[:idx])
+	}
+	// goja exceptions often stringify as "Error: msg at fn (file:1:2(3))";
+	// strip the inline stack-frame suffix from the first line too.
+	if idx := strings.Index(message, " at "); idx > 0 && strings.Contains(message[idx:], "(") {
+		message = strings.TrimSpace(message[:idx])
+	}
+	return message
+}
+
+// firstJSStackLocation extracts a compact "file:line:col" location from the
+// first stack frame of a goja error string, if present.
+func firstJSStackLocation(err error) string {
+	for _, line := range strings.Split(err.Error(), "\n") {
+		line = strings.TrimSpace(line)
+		rest := ""
+		if strings.HasPrefix(line, "at ") {
+			rest = line
+		} else if idx := strings.Index(line, " at "); idx >= 0 {
+			rest = line[idx+1:]
+		}
+		if rest == "" {
+			continue
+		}
+		open := strings.LastIndexByte(rest, '(')
+		close_ := strings.LastIndexByte(rest, ')')
+		if open < 0 || close_ <= open {
+			continue
+		}
+		location := rest[open+1 : close_]
+		// goja appends the program counter as "(pc)" inside the frame:
+		// file.js:12:34(56) -> drop the trailing "(56)".
+		if pcOpen := strings.IndexByte(location, '('); pcOpen > 0 {
+			location = location[:pcOpen]
+		}
+		if strings.Contains(location, ":") {
+			return location
+		}
+	}
+	return ""
+}
+
+func jsOutputFormat(vals *glazedvalues.Values) string {
+	if vals == nil {
+		return ""
+	}
+	outputSettings := &struct {
+		Output string `glazed:"output"`
+	}{}
+	if err := vals.DecodeSectionInto(glazedsettings.GlazedSlug, outputSettings); err != nil {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(outputSettings.Output))
 }
 
 func findRegistryVerb(registry *jsverbs.Registry, command *minitracecmd.MinitraceCommand) (*jsverbs.VerbSpec, error) {

@@ -159,10 +159,6 @@ func TruncateContent(content any, limit int) (*string, *int, *string) {
 	}
 
 	text := fmt.Sprint(content)
-	if len(text) > limit*4 {
-		text = text[:limit*4]
-	}
-
 	encoded := []byte(text)
 	fullBytes := len(encoded)
 	if fullBytes <= limit {
@@ -175,6 +171,28 @@ func TruncateContent(content any, limit int) (*string, *int, *string) {
 	truncated = truncated + "\n[truncated]"
 
 	return ptr(truncated), ptr(fullBytes), ptr(fullHash)
+}
+
+// DurationBetweenMS returns the difference between two RFC3339 timestamps in
+// milliseconds, or nil when either timestamp is missing/unparseable or the
+// end precedes the start.
+func DurationBetweenMS(start, end *string) *int {
+	if start == nil || end == nil {
+		return nil
+	}
+	startTime, ok := ParseTimestamp(*start)
+	if !ok {
+		return nil
+	}
+	endTime, ok := ParseTimestamp(*end)
+	if !ok {
+		return nil
+	}
+	if endTime.Before(startTime) {
+		return nil
+	}
+	durationMS := int(endTime.Sub(startTime).Milliseconds())
+	return &durationMS
 }
 
 func NormalizePath(filePath string) string {

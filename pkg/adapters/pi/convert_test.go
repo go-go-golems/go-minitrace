@@ -372,3 +372,49 @@ func TestConvertRecordsMessageLevelToolResultPreservesIsError(t *testing.T) {
 		t.Fatalf("expected diff metadata to be preserved, got %+v", failedMetadata)
 	}
 }
+
+func TestConvertRecordsDerivesToolDurationAndPreservesEmitTimestamp(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "message",
+			"timestamp": "2026-03-29T10:00:10Z",
+			"message": map[string]any{
+				"role": "assistant",
+				"content": []any{
+					map[string]any{
+						"type":      "toolCall",
+						"id":        "tc-1",
+						"name":      "bash",
+						"arguments": map[string]any{"command": "sleep 1"},
+					},
+				},
+			},
+		},
+		{
+			"type":      "message",
+			"timestamp": "2026-03-29T10:00:13.250Z",
+			"message": map[string]any{
+				"role":       "toolResult",
+				"toolCallId": "tc-1",
+				"content": []any{
+					map[string]any{"type": "text", "text": "done"},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-duration", "/tmp/pi-duration.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(session.ToolCalls))
+	}
+	toolCall := session.ToolCalls[0]
+	if toolCall.Timestamp == nil || *toolCall.Timestamp != "2026-03-29T10:00:10Z" {
+		t.Fatalf("expected emit timestamp to be preserved, got %+v", toolCall.Timestamp)
+	}
+	if toolCall.Output.DurationMS == nil || *toolCall.Output.DurationMS != 3250 {
+		t.Fatalf("expected 3250ms duration, got %+v", toolCall.Output.DurationMS)
+	}
+}

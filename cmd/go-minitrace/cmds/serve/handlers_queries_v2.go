@@ -6,16 +6,16 @@ import (
 	"strings"
 
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
 	"github.com/pkg/errors"
 )
 
 func (s *Server) handleGetPresetsV2(w http.ResponseWriter, _ *http.Request) {
 	presets := make([]SavedQuery, 0)
 
-	for _, preset := range queryengine.ListPresetEntries() {
+	for _, preset := range minitracedb.ListPresetEntries() {
 		presetID := strings.TrimSuffix(preset.Path, ".sql")
-		sqlText, err := queryengine.ResolvePresetSQL(presetID, s.tableName)
+		sqlText, err := minitracedb.ResolvePresetSQL(presetID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return

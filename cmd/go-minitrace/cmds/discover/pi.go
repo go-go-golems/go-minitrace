@@ -21,7 +21,9 @@ type PiCommand struct {
 }
 
 type PiSettings struct {
-	SourceDir string `glazed:"source-dir"`
+	SourceDir   string `glazed:"source-dir"`
+	CwdContains string `glazed:"cwd-contains"`
+	Since       string `glazed:"since"`
 }
 
 func NewPiGlazeCommand() (*PiCommand, error) {
@@ -45,12 +47,14 @@ Examples:
   go-minitrace discover pi --source-dir /tmp/pi-sessions --output json
 `),
 		cmds.WithFlags(
-			fields.New(
-				"source-dir",
-				fields.TypeString,
-				fields.WithDefault("~/.pi/agent/sessions"),
-				fields.WithHelp("Pi sessions directory"),
-			),
+			append([]*fields.Definition{
+				fields.New(
+					"source-dir",
+					fields.TypeString,
+					fields.WithDefault("~/.pi/agent/sessions"),
+					fields.WithHelp("Pi sessions directory"),
+				),
+			}, filterFlags()...)...,
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -66,15 +70,25 @@ func (c *PiCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.Valu
 		return err
 	}
 
+	since, err := parseSince(settings_.Since)
+	if err != nil {
+		return err
+	}
+
 	locators, err := pi.Discover(settings_.SourceDir)
 	if err != nil {
 		return err
 	}
 	for _, locator := range locators {
+		if !keepLocator(locator, settings_.CwdContains, since) {
+			continue
+		}
 		row := types.NewRow(
 			types.MRP("id", locator.ID),
 			types.MRP("format_hint", locator.FormatHint),
 			types.MRP("source_path", locator.SourcePath),
+			types.MRP("cwd", locator.Cwd),
+			types.MRP("started_at", locator.StartedAt),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err

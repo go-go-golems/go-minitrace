@@ -3,7 +3,6 @@ package serve
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	stderrors "errors"
 	"fmt"
@@ -16,14 +15,13 @@ import (
 
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
 type Server struct {
-	conn               *sql.Conn
-	tableName          string
+	queryTarget        minitracedb.QueryTarget
 	presetDirs         []string
 	queryDirs          []string
 	archiveGlobs       []string
@@ -56,15 +54,14 @@ type QueryResponse struct {
 }
 
 func NewServer(
-	conn *sql.Conn,
+	queryTarget minitracedb.QueryTarget,
 	settings *ServeSettings,
 	sessionIndex map[string]string,
 	annoStore *annotate.Store,
 	annoIndex map[string]string,
 ) *Server {
 	s := &Server{
-		conn:         conn,
-		tableName:    settings.TableName,
+		queryTarget:  queryTarget,
 		presetDirs:   normalizeDirList(settings.PresetDir),
 		queryDirs:    normalizeDirList(settings.QueryDir),
 		archiveGlobs: append([]string(nil), settings.ArchiveGlob...),
@@ -175,8 +172,22 @@ func (s *Server) handleExecuteQuery(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if err := queryengine.ValidateReadOnlyQuery(req.SQL); err != nil {
-		writeJSON(w, http.StatusBadRequest, QueryResponse{
+	if s.queryTarget == nil {
+		writeJSON(w, http.StatusInternalServerError, QueryResponse{
+			Columns:    []string{},
+			Rows:       []map[string]any{},
+			DurationMS: time.Since(start).Milliseconds(),
+			RowCount:   0,
+			Error:      &QueryError{Message: "query target is not initialized"},
+		})
+		return
+	}
+
+	// The sandboxed query runner validates read-only-ness, enforces the
+	// lifted serve limits, and returns structured errors as result.Error.
+	result, err := s.queryTarget.QueryResult(r.Context(), req.SQL)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
 			DurationMS: time.Since(start).Milliseconds(),
@@ -185,77 +196,35 @@ func (s *Server) handleExecuteQuery(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	rows, err := s.conn.QueryContext(r.Context(), req.SQL)
-	if err != nil {
+	if result.Error != "" {
 		writeJSON(w, http.StatusBadRequest, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
 			DurationMS: time.Since(start).Milliseconds(),
 			RowCount:   0,
-			Error:      &QueryError{Message: err.Error()},
-		})
-		return
-	}
-	defer func() { _ = rows.Close() }()
-
-	columns, err := rows.Columns()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, QueryResponse{
-			Columns:    []string{},
-			Rows:       []map[string]any{},
-			DurationMS: time.Since(start).Milliseconds(),
-			RowCount:   0,
-			Error:      &QueryError{Message: errors.Wrap(err, "reading query columns").Error()},
+			Error:      &QueryError{Message: result.Error},
 		})
 		return
 	}
 
-	resultRows := make([]map[string]any, 0)
-	for rows.Next() {
-		values := make([]any, len(columns))
-		scanArgs := make([]any, len(columns))
-		for i := range scanArgs {
-			scanArgs[i] = &values[i]
-		}
-		if err := rows.Scan(scanArgs...); err != nil {
-			writeJSON(w, http.StatusInternalServerError, QueryResponse{
-				Columns:    []string{},
-				Rows:       []map[string]any{},
-				DurationMS: time.Since(start).Milliseconds(),
-				RowCount:   0,
-				Error:      &QueryError{Message: errors.Wrap(err, "scanning query row").Error()},
-			})
-			return
-		}
-
-		row := make(map[string]any, len(columns))
-		for i, column := range columns {
-			row[column] = queryengine.NormalizeValue(values[i])
-		}
-		resultRows = append(resultRows, row)
+	columns := result.Columns
+	if columns == nil {
+		columns = []string{}
 	}
-	if err := rows.Err(); err != nil {
-		writeJSON(w, http.StatusInternalServerError, QueryResponse{
-			Columns:    []string{},
-			Rows:       []map[string]any{},
-			DurationMS: time.Since(start).Milliseconds(),
-			RowCount:   0,
-			Error:      &QueryError{Message: errors.Wrap(err, "iterating query rows").Error()},
-		})
-		return
+	rows := result.Rows
+	if rows == nil {
+		rows = []map[string]any{}
 	}
-
 	writeJSON(w, http.StatusOK, QueryResponse{
 		Columns:    columns,
-		Rows:       resultRows,
+		Rows:       rows,
 		DurationMS: time.Since(start).Milliseconds(),
-		RowCount:   len(resultRows),
+		RowCount:   result.Count,
 	})
 }
 
 func buildSessionIndex(archiveGlobs []string) (map[string]string, error) {
-	files, err := queryengine.ExpandArchiveGlobs(archiveGlobs)
+	files, err := minitracedb.ExpandArchiveGlobs(archiveGlobs)
 	if err != nil {
 		return nil, err
 	}

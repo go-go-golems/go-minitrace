@@ -95,6 +95,20 @@ func TestQueryRunnerRejectsDisallowedObjects(t *testing.T) {
 	}
 }
 
+func TestQueryRunnerSQLiteCatalogDenialSuggestsSchemaIntrospection(t *testing.T) {
+	runner := setupQueryRunner(t)
+	result, err := runner.QueryResult(context.Background(), `SELECT * FROM sqlite_master`)
+	if err != nil {
+		t.Fatalf("QueryResult error: %v", err)
+	}
+	if !strings.Contains(result.Error, "disallowed") {
+		t.Fatalf("expected disallowed object error, got %#v", result)
+	}
+	if !strings.Contains(result.Error, "db.schema()") || !strings.Contains(result.Error, "db.tables()") {
+		t.Fatalf("expected schema introspection hint mentioning db.schema() and db.tables(), got %q", result.Error)
+	}
+}
+
 func TestQueryRunnerRejectsQuotedDisallowedObjects(t *testing.T) {
 	runner := setupQueryRunner(t)
 	queries := []string{

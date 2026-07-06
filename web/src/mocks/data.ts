@@ -490,7 +490,7 @@ export const mockPresets: SavedQuery[] = [
     folder: "core",
     path: "core/session-list.sql",
     description: "List all sessions sorted by start time with key metrics",
-    sql: "SELECT id, timing->>'started_at' AS started_at, title,\n  CAST(metrics->>'turn_count' AS INT) AS turns,\n  CAST(metrics->>'tool_call_count' AS INT) AS tools\nFROM sessions_base\nORDER BY timing->>'started_at';",
+    sql: "SELECT session_id, started_at, title,\n  turn_count AS turns,\n  tool_call_count AS tools\nFROM sessions\nORDER BY started_at;",
     readonly: true,
   },
   {
@@ -499,7 +499,7 @@ export const mockPresets: SavedQuery[] = [
     path: "analysis/human-blocks.sql",
     description:
       "Decompose a session into human-input blocks with agent turn and tool counts",
-    sql: "-- Replace SESSION_ID\nWITH numbered AS (\n  SELECT t.idx,\n    CAST(t.turn->>'role' AS VARCHAR) AS role,\n    CAST(t.turn->>'content' AS VARCHAR) AS content,\n    CAST(t.turn->>'timestamp' AS VARCHAR) AS ts,\n    json_array_length(COALESCE(t.turn->'tool_calls_in_turn', '[]'::JSON)) AS tc_count\n  FROM sessions_base\n  CROSS JOIN UNNEST(turns) WITH ORDINALITY AS t(turn, idx)\n  WHERE id = 'SESSION_ID'\n)\nSELECT * FROM numbered LIMIT 20;",
+    sql: "-- Replace SESSION_ID\nSELECT t.turn_index, t.role,\n  substr(t.content, 1, 200) AS content,\n  t.timestamp AS ts,\n  (SELECT COUNT(*) FROM turn_tool_calls ttc\n   WHERE ttc.session_id = t.session_id AND ttc.turn_index = t.turn_index) AS tc_count\nFROM turns t\nWHERE t.session_id = 'SESSION_ID'\nORDER BY t.turn_index\nLIMIT 20;",
     readonly: true,
   },
   {
@@ -507,7 +507,7 @@ export const mockPresets: SavedQuery[] = [
     folder: "analysis",
     path: "analysis/git-commits.sql",
     description: "All successful git commits with messages",
-    sql: "SELECT s.id, CAST(tc->>'timestamp' AS VARCHAR) AS ts,\n  LEFT(CAST(tc->'input'->'arguments'->>'cmd' AS VARCHAR), 200) AS cmd\nFROM sessions_base s\nCROSS JOIN UNNEST(tool_calls) AS t(tc)\nWHERE CAST(tc->>'tool_name' AS VARCHAR) = 'exec_command'\n  AND CAST(tc->'input'->'arguments'->>'cmd' AS VARCHAR) LIKE '%git commit%'\n  AND CAST(tc->'output'->>'success' AS BOOLEAN) = true;",
+    sql: "SELECT session_id, timestamp AS ts,\n  substr(COALESCE(command, json_extract(arguments_json, '$.cmd')), 1, 200) AS cmd\nFROM tool_calls\nWHERE tool_name = 'exec_command'\n  AND COALESCE(command, json_extract(arguments_json, '$.cmd')) LIKE '%git commit%'\n  AND success = 1;",
     readonly: true,
   },
   {
@@ -515,7 +515,7 @@ export const mockPresets: SavedQuery[] = [
     folder: "analysis",
     path: "analysis/tool-breakdown.sql",
     description: "Tool call breakdown by tool name",
-    sql: "SELECT\n  REPLACE(CAST(tc->>'tool_name' AS VARCHAR), '\"', '') AS tool,\n  COUNT(*) AS calls\nFROM sessions_base\nCROSS JOIN UNNEST(tool_calls) AS t(tc)\nGROUP BY tool\nORDER BY calls DESC;",
+    sql: "SELECT tool_name AS tool,\n  COUNT(*) AS calls\nFROM tool_calls\nGROUP BY tool\nORDER BY calls DESC;",
     readonly: true,
   },
 ];
@@ -565,7 +565,7 @@ export const mockQueryCommands: QueryCommand[] = [
     kind: "verb",
     aliasFor: "",
     rawSqlPath: "session-list.sql",
-    rawSql: "SELECT\n  id,\n  environment->>'agent_framework' AS framework,\n  environment->>'model' AS model,\n  title,\n  CAST(metrics->>'turn_count' AS INT) AS turns,\n  CAST(metrics->>'tool_call_count' AS INT) AS tools,\n  ROUND(CAST(timing->>'duration_seconds' AS DOUBLE), 1) AS duration_s,\n  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,\n  timing->>'started_at' AS started_at,\n  provenance->>'source_format' AS source_format\nFROM {{ .TableName }}\nWHERE 1=1\n{{- with .Values.framework }}\nAND (environment->>'agent_framework') IN ({{ sqlStringIn . }})\n{{- end }}\n{{- with .Values.title_like }}\nAND LOWER(title) LIKE LOWER({{ sqlLike . }})\n{{- end }}\nORDER BY timing->>'started_at' DESC\nLIMIT {{ or .Values.limit 100 }};",
+    rawSql: "SELECT\n  s.session_id AS id,\n  s.agent_framework AS framework,\n  s.model,\n  s.title,\n  s.turn_count AS turns,\n  s.tool_call_count AS tools,\n  ROUND(s.duration_seconds, 1) AS duration_s,\n  ROUND(m.read_ratio, 2) AS read_ratio,\n  s.started_at,\n  s.source_format\nFROM sessions AS s\nLEFT JOIN metrics AS m USING (session_id)\nWHERE 1=1\n{{- with .Values.framework }}\nAND s.agent_framework IN ({{ sqlStringIn . }})\n{{- end }}\n{{- with .Values.title_like }}\nAND LOWER(s.title) LIKE LOWER({{ sqlLike . }})\n{{- end }}\nORDER BY s.started_at DESC\nLIMIT {{ or .Values.limit 100 }};",
   },
   {
     name: "codex-framework-summary",
@@ -591,7 +591,7 @@ export const mockQueryCommands: QueryCommand[] = [
     kind: "alias",
     aliasFor: "framework-summary",
     rawSqlPath: "framework-summary.sql",
-    rawSql: "SELECT\n  environment->>'agent_framework' AS framework,\n  COUNT(*) AS sessions,\n  ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools,\n  ROUND(AVG(CAST(metrics->>'turn_count' AS INT)), 1) AS avg_turns,\n  ROUND(AVG(CAST(metrics->>'read_ratio' AS DOUBLE)), 2) AS avg_read_ratio,\n  ROUND(AVG(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS avg_duration_s,\n  ROUND(AVG(CAST(metrics->>'time_to_first_action' AS DOUBLE)), 1) AS avg_ttfa_s\nFROM {{ .TableName }}\nWHERE 1=1\n{{- with .Values.framework }}\nAND (environment->>'agent_framework') IN ({{ sqlStringIn . }})\n{{- end }}\nGROUP BY framework\nORDER BY sessions DESC;",
+    rawSql: "SELECT\n  s.agent_framework AS framework,\n  COUNT(*) AS sessions,\n  ROUND(AVG(s.tool_call_count), 1) AS avg_tools,\n  ROUND(AVG(s.turn_count), 1) AS avg_turns,\n  ROUND(AVG(m.read_ratio), 2) AS avg_read_ratio,\n  ROUND(AVG(s.duration_seconds), 1) AS avg_duration_s,\n  ROUND(AVG(m.time_to_first_action), 1) AS avg_ttfa_s\nFROM sessions AS s\nLEFT JOIN metrics AS m USING (session_id)\nWHERE 1=1\n{{- with .Values.framework }}\nAND s.agent_framework IN ({{ sqlStringIn . }})\n{{- end }}\nGROUP BY framework\nORDER BY sessions DESC;",
   },
 ];
 
@@ -601,7 +601,7 @@ export const mockSavedQueries: SavedQuery[] = [
     folder: "my-queries",
     path: "my-queries/wesen-os-filter.sql",
     description: "Find sessions referencing wesen-os in title, workdir, or first-turn content",
-    sql: "SELECT id, timing->>'started_at' AS started_at, title,\n  operational_context->>'working_directory' AS workdir\nFROM sessions_base\nWHERE LOWER(title) LIKE '%wesen-os%'\n  OR LOWER(operational_context->>'working_directory') LIKE '%wesen-os%'\nORDER BY timing->>'started_at';",
+    sql: "SELECT session_id, started_at, title,\n  working_directory AS workdir\nFROM sessions\nWHERE LOWER(title) LIKE '%wesen-os%'\n  OR LOWER(working_directory) LIKE '%wesen-os%'\nORDER BY started_at;",
     readonly: false,
   },
 ];

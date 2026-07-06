@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -502,7 +503,7 @@ func (b *DBBuilder) Build() (*DBHandle, error) {
 	if err != nil {
 		return nil, err
 	}
-	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 	if err != nil {
 		_ = db.Close()
 		return nil, err
@@ -519,7 +520,7 @@ func (b *DBBuilder) buildMemoryCached(cacheKey minitracedb.CacheKey) (*DBHandle,
 		entry.lastUsed = now
 		db := entry.db
 		globalMemoryCache.mu.Unlock()
-		runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+		runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 		if err != nil {
 			releaseMemoryCache(cacheKey.Key)
 			return nil, err
@@ -540,7 +541,7 @@ func (b *DBBuilder) buildMemoryCached(cacheKey minitracedb.CacheKey) (*DBHandle,
 		db = existing.db
 		globalMemoryCache.mu.Unlock()
 		_ = dbToClose.Close()
-		runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+		runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 		if err != nil {
 			releaseMemoryCache(cacheKey.Key)
 			return nil, err
@@ -549,7 +550,7 @@ func (b *DBBuilder) buildMemoryCached(cacheKey minitracedb.CacheKey) (*DBHandle,
 	}
 	globalMemoryCache.entries[cacheKey.Key] = &memoryDBCacheEntry{db: db, key: cacheKey, refs: 1, createdAt: now, lastUsed: now}
 	globalMemoryCache.mu.Unlock()
-	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 	if err != nil {
 		releaseMemoryCache(cacheKey.Key)
 		return nil, err
@@ -583,7 +584,7 @@ func (b *DBBuilder) buildDiskCached(cacheKey minitracedb.CacheKey) (*DBHandle, e
 	if err != nil {
 		return nil, err
 	}
-	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 	if err != nil {
 		_ = db.Close()
 		return nil, err
@@ -599,7 +600,7 @@ func (b *DBBuilder) buildAutoCached(cacheKey minitracedb.CacheKey) (*DBHandle, e
 	path := filepath.Join(cacheDir, cacheKey.Key+".sqlite")
 	if !b.forceRebuild {
 		if db, ok := acquireMemoryCache(cacheKey.Key); ok {
-			runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+			runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 			if err != nil {
 				releaseMemoryCache(cacheKey.Key)
 				return nil, err
@@ -628,7 +629,7 @@ func (b *DBBuilder) buildAutoCached(cacheKey minitracedb.CacheKey) (*DBHandle, e
 		return nil, err
 	}
 	db, cacheHit = installMemoryCache(cacheKey, db, cacheHit)
-	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedTableNames(), b.query)
+	runner, err := minitracedb.NewQueryRunner(db, minitracedb.AllowedObjectNames(), b.query)
 	if err != nil {
 		releaseMemoryCache(cacheKey.Key)
 		return nil, err
@@ -661,7 +662,83 @@ func (b *DBBuilder) buildDiskCacheFile(cacheKey minitracedb.CacheKey, path strin
 		_ = os.Remove(tmpPath)
 		return nil, fmt.Errorf("install disk cache db: %w", err)
 	}
+	evictDiskCacheOverLimit(cacheDir, path, diskCacheMaxBytes())
 	return diagnostics, nil
+}
+
+const defaultDiskCacheMaxBytes int64 = 2 * 1024 * 1024 * 1024
+
+// diskCacheMaxBytes returns the disk cache size limit in bytes. It defaults to
+// 2 GiB and can be overridden via the GO_MINITRACE_CACHE_MAX_BYTES environment
+// variable; invalid or non-positive values fall back to the default.
+func diskCacheMaxBytes() int64 {
+	raw := strings.TrimSpace(os.Getenv("GO_MINITRACE_CACHE_MAX_BYTES"))
+	if raw == "" {
+		return defaultDiskCacheMaxBytes
+	}
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || value <= 0 {
+		return defaultDiskCacheMaxBytes
+	}
+	return value
+}
+
+// evictDiskCacheOverLimit deletes the oldest *.sqlite cache files in cacheDir
+// until their total size is at or under maxBytes. The file at keepPath (the
+// cache entry that was just installed) is never deleted. *.tmp.sqlite build
+// temp files are ignored for size accounting; stale ones older than a day are
+// removed opportunistically. All failures are non-fatal.
+func evictDiskCacheOverLimit(cacheDir, keepPath string, maxBytes int64) {
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		return
+	}
+	type cacheFile struct {
+		path    string
+		size    int64
+		modTime time.Time
+	}
+	files := []cacheFile(nil)
+	total := int64(0)
+	now := time.Now()
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".sqlite") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		if strings.HasSuffix(name, ".tmp.sqlite") {
+			if now.Sub(info.ModTime()) > 24*time.Hour {
+				_ = os.Remove(filepath.Join(cacheDir, name))
+			}
+			continue
+		}
+		files = append(files, cacheFile{path: filepath.Join(cacheDir, name), size: info.Size(), modTime: info.ModTime()})
+		total += info.Size()
+	}
+	if total <= maxBytes {
+		return
+	}
+	sort.Slice(files, func(i, j int) bool { return files[i].modTime.Before(files[j].modTime) })
+	keep := filepath.Clean(keepPath)
+	for _, file := range files {
+		if total <= maxBytes {
+			break
+		}
+		if filepath.Clean(file.path) == keep {
+			continue
+		}
+		if err := os.Remove(file.path); err != nil && !os.IsNotExist(err) {
+			continue
+		}
+		total -= file.size
+	}
 }
 
 func (b *DBBuilder) resolvedCacheDir() (string, error) {
@@ -813,6 +890,49 @@ func (h *DBHandle) Close() error {
 		return nil
 	}
 	return h.db.Close()
+}
+
+var _ minitracedb.QueryTarget = (*DBHandle)(nil)
+
+func (h *DBHandle) Query(ctx context.Context, sqlText string, args ...any) ([]map[string]any, error) {
+	return h.runner.Query(ctx, sqlText, args...)
+}
+
+func (h *DBHandle) QueryOne(ctx context.Context, sqlText string, args ...any) (map[string]any, error) {
+	return h.runner.QueryOne(ctx, sqlText, args...)
+}
+
+func (h *DBHandle) QueryResult(ctx context.Context, sqlText string, args ...any) (minitracedb.QueryResult, error) {
+	return h.runner.QueryResult(ctx, sqlText, args...)
+}
+
+func (h *DBHandle) Schema() minitracedb.SchemaDescriptor {
+	return h.schema
+}
+
+func (h *DBHandle) Tables() []minitracedb.TableDescriptor {
+	return append([]minitracedb.TableDescriptor(nil), h.schema.Tables...)
+}
+
+// NewArchiveQueryTarget builds a normalized SQLite query target for the given
+// archive globs using the shared builder cache (auto mode: memory + disk).
+// This is the Go entry point used by `query run` and the SQL command runtime.
+func NewArchiveQueryTarget(ctx context.Context, archiveGlobs []string, query minitracedb.QueryOptions) (*DBHandle, error) {
+	b := NewDBBuilder(ctx)
+	b.autoConvert = true
+	b.strictConversion = true
+	b.applyCacheMode("auto")
+	b.query = minitracedb.WithDefaultQueryOptions(query)
+	for _, pattern := range archiveGlobs {
+		b.addGlob(pattern)
+	}
+	if len(b.errors) > 0 {
+		return nil, fmt.Errorf("minitrace.db: %v", b.errors)
+	}
+	if len(b.sources) == 0 {
+		return nil, fmt.Errorf("archive globs matched no files: %s", strings.Join(archiveGlobs, ", "))
+	}
+	return b.Build()
 }
 
 func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {

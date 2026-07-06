@@ -1,4 +1,4 @@
-package query
+package minitracedb
 
 import (
 	"embed"
@@ -13,6 +13,7 @@ import (
 //go:embed presets/**/*.sql
 var presetFS embed.FS
 
+// PresetEntry describes one embedded normalized-schema query preset.
 type PresetEntry struct {
 	Name   string
 	Folder string
@@ -59,7 +60,7 @@ func initPresetIndex() {
 		return nil
 	})
 	if err != nil {
-		panic(fmt.Errorf("walking embedded presets: %w", err))
+		panic(fmt.Errorf("walking embedded minitracedb presets: %w", err))
 	}
 
 	sort.Slice(presetEntries, func(i, j int) bool {
@@ -76,11 +77,13 @@ func presetIndex() ([]PresetEntry, map[string]PresetEntry, map[string][]PresetEn
 	return presetEntriesCache, presetByIDCache, presetByNameCache
 }
 
+// ListPresetEntries returns all embedded presets sorted by path.
 func ListPresetEntries() []PresetEntry {
 	entries, _, _ := presetIndex()
 	return append([]PresetEntry(nil), entries...)
 }
 
+// ListPresets returns the preset identifiers (folder/name, without extension).
 func ListPresets() []string {
 	entries, _, _ := presetIndex()
 	ids := make([]string, 0, len(entries))
@@ -90,7 +93,9 @@ func ListPresets() []string {
 	return ids
 }
 
-func ResolvePresetSQL(name string, tableName string) (string, error) {
+// ResolvePresetSQL returns the SQL text for a preset addressed either by its
+// full id (folder/name) or by its bare name when unambiguous.
+func ResolvePresetSQL(name string) (string, error) {
 	_, presetByID, presetByName := presetIndex()
 
 	entry, ok := presetByID[name]
@@ -115,6 +120,5 @@ func ResolvePresetSQL(name string, tableName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading embedded preset %q: %w", name, err)
 	}
-
-	return strings.ReplaceAll(string(payload), "{{TABLE_NAME}}", tableName), nil
+	return string(payload), nil
 }

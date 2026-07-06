@@ -89,12 +89,25 @@ func WriteSession(session *Session, outputDir string) (*SessionIndexEntry, error
 	}, nil
 }
 
+// WriteManifests writes the root and per-period manifests describing the
+// whole archive directory. It first rescans existing session files under
+// outputDir (active/*/*.minitrace.json) so sessions written by earlier
+// invocations stay listed, then merges in the current invocation's session
+// index; the current invocation wins on session ID collisions.
 func WriteManifests(sessionIndex []*SessionIndexEntry, outputDir string) error {
-	byPeriod := map[string][]*SessionIndexEntry{}
+	merged := map[string]*SessionIndexEntry{}
+	for _, entry := range scanExistingSessionIndex(outputDir) {
+		merged[entry.ID] = entry
+	}
 	for _, entry := range sessionIndex {
 		if entry == nil {
 			continue
 		}
+		merged[entry.ID] = entry
+	}
+
+	byPeriod := map[string][]*SessionIndexEntry{}
+	for _, entry := range merged {
 		period := SanitizePeriod(entry.Period)
 		byPeriod[period] = append(byPeriod[period], entry)
 	}
@@ -248,4 +261,93 @@ func WriteManifests(sessionIndex []*SessionIndexEntry, outputDir string) error {
 		return errors.Wrap(err, "writing root manifest")
 	}
 	return nil
+}
+
+// manifestSessionFields is the slim projection of a session file holding only
+// the fields the manifests need; rescanning stays cheap by decoding just
+// these fields instead of the full session.
+type manifestSessionFields struct {
+	ID             string  `json:"id"`
+	Profile        string  `json:"profile"`
+	Title          *string `json:"title"`
+	Classification string  `json:"classification"`
+	Quality        *string `json:"quality"`
+	Flags          Flags   `json:"flags"`
+	Timing         struct {
+		StartedAt       *string  `json:"started_at"`
+		DurationSeconds *float64 `json:"duration_seconds"`
+	} `json:"timing"`
+	Environment struct {
+		Model          *string `json:"model"`
+		AgentFramework *string `json:"agent_framework"`
+	} `json:"environment"`
+	Metrics struct {
+		TurnCount     int `json:"turn_count"`
+		ToolCallCount int `json:"tool_call_count"`
+	} `json:"metrics"`
+	Provenance struct {
+		SourceFormat string `json:"source_format"`
+	} `json:"provenance"`
+}
+
+// scanExistingSessionIndex rebuilds SessionIndexEntry values from the session
+// files already present under outputDir/active/<period>/. Unreadable or
+// invalid files are skipped with a warning so a broken session never blocks
+// manifest generation.
+func scanExistingSessionIndex(outputDir string) []*SessionIndexEntry {
+	pattern := filepath.Join(outputDir, "active", "*", "*.minitrace.json")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		log.Warn().Err(err).Str("pattern", pattern).Msg("skipping manifest rescan: invalid glob pattern")
+		return nil
+	}
+	sort.Strings(matches)
+
+	entries := make([]*SessionIndexEntry, 0, len(matches))
+	for _, path := range matches {
+		entry, err := readSessionIndexEntry(path)
+		if err != nil {
+			log.Warn().Err(err).Str("path", path).Msg("skipping unreadable session file during manifest rescan")
+			continue
+		}
+		entries = append(entries, entry)
+	}
+	return entries
+}
+
+func readSessionIndexEntry(path string) (*SessionIndexEntry, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "reading session file")
+	}
+	var fields manifestSessionFields
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return nil, errors.Wrap(err, "decoding session file")
+	}
+	if fields.ID == "" {
+		return nil, errors.New("session file has no id")
+	}
+
+	quality := ""
+	if fields.Quality != nil {
+		quality = *fields.Quality
+	}
+	return &SessionIndexEntry{
+		ID:             fields.ID,
+		Period:         SanitizePeriod(filepath.Base(filepath.Dir(path))),
+		Profile:        fields.Profile,
+		Title:          fields.Title,
+		Classification: fields.Classification,
+		Quality:        quality,
+		StartedAt:      fields.Timing.StartedAt,
+		Duration:       fields.Timing.DurationSeconds,
+		Model:          fields.Environment.Model,
+		AgentFramework: fields.Environment.AgentFramework,
+		TurnCount:      fields.Metrics.TurnCount,
+		ToolCallCount:  fields.Metrics.ToolCallCount,
+		FileSizeBytes:  int64(len(data)),
+		SourceFormat:   fields.Provenance.SourceFormat,
+		Flags:          fields.Flags,
+		FilePath:       path,
+	}, nil
 }

@@ -1,15 +1,11 @@
 package serve
 
 import (
-	"database/sql"
 	"encoding/json"
 	stderrors "errors"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 )
 
@@ -169,59 +165,6 @@ type BlockArtifacts struct {
 	TicketsCreated []string `json:"tickets_created"`
 	DocsAdded      []string `json:"docs_added"`
 	DiaryWrites    int      `json:"diary_writes"`
-}
-
-func buildSessionListSQL(tableName string) (string, error) {
-	if err := queryengine.ValidateIdentifier(tableName); err != nil {
-		return "", err
-	}
-	return fmt.Sprintf(`
-SELECT
-  id,
-  title,
-  summary,
-  classification,
-  timing,
-  metrics,
-  environment,
-  operational_context
-FROM %s
-ORDER BY timing->>'started_at';
-`, tableName), nil
-}
-
-func sessionSummaryFromValues(values []any) (SessionSummaryResponse, error) {
-	if len(values) != 8 {
-		return SessionSummaryResponse{}, errors.Errorf("expected 8 session summary values, got %d", len(values))
-	}
-
-	timing := minitrace.Timing{}
-	if err := decodeJSONColumn(values[4], &timing); err != nil {
-		return SessionSummaryResponse{}, errors.Wrap(err, "decoding timing column")
-	}
-	metrics := minitrace.Metrics{}
-	if err := decodeJSONColumn(values[5], &metrics); err != nil {
-		return SessionSummaryResponse{}, errors.Wrap(err, "decoding metrics column")
-	}
-	environment := minitrace.Environment{}
-	if err := decodeJSONColumn(values[6], &environment); err != nil {
-		return SessionSummaryResponse{}, errors.Wrap(err, "decoding environment column")
-	}
-	operationalContext := minitrace.OperationalContext{}
-	if err := decodeJSONColumn(values[7], &operationalContext); err != nil {
-		return SessionSummaryResponse{}, errors.Wrap(err, "decoding operational_context column")
-	}
-
-	return SessionSummaryResponse{
-		ID:                 scalarString(values[0]),
-		Title:              scalarString(values[1]),
-		Summary:            nullableString(values[2]),
-		Classification:     scalarString(values[3]),
-		Timing:             normalizeTiming(timing),
-		Metrics:            normalizeMetrics(metrics),
-		Environment:        normalizeEnvironment(environment),
-		OperationalContext: normalizeOperationalContext(operationalContext),
-	}, nil
 }
 
 func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDetailResponse {
@@ -396,71 +339,6 @@ func normalizeProvenance(provenance minitrace.Provenance) SessionProvenanceRespo
 		SourcePath:        stringValue(provenance.SourcePath),
 		OriginalSessionID: stringValue(provenance.OriginalSessionID),
 		ConvertedAt:       provenance.ConvertedAt,
-	}
-}
-
-func decodeJSONColumn(raw any, dest any) error {
-	switch typed := raw.(type) {
-	case nil:
-		return nil
-	case string:
-		text := strings.TrimSpace(typed)
-		if text == "" {
-			return nil
-		}
-		return json.Unmarshal([]byte(text), dest)
-	case []byte:
-		text := strings.TrimSpace(string(typed))
-		if text == "" {
-			return nil
-		}
-		return json.Unmarshal([]byte(text), dest)
-	default:
-		payload, err := json.Marshal(typed)
-		if err != nil {
-			return err
-		}
-		return json.Unmarshal(payload, dest)
-	}
-}
-
-func scalarString(value any) string {
-	switch typed := value.(type) {
-	case nil:
-		return ""
-	case string:
-		return typed
-	case []byte:
-		return string(typed)
-	case sql.NullString:
-		if typed.Valid {
-			return typed.String
-		}
-		return ""
-	default:
-		return fmt.Sprint(value)
-	}
-}
-
-func nullableString(value any) *string {
-	switch typed := value.(type) {
-	case nil:
-		return nil
-	case sql.NullString:
-		if !typed.Valid {
-			return nil
-		}
-		v := typed.String
-		return &v
-	case string:
-		v := typed
-		return &v
-	case []byte:
-		v := string(typed)
-		return &v
-	default:
-		v := fmt.Sprint(value)
-		return &v
 	}
 }
 

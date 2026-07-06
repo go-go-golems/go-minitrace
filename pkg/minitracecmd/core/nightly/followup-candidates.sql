@@ -27,37 +27,34 @@ flags:
     help: Limit the result set
 */
 SELECT
-  COALESCE(
-    operational_context->>'working_directory',
-    environment->>'working_directory',
-    provenance->>'cwd'
-  ) AS working_directory,
-  id,
-  title,
-  CAST(metrics->>'turn_count' AS INT) AS turns,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools,
-  ROUND(CAST(timing->>'duration_seconds' AS DOUBLE) / 3600, 1) AS hours,
-  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,
+  s.working_directory,
+  s.session_id AS id,
+  s.title,
+  s.turn_count AS turns,
+  s.tool_call_count AS tools,
+  ROUND(s.duration_seconds / 3600, 1) AS hours,
+  ROUND(m.read_ratio, 2) AS read_ratio,
   CASE
-    WHEN CAST(metrics->>'tool_call_count' AS INT) >= {{ .min_tools }}
-      AND CAST(metrics->>'turn_count' AS INT) >= {{ .min_turns }}
+    WHEN s.tool_call_count >= {{ .min_tools }}
+      AND s.turn_count >= {{ .min_turns }}
       THEN 'tool-heavy and turn-heavy'
-    WHEN CAST(timing->>'duration_seconds' AS DOUBLE) / 3600 >= {{ .min_hours }}
+    WHEN s.duration_seconds / 3600 >= {{ .min_hours }}
       THEN 'long-running'
-    WHEN CAST(metrics->>'read_ratio' AS DOUBLE) >= 0.6
+    WHEN m.read_ratio >= 0.6
       THEN 'research-heavy'
     ELSE 'review-candidate'
   END AS reason,
-  timing->>'started_at' AS started_at
-FROM {{TABLE_NAME}}
+  s.started_at
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND CAST(timing->>'started_at' AS DATE) = CAST({{ .day | sqlDate }} AS DATE)
+  AND date(s.started_at) = date({{ .day | sqlDate }})
 {{ end -}}
 AND (
-  CAST(metrics->>'tool_call_count' AS INT) >= {{ .min_tools }}
-  OR CAST(metrics->>'turn_count' AS INT) >= {{ .min_turns }}
-  OR CAST(timing->>'duration_seconds' AS DOUBLE) / 3600 >= {{ .min_hours }}
+  s.tool_call_count >= {{ .min_tools }}
+  OR s.turn_count >= {{ .min_turns }}
+  OR s.duration_seconds / 3600 >= {{ .min_hours }}
 )
-ORDER BY hours DESC, tools DESC, started_at ASC
+ORDER BY hours DESC, tools DESC, s.started_at ASC
 LIMIT {{ .limit }};

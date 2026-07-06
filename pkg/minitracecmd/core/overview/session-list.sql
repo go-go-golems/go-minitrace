@@ -14,23 +14,24 @@ flags:
     help: Limit the number of rows returned
 */
 SELECT
-  id,
-  environment->>'agent_framework' AS framework,
-  environment->>'model' AS model,
-  title,
-  CAST(metrics->>'turn_count' AS INT) AS turns,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools,
-  ROUND(CAST(timing->>'duration_seconds' AS DOUBLE), 1) AS duration_s,
-  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,
-  timing->>'started_at' AS started_at,
-  provenance->>'source_format' AS source_format
-FROM {{TABLE_NAME}}
+  s.session_id AS id,
+  s.agent_framework AS framework,
+  s.model,
+  s.title,
+  s.turn_count AS turns,
+  s.tool_call_count AS tools,
+  ROUND(s.duration_seconds, 1) AS duration_s,
+  ROUND(m.read_ratio, 2) AS read_ratio,
+  s.started_at,
+  s.source_format
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .framework -}}
-AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+AND s.agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 {{ if .title_like -}}
-AND title LIKE {{ .title_like | sqlLike }}
+AND s.title LIKE {{ .title_like | sqlLike }}
 {{ end -}}
-ORDER BY timing->>'started_at' DESC
+ORDER BY s.started_at DESC
 LIMIT {{ .limit }};

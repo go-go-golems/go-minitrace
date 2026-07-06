@@ -135,7 +135,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	session.Events = events
 	session.Attachments = attachments
 	session.Annotations = annotations
-	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, 0, tokenTotals)
+	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, countSubagents(toolCalls), tokenTotals)
 	session.Flags.ContainsPII = containsPII
 	session.Flags.ForResearch = quality == "A" && !containsPII
 	session.Flags.NeedsCleaning = quality != "A" || containsPII
@@ -148,6 +148,9 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 
 type codexMetadata struct {
 	SessionID               string
+	ParentThreadID          string
+	AgentNickname           string
+	AgentRole               string
 	Model                   string
 	ModelProvider           string
 	CWD                     string
@@ -306,6 +309,9 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 		switch recordType {
 		case "session_meta":
 			metadata.SessionID = firstNonEmpty(stringValue(payload["id"]), metadata.SessionID)
+			metadata.ParentThreadID = firstNonEmpty(stringValue(payload["parent_thread_id"]), metadata.ParentThreadID)
+			metadata.AgentNickname = firstNonEmpty(stringValue(payload["agent_nickname"]), metadata.AgentNickname)
+			metadata.AgentRole = firstNonEmpty(stringValue(payload["agent_role"]), metadata.AgentRole)
 			metadata.CWD = firstNonEmpty(stringValue(payload["cwd"]), metadata.CWD)
 			metadata.CLIVersion = firstNonEmpty(stringValue(payload["cli_version"]), metadata.CLIVersion)
 			metadata.Originator = firstNonEmpty(stringValue(payload["originator"]), metadata.Originator)
@@ -536,9 +542,12 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 				} else {
 					success = stringValue(item["status"]) == "completed"
 				}
+				// Copy the loop variable so each tool call keeps the turn index
+				// it was emitted at instead of aliasing one shared int.
+				turnIndexCopy := turnIndex
 				toolCall := minitrace.BuildToolCall(
 					itemID,
-					&turnIndex,
+					&turnIndexCopy,
 					timestampPtr,
 					"exec_command",
 					classifyOperationFromCommand(command),
@@ -1060,6 +1069,15 @@ func sandboxValue(policy string) *bool {
 
 func frameworkConfig(metadata codexMetadata) any {
 	config := map[string]any{}
+	if metadata.ParentThreadID != "" {
+		config["parent_thread_id"] = metadata.ParentThreadID
+	}
+	if metadata.AgentNickname != "" {
+		config["agent_nickname"] = metadata.AgentNickname
+	}
+	if metadata.AgentRole != "" {
+		config["agent_role"] = metadata.AgentRole
+	}
 	if metadata.Personality != "" {
 		config["personality"] = metadata.Personality
 	}
@@ -1187,6 +1205,19 @@ func pendingTurnToolIDsSlice(ids map[string]struct{}) []string {
 	}
 	sort.Strings(ret)
 	return ret
+}
+
+// countSubagents mirrors the claude-code adapter's subagent counting: each
+// spawn_agent tool call that produced a SpawnedAgent counts as one subagent.
+// wait_agent calls also carry a SpawnedAgent but do not spawn anything new.
+func countSubagents(toolCalls []minitrace.ToolCall) int {
+	count := 0
+	for _, toolCall := range toolCalls {
+		if toolCall.ToolName == "spawn_agent" && toolCall.SpawnedAgent != nil {
+			count++
+		}
+	}
+	return count
 }
 
 func uniqueToolNames(toolCalls []minitrace.ToolCall) []string {

@@ -11,17 +11,17 @@ flags:
     help: Filter sessions to one calendar day based on started_at
 */
 SELECT
-  id AS session_id,
-  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
-  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
-  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title,
-  REPLACE(CAST(json_extract(ann, '$.content.detail') AS VARCHAR), '"', '') AS detail,
-  REPLACE(CAST(json_extract(ann, '$.scope.target_id') AS VARCHAR), '"', '') AS target_id,
-  REPLACE(CAST(json_extract(ann, '$.created_at') AS VARCHAR), '"', '') AS created_at
-FROM {{TABLE_NAME}},
-UNNEST(annotations) AS a(ann)
+  a.session_id,
+  a.scope_type,
+  a.category,
+  a.title,
+  a.detail,
+  a.target_id,
+  a.timestamp AS created_at
+FROM annotations a
+JOIN sessions s ON s.session_id = a.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND CAST(timing->>'started_at' AS DATE) = CAST({{ .day | sqlDate }} AS DATE)
+  AND date(s.started_at) = date({{ .day | sqlDate }})
 {{ end -}}
-ORDER BY created_at DESC, session_id ASC;
+ORDER BY created_at DESC, a.session_id ASC;

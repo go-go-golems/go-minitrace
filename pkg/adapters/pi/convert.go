@@ -427,7 +427,14 @@ func applyToolResult(toolCall *minitrace.ToolCall, content any, isError bool, ti
 	toolCall.Output.Truncated = fullBytes != nil
 	toolCall.Output.FullBytes = fullBytes
 	toolCall.Output.FullHash = fullHash
-	toolCall.Timestamp = timestamp
+	// Keep the emit timestamp on the tool call; derive the duration from the
+	// result timestamp instead of overwriting the emit timestamp with it.
+	if durationMS := minitrace.DurationBetweenMS(toolCall.Timestamp, timestamp); durationMS != nil {
+		toolCall.Output.DurationMS = durationMS
+	}
+	if toolCall.Timestamp == nil {
+		toolCall.Timestamp = timestamp
+	}
 	toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, piToolResultMetadata(raw))
 	if isError && truncated != nil {
 		errorText := *truncated

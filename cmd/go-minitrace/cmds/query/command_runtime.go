@@ -2,6 +2,8 @@ package query
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -10,10 +12,18 @@ import (
 	glazedvalues "github.com/go-go-golems/glazed/pkg/cmds/values"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
 	"github.com/go-go-golems/glazed/pkg/settings"
+	"github.com/go-go-golems/glazed/pkg/types"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 	"github.com/pkg/errors"
 )
+
+// SQLCommandTableName is the {{TABLE_NAME}} substitution used when rendering
+// SQL command files. It points at the sessions_base compatibility view so
+// legacy session-level command files keep working on the normalized SQLite
+// database; new command files should reference the normalized tables directly.
+const SQLCommandTableName = minitracedb.SessionsBaseCompatView
 
 type MinitraceQueryRuntimeSettings struct {
 	ArchiveGlob   []string `glazed:"archive-glob"`
@@ -83,39 +93,66 @@ func (c *MinitraceCatalogGlazeCommand) RunIntoGlazeProcessor(ctx context.Context
 		return err
 	}
 
-	db, conn, err := queryengine.OpenConnection(ctx, runtimeSettings.DBPath)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs:  runtimeSettings.ArchiveGlob,
-		TableName:     runtimeSettings.TableName,
-		PersistLoaded: runtimeSettings.PersistLoaded,
-	}); err != nil {
-		return err
-	}
-
 	switch resolvedCommand.Runtime {
 	case minitracecmd.CommandRuntimeSQL, minitracecmd.CommandRuntimeUnknown:
+		warnDeprecatedRuntimeSettings(runtimeSettings)
 		sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
-			TableName: runtimeSettings.TableName,
+			TableName: SQLCommandTableName,
 			Values:    resolvedValues,
 		})
 		if err != nil {
 			return err
 		}
-		if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
+		target, err := minitracejs.NewArchiveQueryTarget(ctx, runtimeSettings.ArchiveGlob, minitracedb.DefaultQueryOptions())
+		if err != nil {
 			return err
 		}
-		return queryengine.RunIntoProcessor(ctx, conn, sqlText, gp)
+		defer func() { _ = target.Close() }()
+		return RunQueryTargetIntoProcessor(ctx, target, sqlText, gp)
 	case minitracecmd.CommandRuntimeJS:
-		return RunJSCommandIntoProcessor(ctx, c.catalog, resolvedCommand, runtimeSettings, vals, resolvedValues, conn, gp)
+		return RunJSCommandIntoProcessor(ctx, c.catalog, resolvedCommand, runtimeSettings, vals, resolvedValues, gp)
 	default:
 		return errors.Errorf("unsupported command runtime %q", resolvedCommand.Runtime)
 	}
+}
+
+// warnDeprecatedRuntimeSettings prints a one-line stderr warning when the
+// legacy DuckDB runtime flags are explicitly set. SQL command files now run
+// against the normalized SQLite database built from --archive-glob, so these
+// flags no longer affect the SQL path (they are still passed to JS commands
+// through mt.runtime).
+func warnDeprecatedRuntimeSettings(runtimeSettings *MinitraceQueryRuntimeSettings) {
+	if runtimeSettings == nil {
+		return
+	}
+	if (runtimeSettings.DBPath != "" && runtimeSettings.DBPath != ":memory:") ||
+		(runtimeSettings.TableName != "" && runtimeSettings.TableName != "sessions_base") ||
+		runtimeSettings.PersistLoaded {
+		fmt.Fprintln(os.Stderr, "Warning: --db-path, --table-name, and --persist-loaded are deprecated; SQL query commands now run against the normalized SQLite database built from --archive-glob.")
+	}
+}
+
+// RunQueryTargetIntoProcessor executes sandboxed SQL on a minitracedb query
+// target and emits the resulting rows into a Glazed processor, preserving the
+// result column order.
+func RunQueryTargetIntoProcessor(ctx context.Context, target minitracedb.QueryTarget, sqlText string, gp middlewares.Processor) error {
+	result, err := target.QueryResult(ctx, sqlText)
+	if err != nil {
+		return err
+	}
+	if result.Error != "" {
+		return errors.New(result.Error)
+	}
+	for _, row := range result.Rows {
+		pairs := make([]types.MapRowPair, 0, len(result.Columns))
+		for _, column := range result.Columns {
+			pairs = append(pairs, types.MRP(column, row[column]))
+		}
+		if err := gp.AddRow(ctx, types.NewRow(pairs...)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func collectCommandValues(vals *glazedvalues.Values, command *minitracecmd.MinitraceCommand) map[string]any {

@@ -31,7 +31,7 @@ func TestComputeCacheKeyIsDeterministicAndVersioned(t *testing.T) {
 	}
 
 	changedOpts := opts
-	changedOpts.SchemaVersion = "normalized-sqlite-v3"
+	changedOpts.SchemaVersion = "normalized-sqlite-v999"
 	keyC, err := ComputeCacheKey([]SourceFingerprint{one, two}, changedOpts)
 	if err != nil {
 		t.Fatalf("ComputeCacheKey C: %v", err)

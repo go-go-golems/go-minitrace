@@ -529,3 +529,126 @@ func TestConvertRecordsSessionJSONLPreservesFrameworkMetadata(t *testing.T) {
 		t.Fatalf("expected rate_limits event metadata")
 	}
 }
+
+func TestConvertRecordsExecJSONLAssignsPerTurnEmittingIndexes(t *testing.T) {
+	records := []map[string]any{
+		{"type": "thread.started", "thread_id": "thread-turns"},
+		{
+			"type": "item.completed",
+			"item": map[string]any{
+				"id":                "cmd-1",
+				"type":              "command_execution",
+				"command":           "ls",
+				"aggregated_output": "file.txt",
+				"exit_code":         0,
+				"status":            "completed",
+			},
+		},
+		{
+			"type": "item.completed",
+			"item": map[string]any{"type": "agent_message", "text": "First turn."},
+		},
+		{
+			"type": "item.completed",
+			"item": map[string]any{
+				"id":                "cmd-2",
+				"type":              "command_execution",
+				"command":           "go build ./...",
+				"aggregated_output": "",
+				"exit_code":         0,
+				"status":            "completed",
+			},
+		},
+		{
+			"type": "item.completed",
+			"item": map[string]any{"type": "agent_message", "text": "Second turn."},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/exec-turns.jsonl", "exec-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 2 || len(session.Turns) != 2 {
+		t.Fatalf("expected 2 tool calls and 2 turns, got %d/%d", len(session.ToolCalls), len(session.Turns))
+	}
+	byID := map[string]minitrace.ToolCall{}
+	for _, toolCall := range session.ToolCalls {
+		byID[toolCall.ID] = toolCall
+	}
+	first := byID["cmd-1"]
+	second := byID["cmd-2"]
+	if first.EmittingTurnIndex == nil || *first.EmittingTurnIndex != 0 {
+		t.Fatalf("expected cmd-1 emitted at turn 0, got %+v", first.EmittingTurnIndex)
+	}
+	if second.EmittingTurnIndex == nil || *second.EmittingTurnIndex != 1 {
+		t.Fatalf("expected cmd-2 emitted at turn 1, got %+v", second.EmittingTurnIndex)
+	}
+	if len(session.Turns[0].ToolCallsInTurn) != 1 || session.Turns[0].ToolCallsInTurn[0] != "cmd-1" {
+		t.Fatalf("expected turn 0 to own cmd-1 only, got %+v", session.Turns[0].ToolCallsInTurn)
+	}
+	if len(session.Turns[1].ToolCallsInTurn) != 1 || session.Turns[1].ToolCallsInTurn[0] != "cmd-2" {
+		t.Fatalf("expected turn 1 to own cmd-2 only, got %+v", session.Turns[1].ToolCallsInTurn)
+	}
+}
+
+func TestConvertRecordsSessionJSONLCapturesSubagentMetadataAndCount(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "session_meta",
+			"timestamp": "2026-06-10T15:04:24.524Z",
+			"payload": map[string]any{
+				"id":               "child-thread",
+				"parent_thread_id": "parent-thread",
+				"agent_nickname":   "Dewey",
+				"agent_role":       "explorer",
+				"cwd":              "/tmp/project",
+			},
+		},
+		{
+			"type":      "response_item",
+			"timestamp": "2026-06-10T15:04:30Z",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "spawn-1",
+				"name":      "spawn_agent",
+				"arguments": `{"message": "explore the repo"}`,
+			},
+		},
+		{
+			"type":      "response_item",
+			"timestamp": "2026-06-10T15:04:35Z",
+			"payload": map[string]any{
+				"type":    "function_call_output",
+				"call_id": "spawn-1",
+				"output":  "0199aaaa-bbbb-cccc-dddd-eeeeffff0000",
+			},
+		},
+		{
+			"type":      "event_msg",
+			"timestamp": "2026-06-10T15:04:40Z",
+			"payload": map[string]any{
+				"type":    "agent_message",
+				"message": "Spawned a subagent.",
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/subagent.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if config["parent_thread_id"] != "parent-thread" {
+		t.Fatalf("expected parent_thread_id in framework config, got %+v", config)
+	}
+	if config["agent_nickname"] != "Dewey" || config["agent_role"] != "explorer" {
+		t.Fatalf("expected agent nickname/role in framework config, got %+v", config)
+	}
+	if session.Metrics.SubagentCount != 1 {
+		t.Fatalf("expected subagent count 1 from spawn_agent, got %d", session.Metrics.SubagentCount)
+	}
+}

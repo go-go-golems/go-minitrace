@@ -401,6 +401,9 @@ func (s *queryAuthorizationState) err() error {
 		return nil
 	}
 	if s.deniedOp == sqlite3.SQLITE_READ {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(s.deniedObject)), "sqlite_") {
+			return fmt.Errorf("query references disallowed table/view %q; use db.schema() or db.tables() from JS to introspect the schema", s.deniedObject)
+		}
 		return fmt.Errorf("query references disallowed table/view %q", s.deniedObject)
 	}
 	return fmt.Errorf("query uses disallowed SQLite operation %d on %q", s.deniedOp, s.deniedObject)
