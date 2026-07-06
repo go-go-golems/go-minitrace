@@ -1,4 +1,4 @@
-/** Core minitrace session types matching the DuckDB schema */
+/** Core minitrace session types matching the archive JSON / normalized SQLite schema */
 
 export interface SessionTiming {
   started_at: string;

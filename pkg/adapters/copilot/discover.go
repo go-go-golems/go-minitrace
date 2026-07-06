@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-go-golems/go-minitrace/pkg/adapters"
 	"gopkg.in/yaml.v3"
@@ -49,13 +50,21 @@ func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
 		}
 		workspace, _ := ReadWorkspace(filepath.Join(sessionDir, "workspace.yaml"))
 		sessionID := filepath.Base(sessionDir)
-		if workspace != nil && strings.TrimSpace(workspace.ID) != "" {
-			sessionID = strings.TrimSpace(workspace.ID)
+		cwd := ""
+		startedAt := ""
+		if workspace != nil {
+			if strings.TrimSpace(workspace.ID) != "" {
+				sessionID = strings.TrimSpace(workspace.ID)
+			}
+			cwd = strings.TrimSpace(workspace.CWD)
+			startedAt = timestampString(workspace.CreatedAt)
 		}
 		locators = append(locators, adapters.SessionLocator{
 			ID:         sessionID,
 			FormatHint: SourceFormatEvents,
 			SourcePath: eventsPath,
+			Cwd:        cwd,
+			StartedAt:  startedAt,
 		})
 	}
 
@@ -123,6 +132,18 @@ func expandHome(path string) (string, error) {
 		return home, nil
 	}
 	return filepath.Join(home, strings.TrimPrefix(path, "~/")), nil
+}
+
+// timestampString renders the free-form created_at/updated_at workspace
+// metadata values as a string when cheap to do so.
+func timestampString(value any) string {
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	case time.Time:
+		return v.UTC().Format(time.RFC3339)
+	}
+	return ""
 }
 
 func isDir(path string) bool {

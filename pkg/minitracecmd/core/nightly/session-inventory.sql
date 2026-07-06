@@ -21,32 +21,29 @@ flags:
     help: Limit the result set
 */
 SELECT
-  id,
-  environment->>'agent_framework' AS framework,
-  environment->>'model' AS model,
-  COALESCE(
-    operational_context->>'working_directory',
-    environment->>'working_directory',
-    provenance->>'cwd'
-  ) AS working_directory,
-  title,
-  CAST(metrics->>'turn_count' AS INT) AS turns,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools,
-  ROUND(CAST(timing->>'duration_seconds' AS DOUBLE) / 3600, 1) AS hours,
-  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,
-  timing->>'started_at' AS started_at,
-  timing->>'ended_at' AS ended_at,
-  provenance->>'source_format' AS source_format
-FROM {{TABLE_NAME}}
+  s.session_id AS id,
+  s.agent_framework AS framework,
+  s.model,
+  s.working_directory,
+  s.title,
+  s.turn_count AS turns,
+  s.tool_call_count AS tools,
+  ROUND(s.duration_seconds / 3600, 1) AS hours,
+  ROUND(m.read_ratio, 2) AS read_ratio,
+  s.started_at,
+  s.ended_at,
+  s.source_format
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND CAST(timing->>'started_at' AS DATE) = CAST({{ .day | sqlDate }} AS DATE)
+  AND date(s.started_at) = date({{ .day | sqlDate }})
 {{ end -}}
 {{ if .framework -}}
-  AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+  AND s.agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 {{ if .title_like -}}
-  AND title LIKE {{ .title_like | sqlLike }}
+  AND s.title LIKE {{ .title_like | sqlLike }}
 {{ end -}}
-ORDER BY timing->>'started_at' ASC
+ORDER BY s.started_at ASC
 LIMIT {{ .limit }};

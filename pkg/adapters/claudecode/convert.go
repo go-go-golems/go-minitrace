@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -79,19 +81,28 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 	pendingToolCalls := map[string]minitrace.ToolCall{}
 	tokenTotals := &minitrace.TokenTotals{}
 
-	first := map[string]any{}
-	if len(records) > 0 {
-		first = records[0]
-	}
-	if cwd := stringValue(first["cwd"]); cwd != "" {
-		normalized := minitrace.NormalizePath(cwd)
-		session.OperationalContext.WorkingDirectory = &normalized
-	}
-	if version := stringValue(first["version"]); version != "" {
-		session.Environment.AgentVersion = &version
-	}
-	if gitBranch := stringValue(first["gitBranch"]); gitBranch != "" {
-		session.OperationalContext.GitBranch = &gitBranch
+	// The first record is often a file-history-snapshot without cwd/version/
+	// gitBranch, so scan records in order and take the first non-empty value.
+	for _, record := range records {
+		if session.OperationalContext.WorkingDirectory == nil {
+			if cwd := stringValue(record["cwd"]); cwd != "" {
+				normalized := minitrace.NormalizePath(cwd)
+				session.OperationalContext.WorkingDirectory = &normalized
+			}
+		}
+		if session.Environment.AgentVersion == nil {
+			if version := stringValue(record["version"]); version != "" {
+				session.Environment.AgentVersion = &version
+			}
+		}
+		if session.OperationalContext.GitBranch == nil {
+			if gitBranch := stringValue(record["gitBranch"]); gitBranch != "" {
+				session.OperationalContext.GitBranch = &gitBranch
+			}
+		}
+		if session.OperationalContext.WorkingDirectory != nil && session.Environment.AgentVersion != nil && session.OperationalContext.GitBranch != nil {
+			break
+		}
 	}
 
 	turnIndex := 0
@@ -196,7 +207,16 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 							pending.Output.Truncated = fullBytes != nil
 							pending.Output.FullBytes = fullBytes
 							pending.Output.FullHash = fullHash
-							pending.Timestamp = timestampPtr
+							// Keep the emit timestamp on the tool call; derive the
+							// duration from the result timestamp instead of
+							// overwriting the emit timestamp with it.
+							if durationMS := minitrace.DurationBetweenMS(pending.Timestamp, timestampPtr); durationMS != nil {
+								pending.Output.DurationMS = durationMS
+							}
+							if pending.Timestamp == nil {
+								pending.Timestamp = timestampPtr
+							}
+							applyClaudeToolUseResult(&pending, record["toolUseResult"], boolValue(block["is_error"]))
 							pending.FrameworkMetadata = mergeMetadataMap(pending.FrameworkMetadata, claudeToolResultMetadata(record))
 							toolCalls = append(toolCalls, pending)
 							delete(pendingToolCalls, toolUseID)
@@ -239,6 +259,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 
 			textParts := make([]string, 0, len(contentBlocks))
 			thinkingParts := make([]string, 0)
+			signedThinkingBlocks := 0
 			toolIDs := make([]string, 0)
 
 			for _, item := range contentBlocks {
@@ -254,6 +275,9 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 				case "thinking":
 					if thinking := stringValue(block["thinking"]); thinking != "" {
 						thinkingParts = append(thinkingParts, thinking)
+					}
+					if stringValue(block["signature"]) != "" {
+						signedThinkingBlocks++
 					}
 				case "tool_use":
 					toolCallID := stringValue(block["id"])
@@ -313,6 +337,12 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 			turn.Streaming.WasStreamed = true
 			turn.Model = sessionModel
 			turn.FrameworkMetadata = claudeTurnMetadata(record, message)
+			if signedThinkingBlocks > 0 {
+				turn.FrameworkMetadata = mergeMetadataMap(turn.FrameworkMetadata, map[string]any{
+					"signed_thinking_blocks":     signedThinkingBlocks,
+					"thinking_signature_present": true,
+				})
+			}
 			turns = append(turns, turn)
 			turnIndex++
 		}
@@ -486,6 +516,9 @@ func AdjustSubagentSession(session *minitrace.Session, agentID, parentSessionID,
 	session.Provenance.OriginalSessionID = &agentID
 	session.Provenance.SourceFormat = SourceFormatV2 + "+subagent"
 	session.Flags.Category = appendUnique(session.Flags.Category, "subagent")
+	if parentSessionID != "" {
+		session.Coordination.PredecessorSession = &parentSessionID
+	}
 
 	switch {
 	case slug != "":
@@ -936,6 +969,91 @@ func claudeToolMetadata(record map[string]any, block map[string]any) any {
 		return nil
 	}
 	return metadata
+}
+
+const (
+	toolUseResultTotalCap = 16 * 1024
+	toolUseResultFieldCap = 2 * 1024
+	toolUseResultErrorCap = 1024
+)
+
+var toolUseResultExitCodePattern = regexp.MustCompile(`^Error: Exit code (\d+)`)
+
+// applyClaudeToolUseResult maps the top-level toolUseResult object attached to
+// Claude Code tool-result records onto the tool call. Shapes observed in real
+// transcripts: Bash results carry {stdout, stderr, interrupted, isImage,
+// noOutputExpected}, slash commands carry {commandName, success}, Edit/Write
+// carry {filePath, structuredPatch, originalFile, ...}, and failed Bash calls
+// carry a plain string of the form "Error: Exit code N\n<output>".
+func applyClaudeToolUseResult(toolCall *minitrace.ToolCall, raw any, isError bool) {
+	if raw == nil {
+		return
+	}
+	metadata := map[string]any{}
+	switch value := raw.(type) {
+	case string:
+		metadata["tool_use_result"] = truncateText(value, toolUseResultFieldCap)
+		if match := toolUseResultExitCodePattern.FindStringSubmatch(value); len(match) == 2 {
+			if exitCode, err := strconv.Atoi(match[1]); err == nil {
+				toolCall.Output.ExitCode = &exitCode
+			}
+		}
+	case map[string]any:
+		metadata["tool_use_result"] = capToolUseResultMap(value)
+		if stderr := stringValue(value["stderr"]); isError && strings.TrimSpace(stderr) != "" {
+			errText := truncateText(stderr, toolUseResultErrorCap)
+			toolCall.Output.Error = &errText
+		}
+		if boolValue(value["interrupted"]) {
+			errText := "interrupted by user"
+			toolCall.Output.Error = &errText
+			toolCall.Output.Success = false
+			metadata["interrupted"] = true
+		}
+		// No numeric exit-code field has been observed in real transcripts
+		// (exit codes only appear in the string form above), but map one
+		// through if a future Claude Code version adds it.
+		for _, key := range []string{"exitCode", "exit_code"} {
+			if rawCode, ok := value[key]; ok {
+				exitCode := minitrace.SafeInt(rawCode, 0)
+				toolCall.Output.ExitCode = &exitCode
+				break
+			}
+		}
+	default:
+		metadata["tool_use_result"] = raw
+	}
+	toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, metadata)
+}
+
+// capToolUseResultMap preserves the toolUseResult object under a sensible
+// size cap: small objects are kept verbatim, oversized objects get their
+// large fields (e.g. originalFile, structuredPatch) truncated per field.
+func capToolUseResultMap(value map[string]any) map[string]any {
+	if encoded, err := json.Marshal(value); err == nil && len(encoded) <= toolUseResultTotalCap {
+		return value
+	}
+	capped := make(map[string]any, len(value))
+	for key, field := range value {
+		switch typed := field.(type) {
+		case string:
+			capped[key] = truncateText(typed, toolUseResultFieldCap)
+		case nil, bool, float64:
+			capped[key] = typed
+		default:
+			encoded, err := json.Marshal(typed)
+			if err != nil {
+				capped[key] = truncateText(fmt.Sprint(typed), toolUseResultFieldCap)
+				continue
+			}
+			if len(encoded) > toolUseResultFieldCap {
+				capped[key] = truncateText(string(encoded), toolUseResultFieldCap)
+				continue
+			}
+			capped[key] = typed
+		}
+	}
+	return capped
 }
 
 func claudeToolResultMetadata(record map[string]any) map[string]any {

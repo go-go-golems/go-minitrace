@@ -372,3 +372,188 @@ func TestConvertRecordsMessageLevelToolResultPreservesIsError(t *testing.T) {
 		t.Fatalf("expected diff metadata to be preserved, got %+v", failedMetadata)
 	}
 }
+
+func TestConvertRecordsDerivesToolDurationAndPreservesEmitTimestamp(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "message",
+			"timestamp": "2026-03-29T10:00:10Z",
+			"message": map[string]any{
+				"role": "assistant",
+				"content": []any{
+					map[string]any{
+						"type":      "toolCall",
+						"id":        "tc-1",
+						"name":      "bash",
+						"arguments": map[string]any{"command": "sleep 1"},
+					},
+				},
+			},
+		},
+		{
+			"type":      "message",
+			"timestamp": "2026-03-29T10:00:13.250Z",
+			"message": map[string]any{
+				"role":       "toolResult",
+				"toolCallId": "tc-1",
+				"content": []any{
+					map[string]any{"type": "text", "text": "done"},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-duration", "/tmp/pi-duration.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(session.ToolCalls))
+	}
+	toolCall := session.ToolCalls[0]
+	if toolCall.Timestamp == nil || *toolCall.Timestamp != "2026-03-29T10:00:10Z" {
+		t.Fatalf("expected emit timestamp to be preserved, got %+v", toolCall.Timestamp)
+	}
+	if toolCall.Output.DurationMS == nil || *toolCall.Output.DurationMS != 3250 {
+		t.Fatalf("expected 3250ms duration, got %+v", toolCall.Output.DurationMS)
+	}
+}
+
+func TestConvertRecordsPreservesParentSessionLineage(t *testing.T) {
+	parentPath := "/home/me/.pi/agent/sessions/project/2026-07-01T21-32-52-892Z_parent-session-id.jsonl"
+	records := []map[string]any{
+		{
+			"type":          "session",
+			"id":            "child-session-id",
+			"version":       3,
+			"timestamp":     "2026-07-01T22:00:00Z",
+			"cwd":           "/tmp/project",
+			"parentSession": parentPath,
+		},
+		{
+			"type":      "message",
+			"id":        "m1",
+			"timestamp": "2026-07-01T22:00:01Z",
+			"message": map[string]any{
+				"role":    "user",
+				"content": []any{map[string]any{"type": "text", "text": "continue"}},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback", "/tmp/child.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if session.Coordination.PredecessorSession == nil || *session.Coordination.PredecessorSession != "parent-session-id" {
+		t.Fatalf("expected predecessor parent-session-id, got %+v", session.Coordination.PredecessorSession)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if config["parent_session_id"] != "parent-session-id" {
+		t.Fatalf("expected parent_session_id metadata, got %+v", config)
+	}
+	if config["parent_session"] == "" {
+		t.Fatalf("expected parent_session metadata, got %+v", config)
+	}
+}
+
+func TestConvertRecordsCreatesImageAttachmentWithoutEmbeddingData(t *testing.T) {
+	imageData := "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+	records := []map[string]any{
+		{
+			"type":      "session",
+			"id":        "session-image",
+			"version":   3,
+			"timestamp": "2026-07-06T10:00:00Z",
+			"cwd":       "/tmp/project",
+		},
+		{
+			"type":      "message",
+			"id":        "m1",
+			"timestamp": "2026-07-06T10:00:01Z",
+			"message": map[string]any{
+				"role": "assistant",
+				"content": []any{
+					map[string]any{"type": "text", "text": "Here is the screenshot."},
+					map[string]any{"type": "image", "mimeType": "image/png", "data": imageData},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback", "/tmp/session-image.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Attachments) != 1 {
+		t.Fatalf("expected one image attachment, got %d", len(session.Attachments))
+	}
+	attachment := session.Attachments[0]
+	if attachment.Kind != "image" || attachment.MediaType != "image/png" || attachment.Name != "pi-image-0001.png" {
+		t.Fatalf("unexpected attachment identity: %+v", attachment)
+	}
+	if attachment.TurnIndex == nil || *attachment.TurnIndex != 0 {
+		t.Fatalf("expected attachment linked to turn 0, got %+v", attachment.TurnIndex)
+	}
+	if attachment.Hash == "" || attachment.ContentRef != "inline:image" {
+		t.Fatalf("expected hash/content ref for inline image, got %+v", attachment)
+	}
+	raw, ok := attachment.RawJSON.(map[string]any)
+	if !ok {
+		t.Fatalf("expected sanitized raw map, got %+v", attachment.RawJSON)
+	}
+	if _, ok := raw["data"]; ok {
+		t.Fatalf("attachment raw json must not embed image data")
+	}
+}
+
+func TestConvertRecordsLinksToolResultImageAttachmentToToolCall(t *testing.T) {
+	records := []map[string]any{
+		{"type": "session", "id": "session-tool-image", "version": 3, "timestamp": "2026-07-06T10:00:00Z", "cwd": "/tmp/project"},
+		{
+			"type":      "message",
+			"id":        "m1",
+			"timestamp": "2026-07-06T10:00:01Z",
+			"message": map[string]any{
+				"role": "assistant",
+				"content": []any{
+					map[string]any{"type": "toolCall", "id": "tc-image", "name": "read", "arguments": map[string]any{"path": "/tmp/image.png"}},
+				},
+			},
+		},
+		{
+			"type":      "message",
+			"id":        "m2",
+			"timestamp": "2026-07-06T10:00:02Z",
+			"message": map[string]any{
+				"role":       "toolResult",
+				"toolCallId": "tc-image",
+				"isError":    false,
+				"content": []any{
+					map[string]any{"type": "image", "mimeType": "image/png", "data": "abc123"},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback", "/tmp/session-tool-image.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Attachments) != 1 {
+		t.Fatalf("expected one image attachment, got %d", len(session.Attachments))
+	}
+	attachment := session.Attachments[0]
+	if attachment.ToolCallID == nil || *attachment.ToolCallID != "tc-image" {
+		t.Fatalf("expected attachment linked to tool call, got %+v", attachment.ToolCallID)
+	}
+	if attachment.TurnIndex != nil {
+		t.Fatalf("tool-result attachment should not be linked to synthetic turn, got %+v", attachment.TurnIndex)
+	}
+	if len(session.ToolCalls) != 1 || session.ToolCalls[0].Output.Result == nil || *session.ToolCalls[0].Output.Result != "[image image/png]" {
+		t.Fatalf("expected image placeholder tool result, got %+v", session.ToolCalls)
+	}
+}

@@ -29,7 +29,7 @@ Defined in `overview/runtime-playground.js`.
 
 - `show-context`
   - returns a row built entirely from runtime metadata
-  - no DuckDB query needed inside the handler
+  - no database query needed inside the handler
 - `build-synthetic-rows`
   - returns multiple rows generated entirely from typed inputs
   - showcases pure JS row generation

@@ -1,6 +1,8 @@
 package minitrace
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +23,48 @@ func TestTruncateContentPreservesUTF8Boundary(t *testing.T) {
 	}
 	if !strings.HasSuffix(*truncated, "\n[truncated]") {
 		t.Fatalf("expected truncation marker, got %q", *truncated)
+	}
+}
+
+func TestTruncateContentReportsFullSizeAndHashForLargeInput(t *testing.T) {
+	// Larger than TruncateLimit*4 (40 KiB): the previous implementation
+	// pre-capped the input before computing full_bytes and the hash.
+	input := strings.Repeat("a", TruncateLimit*5)
+
+	truncated, fullBytes, fullHash := TruncateContent(input, TruncateLimit)
+	if truncated == nil {
+		t.Fatalf("expected truncated content")
+	}
+	if fullBytes == nil || *fullBytes != len(input) {
+		t.Fatalf("expected full_bytes %d, got %v", len(input), fullBytes)
+	}
+	sum := sha256.Sum256([]byte(input))
+	expectedHash := "sha256:" + hex.EncodeToString(sum[:])
+	if fullHash == nil || *fullHash != expectedHash {
+		t.Fatalf("expected hash of full content %s, got %v", expectedHash, fullHash)
+	}
+	if len(*truncated) > TruncateLimit+len("\n[truncated]") {
+		t.Fatalf("expected stored content capped at limit, got %d bytes", len(*truncated))
+	}
+}
+
+func TestDurationBetweenMS(t *testing.T) {
+	start := "2026-03-29T10:00:00Z"
+	end := "2026-03-29T10:00:02.500Z"
+
+	durationMS := DurationBetweenMS(&start, &end)
+	if durationMS == nil || *durationMS != 2500 {
+		t.Fatalf("expected 2500ms, got %v", durationMS)
+	}
+	if DurationBetweenMS(&end, &start) != nil {
+		t.Fatalf("expected nil for end before start")
+	}
+	if DurationBetweenMS(nil, &end) != nil || DurationBetweenMS(&start, nil) != nil {
+		t.Fatalf("expected nil for missing timestamps")
+	}
+	invalid := "not-a-timestamp"
+	if DurationBetweenMS(&invalid, &end) != nil {
+		t.Fatalf("expected nil for unparseable start timestamp")
 	}
 }
 

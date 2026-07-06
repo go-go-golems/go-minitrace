@@ -15,6 +15,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/settings"
 	"github.com/go-go-golems/glazed/pkg/types"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
+	"github.com/go-go-golems/go-minitrace/pkg/adapters"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/pkg/errors"
@@ -26,9 +27,11 @@ type ConvertClaudeCodeCommand struct {
 }
 
 type ConvertClaudeCodeSettings struct {
-	SourceDir string `glazed:"source-dir"`
-	OutputDir string `glazed:"output-dir"`
-	DryRun    bool   `glazed:"dry-run"`
+	SourceDir      string   `glazed:"source-dir"`
+	SourceSessions []string `glazed:"source-session"`
+	SourceList     string   `glazed:"source-list"`
+	OutputDir      string   `glazed:"output-dir"`
+	DryRun         bool     `glazed:"dry-run"`
 }
 
 func NewConvertClaudeCodeGlazeCommand() (*ConvertClaudeCodeCommand, error) {
@@ -54,9 +57,13 @@ The current implementation supports:
 Examples:
   go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./output
   go-minitrace convert claude-code --source-dir ~/.claude/projects --dry-run --output yaml
+  go-minitrace convert claude-code --source-session ~/.claude/projects/my-project/0123456789abcdef0123456789abcdef.jsonl --output-dir ./output
+  go-minitrace convert claude-code --source-list ./sessions.txt --output-dir ./output
 `),
 		cmds.WithFlags(
 			fields.New("source-dir", fields.TypeString, fields.WithDefault("~/.claude/projects"), fields.WithHelp("Claude Code projects directory")),
+			fields.New("source-session", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Explicit Claude Code session transcripts to convert instead of scanning --source-dir (repeatable)")),
+			fields.New("source-list", fields.TypeString, fields.WithDefault(""), fields.WithHelp("File with newline-separated Claude Code session paths; blank lines and # comments are ignored")),
 			fields.New("output-dir", fields.TypeString, fields.WithDefault("./output"), fields.WithHelp("Target minitrace archive directory")),
 			fields.New("dry-run", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Inspect sources without writing output")),
 		),
@@ -74,22 +81,45 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		return err
 	}
 
-	locators, err := claudecode.Discover(settings_.SourceDir)
+	explicitPaths, err := collectSourceSessions(settings_.SourceSessions, settings_.SourceList)
 	if err != nil {
 		return err
 	}
-	subagentLocators, err := claudecode.DiscoverSubagents(settings_.SourceDir)
-	if err != nil {
-		return err
+	var locators []adapters.SessionLocator
+	var subagentLocators []claudecode.SubagentLocator
+	if len(explicitPaths) > 0 {
+		locators = make([]adapters.SessionLocator, 0, len(explicitPaths))
+		for _, path := range explicitPaths {
+			locator, err := claudecode.LocateSession(path)
+			if err != nil {
+				return err
+			}
+			locators = append(locators, locator)
+		}
+	} else {
+		locators, err = claudecode.Discover(settings_.SourceDir)
+		if err != nil {
+			return err
+		}
+		subagentLocators, err = claudecode.DiscoverSubagents(settings_.SourceDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
 	indexEntriesByID := map[string]*minitrace.SessionIndexEntry{}
 	parentSessionPaths := map[string]string{}
+	convertedCount := 0
+	failedCount := 0
 	for _, locator := range locators {
 		session, err := claudecode.ConvertLocator(locator)
 		if err != nil {
-			return errors.Wrapf(err, "converting Claude Code session %s", locator.ID)
+			failedCount++
+			if rowErr := emitFailedSessionRow(ctx, gp, "claude-code", locator.ID, "primary", locator.FormatHint, locator.SourcePath, settings_.DryRun, err); rowErr != nil {
+				return rowErr
+			}
+			continue
 		}
 
 		var sessionPath string
@@ -124,13 +154,18 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
 		}
+		convertedCount++
 	}
 
 	subagentIDsByParent := map[string][]string{}
 	for _, locator := range subagentLocators {
 		session, resolvedAgentID, err := claudecode.ConvertSubagentLocator(locator)
 		if err != nil {
-			return errors.Wrapf(err, "converting Claude Code subagent %s", locator.AgentID)
+			failedCount++
+			if rowErr := emitFailedSessionRow(ctx, gp, "claude-code", locator.AgentID, "subagent", "jsonl-v2+subagent", locator.SourcePath, settings_.DryRun, err); rowErr != nil {
+				return rowErr
+			}
+			continue
 		}
 		subagentIDsByParent[locator.ParentSessionID] = append(subagentIDsByParent[locator.ParentSessionID], resolvedAgentID)
 
@@ -166,6 +201,10 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
 		}
+		convertedCount++
+	}
+	if failedCount > 0 && convertedCount == 0 {
+		return errors.Errorf("all %d Claude Code sessions failed to convert", failedCount)
 	}
 
 	if !settings_.DryRun {

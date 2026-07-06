@@ -2,7 +2,6 @@ package serve
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"sort"
@@ -17,7 +16,6 @@ import (
 	querycmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query"
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -88,7 +86,7 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 
 	if resolvedCommand.Runtime == minitracecmd.CommandRuntimeSQL || resolvedCommand.Runtime == minitracecmd.CommandRuntimeUnknown {
 		sqlText, err := minitracecmd.RenderCommand(resolvedCommand, minitracecmd.RenderContext{
-			TableName: s.tableName,
+			TableName: querycmd.SQLCommandTableName,
 			Values:    hydratedValues,
 		})
 		if err != nil {
@@ -101,24 +99,24 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		if s.conn == nil {
-			writeError(w, http.StatusInternalServerError, "query connection is not initialized")
-			return
-		}
-		if err := queryengine.ValidateReadOnlyQuery(sqlText); err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+		if s.queryTarget == nil {
+			writeError(w, http.StatusInternalServerError, "query target is not initialized")
 			return
 		}
 
 		start := time.Now()
-		columns, rows, err := executeQueryRows(r.Context(), s.conn, sqlText)
+		result, err := s.queryTarget.QueryResult(r.Context(), sqlText)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if result.Error != "" {
+			writeError(w, http.StatusBadRequest, result.Error)
+			return
+		}
 
-		rowStructs := make([]*structpb.Struct, 0, len(rows))
-		for _, row := range rows {
+		rowStructs := make([]*structpb.Struct, 0, len(result.Rows))
+		for _, row := range result.Rows {
 			pbRow, err := structpb.NewStruct(row)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, errors.Wrap(err, "encoding query-command row").Error())
@@ -127,20 +125,16 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 			rowStructs = append(rowStructs, pbRow)
 		}
 
-		payload.Columns = columns
+		payload.Columns = result.Columns
 		payload.Rows = rowStructs
 		payload.DurationMs = time.Since(start).Milliseconds()
-		payload.RowCount = clampIntToInt32(len(rows))
+		payload.RowCount = clampIntToInt32(len(result.Rows))
 		writeProtoJSON(w, http.StatusOK, payload)
 		return
 	}
 
 	if req.GetRenderOnly() {
 		writeProtoJSON(w, http.StatusOK, payload)
-		return
-	}
-	if s.conn == nil {
-		writeError(w, http.StatusInternalServerError, "query connection is not initialized")
 		return
 	}
 
@@ -150,10 +144,10 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 	runtimeSettings := &querycmd.MinitraceQueryRuntimeSettings{
 		ArchiveGlob:   archiveGlobs,
 		DBPath:        "",
-		TableName:     s.tableName,
+		TableName:     querycmd.SQLCommandTableName,
 		PersistLoaded: false,
 	}
-	if err := querycmd.RunJSCommandIntoProcessor(r.Context(), catalog, resolvedCommand, runtimeSettings, parsedValues, hydratedValues, s.conn, collector); err != nil {
+	if err := querycmd.RunJSCommandIntoProcessor(r.Context(), catalog, resolvedCommand, runtimeSettings, parsedValues, hydratedValues, collector); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -433,40 +427,4 @@ func columnsFromRows(rows []map[string]any) []string {
 	}
 	sort.Strings(columns)
 	return columns
-}
-
-func executeQueryRows(ctx context.Context, conn *sql.Conn, sqlText string) ([]string, []map[string]any, error) {
-	rows, err := conn.QueryContext(ctx, sqlText)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "executing query command")
-	}
-	defer func() { _ = rows.Close() }()
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "reading query-command columns")
-	}
-
-	resultRows := make([]map[string]any, 0)
-	for rows.Next() {
-		values := make([]any, len(columns))
-		scanArgs := make([]any, len(columns))
-		for i := range scanArgs {
-			scanArgs[i] = &values[i]
-		}
-		if err := rows.Scan(scanArgs...); err != nil {
-			return nil, nil, errors.Wrap(err, "scanning query-command row")
-		}
-
-		row := make(map[string]any, len(columns))
-		for i, column := range columns {
-			row[column] = queryengine.NormalizeValue(values[i])
-		}
-		resultRows = append(resultRows, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, nil, errors.Wrap(err, "iterating query-command rows")
-	}
-
-	return columns, resultRows, nil
 }

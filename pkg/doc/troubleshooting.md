@@ -20,7 +20,11 @@ This page collects solutions for common errors and unexpected behavior when usin
 
 **Cause**: Older Codex sessions or sessions from a different Codex version may use a format the adapter has not been taught to parse.
 
-**Solution**: This is a known limitation. The converter currently fails on the first unrecognized session rather than skipping it. There is no workaround other than removing the problematic session file from the Codex directory before conversion.
+**Solution**: The converter skips sessions that fail to convert and keeps going. Each failed session is reported as a diagnostics row with `status: failed` and an `error` column describing what went wrong; successfully converted sessions are written normally. The command exits with an error only if every discovered session failed to convert. To find the problematic sessions, filter the output rows:
+
+```bash
+go-minitrace convert codex --source-dir ~/.codex --output-dir ./output --output json | jq '.[] | select(.status == "failed")'
+```
 
 ### Empty output after conversion
 
@@ -53,83 +57,64 @@ If discover reports 0 sessions, check the `--source-dir` path.
 **Solution**: This is expected behavior. Filter subagent sessions in queries:
 
 ```sql
-WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
+WHERE source_format NOT LIKE '%subagent%'
 ```
 
 ## Query errors
 
-### TypeError: Cannot mix BigInt and other types
+### query references disallowed table/view "sqlite_master"
 
-**What happened**: A JS command handler threw `TypeError: Cannot mix BigInt and other types, use explicit conversions`.
-
-**Cause**: DuckDB `SUM()` over integers returns `*big.Int` in Go, which Goja maps to JS `BigInt`. BigInt cannot participate in arithmetic with JS `Number`.
-
-**Solution (v0.4+)**: Upgrade to go-minitrace v0.4 or later. `NormalizeValue()` now converts `*big.Int` → `int64` and `duckdb.Decimal` → `float64` before values reach Goja, eliminating this error entirely.
-
-**Solution (pre-v0.4)**: Wrap all numeric query results in `Number()` before using them in JS arithmetic:
-
-```js
-const total = Number(r.total_calls);
-const success = Number(r.success_count);
-const rate = total > 0 ? (success / total * 100).toFixed(1) + "%" : "N/A";
-```
-
-See also: `go-minitrace help js-api-reference` — BigInt handling section.
-
-### Conversion Error: Failed to cast value to numerical when using ->>
-
-**What happened**: A SQL query using `tc->>'tool_name'` or `tc->'input'->>'command'` on an UNNESTed tool_calls column throws:
+**What happened**: A query against `sqlite_master` (or any other object outside the allowlist) was rejected with:
 
 ```
-Conversion Error: Failed to cast value to numerical: {"id":"toolu_...","emitting_t...}
+query references disallowed table/view "sqlite_master"; use db.schema() or db.tables() from JS to introspect the schema
 ```
 
-**Cause**: The `tc` column produced by `UNNEST(tool_calls) AS t(tc)` may be a DuckDB struct rather than a JSON string. Arrow operators (`->>`) on a struct attempt to cast the struct to a number, which fails.
+**Cause**: All SQL runs through a sandboxed read-only runner that only allows the normalized tables (`sessions`, `turns`, `tool_calls`, `turn_tool_calls`, `files`, `annotations`, `handovers`, `metrics`, `attachments`, `events`) plus the `sessions_base` compatibility view. Introspection tables are blocked.
 
-**Solution**: Use `json_extract_string()` instead of arrow operators on UNNESTed elements:
+**Solution**: Use `db.schema()` or `db.tables()` from a JS handler, or `go-minitrace help minitrace-schema` for the column reference.
 
-```sql
--- WRONG: arrow operators on struct
-SELECT tc->>'tool_name' FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+### no such function: UNNEST (or other DuckDB-era SQL errors)
 
--- RIGHT: json_extract_string on struct
-SELECT json_extract_string(tc, '$.tool_name') FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+**What happened**: Saved SQL written for the removed DuckDB engine fails with missing functions (`UNNEST`, `LEFT`, `json_extract_string`) or unknown columns.
+
+**Cause**: The DuckDB backend was removed. Queries now run on normalized SQLite: what used to be JSON arrays inside `sessions_base` are real child tables.
+
+**Solution**: Rewrite against the normalized tables. `UNNEST(tool_calls)` becomes `FROM tool_calls`, `LEFT(x, n)` becomes `substr(x, 1, n)`, `CAST(x AS DATE)` becomes `date(x)`. See `go-minitrace help query-duckdb` for the full migration table. Session-level `->>` SQL still works against the `sessions_base` compatibility view.
+
+### Warning: --db-path, --table-name, and --persist-loaded are deprecated
+
+**What happened**: Running a SQL query command printed:
+
+```
+Warning: --db-path, --table-name, and --persist-loaded are deprecated; SQL query commands now run against the normalized SQLite database built from --archive-glob.
 ```
 
-Which representation you get (struct vs JSON) depends on the DuckDB version and how the archive was loaded. The `json_extract_string()` function works in both cases; arrow operators only work when the column is a JSON string.
+**Cause**: These flags configured the removed DuckDB backend. SQL commands ignore them; JS commands still see the values on `mt.runtime` for backwards compatibility, but they no longer affect where queries run.
+
+**Solution**: Drop the flags. Point `--archive-glob` at your archives; the normalized database is built (and cached) automatically. In SQL command files, `{{TABLE_NAME}}` now renders as the `sessions_base` compatibility view.
 
 ### Accessing bash command text in tool_calls
 
-**What happened**: You want to query the shell command from bash tool calls, but `tc->'input'->>'command'` returns NULL.
+**What happened**: You want to query the shell command from bash tool calls.
 
-**Cause**: Pi's bash tool stores the command in `input.arguments.command`, not `input.command`. Other tools use `input.file_path` or `input.command`. The exact path varies by adapter.
+**Cause**: In the old engine this required guessing adapter-specific JSON paths. The normalized schema promotes it to a real column.
 
-**Solution**: Inspect a sample tool call first to find the right JSON path:
+**Solution**: Use the `command` column directly:
 
 ```sql
-SELECT tc FROM sessions_base, UNNEST(tool_calls) AS t(tc)
-WHERE json_extract_string(tc, '$.tool_name') = 'bash'
-LIMIT 1
+SELECT session_id, tool_name, command
+FROM tool_calls
+WHERE command LIKE '%docmgr%';
 ```
 
-Then use the correct path. For Pi sessions:
+Raw adapter-specific argument payloads remain available in `arguments_json` and `raw_json` when you need them:
 
 ```sql
-SELECT json_extract_string(tc, '$.input.arguments.command') AS cmd
-FROM sessions_base, UNNEST(tool_calls) AS t(tc)
-WHERE json_extract_string(tc, '$.tool_name') = 'bash'
-  AND json_extract_string(tc, '$.input.arguments.command') ILIKE '%remarquee%'
-```
-
-For a safe fallback that works across adapters:
-
-```sql
-SELECT COALESCE(
-  json_extract_string(tc, '$.input.command'),
-  json_extract_string(tc, '$.input.arguments.command')
-) AS cmd
-FROM sessions_base, UNNEST(tool_calls) AS t(tc)
-WHERE json_extract_string(tc, '$.tool_name') = 'bash'
+SELECT json_extract(arguments_json, '$.command') AS raw_cmd
+FROM tool_calls
+WHERE tool_name = 'bash'
+LIMIT 5;
 ```
 
 ### Query returns 0 rows
@@ -138,12 +123,12 @@ WHERE json_extract_string(tc, '$.tool_name') = 'bash'
 
 **Cause**: The `--archive-glob` pattern does not match any files, or the WHERE clause filters everything out.
 
-**Solution**: First verify loading with `--load-only`:
+**Solution**: First check what loaded:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --load-only
+  --sql 'SELECT COUNT(*) AS sessions FROM sessions'
 ```
 
 If this returns 0, check the glob path with `ls`:
@@ -152,16 +137,16 @@ If this returns 0, check the glob path with `ls`:
 ls ./output/active/*/*.minitrace.json | head
 ```
 
-### no query source specified
+### one of preset, sql, or sql-file must be specified
 
 **What happened**: The query command exited with this error.
 
-**Cause**: None of `--preset`, `--sql`, `--sql-file`, or `--load-only` was specified.
+**Cause**: No query mode flag was given.
 
-**Solution**: Add one of the four query mode flags:
+**Solution**: Add one of the three query mode flags:
 
 ```bash
-go-minitrace query duckdb --archive-glob '...' --preset session-list
+go-minitrace query run --archive-glob '...' --preset session-list
 ```
 
 ### preset, sql, and sql-file are mutually exclusive
@@ -172,94 +157,46 @@ go-minitrace query duckdb --archive-glob '...' --preset session-list
 
 **Solution**: Use exactly one of `--preset`, `--sql`, or `--sql-file`.
 
-### Type errors in custom SQL
+### JS command failed: compact error and JSON envelope
 
-**What happened**: DuckDB reports a type error or unexpected NULL values.
+**What happened**: A JavaScript query command failed and printed a one-line error like:
 
-**Cause**: JSON extraction with `->>` always returns strings. Doing arithmetic on a string fails.
-
-**Solution**: Wrap in `CAST`:
-
-```sql
--- Wrong: comparing string to number
-WHERE metrics->>'turn_count' > 10
-
--- Right: cast first
-WHERE CAST(metrics->>'turn_count' AS INT) > 10
+```
+Error: no sessions matched (file.js:12:3)
 ```
 
-### UNNEST returns no rows
+and, when run with `--output json`, a JSON object like:
 
-**What happened**: A query using `UNNEST(tool_calls)` or `UNNEST(turns)` produces no output.
+```json
+{"error":"Error: no sessions matched","location":"file.js:12:3","command":"my-command"}
+```
 
-**Cause**: All matched sessions have empty arrays for the unnested column, or your WHERE clause filters out all unnested rows.
+**Cause**: This is the intended failure shape. JS errors are collapsed to the first error line plus the first stack-frame location instead of a full native stack trace, and `--output json` emits a parseable `{"error": ...}` envelope on stdout so JSON consumers never receive empty output.
 
-**Solution**: Check that your filter includes sessions that actually have tool calls or turns:
+**Solution**: Read the `error` and `location` fields; fix the script at the reported file/line. Automation consuming `--output json` should treat the presence of an `error` key as failure.
+
+### Child tables return no rows
+
+**What happened**: A query over `tool_calls` or `turns` produces no output.
+
+**Cause**: All matched sessions have no tool calls/turns, or your WHERE clause filters out all rows.
+
+**Solution**: Check that your filter includes sessions that actually have data:
 
 ```sql
-SELECT id, CAST(metrics->>'tool_call_count' AS INT) AS tools
-FROM sessions_base
-WHERE CAST(metrics->>'tool_call_count' AS INT) > 0
+SELECT session_id, tool_call_count AS tools
+FROM sessions
+WHERE tool_call_count > 0
 LIMIT 5;
 ```
 
-If you are filtering on unnested tool-call fields, first verify the raw distribution without the extra WHERE clause:
+Then verify the raw distribution without the extra WHERE clause:
 
 ```sql
-SELECT tc->>'tool_name' AS tool, COUNT(*) AS uses
-FROM sessions_base,
-     UNNEST(tool_calls) AS t(tc)
+SELECT tool_name AS tool, COUNT(*) AS uses
+FROM tool_calls
 GROUP BY tool
 ORDER BY uses DESC;
-```
-
-### DuckDB JSON[] sharp edges with tool_calls
-
-**What happened**: `tool_calls` looks present in the archive, but ad hoc SQL still returns `NULL`, odd results, or parser/type errors.
-
-**Cause**: `tool_calls`, `turns`, and `annotations` are loaded as DuckDB `JSON[]` columns. The most common problems are:
-
-- using `tool_calls[0]` as if lists were zero-based
-- applying JSON paths to the whole `tool_calls` container instead of unnested elements
-- guessing the wrong nested input field (`input.path` vs `input.file_path` vs `input.arguments.path`)
-- using `->` / `->>` inside predicates without parentheses (this shows up most often with `LIKE`, but the same habit is safer for `=`, `IN`, and `NOT LIKE` too)
-
-**Solution**:
-
-1. Prefer this pattern first:
-
-```sql
-SELECT tc->>'tool_name' AS tool
-FROM sessions_base,
-     UNNEST(tool_calls) AS t(tc)
-LIMIT 20;
-```
-
-2. Remember that DuckDB list indexing is 1-based:
-
-```sql
-SELECT
-  tool_calls[1]->>'tool_name' AS first_tool,
-  tool_calls[0]->>'tool_name' AS zeroth_tool
-FROM sessions_base
-LIMIT 1;
-```
-
-3. For file-oriented tools, use a path fallback instead of assuming `input.path` exists:
-
-```sql
-SELECT
-  COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path') AS path
-FROM sessions_base,
-     UNNEST(tool_calls) AS t(tc)
-WHERE (tc->>'tool_name') IN ('read', 'write', 'edit')
-LIMIT 20;
-```
-
-4. If you filter with a predicate, parenthesize the `->` / `->>` extraction:
-
-```sql
-WHERE (tc->'input'->>'command') LIKE '%docmgr%'
 ```
 
 ## Validation issues
@@ -306,29 +243,15 @@ go install github.com/go-go-golems/go-minitrace/cmd/go-minitrace@latest
 
 **Cause**: Each session file must be read, parsed, and written individually.
 
-**Solution**: Convert in batches. For Claude Code, you can use separate source directories per project. For DuckDB queries, use `--db-path` with a file to avoid reloading on every query.
+**Solution**: Convert in batches, or convert only the sessions you need with `--source-session`/`--source-list` (pi, codex, claude-code) after narrowing candidates with `discover ... --cwd-contains ... --since ...`.
 
 ### Queries are slow on large archives
 
-**What happened**: DuckDB queries take a long time.
+**What happened**: The first query over a large archive set takes a long time.
 
-**Cause**: Loading thousands of JSON files into DuckDB requires parsing each file.
+**Cause**: The normalized SQLite database is built from the matching `.minitrace.json` files on first use.
 
-**Solution**: Use a persistent database to avoid reloading:
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob '...' \
-  --db-path analysis.duckdb \
-  --persist-loaded \
-  --load-only
-
-# Now query without reloading
-go-minitrace query duckdb \
-  --db-path analysis.duckdb \
-  --archive-glob '' \
-  --sql "SELECT COUNT(*) FROM sessions_base"
-```
+**Solution**: The build is cached by archive fingerprint, so subsequent queries against the same globs reuse the cached database and are fast. If the first build times out, raise `--timeout-ms`, or narrow `--archive-glob` to the sessions you actually need.
 
 ## See also
 

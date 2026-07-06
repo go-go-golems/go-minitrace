@@ -13,7 +13,7 @@ interface UiState {
 const initialState: UiState = {
   activeView: "sessions",
   selectedSessionId: null,
-  queryEditorSql: "SELECT id, title,\n  CAST(metrics->>'turn_count' AS INT) AS turns\nFROM sessions_base\nLIMIT 20;",
+  queryEditorSql: "SELECT session_id, title, turn_count AS turns\nFROM sessions\nORDER BY started_at\nLIMIT 20;",
   filterText: "",
 };
 
@@ -34,7 +34,7 @@ const uiSlice = createSlice({
     },
     openQueryForSession(state, action: PayloadAction<string>) {
       const escapedSessionID = escapeSQLLiteral(action.payload);
-      state.queryEditorSql = `-- Session: ${action.payload}\nSELECT t.idx, CAST(t.turn->>'role' AS VARCHAR) AS role,\n  LEFT(CAST(t.turn->>'content' AS VARCHAR), 500) AS content\nFROM sessions_base\nCROSS JOIN UNNEST(turns) WITH ORDINALITY AS t(turn, idx)\nWHERE id = '${escapedSessionID}'\nORDER BY t.idx\nLIMIT 50;`;
+      state.queryEditorSql = `-- Session: ${action.payload}\nSELECT tool_call_id, tool_name, operation_type,\n  success, substr(COALESCE(command, file_path, ''), 1, 200) AS target\nFROM tool_calls\nWHERE session_id = '${escapedSessionID}'\nORDER BY timestamp\nLIMIT 50;`;
       state.activeView = "query";
     },
     setQuerySql(state, action: PayloadAction<string>) {

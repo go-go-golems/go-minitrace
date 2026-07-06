@@ -512,21 +512,23 @@ mt.sql.like("tool fail")        // => "'%tool fail%'"
 
 ## Runtime metadata
 
-`mt.runtime` includes query-command runtime settings:
+`mt.runtime` includes query-command runtime settings. Only `archiveGlob` and `commandName` are meaningful; the rest are vestigial echoes of deprecated flags kept for backwards compatibility:
 
 | Property | Type | Description |
 |---|---|---|
 | `archiveGlob` | `string[]` | Runtime archive globs consumed by `.RuntimeArchives()`. |
-| `dbPath` | `string` | Legacy/runtime DB path setting. |
-| `tableName` | `string` | Legacy DuckDB table name; do not use for new builder workflows. |
-| `persistLoaded` | `boolean` | Runtime persistence flag. |
 | `commandName` | `string` | Current command name. |
+| `dbPath` | `string` | Vestigial: echoes the deprecated `--db-path` flag; has no effect on where queries run. |
+| `tableName` | `string` | Vestigial: echoes the deprecated `--table-name` flag; do not use in new code. |
+| `persistLoaded` | `boolean` | Vestigial: echoes the deprecated `--persist-loaded` flag. |
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `mt.query is not a function` | Script follows removed ambient DuckDB API. | Use `const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and query normalized tables. |
+| Script expects `mt.query(sql)` to return rows | Script follows the removed ambient DuckDB API (`mt.query()` now builds named recipes). | Use `const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and call `db.query(sql)` against the normalized tables. |
+| `query references disallowed table/view "sqlite_master"` | Script introspects SQLite system tables. | Use `db.schema()` or `db.tables()` instead. |
+| Command fails and `--output json` shows `{"error": ...}` | JS errors are rendered as a compact one-line message plus a JSON envelope (`error`, `location`, `command`) on stdout. | Read `location` for the failing file:line; treat an `error` key as failure in automation. |
 | `runtime archive glob is not configured` | `.RuntimeArchives()` used without runtime globs. | Pass `--archive-glob ...`, or use `.File()`, `.Dir()`, `.Glob()`, or `.Content()`. |
 | Raw JSONL fails to load | Auto conversion disabled or strict conversion failed. | Use `.AutoConvert()` / `mt.importPolicy().AutoConvert().Build()` and inspect diagnostics. |
 | View builder says DB is required | Standalone `mt.view()` was not bound to a DB. | Use `mt.view().DB(db)...` or `session.view()...`. |
@@ -534,6 +536,6 @@ mt.sql.like("tool fail")        // => "'%tool fail%'"
 ## Related help
 
 - `go-minitrace help structured-query-commands` — scanner markers and command metadata.
-- `go-minitrace help query` — query subsystem overview.
-- `go-minitrace help query-duckdb` — older raw DuckDB workflow for ad hoc exploration.
+- `go-minitrace help query-commands` — query subsystem overview.
+- `go-minitrace help query-duckdb` — migration notes for scripts written against the removed DuckDB engine.
 - `testdata/query-repositories/js-showcase/` — worked JavaScript command examples.

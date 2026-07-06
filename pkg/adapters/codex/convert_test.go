@@ -69,6 +69,14 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 			},
 		},
 		{
+			"timestamp": "2026-03-29T11:00:03Z",
+			"type":      "event_msg",
+			"payload": map[string]any{
+				"type": "agent_reasoning",
+				"text": "Checking command output",
+			},
+		},
+		{
 			"timestamp": "2026-03-29T11:00:04Z",
 			"type":      "event_msg",
 			"payload": map[string]any{
@@ -135,6 +143,58 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	}
 	if session.Metrics.TotalInputTokens == nil || *session.Metrics.TotalInputTokens != 30 {
 		t.Fatalf("expected input tokens 30, got %+v", session.Metrics.TotalInputTokens)
+	}
+	if len(session.Turns) != 2 || session.Turns[1].Thinking == nil || *session.Turns[1].Thinking != "**Inspecting file**\nChecking command output" {
+		t.Fatalf("expected joined reasoning on assistant turn, got %+v", session.Turns)
+	}
+	turnMetadata, ok := session.Turns[1].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected assistant turn metadata map, got %+v", session.Turns[1].FrameworkMetadata)
+	}
+	if turnMetadata["reasoning_block_count"] != 2 {
+		t.Fatalf("expected reasoning block count 2, got %+v", turnMetadata)
+	}
+}
+
+func TestConvertRecordsSessionJSONLFlushesTrailingReasoning(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type": "session_meta",
+			"payload": map[string]any{
+				"id": "session-trailing-reasoning",
+			},
+		},
+		{
+			"type": "event_msg",
+			"payload": map[string]any{
+				"type":    "agent_message",
+				"message": "Initial answer.",
+			},
+		},
+		{
+			"type": "response_item",
+			"payload": map[string]any{
+				"type": "reasoning",
+				"summary": []any{
+					map[string]any{"type": "summary_text", "text": "Trailing thought."},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/session.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Turns) != 1 || session.Turns[0].Thinking == nil || *session.Turns[0].Thinking != "Trailing thought." {
+		t.Fatalf("expected trailing reasoning to attach to last assistant turn, got %+v", session.Turns)
+	}
+	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected turn metadata map, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if turnMetadata["reasoning_block_count"] != 1 || turnMetadata["reasoning_flushed_without_following_message"] != true {
+		t.Fatalf("expected flushed reasoning metadata, got %+v", turnMetadata)
 	}
 }
 
@@ -219,6 +279,9 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 	}
 	if turnMetadata["turn_id"] != "turn-1" || turnMetadata["phase"] != "commentary" {
 		t.Fatalf("expected exec turn metadata, got %+v", turnMetadata)
+	}
+	if turnMetadata["reasoning_block_count"] != 1 {
+		t.Fatalf("expected reasoning block count metadata, got %+v", turnMetadata)
 	}
 }
 
@@ -527,5 +590,219 @@ func TestConvertRecordsSessionJSONLPreservesFrameworkMetadata(t *testing.T) {
 	}
 	if session.Events[0].FrameworkMetadata == nil {
 		t.Fatalf("expected rate_limits event metadata")
+	}
+}
+
+func TestConvertRecordsExecJSONLAssignsPerTurnEmittingIndexes(t *testing.T) {
+	records := []map[string]any{
+		{"type": "thread.started", "thread_id": "thread-turns"},
+		{
+			"type": "item.completed",
+			"item": map[string]any{
+				"id":                "cmd-1",
+				"type":              "command_execution",
+				"command":           "ls",
+				"aggregated_output": "file.txt",
+				"exit_code":         0,
+				"status":            "completed",
+			},
+		},
+		{
+			"type": "item.completed",
+			"item": map[string]any{"type": "agent_message", "text": "First turn."},
+		},
+		{
+			"type": "item.completed",
+			"item": map[string]any{
+				"id":                "cmd-2",
+				"type":              "command_execution",
+				"command":           "go build ./...",
+				"aggregated_output": "",
+				"exit_code":         0,
+				"status":            "completed",
+			},
+		},
+		{
+			"type": "item.completed",
+			"item": map[string]any{"type": "agent_message", "text": "Second turn."},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/exec-turns.jsonl", "exec-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 2 || len(session.Turns) != 2 {
+		t.Fatalf("expected 2 tool calls and 2 turns, got %d/%d", len(session.ToolCalls), len(session.Turns))
+	}
+	byID := map[string]minitrace.ToolCall{}
+	for _, toolCall := range session.ToolCalls {
+		byID[toolCall.ID] = toolCall
+	}
+	first := byID["cmd-1"]
+	second := byID["cmd-2"]
+	if first.EmittingTurnIndex == nil || *first.EmittingTurnIndex != 0 {
+		t.Fatalf("expected cmd-1 emitted at turn 0, got %+v", first.EmittingTurnIndex)
+	}
+	if second.EmittingTurnIndex == nil || *second.EmittingTurnIndex != 1 {
+		t.Fatalf("expected cmd-2 emitted at turn 1, got %+v", second.EmittingTurnIndex)
+	}
+	if len(session.Turns[0].ToolCallsInTurn) != 1 || session.Turns[0].ToolCallsInTurn[0] != "cmd-1" {
+		t.Fatalf("expected turn 0 to own cmd-1 only, got %+v", session.Turns[0].ToolCallsInTurn)
+	}
+	if len(session.Turns[1].ToolCallsInTurn) != 1 || session.Turns[1].ToolCallsInTurn[0] != "cmd-2" {
+		t.Fatalf("expected turn 1 to own cmd-2 only, got %+v", session.Turns[1].ToolCallsInTurn)
+	}
+}
+
+func TestConvertRecordsLegacyRolloutJSONLConvertsMessagesReasoningAndShell(t *testing.T) {
+	records := []map[string]any{
+		{
+			"id":           "legacy-session",
+			"timestamp":    "2025-08-27T12:42:14Z",
+			"instructions": "be helpful",
+			"git": map[string]any{
+				"branch":         "feature/legacy",
+				"commit_hash":    "abc123",
+				"repository_url": "git@example.com/repo.git",
+			},
+		},
+		{"record_type": "state"},
+		{
+			"type": "message",
+			"role": "user",
+			"content": []any{
+				map[string]any{"type": "input_text", "text": "list files"},
+			},
+		},
+		{
+			"type": "reasoning",
+			"summary": []any{
+				map[string]any{"type": "summary_text", "text": "Need to inspect the directory."},
+			},
+		},
+		{
+			"type":      "function_call",
+			"id":        "fc-1",
+			"call_id":   "call-1",
+			"name":      "shell",
+			"arguments": `{"command":["bash","-lc","ls -la"]}`,
+		},
+		{
+			"type":    "function_call_output",
+			"call_id": "call-1",
+			"output":  `{"output":"ok","metadata":{"exit_code":0,"duration_seconds":0.25}}`,
+		},
+		{
+			"type": "message",
+			"role": "assistant",
+			"content": []any{
+				map[string]any{"type": "output_text", "text": "done"},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/legacy.jsonl", "")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if session.ID != "legacy-session" {
+		t.Fatalf("expected legacy session id, got %s", session.ID)
+	}
+	if session.Provenance.SourceFormat != SourceFormatLegacy {
+		t.Fatalf("expected legacy source format, got %s", session.Provenance.SourceFormat)
+	}
+	if session.OperationalContext.GitBranch == nil || *session.OperationalContext.GitBranch != "feature/legacy" {
+		t.Fatalf("expected git branch from legacy metadata, got %+v", session.OperationalContext.GitBranch)
+	}
+	if len(session.Turns) != 2 {
+		t.Fatalf("expected two turns, got %d", len(session.Turns))
+	}
+	if session.Turns[1].Thinking == nil || *session.Turns[1].Thinking != "Need to inspect the directory." {
+		t.Fatalf("expected reasoning attached to assistant turn, got %+v", session.Turns[1].Thinking)
+	}
+	legacyTurnMetadata, ok := session.Turns[1].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected legacy turn metadata map, got %+v", session.Turns[1].FrameworkMetadata)
+	}
+	if legacyTurnMetadata["reasoning_block_count"] != 1 {
+		t.Fatalf("expected legacy reasoning block count metadata, got %+v", legacyTurnMetadata)
+	}
+	if len(session.ToolCalls) != 1 {
+		t.Fatalf("expected one shell tool call, got %d", len(session.ToolCalls))
+	}
+	toolCall := session.ToolCalls[0]
+	if toolCall.ToolName != "exec_command" || toolCall.Input.Command == nil || *toolCall.Input.Command != "bash -lc ls -la" {
+		t.Fatalf("expected normalized shell command, got %+v", toolCall)
+	}
+	if toolCall.Output.ExitCode == nil || *toolCall.Output.ExitCode != 0 {
+		t.Fatalf("expected parsed exit code 0, got %+v", toolCall.Output.ExitCode)
+	}
+	if toolCall.Output.DurationMS == nil || *toolCall.Output.DurationMS != 250 {
+		t.Fatalf("expected parsed duration 250ms, got %+v", toolCall.Output.DurationMS)
+	}
+}
+
+func TestConvertRecordsSessionJSONLCapturesSubagentMetadataAndCount(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "session_meta",
+			"timestamp": "2026-06-10T15:04:24.524Z",
+			"payload": map[string]any{
+				"id":               "child-thread",
+				"parent_thread_id": "parent-thread",
+				"agent_nickname":   "Dewey",
+				"agent_role":       "explorer",
+				"cwd":              "/tmp/project",
+			},
+		},
+		{
+			"type":      "response_item",
+			"timestamp": "2026-06-10T15:04:30Z",
+			"payload": map[string]any{
+				"type":      "function_call",
+				"call_id":   "spawn-1",
+				"name":      "spawn_agent",
+				"arguments": `{"message": "explore the repo"}`,
+			},
+		},
+		{
+			"type":      "response_item",
+			"timestamp": "2026-06-10T15:04:35Z",
+			"payload": map[string]any{
+				"type":    "function_call_output",
+				"call_id": "spawn-1",
+				"output":  "0199aaaa-bbbb-cccc-dddd-eeeeffff0000",
+			},
+		},
+		{
+			"type":      "event_msg",
+			"timestamp": "2026-06-10T15:04:40Z",
+			"payload": map[string]any{
+				"type":    "agent_message",
+				"message": "Spawned a subagent.",
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/subagent.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if config["parent_thread_id"] != "parent-thread" {
+		t.Fatalf("expected parent_thread_id in framework config, got %+v", config)
+	}
+	if session.Coordination.PredecessorSession == nil || *session.Coordination.PredecessorSession != "parent-thread" {
+		t.Fatalf("expected predecessor parent-thread, got %+v", session.Coordination.PredecessorSession)
+	}
+	if config["agent_nickname"] != "Dewey" || config["agent_role"] != "explorer" {
+		t.Fatalf("expected agent nickname/role in framework config, got %+v", config)
+	}
+	if session.Metrics.SubagentCount != 1 {
+		t.Fatalf("expected subagent count 1 from spawn_agent, got %d", session.Metrics.SubagentCount)
 	}
 }

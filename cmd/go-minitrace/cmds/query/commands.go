@@ -65,12 +65,90 @@ Examples:
 		if err != nil {
 			return nil, err
 		}
+		wrapArgumentParseErrors(cobraCommand, command)
 		if err := addCommandChild(parent, cobraCommand, command.Folder); err != nil {
 			return nil, err
 		}
 	}
 
 	return root, nil
+}
+
+// wrapArgumentParseErrors rejects surplus positional arguments on a leaf
+// query command with an error that names the resolved command path and the
+// verbs available next to it. The most common trigger is typing the
+// uncollapsed path of a JS command file (e.g. `... usage command-freq` when
+// the verb collapsed into `... usage`), which otherwise surfaces as a bare
+// "Too many arguments" printed from deep inside argument parsing.
+func wrapArgumentParseErrors(cmd *cobra.Command, command *minitracecmd.MinitraceCommand) {
+	if cmd == nil {
+		return
+	}
+	maxArgs, unlimited := maxPositionalArgs(command)
+	originalRun := cmd.Run
+	originalRunE := cmd.RunE
+	cmd.RunE = func(c *cobra.Command, args []string) error {
+		if !unlimited && len(args) > maxArgs {
+			var b strings.Builder
+			fmt.Fprintf(&b, "too many arguments: %q does not accept", c.CommandPath())
+			if maxArgs == 0 {
+				b.WriteString(" positional arguments")
+			} else {
+				fmt.Fprintf(&b, " more than %d positional argument(s)", maxArgs)
+			}
+			fmt.Fprintf(&b, "\n  extra arguments: %s", strings.Join(args[maxArgs:], " "))
+			if siblings := siblingVerbNames(c); len(siblings) > 0 {
+				parentPath := c.CommandPath()
+				if parent := c.Parent(); parent != nil {
+					parentPath = parent.CommandPath()
+				}
+				fmt.Fprintf(&b, "\n  available verbs under %q: %s", parentPath, strings.Join(siblings, ", "))
+			}
+			return fmt.Errorf("%s", b.String())
+		}
+		if originalRunE != nil {
+			return originalRunE(c, args)
+		}
+		if originalRun != nil {
+			originalRun(c, args)
+		}
+		return nil
+	}
+}
+
+// maxPositionalArgs derives how many positional arguments a catalog command
+// accepts. A list-typed argument consumes the remainder, so the count is
+// unlimited in that case.
+func maxPositionalArgs(command *minitracecmd.MinitraceCommand) (int, bool) {
+	if command == nil {
+		return 0, false
+	}
+	count := 0
+	for _, definition := range command.Arguments {
+		if definition == nil {
+			continue
+		}
+		if strings.Contains(strings.ToLower(string(definition.Type)), "list") {
+			return count, true
+		}
+		count++
+	}
+	return count, false
+}
+
+func siblingVerbNames(cmd *cobra.Command) []string {
+	parent := cmd.Parent()
+	if parent == nil {
+		return nil
+	}
+	names := make([]string, 0, len(parent.Commands()))
+	for _, sibling := range parent.Commands() {
+		if sibling == nil || sibling.Hidden {
+			continue
+		}
+		names = append(names, sibling.Name())
+	}
+	return names
 }
 
 func ensureCommandGroup(root *cobra.Command, groups map[string]*cobra.Command, folder string) (*cobra.Command, error) {

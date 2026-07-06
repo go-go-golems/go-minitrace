@@ -7,7 +7,7 @@ Topics:
 - annotations
 - tutorial
 - cli
-- duckdb
+- sqlite
 - transcript-analysis
 Commands:
 - annotate
@@ -17,7 +17,7 @@ Commands:
 - annotate delete
 - annotate sync
 - annotate import
-- query duckdb
+- query run
 - validate
 Flags:
 - --output-dir
@@ -57,16 +57,16 @@ There are three places annotations can matter:
 2. **`.minitrace.json` session files**
    - portable archive format
    - only updated by `go-minitrace annotate sync`
-3. **DuckDB query layer**
-   - `go-minitrace serve` can see SQLite annotations live through `sqlite_scanner`
-   - `go-minitrace query duckdb` reads annotations from the JSON archive it loads
+3. **Normalized SQL query layer**
+   - `go-minitrace serve` ATTACHes the SQLite working store as schema `anno`, so SQL run in the web Query Editor can read live annotations as `anno.annotations`
+   - `go-minitrace query run` reads annotations from the JSON archives it loads (the `annotations` table)
 
 The practical consequence is important:
 
 - if you are using the **annotation CLI**, you are editing SQLite
 - if you want **JSON files updated**, you must run `annotate sync`
-- if you want `query duckdb` to see your latest annotations, **sync first**
-- if you are using the **web UI served by `go-minitrace serve`**, the server can see SQLite annotations live without a sync step
+- if you want `query run` to see your latest annotations, **sync first**
+- if you are using the **web UI served by `go-minitrace serve`**, SQL against `anno.annotations` sees the live store without a sync step
 
 ## When to call which command
 
@@ -80,7 +80,7 @@ This section is the shortest decision guide for an agent.
 | Remove a mistaken annotation | `annotate delete` | Deletes from SQLite |
 | Bulk-load prepared annotations | `annotate import` | Insert a JSON array into SQLite |
 | Persist changes into session JSON | `annotate sync` | Writes SQLite annotations back into `.minitrace.json` |
-| Analyze synced annotations in CLI SQL | `query duckdb` | Reads the archive after sync |
+| Analyze synced annotations in CLI SQL | `query run` | Reads the archive after sync |
 | Check resulting JSON structure | `validate` | Confirms the written files are structurally valid |
 
 If you only remember one workflow, remember this one:
@@ -171,7 +171,7 @@ This section focuses on the simplest CLI path.
 If you need a session ID, start with the session list preset:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset session-list
 ```
@@ -179,7 +179,7 @@ go-minitrace query duckdb \
 If you want machine-readable output for an agent loop:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset session-list \
   --output json
@@ -188,13 +188,13 @@ go-minitrace query duckdb \
 If you already know part of the title and want a narrower match:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql "
-    SELECT id, title, environment->>'agent_framework' AS framework
-    FROM sessions_base
+    SELECT session_id, title, agent_framework
+    FROM sessions
     WHERE LOWER(title) LIKE '%auth%'
-    ORDER BY id DESC
+    ORDER BY session_id DESC
   "
 ```
 
@@ -203,16 +203,13 @@ If you need a tool-call ID for a `tool_call` annotation, the easiest path is usu
 A CLI example that lists tool-call IDs for one session is:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql "
-    SELECT
-      id AS session_id,
-      REPLACE(CAST(json_extract(tc, '$.id') AS VARCHAR), '"', '') AS tool_call_id,
-      REPLACE(CAST(json_extract(tc, '$.tool_name') AS VARCHAR), '"', '') AS tool_name
-    FROM sessions_base,
-         UNNEST(tool_calls) AS t(tc)
-    WHERE id = '019bb3f6-3c71-7013-b585-4f16d9bdceb6'
+    SELECT session_id, tool_call_id, tool_name
+    FROM tool_calls
+    WHERE session_id = '019bb3f6-3c71-7013-b585-4f16d9bdceb6'
+    ORDER BY emitting_turn_index
   "
 ```
 
@@ -531,7 +528,7 @@ Use import when the annotation objects already exist as JSON. Use `annotate add`
 
 This section covers the correct CLI-only analysis flow.
 
-Remember the rule from earlier: `query duckdb` reads the archive files it loads. It does **not** read the SQLite annotation store directly. That means your latest annotations must be synced first.
+Remember the rule from earlier: `query run` reads the archive files it loads. It does **not** read the SQLite annotation store directly. That means your latest annotations must be synced first.
 
 ### First sync
 
@@ -542,24 +539,23 @@ go-minitrace annotate sync --output-dir ./output
 ### Then use the built-in annotations preset
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset annotations
 ```
 
 ### Then use ad hoc SQL for more specific questions
 
+Annotations are rows in the normalized `annotations` table, so no JSON unnesting is needed.
+
 Count annotations by category:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql "
-    SELECT
-      CAST(json_extract(ann, '$.content.category') AS VARCHAR) AS category,
-      COUNT(*) AS n
-    FROM sessions_base,
-         UNNEST(annotations) AS a(ann)
+    SELECT category, COUNT(*) AS n
+    FROM annotations
     GROUP BY category
     ORDER BY n DESC
   "
@@ -568,37 +564,39 @@ go-minitrace query duckdb \
 Find all tool-call annotations:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql "
-    SELECT
-      id AS session_id,
-      REPLACE(CAST(json_extract(ann, '$.scope.target_id') AS VARCHAR), '"', '') AS tool_call_id,
-      REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
-      REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
-    FROM sessions_base,
-         UNNEST(annotations) AS a(ann)
-    WHERE REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') = 'tool_call'
+    SELECT session_id, target_id AS tool_call_id, category, title
+    FROM annotations
+    WHERE scope_type = 'tool_call'
   "
 ```
 
 Join annotations with session metadata:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql "
-    SELECT
-      id AS session_id,
-      environment->>'agent_framework' AS framework,
-      environment->>'model' AS model,
-      CAST(json_extract(ann, '$.content.category') AS VARCHAR) AS category,
-      CAST(json_extract(ann, '$.content.title') AS VARCHAR) AS title
-    FROM sessions_base,
-         UNNEST(annotations) AS a(ann)
-    ORDER BY session_id
+    SELECT a.session_id, s.agent_framework, s.model, a.category, a.title
+    FROM annotations a
+    JOIN sessions s USING (session_id)
+    ORDER BY a.session_id
   "
 ```
+
+### Querying the live store from the web UI
+
+In `go-minitrace serve`, the SQLite working store is ATTACHed as schema `anno`, so SQL run in the web Query Editor can read annotations that have **not** been synced yet:
+
+```sql
+SELECT s.session_id, s.agent_framework, a.category, a.title
+FROM anno.annotations a
+JOIN sessions s ON s.session_id = a.session_id;
+```
+
+This is the fastest way to review labels while you are still annotating. The archive-backed `annotations` table only catches up after `annotate sync`.
 
 ## Advanced example: review a session and classify three different failure types
 
@@ -673,7 +671,7 @@ Suppose the rubric is:
 
 A robust pattern is:
 
-1. get candidate session IDs with `query duckdb`
+1. get candidate session IDs with `query run`
 2. for each session, inspect existing annotations with `annotate list --format json`
 3. add only missing annotations
 4. sync at the end of the batch
@@ -682,13 +680,13 @@ A robust pattern is:
 Example candidate query:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql "
-    SELECT id, title
-    FROM sessions_base
-    WHERE CAST(metrics->>'tool_call_count' AS INT) > 20
-    ORDER BY id DESC
+    SELECT session_id, title
+    FROM sessions
+    WHERE tool_call_count > 20
+    ORDER BY session_id DESC
     LIMIT 10
   " \
   --output json
@@ -720,11 +718,11 @@ Right:
 --scope tool_call --target-id call_Y70XEopD3Ef1mGctwTXG2CEq
 ```
 
-### Mistake: expecting `query duckdb` to see unsynced annotations
+### Mistake: expecting `query run` to see unsynced annotations
 
-`query duckdb` loads `.minitrace.json`. If the annotations only exist in SQLite, the query results will not include them yet.
+`query run` loads `.minitrace.json`. If the annotations only exist in SQLite, the query results will not include them yet.
 
-Rule: `annotate sync` first, then `query duckdb`.
+Rule: `annotate sync` first, then `query run`. (Or query `anno.annotations` in the `serve` web UI, which sees the live store.)
 
 ### Mistake: overusing session scope
 
@@ -741,15 +739,15 @@ If the annotation is basically right but poorly worded, use `annotate edit`. Sav
 | `annotate add` fails because category is invalid | Category must be one of the known hardcoded values | Use one of: `observation`, `ai-failure`, `user-error`, `environment-issue`, `success`, `question`, `to-discuss`, `to-improve` |
 | `annotate add` with `--scope turn` or `--scope tool_call` behaves oddly | Missing or wrong `--target-id` | Pass the exact turn index or tool-call ID |
 | `annotate list` shows nothing | Wrong `--output-dir` or wrong session filter | Re-run with the correct output root and verify the session ID |
-| `query duckdb` does not show new annotations | You did not sync SQLite back to JSON | Run `go-minitrace annotate sync --output-dir ...` first |
+| `query run` does not show new annotations | You did not sync SQLite back to JSON | Run `go-minitrace annotate sync --output-dir ...` first, or query `anno.annotations` in the web UI |
 | `annotate sync` misses files | Nonstandard archive layout | Override `--archive-glob` explicitly |
 | `validate` reports annotation structure issues | Invalid category, scope, tags, taxonomy arrays, or classification | Fix the data with `annotate edit` or remove the bad row and re-add it correctly |
 
 ## See also
 
 - `go-minitrace help getting-started` — basic archive workflow from discovery to query
-- `go-minitrace help query-duckdb` — general DuckDB query examples
-- `go-minitrace help writing-duckdb-queries` — how to write custom SQL against the archive
+- `go-minitrace help query-commands` — `query run` flags and preset list
+- `go-minitrace help writing-queries` — how to write custom SQL against the normalized schema
 - `go-minitrace help validate-command` — validation behavior and flags
 - `go-minitrace annotate add --help` — exact flag reference for creation
 - `go-minitrace annotate sync --help` — exact flag reference for sync behavior

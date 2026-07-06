@@ -11,17 +11,17 @@ flags:
     help: Limit the number of rows returned
 */
 SELECT
-  id AS session_id,
-  environment->>'agent_framework' AS framework,
-  CAST(json_extract(ann, '$.annotator') AS VARCHAR) AS annotator,
-  CAST(json_extract(ann, '$.content.category') AS VARCHAR) AS category,
-  CAST(json_extract(ann, '$.content.title') AS VARCHAR) AS title,
-  CAST(json_extract(ann, '$.scope.type') AS VARCHAR) AS scope_type
-FROM {{TABLE_NAME}},
-  UNNEST(annotations) AS a(ann)
+  a.session_id,
+  s.agent_framework AS framework,
+  a.annotator,
+  a.category,
+  a.title,
+  a.scope_type
+FROM annotations a
+JOIN sessions s ON s.session_id = a.session_id
 WHERE 1=1
 {{ if .framework -}}
-AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+AND s.agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
-ORDER BY session_id
+ORDER BY a.session_id
 LIMIT {{ .limit }};

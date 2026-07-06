@@ -1,18 +1,18 @@
--- timing-analysis.sql
--- Duration, time-to-first-action, and idle ratio analysis.
+-- timing-analysis: Duration, time-to-first-action, and idle ratio analysis
 -- Usage:
---   duckdb analysis.duckdb -init queries/load.sql -f queries/timing-analysis.sql
+--   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --sql-file queries/timing/timing-analysis.sql
 
 SELECT
-  environment->>'agent_framework' AS framework,
+  s.agent_framework AS framework,
   COUNT(*) AS sessions,
-  ROUND(AVG(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS avg_duration_s,
-  ROUND(AVG(CAST(timing->>'active_duration_seconds' AS DOUBLE)), 1) AS avg_active_s,
-  ROUND(AVG(CAST(metrics->>'time_to_first_action' AS DOUBLE)), 1) AS avg_ttfa_s,
-  ROUND(AVG(CAST(metrics->>'idle_ratio' AS DOUBLE)), 2) AS avg_idle_ratio,
-  ROUND(MIN(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS min_duration_s,
-  ROUND(MAX(CAST(timing->>'duration_seconds' AS DOUBLE)), 1) AS max_duration_s
-FROM sessions_base
-WHERE timing->>'duration_seconds' IS NOT NULL
+  ROUND(AVG(s.duration_seconds), 1) AS avg_duration_s,
+  ROUND(AVG(s.active_duration_seconds), 1) AS avg_active_s,
+  ROUND(AVG(m.time_to_first_action), 1) AS avg_ttfa_s,
+  ROUND(AVG(m.idle_ratio), 2) AS avg_idle_ratio,
+  ROUND(MIN(s.duration_seconds), 1) AS min_duration_s,
+  ROUND(MAX(s.duration_seconds), 1) AS max_duration_s
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
+WHERE s.duration_seconds IS NOT NULL
 GROUP BY framework
 ORDER BY avg_duration_s DESC;

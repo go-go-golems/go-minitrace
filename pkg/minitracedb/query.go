@@ -28,9 +28,9 @@ type QueryResult struct {
 }
 
 type QueryRunner struct {
-	db             *sql.DB
-	allowedObjects map[string]struct{}
-	opts           QueryOptions
+	db           *sql.DB
+	allowedReads map[string]struct{}
+	opts         QueryOptions
 }
 
 func DefaultQueryOptions() QueryOptions {
@@ -55,18 +55,18 @@ func WithDefaultQueryOptions(opts QueryOptions) QueryOptions {
 	return ret
 }
 
-func NewQueryRunner(db *sql.DB, allowedObjects []string, opts QueryOptions) (*QueryRunner, error) {
+func NewQueryRunner(db *sql.DB, allowedReads []string, opts QueryOptions) (*QueryRunner, error) {
 	if db == nil {
 		return nil, fmt.Errorf("db is nil")
 	}
 	allowed := map[string]struct{}{}
-	for _, object := range allowedObjects {
-		object = normalizeObjectName(object)
-		if object != "" {
-			allowed[object] = struct{}{}
+	for _, object := range allowedReads {
+		key := normalizeAllowedReadKey(object)
+		if key != "" {
+			allowed[key] = struct{}{}
 		}
 	}
-	return &QueryRunner{db: db, allowedObjects: allowed, opts: WithDefaultQueryOptions(opts)}, nil
+	return &QueryRunner{db: db, allowedReads: allowed, opts: WithDefaultQueryOptions(opts)}, nil
 }
 
 func (r *QueryRunner) Query(ctx context.Context, sqlText string, args ...any) ([]map[string]any, error) {
@@ -116,7 +116,7 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	defer func() { _ = conn.Close() }()
 
 	authState := &queryAuthorizationState{}
-	if err := setSQLiteAuthorizer(conn, newReadOnlyAuthorizer(r.allowedObjects, authState)); err != nil {
+	if err := setSQLiteAuthorizer(conn, newReadOnlyAuthorizer(r.allowedReads, authState)); err != nil {
 		return QueryResult{Error: err.Error()}, nil
 	}
 	defer func() { _ = setSQLiteAuthorizer(conn, nil) }()
@@ -249,6 +249,35 @@ func normalizeQuery(sqlText string) (string, error) {
 }
 
 func normalizeObjectName(v string) string { return strings.ToLower(strings.TrimSpace(v)) }
+
+func normalizeAllowedReadKey(v string) string {
+	v = normalizeObjectName(v)
+	if v == "" {
+		return ""
+	}
+	if strings.Contains(v, ".") {
+		parts := strings.SplitN(v, ".", 2)
+		schema := strings.TrimSpace(parts[0])
+		object := strings.TrimSpace(parts[1])
+		if schema == "" || object == "" {
+			return ""
+		}
+		return schema + "." + object
+	}
+	return "main." + v
+}
+
+func readKey(database, object string) string {
+	database = normalizeObjectName(database)
+	if database == "" {
+		database = "main"
+	}
+	object = normalizeObjectName(object)
+	if object == "" {
+		return ""
+	}
+	return database + "." + object
+}
 
 func stripSQLLiteralsAndComments(sqlText string) string {
 	const (
@@ -384,47 +413,70 @@ func ensureReadonlyPreparedQuery(conn *sql.Conn, sqlText string) error {
 }
 
 type queryAuthorizationState struct {
-	deniedOp     int
-	deniedObject string
+	deniedOp        int
+	deniedSchema    string
+	deniedObject    string
+	displayDeniedAs string
 }
 
-func (s *queryAuthorizationState) deny(op int, object string) {
+func (s *queryAuthorizationState) deny(op int, schema, object string) {
 	if s == nil || s.deniedObject != "" {
 		return
 	}
 	s.deniedOp = op
-	s.deniedObject = object
+	s.deniedSchema = normalizeObjectName(schema)
+	if s.deniedSchema == "" {
+		s.deniedSchema = "main"
+	}
+	s.deniedObject = normalizeObjectName(object)
+	if s.deniedObject == "" {
+		s.deniedObject = normalizeObjectName(schema)
+		s.deniedSchema = ""
+	}
+	if s.deniedSchema != "" && s.deniedSchema != "main" {
+		s.displayDeniedAs = s.deniedSchema + "." + s.deniedObject
+	} else {
+		s.displayDeniedAs = s.deniedObject
+	}
 }
 
 func (s *queryAuthorizationState) err() error {
 	if s == nil || s.deniedObject == "" {
 		return nil
 	}
-	if s.deniedOp == sqlite3.SQLITE_READ {
-		return fmt.Errorf("query references disallowed table/view %q", s.deniedObject)
+	display := s.displayDeniedAs
+	if display == "" {
+		display = s.deniedObject
 	}
-	return fmt.Errorf("query uses disallowed SQLite operation %d on %q", s.deniedOp, s.deniedObject)
+	if s.deniedOp == sqlite3.SQLITE_READ {
+		if strings.HasPrefix(s.deniedObject, "sqlite_") {
+			return fmt.Errorf("query references disallowed table/view %q; use db.schema() or db.tables() from JS to introspect the schema", display)
+		}
+		return fmt.Errorf("query references disallowed table/view %q", display)
+	}
+	return fmt.Errorf("query uses disallowed SQLite operation %d on %q", s.deniedOp, display)
 }
 
-func newReadOnlyAuthorizer(allowedObjects map[string]struct{}, state *queryAuthorizationState) func(int, string, string, string) int {
-	return func(op int, object, _, _ string) int {
+func newReadOnlyAuthorizer(allowedReads map[string]struct{}, state *queryAuthorizationState) func(int, string, string, string) int {
+	return func(op int, object, _, database string) int {
 		switch op {
 		case sqlite3.SQLITE_SELECT, sqlite3.SQLITE_FUNCTION:
 			return sqlite3.SQLITE_OK
 		case sqlite3.SQLITE_READ:
-			if len(allowedObjects) == 0 {
+			if len(allowedReads) == 0 {
 				return sqlite3.SQLITE_OK
 			}
-			if _, ok := allowedObjects[normalizeObjectName(object)]; ok {
+			key := readKey(database, object)
+			if _, ok := allowedReads[key]; ok {
 				return sqlite3.SQLITE_OK
 			}
-			state.deny(op, object)
+			state.deny(op, database, object)
 			return sqlite3.SQLITE_DENY
 		case sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE, sqlite3.SQLITE_PRAGMA, sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_TRANSACTION, sqlite3.SQLITE_CREATE_INDEX, sqlite3.SQLITE_CREATE_TABLE, sqlite3.SQLITE_CREATE_TEMP_INDEX, sqlite3.SQLITE_CREATE_TEMP_TABLE, sqlite3.SQLITE_CREATE_TEMP_TRIGGER, sqlite3.SQLITE_CREATE_TEMP_VIEW, sqlite3.SQLITE_CREATE_TRIGGER, sqlite3.SQLITE_CREATE_VIEW, sqlite3.SQLITE_CREATE_VTABLE, sqlite3.SQLITE_DROP_INDEX, sqlite3.SQLITE_DROP_TABLE, sqlite3.SQLITE_DROP_TEMP_INDEX, sqlite3.SQLITE_DROP_TEMP_TABLE, sqlite3.SQLITE_DROP_TEMP_TRIGGER, sqlite3.SQLITE_DROP_TEMP_VIEW, sqlite3.SQLITE_DROP_TRIGGER, sqlite3.SQLITE_DROP_VIEW, sqlite3.SQLITE_DROP_VTABLE, sqlite3.SQLITE_ALTER_TABLE, sqlite3.SQLITE_REINDEX, sqlite3.SQLITE_ANALYZE, sqlite3.SQLITE_SAVEPOINT:
-			state.deny(op, object)
+			state.deny(op, database, object)
 			return sqlite3.SQLITE_DENY
 		default:
-			state.deny(op, object)
+			state.deny(op, database, object)
 			return sqlite3.SQLITE_DENY
 		}
 	}

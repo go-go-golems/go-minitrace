@@ -22,7 +22,9 @@ type CopilotCommand struct {
 }
 
 type CopilotSettings struct {
-	SourceDir string `glazed:"source-dir"`
+	SourceDir   string `glazed:"source-dir"`
+	CwdContains string `glazed:"cwd-contains"`
+	Since       string `glazed:"since"`
 }
 
 func NewCopilotGlazeCommand() (*CopilotCommand, error) {
@@ -50,12 +52,14 @@ Examples:
   go-minitrace discover copilot --source-dir ~/.copilot/session-state --output yaml
 `),
 		cmds.WithFlags(
-			fields.New(
-				"source-dir",
-				fields.TypeString,
-				fields.WithDefault("~/.copilot"),
-				fields.WithHelp("Copilot CLI home, session-state directory, or one session directory"),
-			),
+			append([]*fields.Definition{
+				fields.New(
+					"source-dir",
+					fields.TypeString,
+					fields.WithDefault("~/.copilot"),
+					fields.WithHelp("Copilot CLI home, session-state directory, or one session directory"),
+				),
+			}, filterFlags()...)...,
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -71,11 +75,19 @@ func (c *CopilotCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 		return err
 	}
 
+	since, err := parseSince(settings_.Since)
+	if err != nil {
+		return err
+	}
+
 	locators, err := copilot.Discover(settings_.SourceDir)
 	if err != nil {
 		return err
 	}
 	for _, locator := range locators {
+		if !keepLocator(locator, settings_.CwdContains, since) {
+			continue
+		}
 		sessionDir := filepath.Dir(locator.SourcePath)
 		workspacePath := filepath.Join(sessionDir, "workspace.yaml")
 		sessionDBPath := filepath.Join(sessionDir, "session.db")
@@ -86,6 +98,8 @@ func (c *CopilotCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 			types.MRP("session_dir", sessionDir),
 			types.MRP("workspace_path", workspacePath),
 			types.MRP("session_db_path", sessionDBPath),
+			types.MRP("cwd", locator.Cwd),
+			types.MRP("started_at", locator.StartedAt),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err

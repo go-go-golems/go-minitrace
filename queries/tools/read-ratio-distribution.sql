@@ -1,17 +1,17 @@
--- read-ratio-distribution.sql
--- Analyze read-before-write patterns across frameworks.
+-- read-ratio-distribution: Analyze read-before-write patterns across frameworks
 -- Usage:
---   duckdb analysis.duckdb -init queries/load.sql -f queries/read-ratio-distribution.sql
+--   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --sql-file queries/tools/read-ratio-distribution.sql
 
 SELECT
-  environment->>'agent_framework' AS framework,
-  id,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools,
-  CAST(metrics->>'read_count' AS INT) AS reads,
-  CAST(metrics->>'modify_count' AS INT) AS modifies,
-  CAST(metrics->>'create_count' AS INT) AS creates,
-  CAST(metrics->>'execute_count' AS INT) AS executes,
-  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio
-FROM sessions_base
-WHERE CAST(metrics->>'tool_call_count' AS INT) > 0
+  s.agent_framework AS framework,
+  s.session_id AS id,
+  s.tool_call_count AS tools,
+  s.read_count AS reads,
+  s.modify_count AS modifies,
+  s.create_count AS creates,
+  s.execute_count AS executes,
+  ROUND(m.read_ratio, 2) AS read_ratio
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
+WHERE s.tool_call_count > 0
 ORDER BY read_ratio DESC, tools DESC, id;

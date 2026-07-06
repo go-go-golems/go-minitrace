@@ -322,8 +322,8 @@ export const handlers = [
     const path = pathname.replace(/^\/api\/v2\/query-commands\//, "").replace(/\/execute$/, "");
     const selected = mockQueryCommands.find((command) => command.path === path);
     const renderedSql = selected?.path === "aliases/codex-framework-summary.alias.yaml"
-      ? "SELECT framework, COUNT(*) AS sessions FROM sessions_base WHERE (environment->>'agent_framework') IN ('codex') GROUP BY framework ORDER BY sessions DESC;"
-      : "SELECT id, title FROM sessions_base LIMIT 100;";
+      ? "SELECT agent_framework AS framework, COUNT(*) AS sessions FROM sessions WHERE agent_framework IN ('codex') GROUP BY framework ORDER BY sessions DESC;"
+      : "SELECT session_id AS id, title FROM sessions LIMIT 100;";
 
     return HttpResponse.json({
       meta: { schemaVersion: 1 },

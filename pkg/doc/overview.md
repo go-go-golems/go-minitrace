@@ -12,7 +12,7 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-go-minitrace converts AI agent sessions from multiple frameworks into a single structured format called **minitrace**, then lets you query and analyze them with DuckDB.
+go-minitrace converts AI agent sessions from multiple frameworks into a single structured format called **minitrace**, then lets you query and analyze them with an embedded normalized SQLite engine.
 
 If you use Claude Code, Codex, Pi, claude.ai, ChatGPT, or Geppetto/Pinocchio, this tool reads their native session stores and produces normalized JSON archives that you can query with SQL.
 
@@ -32,11 +32,11 @@ go-minitrace works in three stages:
 
 **Convert** reads native session files and writes minitrace JSON archives. Each session becomes one `.minitrace.json` file organized into date-bucketed directories. A manifest file tracks all converted sessions.
 
-**Query** loads converted archives into DuckDB and runs either built-in analysis presets or custom SQL. Results flow through Glazed, so you get table, JSON, YAML, or CSV output.
+**Query** builds (and caches) a normalized SQLite database from converted archives and runs either built-in analysis presets or custom SQL. Results flow through Glazed, so you get table, JSON, YAML, or CSV output.
 
 ```
 Source stores           Minitrace archives        Analysis
-~/.claude/projects  ──►  output/active/           ──►  DuckDB queries
+~/.claude/projects  ──►  output/active/           ──►  SQL queries
 ~/.codex            ──►    2026-03/               ──►  Presets or SQL
 ~/.pi/agent/sessions──►      <id>.minitrace.json  ──►  JSON/CSV/table
 export.zip          ──►    manifest.json
@@ -50,6 +50,7 @@ turns.db            ──►
 | `convert claude-code` | `~/.claude/projects/` | JSONL v2 transcripts, dir-v1 tool-results, subagent sessions |
 | `convert codex` | `~/.codex/` | Session JSONL and exec JSONL files |
 | `convert pi` | `~/.pi/agent/sessions/` | JSONL v3 session files |
+| `convert copilot` | Copilot CLI session state | GitHub Copilot CLI session directories |
 | `convert claude-ai` | Privacy export ZIP | Download from Settings → Privacy → Export data on claude.ai |
 | `convert chatgpt` | Data export ZIP | Download from Settings → Data controls → Export data on ChatGPT |
 | `convert chatgpt-json` | Per-conversation JSON | Alternate richer transcript format, one JSON file per conversation |
@@ -63,7 +64,10 @@ Discover what sessions you have:
 go-minitrace discover claude-code
 go-minitrace discover codex --source-dir ~/.codex
 go-minitrace discover pi
+go-minitrace discover copilot
 ```
+
+Both filters `--cwd-contains` and `--since` narrow discovery to one project or time window.
 
 Convert them into a minitrace archive:
 
@@ -74,17 +78,17 @@ go-minitrace convert claude-code --output-dir ./output
 Query the converted archive:
 
 ```bash
-go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset session-list
-go-minitrace query duckdb --archive-glob './output/active/*/*.minitrace.json' --preset framework-summary
+go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --preset session-list
+go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --preset framework-summary
 ```
 
 Run a custom query:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "SELECT environment->>'model' AS model, COUNT(*) AS sessions
-         FROM sessions_base GROUP BY model ORDER BY sessions DESC"
+  --sql "SELECT model, COUNT(*) AS sessions
+         FROM sessions GROUP BY model ORDER BY sessions DESC"
 ```
 
 ## See also

@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"fmt"
 	"net/http"
 
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
@@ -9,20 +10,52 @@ import (
 
 const apiSchemaVersion = 1
 
+// sessionListSQL is a plain projection over the normalized sessions table
+// (columns are already flattened), joined with the metrics table for the
+// token totals the session browser displays.
+const sessionListSQL = `
+SELECT
+  s.session_id,
+  s.title,
+  s.summary,
+  s.classification,
+  s.started_at,
+  s.ended_at,
+  s.duration_seconds,
+  s.active_duration_seconds,
+  s.hour_of_day,
+  s.day_of_week,
+  s.turn_count,
+  s.tool_call_count,
+  m.total_input_tokens,
+  m.total_output_tokens,
+  m.total_cache_read_tokens,
+  s.agent_framework,
+  s.model,
+  s.working_directory,
+  s.autonomy_level,
+  s.sandbox
+FROM sessions AS s
+LEFT JOIN metrics AS m USING (session_id)
+ORDER BY s.started_at
+`
+
 func (s *Server) handleGetSessionsV2(w http.ResponseWriter, r *http.Request) {
-	sqlText, err := buildSessionListSQL(s.tableName)
-	if err != nil {
+	if s.queryTarget == nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
 			Rows:       []map[string]any{},
 			DurationMS: 0,
 			RowCount:   0,
-			Error:      &QueryError{Message: err.Error()},
+			Error:      &QueryError{Message: "query target is not initialized"},
 		})
 		return
 	}
 
-	rows, err := s.conn.QueryContext(r.Context(), sqlText)
+	result, err := s.queryTarget.QueryResult(r.Context(), sessionListSQL)
+	if err == nil && result.Error != "" {
+		err = fmt.Errorf("%s", result.Error)
+	}
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, QueryResponse{
 			Columns:    []string{},
@@ -33,55 +66,129 @@ func (s *Server) handleGetSessionsV2(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	defer func() { _ = rows.Close() }()
 
 	payload := &apiv1.ListSessionsResponse{
 		Meta: &apiv1.ApiMeta{SchemaVersion: apiSchemaVersion},
 	}
-
-	for rows.Next() {
-		values := make([]any, 8)
-		scanArgs := make([]any, len(values))
-		for i := range scanArgs {
-			scanArgs[i] = &values[i]
-		}
-		if err := rows.Scan(scanArgs...); err != nil {
-			writeJSON(w, http.StatusInternalServerError, QueryResponse{
-				Columns:    []string{},
-				Rows:       []map[string]any{},
-				DurationMS: 0,
-				RowCount:   0,
-				Error:      &QueryError{Message: err.Error()},
-			})
-			return
-		}
-
-		summary, err := sessionSummaryFromValues(values)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, QueryResponse{
-				Columns:    []string{},
-				Rows:       []map[string]any{},
-				DurationMS: 0,
-				RowCount:   0,
-				Error:      &QueryError{Message: err.Error()},
-			})
-			return
-		}
-
-		payload.Sessions = append(payload.Sessions, protoSessionSummary(summary))
-	}
-	if err := rows.Err(); err != nil {
-		writeJSON(w, http.StatusInternalServerError, QueryResponse{
-			Columns:    []string{},
-			Rows:       []map[string]any{},
-			DurationMS: 0,
-			RowCount:   0,
-			Error:      &QueryError{Message: err.Error()},
-		})
-		return
+	for _, row := range result.Rows {
+		payload.Sessions = append(payload.Sessions, protoSessionSummary(sessionSummaryFromRow(row)))
 	}
 
 	writeProtoJSON(w, http.StatusOK, payload)
+}
+
+// sessionSummaryFromRow maps one normalized sessions-list row (as returned by
+// the sandboxed query runner) onto the session summary response shape used by
+// the v2 API.
+func sessionSummaryFromRow(row map[string]any) SessionSummaryResponse {
+	return SessionSummaryResponse{
+		ID:             cellString(row["session_id"]),
+		Title:          cellString(row["title"]),
+		Summary:        cellNullableString(row["summary"]),
+		Classification: cellString(row["classification"]),
+		Timing: SessionTimingResponse{
+			StartedAt:             cellString(row["started_at"]),
+			EndedAt:               cellNullableString(row["ended_at"]),
+			DurationSeconds:       cellFloat(row["duration_seconds"]),
+			ActiveDurationSeconds: cellFloat(row["active_duration_seconds"]),
+			HourOfDay:             cellInt(row["hour_of_day"]),
+			DayOfWeek:             cellInt(row["day_of_week"]),
+		},
+		Metrics: SessionMetricsResponse{
+			TurnCount:            cellInt(row["turn_count"]),
+			ToolCallCount:        cellInt(row["tool_call_count"]),
+			TotalInputTokens:     cellOptionalInt(row["total_input_tokens"]),
+			TotalOutputTokens:    cellOptionalInt(row["total_output_tokens"]),
+			TotalCacheReadTokens: cellOptionalInt(row["total_cache_read_tokens"]),
+		},
+		Environment: SessionEnvironmentResponse{
+			AgentFramework: cellString(row["agent_framework"]),
+			Model:          cellString(row["model"]),
+		},
+		OperationalContext: SessionOperationalContextResponse{
+			WorkingDirectory: cellString(row["working_directory"]),
+			AutonomyLevel:    cellString(row["autonomy_level"]),
+			Sandbox:          cellOptionalBool(row["sandbox"]),
+		},
+	}
+}
+
+func cellString(value any) string {
+	switch typed := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return typed
+	default:
+		return fmt.Sprint(value)
+	}
+}
+
+func cellNullableString(value any) *string {
+	if value == nil {
+		return nil
+	}
+	v := cellString(value)
+	return &v
+}
+
+func cellInt(value any) int {
+	switch typed := value.(type) {
+	case nil:
+		return 0
+	case int64:
+		return int(typed)
+	case int:
+		return typed
+	case float64:
+		return int(typed)
+	default:
+		return 0
+	}
+}
+
+func cellOptionalInt(value any) *int {
+	if value == nil {
+		return nil
+	}
+	v := cellInt(value)
+	return &v
+}
+
+func cellFloat(value any) float64 {
+	switch typed := value.(type) {
+	case nil:
+		return 0
+	case float64:
+		return typed
+	case int64:
+		return float64(typed)
+	case int:
+		return float64(typed)
+	default:
+		return 0
+	}
+}
+
+func cellOptionalBool(value any) *bool {
+	switch typed := value.(type) {
+	case nil:
+		return nil
+	case bool:
+		v := typed
+		return &v
+	case int64:
+		v := typed != 0
+		return &v
+	case int:
+		v := typed != 0
+		return &v
+	case float64:
+		v := typed != 0
+		return &v
+	default:
+		return nil
+	}
 }
 
 func (s *Server) handleGetSessionSummaryV2(w http.ResponseWriter, r *http.Request) {

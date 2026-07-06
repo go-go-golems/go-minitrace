@@ -11,16 +11,17 @@ flags:
     help: Limit the number of rows returned
 */
 SELECT
-  environment->>'agent_framework' AS framework,
-  id,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools,
-  CAST(metrics->>'read_count' AS INT) AS reads,
-  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,
-  title
-FROM {{TABLE_NAME}}
+  s.agent_framework AS framework,
+  s.session_id AS id,
+  s.tool_call_count AS tools,
+  s.read_count AS reads,
+  ROUND(m.read_ratio, 2) AS read_ratio,
+  s.title
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .framework -}}
-AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+AND s.agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 ORDER BY read_ratio ASC
 LIMIT {{ .limit }};

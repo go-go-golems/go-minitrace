@@ -377,9 +377,289 @@ func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
 	if config["parent_session"] != "parent-1" {
 		t.Fatalf("expected parent_session backlink metadata, got %+v", config)
 	}
+	if child.Coordination.PredecessorSession == nil || *child.Coordination.PredecessorSession != "parent-1" {
+		t.Fatalf("expected predecessor parent-1, got %+v", child.Coordination.PredecessorSession)
+	}
 
 	LinkParentSubagents(&parent, []string{"agent-123"})
 	if parent.ToolCalls[0].SpawnedAgent == nil || parent.ToolCalls[0].SpawnedAgent.SubSessionID == nil || *parent.ToolCalls[0].SpawnedAgent.SubSessionID != "agent-123" {
 		t.Fatalf("expected parent tool call to backlink subagent, got %+v", parent.ToolCalls[0].SpawnedAgent)
+	}
+}
+
+func TestConvertRecordsDerivesToolDurationAndPreservesEmitTimestamp(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "assistant",
+			"timestamp": "2026-03-29T10:00:10Z",
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{
+						"type":  "tool_use",
+						"id":    "tool-1",
+						"name":  "Bash",
+						"input": map[string]any{"command": "ls"},
+					},
+				},
+			},
+		},
+		{
+			"type":      "user",
+			"timestamp": "2026-03-29T10:00:12.500Z",
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{
+						"type":        "tool_result",
+						"tool_use_id": "tool-1",
+						"content":     "file.txt",
+						"is_error":    false,
+					},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-duration", "/tmp/session-duration.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(session.ToolCalls))
+	}
+	toolCall := session.ToolCalls[0]
+	if toolCall.Timestamp == nil || *toolCall.Timestamp != "2026-03-29T10:00:10Z" {
+		t.Fatalf("expected emit timestamp to be preserved, got %+v", toolCall.Timestamp)
+	}
+	if toolCall.Output.DurationMS == nil || *toolCall.Output.DurationMS != 2500 {
+		t.Fatalf("expected 2500ms duration, got %+v", toolCall.Output.DurationMS)
+	}
+}
+
+func TestConvertRecordsMapsToolUseResult(t *testing.T) {
+	// Record shapes modeled on real ~/.claude/projects transcripts: Bash
+	// results carry {stdout, stderr, interrupted, isImage, noOutputExpected}
+	// and failing Bash results are plain strings "Error: Exit code N\n...".
+	records := []map[string]any{
+		{
+			"type":      "assistant",
+			"timestamp": "2026-03-29T10:00:10Z",
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{"type": "tool_use", "id": "tool-ok", "name": "Bash", "input": map[string]any{"command": "echo hi"}},
+					map[string]any{"type": "tool_use", "id": "tool-exit", "name": "Bash", "input": map[string]any{"command": "false"}},
+					map[string]any{"type": "tool_use", "id": "tool-stderr", "name": "Bash", "input": map[string]any{"command": "boom"}},
+					map[string]any{"type": "tool_use", "id": "tool-int", "name": "Bash", "input": map[string]any{"command": "sleep 100"}},
+				},
+			},
+		},
+		{
+			"type":      "user",
+			"timestamp": "2026-03-29T10:00:11Z",
+			"toolUseResult": map[string]any{
+				"stdout":           "hi",
+				"stderr":           "",
+				"interrupted":      false,
+				"isImage":          false,
+				"noOutputExpected": false,
+			},
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{"type": "tool_result", "tool_use_id": "tool-ok", "content": "hi", "is_error": false},
+				},
+			},
+		},
+		{
+			"type":          "user",
+			"timestamp":     "2026-03-29T10:00:12Z",
+			"toolUseResult": "Error: Exit code 2\nsome output",
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{"type": "tool_result", "tool_use_id": "tool-exit", "content": "Error: Exit code 2\nsome output", "is_error": true},
+				},
+			},
+		},
+		{
+			"type":      "user",
+			"timestamp": "2026-03-29T10:00:13Z",
+			"toolUseResult": map[string]any{
+				"stdout":           "",
+				"stderr":           "boom: command not found",
+				"interrupted":      false,
+				"isImage":          false,
+				"noOutputExpected": false,
+			},
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{"type": "tool_result", "tool_use_id": "tool-stderr", "content": "failure text", "is_error": true},
+				},
+			},
+		},
+		{
+			"type":      "user",
+			"timestamp": "2026-03-29T10:00:14Z",
+			"toolUseResult": map[string]any{
+				"stdout":           "",
+				"stderr":           "",
+				"interrupted":      true,
+				"isImage":          false,
+				"noOutputExpected": false,
+			},
+			"message": map[string]any{
+				"content": []any{
+					map[string]any{"type": "tool_result", "tool_use_id": "tool-int", "content": "[Request interrupted by user]", "is_error": false},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-tur", "/tmp/session-tur.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.ToolCalls) != 4 {
+		t.Fatalf("expected 4 tool calls, got %d", len(session.ToolCalls))
+	}
+	byID := map[string]minitrace.ToolCall{}
+	for _, toolCall := range session.ToolCalls {
+		byID[toolCall.ID] = toolCall
+	}
+
+	okCall := byID["tool-ok"]
+	okMetadata, ok := okCall.FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework metadata on successful call, got %+v", okCall.FrameworkMetadata)
+	}
+	preserved, ok := okMetadata["tool_use_result"].(map[string]any)
+	if !ok || preserved["stdout"] != "hi" {
+		t.Fatalf("expected toolUseResult preserved in metadata, got %+v", okMetadata["tool_use_result"])
+	}
+
+	exitCall := byID["tool-exit"]
+	if exitCall.Output.ExitCode == nil || *exitCall.Output.ExitCode != 2 {
+		t.Fatalf("expected exit code 2 parsed from string toolUseResult, got %+v", exitCall.Output.ExitCode)
+	}
+	exitMetadata := exitCall.FrameworkMetadata.(map[string]any)
+	if exitMetadata["tool_use_result"] != "Error: Exit code 2\nsome output" {
+		t.Fatalf("expected string toolUseResult preserved, got %+v", exitMetadata["tool_use_result"])
+	}
+
+	stderrCall := byID["tool-stderr"]
+	if stderrCall.Output.Success {
+		t.Fatalf("expected stderr call to be failed")
+	}
+	if stderrCall.Output.Error == nil || *stderrCall.Output.Error != "boom: command not found" {
+		t.Fatalf("expected stderr in error, got %+v", stderrCall.Output.Error)
+	}
+
+	interruptedCall := byID["tool-int"]
+	if interruptedCall.Output.Success {
+		t.Fatalf("expected interrupted call to be failed")
+	}
+	if interruptedCall.Output.Error == nil || *interruptedCall.Output.Error != "interrupted by user" {
+		t.Fatalf("expected interruption error, got %+v", interruptedCall.Output.Error)
+	}
+	interruptedMetadata := interruptedCall.FrameworkMetadata.(map[string]any)
+	if interruptedMetadata["interrupted"] != true {
+		t.Fatalf("expected interrupted metadata flag, got %+v", interruptedMetadata)
+	}
+}
+
+func TestConvertRecordsReadsSessionContextFromAnyRecord(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "file-history-snapshot",
+			"messageId": "snapshot-1",
+		},
+		{
+			"type":      "user",
+			"timestamp": "2026-03-29T10:00:00Z",
+			"cwd":       "/home/manuel/project",
+			"version":   "2.1.76",
+			"gitBranch": "feature/foo",
+			"message": map[string]any{
+				"content": "hello",
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-ctx", "/tmp/session-ctx.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	expectedCwd := minitrace.NormalizePath("/home/manuel/project")
+	if session.OperationalContext.WorkingDirectory == nil || *session.OperationalContext.WorkingDirectory != expectedCwd {
+		t.Fatalf("expected cwd from later record, got %+v", session.OperationalContext.WorkingDirectory)
+	}
+	if session.Environment.AgentVersion == nil || *session.Environment.AgentVersion != "2.1.76" {
+		t.Fatalf("expected version from later record, got %+v", session.Environment.AgentVersion)
+	}
+	if session.OperationalContext.GitBranch == nil || *session.OperationalContext.GitBranch != "feature/foo" {
+		t.Fatalf("expected git branch from later record, got %+v", session.OperationalContext.GitBranch)
+	}
+}
+
+func TestConvertRecordsExtractsCleartextThinking(t *testing.T) {
+	records := []map[string]any{
+		{
+			"uuid":      "assistant-thinking",
+			"type":      "assistant",
+			"timestamp": "2026-06-01T10:00:00Z",
+			"message": map[string]any{
+				"role": "assistant",
+				"content": []any{
+					map[string]any{"type": "thinking", "thinking": "I should inspect the file first."},
+					map[string]any{"type": "text", "text": "I'll inspect the file."},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-clear-thinking", "/tmp/clear-thinking.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Turns) != 1 {
+		t.Fatalf("expected one assistant turn, got %d", len(session.Turns))
+	}
+	if session.Turns[0].Thinking == nil || *session.Turns[0].Thinking != "I should inspect the file first." {
+		t.Fatalf("expected cleartext thinking extraction, got %+v", session.Turns[0].Thinking)
+	}
+	if session.Turns[0].Content != "I'll inspect the file." {
+		t.Fatalf("expected visible text content only, got %q", session.Turns[0].Content)
+	}
+}
+
+func TestConvertRecordsPreservesSignedThinkingPresence(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "assistant",
+			"timestamp": "2026-07-06T10:00:00Z",
+			"message": map[string]any{
+				"role":  "assistant",
+				"model": "claude-opus-4-1",
+				"content": []any{
+					map[string]any{"type": "thinking", "thinking": "", "signature": "sig-1"},
+					map[string]any{"type": "text", "text": "answer"},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-signed-thinking", "/tmp/signed-thinking.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Turns) != 1 {
+		t.Fatalf("expected one turn, got %d", len(session.Turns))
+	}
+	if session.Turns[0].Thinking != nil {
+		t.Fatalf("empty signed thinking must not synthesize cleartext thinking, got %+v", session.Turns[0].Thinking)
+	}
+	metadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework metadata map, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if metadata["signed_thinking_blocks"] != 1 || metadata["thinking_signature_present"] != true {
+		t.Fatalf("expected signed thinking metadata, got %+v", metadata)
 	}
 }

@@ -1,24 +1,22 @@
--- annotations.sql
--- Query annotations from the SQLite annotations.db (attached via sqlite_scanner).
--- This file is served alongside sessions_base (loaded via load.sql).
--- Annotations are live — no refresh needed after writes.
+-- annotations: List annotations joined with their sessions
+-- Annotations are materialized into the normalized database alongside sessions
 -- Usage:
---   duckdb analysis.duckdb -init queries/load.sql -f queries/annotations.sql
+--   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --sql-file queries/overview/annotations.sql
 
 SELECT
   a.session_id,
-  sb.environment->>'agent_framework' AS framework,
+  s.agent_framework AS framework,
   a.annotator,
   a.category,
   a.title,
   a.scope_type,
   a.target_id,
-  a.created_at,
-  a.taxonomy_m AS taxonomy_minitrace,
-  a.taxonomy_mast AS taxonomy_mast,
-  a.taxonomy_tm AS taxonomy_toolemu,
-  a.tags,
+  a.timestamp AS created_at,
+  a.minitrace_taxonomy_json AS taxonomy_minitrace,
+  a.mast_taxonomy_json AS taxonomy_mast,
+  a.toolemu_taxonomy_json AS taxonomy_toolemu,
+  a.tags_json AS tags,
   a.classification
 FROM annotations a
-JOIN sessions_base sb ON sb.id = a.session_id
-ORDER BY a.created_at DESC;
+JOIN sessions s ON s.session_id = a.session_id
+ORDER BY a.timestamp DESC;

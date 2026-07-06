@@ -21,7 +21,9 @@ type ClaudeCodeCommand struct {
 }
 
 type ClaudeCodeSettings struct {
-	SourceDir string `glazed:"source-dir"`
+	SourceDir   string `glazed:"source-dir"`
+	CwdContains string `glazed:"cwd-contains"`
+	Since       string `glazed:"since"`
 }
 
 func NewClaudeCodeGlazeCommand() (*ClaudeCodeCommand, error) {
@@ -50,12 +52,14 @@ Examples:
   go-minitrace discover claude-code --source-dir /tmp/claude-projects --output json
 `),
 		cmds.WithFlags(
-			fields.New(
-				"source-dir",
-				fields.TypeString,
-				fields.WithDefault("~/.claude/projects"),
-				fields.WithHelp("Claude Code projects directory"),
-			),
+			append([]*fields.Definition{
+				fields.New(
+					"source-dir",
+					fields.TypeString,
+					fields.WithDefault("~/.claude/projects"),
+					fields.WithHelp("Claude Code projects directory"),
+				),
+			}, filterFlags()...)...,
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -71,15 +75,25 @@ func (c *ClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, vals *val
 		return err
 	}
 
+	since, err := parseSince(settings_.Since)
+	if err != nil {
+		return err
+	}
+
 	locators, err := claudecode.Discover(settings_.SourceDir)
 	if err != nil {
 		return err
 	}
 	for _, locator := range locators {
+		if !keepLocator(locator, settings_.CwdContains, since) {
+			continue
+		}
 		row := types.NewRow(
 			types.MRP("id", locator.ID),
 			types.MRP("format_hint", locator.FormatHint),
 			types.MRP("source_path", locator.SourcePath),
+			types.MRP("cwd", locator.Cwd),
+			types.MRP("started_at", locator.StartedAt),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err

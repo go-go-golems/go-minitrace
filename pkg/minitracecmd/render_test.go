@@ -28,8 +28,8 @@ func TestRenderCommand_RendersFrameworkFilter(t *testing.T) {
 		t.Fatalf("RenderCommand returned error: %v", err)
 	}
 
-	if !strings.Contains(sqlText, "FROM sessions_base") {
-		t.Fatalf("rendered SQL missing substituted table name: %s", sqlText)
+	if !strings.Contains(sqlText, "FROM sessions s") {
+		t.Fatalf("rendered SQL missing normalized sessions table: %s", sqlText)
 	}
 	if !strings.Contains(sqlText, "IN ('codex', 'claude')") {
 		t.Fatalf("rendered SQL missing framework filter: %s", sqlText)

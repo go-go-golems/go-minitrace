@@ -32,10 +32,10 @@ Examples:
 
 ```bash
 # JSON for scripting
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output json
+go-minitrace query run --archive-glob '...' --preset session-list --output json
 
 # CSV for Excel/Sheets
-go-minitrace query duckdb --archive-glob '...' --preset framework-summary --output csv
+go-minitrace query run --archive-glob '...' --preset framework-summary --output csv
 
 # YAML for reading
 go-minitrace discover claude-code --output yaml
@@ -46,7 +46,7 @@ go-minitrace discover claude-code --output yaml
 Use `--fields` to include only specific columns in the output:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob '...' \
   --preset session-list \
   --fields id,framework,turns,tools
@@ -63,15 +63,15 @@ JSON output works well with jq for filtering and transforming:
 go-minitrace discover claude-code --output json | jq length
 
 # Filter to sessions with many tool calls
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output json \
+go-minitrace query run --archive-glob '...' --preset session-list --output json \
   | jq '[.[] | select(.tools > 50)]'
 
 # Extract just the models used
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output json \
+go-minitrace query run --archive-glob '...' --preset session-list --output json \
   | jq '[.[].model] | unique'
 
 # Group by framework
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output json \
+go-minitrace query run --archive-glob '...' --preset session-list --output json \
   | jq 'group_by(.framework) | .[] | {framework: .[0].framework, count: length}'
 ```
 
@@ -80,7 +80,7 @@ go-minitrace query duckdb --archive-glob '...' --preset session-list --output js
 For more complex analysis, pipe JSON to a Python script:
 
 ```bash
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output json \
+go-minitrace query run --archive-glob '...' --preset session-list --output json \
   | python3 -c "
 import json, sys
 sessions = json.load(sys.stdin)
@@ -96,10 +96,10 @@ Export data for spreadsheet analysis:
 
 ```bash
 # Full session list
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output csv > sessions.csv
+go-minitrace query run --archive-glob '...' --preset session-list --output csv > sessions.csv
 
 # Framework summary
-go-minitrace query duckdb --archive-glob '...' --preset framework-summary --output csv > summary.csv
+go-minitrace query run --archive-glob '...' --preset framework-summary --output csv > summary.csv
 ```
 
 Open the CSV directly in your spreadsheet application, or import it for charts and pivot tables.
@@ -122,12 +122,12 @@ echo "Converting..."
 go-minitrace convert claude-code --output-dir "$OUTDIR"
 
 echo "Summary:"
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob "$OUTDIR/active/*/*.minitrace.json" \
   --preset framework-summary
 
 echo "Exporting..."
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob "$OUTDIR/active/*/*.minitrace.json" \
   --preset session-list --output csv > "$OUTDIR/sessions.csv"
 

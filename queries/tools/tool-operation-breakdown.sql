@@ -1,13 +1,12 @@
--- tool-operation-breakdown.sql
--- Count tool calls by framework and operation type.
+-- tool-operation-breakdown: Count tool calls by framework and operation type
 -- Usage:
---   duckdb analysis.duckdb -init queries/load.sql -f queries/tool-operation-breakdown.sql
+--   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --sql-file queries/tools/tool-operation-breakdown.sql
 
 SELECT
-  environment->>'agent_framework' AS framework,
-  REPLACE(CAST(json_extract(tc, '$.operation_type') AS VARCHAR), '"', '') AS operation,
+  s.agent_framework AS framework,
+  tc.operation_type AS operation,
   COUNT(*) AS count
-FROM sessions_base,
-UNNEST(tool_calls) AS t(tc)
+FROM tool_calls tc
+JOIN sessions s ON s.session_id = tc.session_id
 GROUP BY framework, operation
 ORDER BY framework, count DESC;

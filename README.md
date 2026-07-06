@@ -8,9 +8,9 @@ A transcript analysis toolkit that converts AI agent sessions into queryable arc
 
 ## What it does
 
-go-minitrace converts raw session stores into structured `.minitrace.json` archives, then provides DuckDB-backed querying, reusable structured commands, and a web UI to explore the results.
+go-minitrace converts raw session stores into structured `.minitrace.json` archives, then provides three query surfaces over a normalized SQLite engine — `query run` (presets and ad hoc SQL), `query commands` (reusable structured commands), and a JavaScript runtime (`mt.db()`) — plus a web UI with a transcript viewer and annotation editor.
 
-Supported sources: Claude Code, Codex, Pi, claude.ai, ChatGPT, Geppetto/Pinocchio.
+Supported sources: Claude Code, Codex, Pi, GitHub Copilot CLI, claude.ai, ChatGPT, Geppetto/Pinocchio.
 
 ## Installation
 
@@ -33,12 +33,17 @@ go build ./...
 ## Quick start
 
 ```bash
+# See what sessions exist (narrow by project and date)
+go-minitrace discover pi --cwd-contains my-repo --since 2026-06-01
+
 # Convert sessions into queryable archives
 go-minitrace convert claude-code --output-dir ./output
 go-minitrace convert pi --output-dir ./output
+# ... or convert exactly the sessions discover found
+go-minitrace convert pi --source-session /path/to/session.jsonl --output-dir ./output
 
 # Query with built-in presets (no SQL required)
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset session-list
 
@@ -62,8 +67,8 @@ A common mistake when debugging with historical sessions is treating every trans
 go-minitrace is most effective when treated as a **small analysis framework**, not a one-off SQL runner. The recommended workflow is a three-layer reduction funnel:
 
 ```
-Native session stores    →    .minitrace.json archives    →    DuckDB table
-                                (queryable)                     (structured)
+Native session stores    →    .minitrace.json archives    →    SQLite database
+                                (queryable)                     (normalized)
                                                                  │
                               ┌─────────────────┐                │
                               │  SQL leaves     │◀───────────────┘
@@ -95,68 +100,76 @@ Every stage reduces entropy. The end result is not a dump — it's a report.
 
 ### 1. Built-in presets (no SQL required)
 
-Six presets ship with go-minitrace for common questions:
+Nine presets ship with go-minitrace for common questions:
 
 | Preset | Description |
 |--------|-------------|
 | `session-list` | One row per session: framework, model, turns, tools, duration |
 | `framework-summary` | Aggregate stats grouped by framework |
 | `tool-operation-breakdown` | Tool call counts by framework and operation type |
+| `tool-failures` | Failed tool calls with target and error detail |
 | `timing-analysis` | Duration, active time, TTFA, and idle ratio by framework |
 | `read-ratio-distribution` | Read/write/execute breakdown per session |
+| `file-operations` | Every file touch in session order |
+| `file-timeline` | Chronological operations on files |
 | `annotations` | All annotations across sessions |
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset framework-summary
 ```
 
 ### 2. Custom SQL
 
-When a preset doesn't fit, write SQL directly. The table schema exposes the full session structure:
+When a preset doesn't fit, write SQL directly. The normalized schema exposes the full session structure as real tables — `sessions`, `turns`, `tool_calls`, `files`, `annotations`, `metrics`, `events`, `attachments` — so most queries need no JSON extraction:
 
 ```sql
 -- Sessions with highest tool-call density (tools per turn)
-SELECT id, title,
-       CAST(metrics->>'tool_call_count' AS INT) AS tools,
-       CAST(metrics->>'turn_count' AS INT) AS turns,
-       CAST(metrics->>'tool_call_count' AS DOUBLE) /
-         CAST(metrics->>'turn_count' AS DOUBLE) AS density
-FROM sessions_base
-WHERE CAST(metrics->>'turn_count' AS INT) > 0
+SELECT session_id, title,
+       tool_call_count AS tools,
+       turn_count AS turns,
+       CAST(tool_call_count AS REAL) / turn_count AS density
+FROM sessions
+WHERE turn_count > 0
 ORDER BY density DESC
 LIMIT 10;
 
 -- Tool failures across all sessions
-SELECT id, title,
-       tc->>'tool_name' AS tool,
-       tc->'output'->>'error' AS error
-FROM sessions_base, UNNEST(tool_calls) AS t(tc)
-WHERE (COALESCE(tc->'output'->>'success', 'true')) = 'false';
+SELECT tc.session_id, s.title, tc.tool_name, tc.error
+FROM tool_calls tc
+JOIN sessions s USING (session_id)
+WHERE tc.success = 0;
 
 -- Bash output containing a specific keyword (e.g. a runtime error)
-SELECT id AS session_id, title, timing->>'started_at' AS started_at,
-       tc->>'id' AS call_id,
-       json_extract_string(tc, '$.input.command') AS bash_command,
-       json_extract_string(tc, '$.output.result') AS bash_output
-FROM sessions_base, UNNEST(tool_calls) AS t(tc)
-WHERE (tc->>'tool_name') = 'bash'
-  AND json_extract_string(tc, '$.output.result') LIKE '%Connect successful%'
-ORDER BY started_at, session_id
+SELECT tc.session_id, s.title, s.started_at,
+       tc.tool_call_id, tc.command, substr(tc.result, 1, 200) AS bash_output
+FROM tool_calls tc
+JOIN sessions s USING (session_id)
+WHERE tc.tool_name = 'bash'
+  AND tc.result LIKE '%Connect successful%'
+ORDER BY s.started_at, tc.session_id
 LIMIT 50;
 ```
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "SELECT id, title,
-               CAST(metrics->>'tool_call_count' AS INT) AS tools
-        FROM sessions_base
-        WHERE (environment->>'agent_framework') = 'pi'
+  --sql "SELECT session_id, title, tool_call_count AS tools
+        FROM sessions
+        WHERE agent_framework = 'pi'
         ORDER BY tools DESC
         LIMIT 20"
 ```
+
+Long-tail fields stay reachable via `json_extract` on `raw_json`/`framework_metadata_json`, and session-level SQL written for the old DuckDB engine keeps working against the `sessions_base` compatibility view (`go-minitrace help query-duckdb` has the migration table).
+
+Migration checklist for pre-single-engine users:
+
+- replace `go-minitrace query duckdb ...` with `go-minitrace query run ...`;
+- remove `--db-path`, `--table-name`, and `--persist-loaded` from SQL command invocations;
+- rewrite `UNNEST(turns/tool_calls)` queries against the `turns` and `tool_calls` tables;
+- in JS commands, build a handle with `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and call `db.query(sql)`.
 
 Output formats: `--output table` (default), `--output json`, `--output csv`.
 
@@ -180,17 +193,17 @@ flags:
     help: Limit the number of rows returned
 */
 SELECT
-  id,
-  environment->>'agent_framework' AS framework,
+  session_id AS id,
+  agent_framework AS framework,
   title,
-  CAST(metrics->>'turn_count' AS INT) AS turns,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools
-FROM {{TABLE_NAME}}
+  turn_count AS turns,
+  tool_call_count AS tools
+FROM sessions
 WHERE 1=1
 {{ if .framework -}}
-AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+AND agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
-ORDER BY timing->>'started_at' DESC
+ORDER BY started_at DESC
 LIMIT {{ .limit }};
 ```
 
@@ -394,11 +407,14 @@ Important details:
 
 ## The web UI
 
-`go-minitrace serve` starts an HTTP server that loads the archive into an in-memory DuckDB table and exposes:
+`go-minitrace serve` starts an HTTP server on the same normalized SQLite engine (the live annotation store is ATTACHed as `anno.annotations`) and exposes:
 
 - **Sessions** (`/sessions`) — sortable session list with framework, model, turns, tools, duration, active %, and annotation badges
-- **Query** (`/query`) — interactive query editor with structured command forms, SQL rendering, and result tables
-- **REST API** — structured command execution under `/api/v2/query-commands`
+- **Transcript viewer** — per-session turn/tool-call timeline with inline annotation creation and editing
+- **Query** (`/query`) — interactive query editor with saved queries, presets, structured command forms, SQL rendering, and result tables
+- **REST API** — sessions, queries, annotations, and structured command execution under `/api/v2/*`
+
+Flags: `--archive-glob`, `--port`, `--max-rows`, `--query-timeout-ms`, plus `--query-dir`/`--preset-dir`/`--query-repository` for SQL libraries.
 
 ![Sessions list](screenshot-1.png)
 
@@ -435,6 +451,7 @@ Full workflow: `go-minitrace help annotation-playbook`.
 | Claude Code | JSON (dir-v1, subagent transcripts) | `convert claude-code` |
 | Codex | JSONL (sessions + exec) | `convert codex` |
 | Pi | JSONL | `convert pi` |
+| GitHub Copilot CLI | Session-state directories | `convert copilot` |
 | claude.ai | ZIP export | `convert claude-ai` |
 | ChatGPT | ZIP export / JSON | `convert chatgpt`, `convert chatgpt-json` |
 | Geppetto / Pinocchio | `turns.db` | `convert turnsdb` |

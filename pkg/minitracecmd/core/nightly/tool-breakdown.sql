@@ -13,16 +13,16 @@ flags:
     help: Optional agent-framework filter
 */
 SELECT
-  REPLACE(CAST(json_extract(tc, '$.operation_type') AS VARCHAR), '"', '') AS operation,
+  tc.operation_type AS operation,
   COUNT(*) AS count
-FROM {{TABLE_NAME}},
-UNNEST(tool_calls) AS t(tc)
+FROM tool_calls tc
+JOIN sessions s ON s.session_id = tc.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND CAST(timing->>'started_at' AS DATE) = CAST({{ .day | sqlDate }} AS DATE)
+  AND date(s.started_at) = date({{ .day | sqlDate }})
 {{ end -}}
 {{ if .framework -}}
-  AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+  AND s.agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 GROUP BY operation
 ORDER BY count DESC, operation ASC;

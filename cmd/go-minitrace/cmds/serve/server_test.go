@@ -17,7 +17,8 @@ import (
 	"github.com/go-go-golems/go-minitrace/pkg/annotate"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
-	queryengine "github.com/go-go-golems/go-minitrace/pkg/query"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
+	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -95,22 +96,8 @@ func TestHandleExecuteQueryReturnsStructuredRows(t *testing.T) {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
-		TableName:    "sessions_base",
-	}); err != nil {
-		t.Fatalf("LoadArchive returned error: %v", err)
-	}
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	server := NewServer(target, &ServeSettings{}, map[string]string{}, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"SELECT id FROM sessions_base"}`))
 	response := httptest.NewRecorder()
@@ -140,15 +127,14 @@ func TestHandleExecuteQueryReturnsStructuredRows(t *testing.T) {
 }
 
 func TestHandleExecuteQueryReturnsStructuredSQLFailure(t *testing.T) {
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase1-query-failure")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	server := NewServer(target, &ServeSettings{}, map[string]string{}, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"SELECT missing FROM sessions_base"}`))
 	response := httptest.NewRecorder()
@@ -172,15 +158,14 @@ func TestHandleExecuteQueryReturnsStructuredSQLFailure(t *testing.T) {
 }
 
 func TestHandleExecuteQueryRejectsNonReadOnlyStatements(t *testing.T) {
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase1-query-readonly")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
 	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
 
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	server := NewServer(target, &ServeSettings{}, map[string]string{}, nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/query", strings.NewReader(`{"sql":"CREATE TABLE injected(id INTEGER)"}`))
 	response := httptest.NewRecorder()
@@ -195,13 +180,13 @@ func TestHandleExecuteQueryRejectsNonReadOnlyStatements(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("unmarshaling response: %v", err)
 	}
-	if payload.Error == nil || !strings.Contains(payload.Error.Message, "read-only") {
+	if payload.Error == nil || !strings.Contains(payload.Error.Message, "only SELECT and WITH queries are allowed") {
 		t.Fatalf("expected read-only validation error, got %+v", payload.Error)
 	}
 }
 
 func TestLegacySessionRoutesReturnNotFound(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{DevMode: true}, map[string]string{}, nil, nil)
 
 	tests := []struct {
 		method string
@@ -234,22 +219,8 @@ func TestHandleGetSessionsV2ReturnsEnvelope(t *testing.T) {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
-		TableName:    "sessions_base",
-	}); err != nil {
-		t.Fatalf("LoadArchive returned error: %v", err)
-	}
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, filepath.Join(archiveRoot, "active", "*", "*.minitrace.json"))
+	server := NewServer(target, &ServeSettings{}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/sessions", nil)
 	response := httptest.NewRecorder()
 
@@ -292,15 +263,7 @@ func TestHandleGetSessionSummaryV2ReturnsEnvelopeWithoutBlocks(t *testing.T) {
 		t.Fatalf("buildSessionIndex returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, index, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/sessions/phase4-summary-v2/summary", nil)
 	request.SetPathValue("id", "phase4-summary-v2")
 	response := httptest.NewRecorder()
@@ -338,15 +301,7 @@ func TestHandleGetSessionBlocksV2ReturnsEnvelope(t *testing.T) {
 		t.Fatalf("buildSessionIndex returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, index, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/sessions/phase4-blocks-v2/blocks", nil)
 	request.SetPathValue("id", "phase4-blocks-v2")
 	response := httptest.NewRecorder()
@@ -395,15 +350,7 @@ func TestHandleGetSessionV2ReturnsDetailEnvelope(t *testing.T) {
 		t.Fatalf("buildSessionIndex returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, index, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, index, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/sessions/phase4-detail-v2", nil)
 	request.SetPathValue("id", "phase4-detail-v2")
 	response := httptest.NewRecorder()
@@ -450,7 +397,7 @@ func TestHandleCreateAndGetSessionAnnotationsV2(t *testing.T) {
 	}
 	defer func() { _ = store.Close() }()
 
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, map[string]string{})
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, store, map[string]string{})
 
 	createReq := &apiv1.CreateAnnotationRequest{
 		ScopeType:      apiv1.AnnotationScopeType_ANNOTATION_SCOPE_TYPE_TURN,
@@ -543,7 +490,7 @@ func TestHandleListAnnotationsV2ReturnsIntentionalRows(t *testing.T) {
 		t.Fatalf("AddAnnotation returned error: %v", err)
 	}
 
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, map[string]string{})
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, store, map[string]string{})
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/annotations", nil)
 	response := httptest.NewRecorder()
 
@@ -600,7 +547,7 @@ func TestHandleUpdateAndDeleteAnnotationV2(t *testing.T) {
 		t.Fatalf("AddAnnotation returned error: %v", err)
 	}
 
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, map[string]string{})
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, store, map[string]string{})
 	newCategory := apiv1.AnnotationCategory_ANNOTATION_CATEGORY_QUESTION
 	updateReq := &apiv1.UpdateAnnotationRequest{
 		Title:             stringPtr("Updated"),
@@ -691,7 +638,7 @@ func TestHandleSyncAnnotationsV2ReturnsStructuredReport(t *testing.T) {
 		t.Fatalf("AddAnnotation returned error: %v", err)
 	}
 
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, store, index)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, store, index)
 	syncReq := &apiv1.SyncAnnotationsRequest{SessionId: stringPtr("sess-v2-sync")}
 	syncBody, err := protojson.Marshal(syncReq)
 	if err != nil {
@@ -729,7 +676,7 @@ func TestHandleSyncAnnotationsV2ReturnsStructuredReport(t *testing.T) {
 }
 
 func TestLegacyAnnotationRoutesReturnNotFound(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{DevMode: true}, map[string]string{}, nil, nil)
 
 	tests := []struct {
 		method string
@@ -758,7 +705,7 @@ func TestLegacyAnnotationRoutesReturnNotFound(t *testing.T) {
 }
 
 func TestLegacyPresetAndQueryRoutesReturnNotFound(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base", DevMode: true}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{DevMode: true}, map[string]string{}, nil, nil)
 
 	tests := []struct {
 		method string
@@ -799,7 +746,6 @@ func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
 	}
 
 	server := NewServer(nil, &ServeSettings{
-		TableName: "sessions_base",
 		PresetDir: []string{presetDir1, presetDir2},
 	}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/presets", nil)
@@ -838,7 +784,7 @@ func TestHandleGetPresetsV2ReturnsEnvelopeAndQueries(t *testing.T) {
 }
 
 func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/query-commands", nil)
 	response := httptest.NewRecorder()
 
@@ -867,7 +813,7 @@ func TestHandleGetQueryCommandsV2ReturnsEmbeddedCatalog(t *testing.T) {
 			if len(command.GetFlags()) == 0 {
 				t.Fatalf("session-list should expose flags")
 			}
-			if !strings.Contains(command.GetRawSql(), "FROM {{TABLE_NAME}}") {
+			if !strings.Contains(command.GetRawSql(), "FROM sessions s") {
 				t.Fatalf("session-list raw_sql missing template body: %q", command.GetRawSql())
 			}
 			if command.GetRawSqlPath() != "overview/session-list.sql" {
@@ -909,7 +855,7 @@ SELECT 99 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repo})
 	request := httptest.NewRequest(http.MethodGet, "/api/v2/query-commands", nil)
 	response := httptest.NewRecorder()
@@ -940,7 +886,7 @@ SELECT 99 AS answer FROM {{TABLE_NAME}};`
 }
 
 func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"values":{"framework":["codex"]},"renderOnly":true}`))
 	request.SetPathValue("path", "overview/framework-summary.sql/execute")
 	response := httptest.NewRecorder()
@@ -955,8 +901,8 @@ func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
 	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("protojson.Unmarshal execute query command render-only: %v", err)
 	}
-	if !strings.Contains(payload.GetRenderedSql(), "FROM sessions_base") {
-		t.Fatalf("rendered_sql missing table name substitution: %q", payload.GetRenderedSql())
+	if !strings.Contains(payload.GetRenderedSql(), "FROM sessions s") {
+		t.Fatalf("rendered_sql missing normalized sessions table: %q", payload.GetRenderedSql())
 	}
 	if !strings.Contains(payload.GetRenderedSql(), "IN ('codex')") {
 		t.Fatalf("rendered_sql missing framework filter: %q", payload.GetRenderedSql())
@@ -964,7 +910,7 @@ func TestHandleExecuteQueryCommandV2RenderOnlyReturnsRenderedSQL(t *testing.T) {
 }
 
 func TestHandleExecuteQueryCommandV2RenderOnlyHydratesSQLDefaults(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{checkedInQueryRepositoryRoot(t, "mixed-sql-js-showcase")})
 	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/framework-summary.sql/execute", strings.NewReader(`{"renderOnly":true}`))
 	request.SetPathValue("path", "overview/framework-summary.sql/execute")
@@ -995,22 +941,9 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")},
-		TableName:    "sessions_base",
-	}); err != nil {
-		t.Fatalf("LoadArchive returned error: %v", err)
-	}
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
+	target := newTestQueryTarget(t, archiveGlob)
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
 	request.SetPathValue("path", "overview/aliases/codex-framework-summary.alias.yaml/execute")
 	response := httptest.NewRecorder()
@@ -1036,8 +969,57 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 }
 
+func TestHandleExecuteQueryCommandV2SQLUsesServerQueryTargetLimits(t *testing.T) {
+	archiveRoot := t.TempDir()
+	for _, id := range []string{"query-command-limit-a", "query-command-limit-b", "query-command-limit-c"} {
+		if _, err := minitrace.WriteSession(buildFixtureSession(t, id), archiveRoot); err != nil {
+			t.Fatalf("WriteSession returned error: %v", err)
+		}
+	}
+
+	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	target, err := minitracejs.NewArchiveQueryTarget(context.Background(), []string{archiveGlob}, serveQueryOptions(2, 30000))
+	if err != nil {
+		t.Fatalf("NewArchiveQueryTarget returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = target.Close() })
+
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = []minitracecmd.SourceRoot{{
+		Name: "test-root",
+		FS: fstest.MapFS{
+			"queries/all-sessions.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+name: all-sessions
+short: List all sessions without an explicit SQL LIMIT
+*/
+SELECT id FROM {{TABLE_NAME}} ORDER BY id;`)},
+		},
+		RootDir:  "queries",
+		Readonly: true,
+	}}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/all-sessions.sql/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "all-sessions.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command response: %v", err)
+	}
+	if payload.GetRowCount() != 2 {
+		t.Fatalf("expected query command to honor server max rows=2, got row_count=%d rows=%#v", payload.GetRowCount(), payload.GetRows())
+	}
+}
+
 func TestHandleExecuteQueryCommandV2RenderOnlyUsesCallerOverrideThenAliasThenCommandDefaults(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = []minitracecmd.SourceRoot{{
 		Name: "test-root",
 		FS: fstest.MapFS{
@@ -1108,23 +1090,9 @@ func TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive(t *tes
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	defer func() { _ = db.Close() }()
-
 	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{archiveGlob},
-		TableName:    "sessions_base",
-	}); err != nil {
-		t.Fatalf("LoadArchive returned error: %v", err)
-	}
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", DBPath: ":memory:", ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, archiveGlob)
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = []minitracecmd.SourceRoot{{
 		Name: "test-root",
 		FS: fstest.MapFS{
@@ -1289,7 +1257,7 @@ func TestHandleExecuteQueryCommandV2ExecutesCheckedInMixedShowcaseJSAlias(t *tes
 }
 
 func TestHandleExecuteQueryCommandV2ReturnsNotFoundForUnknownCommand(t *testing.T) {
-	server := NewServer(nil, &ServeSettings{TableName: "sessions_base"}, map[string]string{}, nil, nil)
+	server := NewServer(nil, &ServeSettings{}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/missing.sql/execute", strings.NewReader(`{}`))
 	request.SetPathValue("path", "missing.sql/execute")
 	response := httptest.NewRecorder()
@@ -1311,8 +1279,7 @@ func TestQueryCRUDV2ValidatesPathsAndPersistsQueries(t *testing.T) {
 		t.Fatalf("writing second-root query: %v", err)
 	}
 	server := NewServer(nil, &ServeSettings{
-		TableName: "sessions_base",
-		QueryDir:  []string{queryDir1, queryDir2},
+		QueryDir: []string{queryDir1, queryDir2},
 	}, map[string]string{}, nil, nil)
 
 	saveReq := &apiv1.SaveQueryRequest{
@@ -1500,23 +1467,9 @@ func newLoadedQueryCommandServer(t *testing.T, repoRoot string, sessions ...*min
 		}
 	}
 
-	ctx := context.Background()
-	db, conn, err := queryengine.OpenConnection(ctx, ":memory:")
-	if err != nil {
-		t.Fatalf("OpenConnection returned error: %v", err)
-	}
-	t.Cleanup(func() { _ = conn.Close() })
-	t.Cleanup(func() { _ = db.Close() })
-
 	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
-	if err := queryengine.LoadArchive(ctx, conn, queryengine.LoadOptions{
-		ArchiveGlobs: []string{archiveGlob},
-		TableName:    "sessions_base",
-	}); err != nil {
-		t.Fatalf("LoadArchive returned error: %v", err)
-	}
-
-	server := NewServer(conn, &ServeSettings{TableName: "sessions_base", ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, archiveGlob)
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repoRoot})
 	return server
 }
@@ -1527,6 +1480,99 @@ func fixtureSessionForQueryRepository(t *testing.T, sessionID, workingDirectory 
 	session.OperationalContext.WorkingDirectory = stringPtr(workingDirectory)
 	session.Title = stringPtr("Fixture " + sessionID)
 	return session
+}
+
+// TestBuildServeQueryTargetAttachesLiveAnnotations verifies that serve's SQL
+// surface reads the annotation store live via the same-engine ATTACH: rows
+// written to annotations.db after startup are visible without a rebuild.
+func TestBuildServeQueryTargetAttachesLiveAnnotations(t *testing.T) {
+	ctx := context.Background()
+	archiveRoot := t.TempDir()
+	session := buildFixtureSession(t, "phase3-anno-live")
+	if _, err := minitrace.WriteSession(session, archiveRoot); err != nil {
+		t.Fatalf("WriteSession returned error: %v", err)
+	}
+
+	store, err := annotate.Open(ctx, archiveRoot)
+	if err != nil {
+		t.Fatalf("annotate.Open returned error: %v", err)
+	}
+	defer func() { _ = store.Close() }()
+	firstAnn := minitrace.Annotation{
+		ID:        "ann-live-001",
+		Timestamp: minitrace.FormatTimestamp(time.Now().UTC()),
+		Annotator: "tester",
+		Scope:     minitrace.AnnotationScope{Type: "session", TargetID: "phase3-anno-live"},
+		Content:   minitrace.AnnotationContent{Category: "observation", Title: "before startup"},
+	}
+	if err := store.AddAnnotation(ctx, firstAnn, "phase3-anno-live"); err != nil {
+		t.Fatalf("AddAnnotation returned error: %v", err)
+	}
+
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	glob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
+	target, attached, err := buildServeQueryTarget(ctx, []string{glob}, archiveRoot, serveQueryOptions(10000, 30000))
+	if err != nil {
+		t.Fatalf("buildServeQueryTarget returned error: %v", err)
+	}
+	defer func() { _ = target.Close() }()
+	if !attached {
+		t.Fatalf("expected annotations to be attached")
+	}
+
+	rows, err := target.Query(ctx, "SELECT title FROM anno.annotations ORDER BY title")
+	if err != nil {
+		t.Fatalf("querying anno.annotations: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["title"] != "before startup" {
+		t.Fatalf("unexpected annotation rows %#v", rows)
+	}
+
+	// Live read: a row added after the target was built must be visible.
+	secondAnn := firstAnn
+	secondAnn.ID = "ann-live-002"
+	secondAnn.Content.Title = "after startup"
+	if err := store.AddAnnotation(ctx, secondAnn, "phase3-anno-live"); err != nil {
+		t.Fatalf("AddAnnotation returned error: %v", err)
+	}
+	rows, err = target.Query(ctx, "SELECT title FROM anno.annotations ORDER BY title")
+	if err != nil {
+		t.Fatalf("querying anno.annotations after write: %v", err)
+	}
+	if len(rows) != 2 || rows[1]["title"] != "before startup" || rows[0]["title"] != "after startup" {
+		t.Fatalf("expected live annotation rows, got %#v", rows)
+	}
+
+	// The sandbox still denies everything outside the allowlist.
+	result, err := target.QueryResult(ctx, "SELECT * FROM sqlite_master")
+	if err != nil {
+		t.Fatalf("QueryResult(sqlite_master) returned error: %v", err)
+	}
+	if result.Error == "" {
+		t.Fatalf("expected sqlite_master to be denied")
+	}
+
+	// The normalized archive tables are still queryable on the same target.
+	row, err := target.QueryOne(ctx, "SELECT COUNT(*) AS n FROM sessions")
+	if err != nil {
+		t.Fatalf("querying sessions: %v", err)
+	}
+	if row["n"] != int64(1) {
+		t.Fatalf("expected 1 session, got %#v", row["n"])
+	}
+}
+
+// newTestQueryTarget builds the normalized SQLite query target for the given
+// archive globs, isolating the builder disk cache in a per-test directory.
+func newTestQueryTarget(t *testing.T, archiveGlobs ...string) minitracedb.QueryTarget {
+	t.Helper()
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	target, err := minitracejs.NewArchiveQueryTarget(context.Background(), archiveGlobs, serveQueryOptions(10000, 30000))
+	if err != nil {
+		t.Fatalf("NewArchiveQueryTarget returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = target.Close() })
+	return target
 }
 
 func buildFixtureSession(t *testing.T, sessionID string) *minitrace.Session {

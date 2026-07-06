@@ -17,7 +17,7 @@ const meta = {
     ),
   ],
   args: {
-    sql: "SELECT id, title,\n  CAST(metrics->>'turn_count' AS INT) AS turns\nFROM sessions_base\nWHERE LOWER(title) LIKE '%wesen%'\nORDER BY timing->>'started_at';",
+    sql: "SELECT session_id AS id, title, turn_count AS turns\nFROM sessions\nWHERE LOWER(title) LIKE '%wesen%'\nORDER BY started_at;",
     onSqlChange: fn(),
     onExecute: fn(),
     onExecuteCommand: fn(),
@@ -56,7 +56,7 @@ export const WithResults: Story = {
 
 export const WithError: Story = {
   args: {
-    sql: "SELECT error_column FROM sessions_base;",
+    sql: "SELECT error_column FROM sessions;",
     error: {
       message: 'Binder Error: Referenced column "error_column" not found in FROM clause!\nCandidate bindings: "title", "summary", "operational_context"',
     },
@@ -74,25 +74,24 @@ export const LongQuery: Story = {
     sql: `-- Extract all user turns with timestamps and gaps
 WITH user_turns AS (
   SELECT
-    s.id AS session_id,
-    t.idx AS turn_idx,
-    CAST(t.turn->>'timestamp' AS TIMESTAMP) AS ts,
-    LEFT(CAST(t.turn->>'content' AS VARCHAR), 200) AS content
-  FROM sessions_base s
-  CROSS JOIN UNNEST(turns) WITH ORDINALITY AS t(turn, idx)
-  WHERE s.id = '019d174c-fc68-7c00-8f1b-7fcc067c1fd6'
-    AND CAST(t.turn->>'role' AS VARCHAR) = 'user'
+    session_id,
+    turn_index AS turn_idx,
+    timestamp AS ts,
+    substr(content, 1, 200) AS content
+  FROM turns
+  WHERE session_id = '019d174c-fc68-7c00-8f1b-7fcc067c1fd6'
+    AND role = 'user'
 ),
 gaps AS (
   SELECT *,
-    ts - LAG(ts) OVER (PARTITION BY session_id ORDER BY turn_idx) AS gap
+    unixepoch(ts) - unixepoch(LAG(ts) OVER (PARTITION BY session_id ORDER BY turn_idx)) AS gap_seconds
   FROM user_turns
 )
 SELECT session_id, turn_idx, ts,
-  ROUND(EXTRACT(EPOCH FROM gap) / 60, 1) AS gap_minutes,
+  ROUND(gap_seconds / 60.0, 1) AS gap_minutes,
   content
 FROM gaps
-WHERE EXTRACT(EPOCH FROM gap) > 1800
+WHERE gap_seconds > 1800
 ORDER BY ts;`,
     result: {
       columns: ["session_id", "turn_idx", "ts", "gap_minutes", "content"],
@@ -114,7 +113,7 @@ export const CommandMode: Story = {
       title_like: "wesen",
       limit: 25,
     },
-    commandRenderedSql: "SELECT id, title FROM sessions_base LIMIT 25;",
+    commandRenderedSql: "SELECT session_id AS id, title FROM sessions LIMIT 25;",
     sourceStatus: {
       label: "Query command",
       path: mockQueryCommands[0].path,

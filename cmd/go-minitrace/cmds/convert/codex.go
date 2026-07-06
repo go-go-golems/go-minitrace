@@ -13,6 +13,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/settings"
 	"github.com/go-go-golems/glazed/pkg/types"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
+	"github.com/go-go-golems/go-minitrace/pkg/adapters"
 	"github.com/go-go-golems/go-minitrace/pkg/adapters/codex"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/pkg/errors"
@@ -24,9 +25,11 @@ type ConvertCodexCommand struct {
 }
 
 type ConvertCodexSettings struct {
-	SourceDir string `glazed:"source-dir"`
-	OutputDir string `glazed:"output-dir"`
-	DryRun    bool   `glazed:"dry-run"`
+	SourceDir      string   `glazed:"source-dir"`
+	SourceSessions []string `glazed:"source-session"`
+	SourceList     string   `glazed:"source-list"`
+	OutputDir      string   `glazed:"output-dir"`
+	DryRun         bool     `glazed:"dry-run"`
 }
 
 func NewConvertCodexGlazeCommand() (*ConvertCodexCommand, error) {
@@ -52,9 +55,13 @@ The current implementation supports:
 Examples:
   go-minitrace convert codex --source-dir ~/.codex --output-dir ./output
   go-minitrace convert codex --source-dir ~/.codex --dry-run --output json
+  go-minitrace convert codex --source-session ~/.codex/sessions/2026/07/05/rollout-abc.jsonl --output-dir ./output
+  go-minitrace convert codex --source-list ./sessions.txt --output-dir ./output
 `),
 		cmds.WithFlags(
 			fields.New("source-dir", fields.TypeString, fields.WithDefault("~/.codex"), fields.WithHelp("Codex home directory")),
+			fields.New("source-session", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Explicit Codex session JSONL files to convert instead of scanning --source-dir (repeatable)")),
+			fields.New("source-list", fields.TypeString, fields.WithDefault(""), fields.WithHelp("File with newline-separated Codex session paths; blank lines and # comments are ignored")),
 			fields.New("output-dir", fields.TypeString, fields.WithDefault("./output"), fields.WithHelp("Target minitrace archive directory")),
 			fields.New("dry-run", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Inspect sources without writing output")),
 		),
@@ -72,16 +79,38 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		return err
 	}
 
-	locators, err := codex.Discover(settings_.SourceDir)
+	explicitPaths, err := collectSourceSessions(settings_.SourceSessions, settings_.SourceList)
 	if err != nil {
 		return err
 	}
+	var locators []adapters.SessionLocator
+	if len(explicitPaths) > 0 {
+		locators = make([]adapters.SessionLocator, 0, len(explicitPaths))
+		for _, path := range explicitPaths {
+			locator, err := codex.LocateSession(path)
+			if err != nil {
+				return err
+			}
+			locators = append(locators, locator)
+		}
+	} else {
+		locators, err = codex.Discover(settings_.SourceDir)
+		if err != nil {
+			return err
+		}
+	}
 
 	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
+	convertedCount := 0
+	failedCount := 0
 	for _, locator := range locators {
 		session, err := codex.ConvertLocator(locator)
 		if err != nil {
-			return errors.Wrapf(err, "converting Codex session %s", locator.ID)
+			failedCount++
+			if rowErr := emitFailedSessionRow(ctx, gp, "codex", locator.ID, "", locator.FormatHint, locator.SourcePath, settings_.DryRun, err); rowErr != nil {
+				return rowErr
+			}
+			continue
 		}
 
 		var sessionPath string
@@ -113,6 +142,10 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
 		}
+		convertedCount++
+	}
+	if failedCount > 0 && convertedCount == 0 {
+		return errors.Errorf("all %d Codex sessions failed to convert", failedCount)
 	}
 
 	if !settings_.DryRun {

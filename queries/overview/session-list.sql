@@ -1,18 +1,18 @@
--- session-list.sql
--- List all sessions with key metadata fields.
+-- session-list: List all sessions with key metadata fields
 -- Usage:
---   duckdb analysis.duckdb -init queries/load.sql -f queries/session-list.sql
+--   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --sql-file queries/overview/session-list.sql
 
 SELECT
-  id,
-  environment->>'agent_framework' AS framework,
-  environment->>'model' AS model,
-  title,
-  CAST(metrics->>'turn_count' AS INT) AS turns,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools,
-  ROUND(CAST(timing->>'duration_seconds' AS DOUBLE), 1) AS duration_s,
-  ROUND(CAST(metrics->>'read_ratio' AS DOUBLE), 2) AS read_ratio,
-  timing->>'started_at' AS started_at,
-  provenance->>'source_format' AS source_format
-FROM sessions_base
-ORDER BY timing->>'started_at';
+  s.session_id AS id,
+  s.agent_framework AS framework,
+  s.model,
+  s.title,
+  s.turn_count AS turns,
+  s.tool_call_count AS tools,
+  ROUND(s.duration_seconds, 1) AS duration_s,
+  ROUND(m.read_ratio, 2) AS read_ratio,
+  s.started_at,
+  s.source_format
+FROM sessions s
+LEFT JOIN metrics m ON m.session_id = s.session_id
+ORDER BY s.started_at;

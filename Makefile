@@ -119,7 +119,6 @@ dev:
 	@# Pane 1: serve backend (full height, will split later)
 	tmux send-keys -t $(DEV_TMUX) './go-minitrace serve \
 		--archive-glob "$(DEV_SESSION_GLOB)" \
-		--db-path $(DEV_DB) \
 		--port $(DEV_PORT) \
 		--dev' Enter
 	@# Wait for serve to bind port, then split for frontend
@@ -136,8 +135,8 @@ dev:
 		echo "Sessions: $(DEV_SESSION_GLOB)" && \
 		echo "" && \
 		echo "Quick test:" && \
-		echo "  curl http://localhost:$(DEV_PORT)/api/sessions | python3 -m json.tool | head -20" && \
-		echo "  curl http://localhost:$(DEV_PORT)/api/annotations" && \
+		echo "  curl http://localhost:$(DEV_PORT)/api/v2/sessions | python3 -m json.tool | head -20" && \
+		echo "  curl http://localhost:$(DEV_PORT)/api/v2/annotations" && \
 		echo "  ./go-minitrace annotate add --output-dir ./tmp/output --session <id> --category ai-failure --title test" && \
 		echo "" && \
 		echo "Tmux keybindings: Ctrl-b d=detach  Ctrl-b o=cycle panes  Ctrl-b x=kill pane"' Enter
@@ -150,7 +149,6 @@ dev-serve:
 	go build -o ./go-minitrace ./cmd/go-minitrace/
 	./go-minitrace serve \
 		--archive-glob "$(DEV_SESSION_GLOB)" \
-		--db-path $(DEV_DB) \
 		--port $(DEV_PORT) \
 		--dev
 
@@ -159,7 +157,7 @@ dev-logs:
 	@# RequiresDEV_DB log file — serve doesn't write one by default.
 	@# Use this after starting serve in foreground or redirecting stderr.
 	@echo "Serve logs not captured by default. Start with:"
-	@echo "  ./go-minitrace serve --archive-glob '$(DEV_SESSION_GLOB)' --db-path $(DEV_DB) --port $(DEV_PORT) 2>&1 | tee serve.log"
+	@echo "  ./go-minitrace serve --archive-glob '$(DEV_SESSION_GLOB)' --port $(DEV_PORT) 2>&1 | tee serve.log"
 
 # Run the E2E test scripts against the dev environment
 dev-test:

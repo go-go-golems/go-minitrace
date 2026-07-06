@@ -1,15 +1,15 @@
 ---
 Title: Query Commands
 Slug: query-commands
-Short: Query converted minitrace archives with DuckDB using presets, custom SQL, or structured commands
+Short: Query converted minitrace archives with the normalized SQLite engine using presets, custom SQL, or structured commands
 Topics:
 - minitrace
-- duckdb
+- sqlite
 - glazed
 - sqleton
 Commands:
 - query
-- query duckdb
+- query run
 - query commands
 IsTemplate: false
 IsTopLevel: false
@@ -17,99 +17,93 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-The `query` group loads converted minitrace archives into analysis backends and runs queries against them. There are now two distinct user-facing workflows:
+The `query` group loads converted minitrace archives into a normalized SQLite database and runs queries against it. There are two user-facing workflows:
 
-- `query duckdb` for raw presets, inline SQL, and SQL files against the DuckDB `sessions_base` JSON table
+- `query run` for built-in presets, inline SQL, and SQL files against the normalized schema
 - `query commands` for repository-backed sqleton-style structured commands, including SQL templates and JavaScript handlers
 
-SQL structured commands render read-only SQL against the DuckDB runtime. JavaScript structured commands now usually call `require("minitrace").db().RuntimeArchives().Build()` and query normalized SQLite tables explicitly. The difference is not only where the SQL comes from; JS commands can also build a normalized database, run several queries, and combine or score the results in JavaScript.
+Both workflows share the same engine: a sandboxed, read-only SQLite query runner over the normalized tables. SQL structured commands render read-only SQL against that runner; JavaScript structured commands call `require("minitrace").db().RuntimeArchives().QueryCommandDefaults().Build()` and can run several queries and combine or score the results in JavaScript.
 
 ## Query workflow choices
 
-Choose `query duckdb` when you are exploring, prototyping, or already have raw SQL in hand. It is the shortest path from idea to result.
+Choose `query run` when you are exploring, prototyping, or already have raw SQL in hand. It is the shortest path from idea to result.
 
 Choose `query commands` when the query should become a named, reusable analysis tool. Structured commands give you typed parameters, aliases, CLI discoverability, and a matching form in the `/query` web UI.
 
 For the full structured-command authoring and repository-loading guide, see `go-minitrace help structured-query-commands`.
 
-## How `query duckdb` works
+## How `query run` works
 
-When you run `query duckdb`, go-minitrace:
+When you run `query run`, go-minitrace:
 
-1. Opens a DuckDB connection (in-memory by default, or at a specified database path)
-2. Loads minitrace JSON files matching the archive glob into a table called `sessions_base`
-3. Runs either a named preset, inline SQL, or a SQL file against that table
+1. Expands the archive globs and fingerprints the matching `.minitrace.json` files
+2. Builds (or reuses from cache) a normalized SQLite database with one table per entity: `sessions`, `turns`, `tool_calls`, `turn_tool_calls`, `files`, `annotations`, `handovers`, `metrics`, `attachments`, `events`
+3. Runs either a named preset, inline SQL, or a SQL file through the sandboxed read-only query runner
 4. Streams results through Glazed for output formatting
 
-The loading step uses DuckDB's `read_json()` with an explicit column schema and `ignore_errors = true`, so malformed files are silently skipped rather than crashing the query.
+The runner enforces an allowlist of the normalized tables plus the `sessions_base` compatibility view; DDL, writes, and access to `sqlite_master` are rejected.
 
-## query duckdb
+## query run
 
 ```bash
-go-minitrace query duckdb [flags]
+go-minitrace query run [flags]
 ```
 
 ### Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--archive-glob` | `./output/active/*/*.minitrace.json` | Glob pattern matching minitrace session files |
-| `--db-path` | `:memory:` | DuckDB database path. Use a file path for persistence across runs |
-| `--table-name` | `sessions_base` | Name of the table created from the loaded archive |
+| `--archive-glob` | `./output/active/*/*.minitrace.json` | Repeatable glob flag matching minitrace session files |
 | `--preset` | | Named built-in query to run |
-| `--sql` | | Inline SQL to run after loading |
-| `--sql-file` | | Path to a SQL file to execute after loading |
-| `--load-only` | `false` | Load the archive and emit a summary row without running a query |
-| `--persist-loaded` | `false` | Create a persistent table instead of a temporary one |
+| `--sql` | | Inline SQL to run against the normalized database |
+| `--sql-file` | | Path to a SQL file to execute |
+| `--max-rows` | `1000` | Maximum number of rows to return |
+| `--max-cell-chars` | `4000` | Maximum number of characters per result cell |
+| `--timeout-ms` | `5000` | Query timeout in milliseconds |
 
-Exactly one of `--preset`, `--sql`, `--sql-file`, or `--load-only` must be specified. They are mutually exclusive.
+Exactly one of `--preset`, `--sql`, or `--sql-file` must be specified. They are mutually exclusive.
 
 ### Query modes
 
 **Preset mode** runs one of the built-in queries:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset session-list
 ```
 
-**Inline SQL mode** runs arbitrary SQL against the loaded archive:
+**Inline SQL mode** runs arbitrary SQL against the normalized database:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "SELECT COUNT(*) AS total FROM sessions_base"
+  --sql "SELECT COUNT(*) AS total FROM sessions"
 ```
 
 **SQL file mode** reads a query from a file. This is useful for saved query libraries:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql-file ./my-query.sql
 ```
 
-**Load-only mode** creates the table and reports what was loaded without running a query. Use this to verify loading before querying interactively:
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --load-only
-```
-
 ### Built-in presets
+
+Presets are embedded under `pkg/minitracedb/presets/` and addressed by bare name (or `folder/name` when ambiguous):
 
 | Preset | Description |
 |--------|-------------|
-| `session-list` | One row per session: id, framework, model, title, turns, tools, duration, read ratio, start time, source format |
-| `framework-summary` | Aggregate stats by agent framework: session count, average tools/turns/read ratio/duration/TTFA |
-| `tool-operation-breakdown` | Tool call counts grouped by framework and operation type (READ, MODIFY, NEW, EXECUTE, DELEGATE) |
-| `timing-analysis` | Duration, active time, TTFA, idle ratio, min/max duration by framework |
-| `read-ratio-distribution` | Per-session breakdown of reads, modifies, creates, executes with read ratio |
-| `annotations` | All annotations unnested: session ID, framework, annotator, category, title, scope |
-
-Native minitrace JSON can also include `events` and `attachments` arrays. These are queryable with the same `UNNEST` pattern as turns, tool calls, and annotations.
+| `overview/session-list` | One row per session: id, framework, model, title, turns, tools, duration, read ratio, start time, source format |
+| `overview/framework-summary` | Aggregate stats by agent framework: session count, average tools/turns/read ratio/duration/TTFA |
+| `overview/annotations` | All annotations joined with sessions: session ID, framework, annotator, category, title, scope |
+| `timing/timing-analysis` | Duration, active time, TTFA, idle ratio, min/max duration by framework |
+| `tools/tool-operation-breakdown` | Tool call counts grouped by framework and operation type (read, modify, create, execute, delegate) |
+| `tools/tool-failures` | Failed tool calls with turn, tool, target, and error detail |
+| `tools/read-ratio-distribution` | Per-session breakdown of reads, modifies, creates, executes with read ratio |
+| `files/file-operations` | Every file touch in session order with success/failure status |
+| `files/file-timeline` | Chronological operations on files, with result content classified into short labels |
 
 ### Output formatting
 
@@ -117,145 +111,88 @@ Query results flow through Glazed, so all standard output options work:
 
 ```bash
 # Default table output
-go-minitrace query duckdb --archive-glob '...' --preset session-list
+go-minitrace query run --archive-glob '...' --preset session-list
 
 # JSON for piping
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output json
+go-minitrace query run --archive-glob '...' --preset session-list --output json
 
 # CSV for spreadsheets
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output csv
-
-# YAML
-go-minitrace query duckdb --archive-glob '...' --preset session-list --output yaml
+go-minitrace query run --archive-glob '...' --preset session-list --output csv
 
 # Select specific fields
-go-minitrace query duckdb --archive-glob '...' --preset session-list --fields id,framework,turns,tools
+go-minitrace query run --archive-glob '...' --preset session-list --fields id,framework,turns,tools
 ```
 
-### Persistent database workflows
+## The normalized schema
 
-For repeated querying, use a file-backed database with `--persist-loaded`:
+The database has one table per minitrace entity:
 
-```bash
-# Load once
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --db-path analysis.duckdb \
-  --persist-loaded \
-  --load-only
+| Table | Contents |
+|-------|----------|
+| `sessions` | One row per session: provenance, environment, timing, operational context, outcome, and rollup counts as real columns |
+| `turns` | One row per conversational turn: role, content, model, thinking, token usage |
+| `tool_calls` | One row per tool call: tool name, operation type, file path, command, success, error, exit code, duration |
+| `turn_tool_calls` | Join table preserving tool-call membership and ordinal per turn |
+| `files` | One row per file path touched by a tool call |
+| `annotations` | One row per annotation with scope, content, and taxonomy mappings |
+| `handovers` | Received/produced handover documents per session |
+| `metrics` | Wide per-session metrics: tokens, timing, subagents, model switches |
+| `attachments` | Artifact references (images, files) linked to turns, tool calls, or events |
+| `events` | Timeline events such as compactions, mode changes, or rate-limit snapshots |
 
-# Query repeatedly without reloading
-go-minitrace query duckdb \
-  --db-path analysis.duckdb \
-  --archive-glob '' \
-  --sql "SELECT COUNT(*) FROM sessions_base"
-```
-
-Or use the external DuckDB CLI with the `queries/` directory:
-
-```bash
-duckdb analysis.duckdb -init queries/load.sql -f queries/session-list.sql
-```
-
-### The sessions_base table
-
-The loaded table has these columns, all derived from the minitrace JSON schema:
-
-| Column | Type | Access pattern |
-|--------|------|---------------|
-| `id` | VARCHAR | Direct: `id` |
-| `title` | VARCHAR | Direct: `title` |
-| `summary` | VARCHAR | Direct: `summary` |
-| `classification` | VARCHAR | Direct: `classification` |
-| `profile` | VARCHAR | Direct: `profile` |
-| `provenance` | JSON | Nested: `provenance->>'source_format'` |
-| `flags` | JSON | Nested: `flags->>'needs_cleaning'` |
-| `environment` | JSON | Nested: `environment->>'model'` |
-| `operational_context` | JSON | Nested: `operational_context->>'working_directory'` |
-| `timing` | JSON | Nested: `timing->>'duration_seconds'` |
-| `turns` | JSON[] | Array: `UNNEST(turns)` |
-| `tool_calls` | JSON[] | Array: `UNNEST(tool_calls)` |
-| `events` | JSON[] | Array: `UNNEST(events)` |
-| `attachments` | JSON[] | Array: `UNNEST(attachments)` |
-| `annotations` | JSON[] | Array: `UNNEST(annotations)` |
-| `metrics` | JSON | Nested: `metrics->>'turn_count'` |
-
-Use `->>'field'` to extract string values from JSON columns, then CAST to the appropriate type for numeric operations. Inside predicates, parenthesize JSON-arrow extractions because DuckDB gives `->` / `->>` low precedence.
-
-For the array columns, the normal access pattern is:
+Fields that used to require `UNNEST` on JSON arrays are now plain rows in child tables keyed by `session_id`:
 
 ```sql
-SELECT tc->>'tool_name'
-FROM sessions_base,
-     UNNEST(tool_calls) AS t(tc)
+SELECT tc.tool_name, tc.operation_type, tc.success
+FROM tool_calls tc
+JOIN sessions s USING (session_id)
 LIMIT 20;
 ```
 
-Source events and attachments use the same pattern:
+Long-tail fields that never got a real column are still reachable through JSON: every table carries a `raw_json` column with the original record, and turns/tool calls carry `framework_metadata_json`:
 
 ```sql
--- Explicit source lifecycle events such as compactions, mode changes, or rate-limit snapshots.
-SELECT id, ev->>'kind' AS kind, ev->>'title' AS title, ev->>'summary' AS summary
-FROM sessions_base,
-     UNNEST(events) AS e(ev)
-ORDER BY id, ev->>'timestamp';
-
--- Artifact references such as images or uploaded files.
-SELECT id, a->>'kind' AS kind, a->>'media_type' AS media_type, a->>'path' AS path
-FROM sessions_base,
-     UNNEST(attachments) AS x(a)
-WHERE a->>'kind' = 'image';
+SELECT session_id,
+       json_extract(framework_metadata_json, '$.stop_reason') AS stop_reason
+FROM turns
+WHERE framework_metadata_json IS NOT NULL
+LIMIT 10;
 ```
 
-Two small but important DuckDB details:
+### The sessions_base compatibility view
 
-- these array columns are loaded as `JSON[]`, so unnesting first is usually the clearest approach
-- DuckDB list indexing is **1-based**, so `tool_calls[1]` is the first element, not `tool_calls[0]`
-
-### Querying annotations correctly
-
-The `annotations` column is a JSON array in the loaded archive. To work with it, unnest the array and then extract fields from each annotation object.
-
-The most common paths are:
-
-| Path | Meaning |
-|------|---------|
-| `$.annotator` | Who created the annotation |
-| `$.scope.type` | `session`, `turn`, or `tool_call` |
-| `$.scope.target_id` | The session ID, turn index, or tool-call ID being annotated |
-| `$.content.category` | The main label such as `ai-failure` or `question` |
-| `$.content.title` | Short human-readable summary |
-| `$.content.detail` | Longer explanatory note |
-| `$.content.tags` | Tag array |
-| `$.taxonomy_mappings.minitrace` | Minitrace taxonomy codes |
-| `$.taxonomy_mappings.mast` | MAST taxonomy codes |
-| `$.taxonomy_mappings.toolemu` | ToolEmu taxonomy codes |
-| `$.classification` | Optional classification level |
-
-A basic annotation query looks like this:
+Session-level SQL written for the removed DuckDB engine keeps working against the `sessions_base` view, which reconstructs the old shape (scalar columns `id`, `title`, `summary`, `classification`, `profile` plus JSON blob columns `provenance`, `flags`, `environment`, `operational_context`, `timing`, `turns`, `tool_calls`, `annotations`, `metrics`) from the `sessions` table. SQLite >= 3.38 supports `->`/`->>` on those JSON text columns:
 
 ```sql
-SELECT
-  id AS session_id,
-  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
-  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
-  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
-FROM sessions_base,
-     UNNEST(annotations) AS a(ann)
-ORDER BY session_id;
+SELECT id, environment->>'model' AS model
+FROM sessions_base
+LIMIT 5;
 ```
 
-One subtle but important rule: `query duckdb` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first so the archive contains those changes.
+Per-tool-call and per-turn SQL should move to the `tool_calls`/`turns` tables — SQLite has no `UNNEST`. See `go-minitrace help query-duckdb` for the full migration table.
+
+## Querying annotations
+
+Annotations synced into the archives appear in the `annotations` table:
+
+```sql
+SELECT a.session_id, a.scope_type, a.category, a.title
+FROM annotations a
+ORDER BY a.session_id;
+```
+
+One subtle but important rule: `query run` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first so the archive contains those changes. (The web UI is different: `serve` ATTACHes the live annotation store as schema `anno`, so `anno.annotations` is always current there.)
 
 ## Troubleshooting
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | Query returns 0 rows | Archive glob doesn't match any files | Check the glob path with `ls` first |
-| `no query source specified` | None of preset/sql/sql-file/load-only was given | Add `--preset`, `--sql`, `--sql-file`, or `--load-only` |
+| `one of preset, sql, or sql-file must be specified` | No query mode given | Add `--preset`, `--sql`, or `--sql-file` |
 | `preset, sql, and sql-file are mutually exclusive` | More than one query mode specified | Use exactly one |
-| Type error in SQL | JSON field not cast before arithmetic | Wrap in `CAST(... AS INT)` or `CAST(... AS DOUBLE)` |
-| DuckDB error on ignore_errors | Very old DuckDB version | Update DuckDB; go-minitrace embeds a compatible version |
+| `access to table "..." is not allowed` | Query references a table outside the allowlist (including `sqlite_master`) | Stick to the normalized tables; use `db.schema()` from JS or `go-minitrace help minitrace-schema` for introspection |
+| `no such function: UNNEST` or similar | DuckDB-era SQL | Rewrite against the child tables; see `go-minitrace help query-duckdb` |
+| Query cancelled | Timeout exceeded | Raise `--timeout-ms` |
 
 ## Structured query commands
 
@@ -266,7 +203,7 @@ Those files define:
 - a command name and help text
 - typed Glazed fields
 - optional aliases with prefilled defaults
-- a SQL template that renders against `{{TABLE_NAME}}`
+- a SQL template (rendered against the normalized schema; the `{{TABLE_NAME}}` placeholder substitutes to the `sessions_base` compatibility view) or a JavaScript handler
 
 A simple example looks like this:
 
@@ -275,6 +212,8 @@ go-minitrace query commands overview session-list \
   --archive-glob './output/active/*/*.minitrace.json' \
   --framework codex,pi
 ```
+
+The legacy `--db-path`, `--table-name`, and `--persist-loaded` flags are deprecated: SQL commands ignore them (with a warning) and always run against the normalized database built from `--archive-glob`. JS commands still see the values on `mt.runtime` but should use `mt.db()` instead.
 
 The repository-backed flow is the right choice when a query should be reusable by other people, promoted into the web UI, or shared through config/env/flag-discovered command repositories.
 
@@ -289,7 +228,8 @@ See `go-minitrace help structured-query-commands` for:
 
 - `go-minitrace help structured-query-commands` — run and author sqleton-style structured query commands
 - `go-minitrace help annotation-playbook` — operator workflow for creating, syncing, and validating annotations
-- `go-minitrace help writing-duckdb-queries` — how to write custom SQL against the minitrace schema
-- `go-minitrace help duckdb-query-recipes` — ready-to-use query examples
+- `go-minitrace help writing-queries` — how to write custom SQL against the normalized schema
+- `go-minitrace help query-recipes` — ready-to-use query examples
+- `go-minitrace help query-duckdb` — migrating saved DuckDB SQL to the normalized engine
 - `go-minitrace help output-formats-and-pipelines` — detailed Glazed output formatting guide
-- `go-minitrace help minitrace-schema` — field reference for the loaded JSON
+- `go-minitrace help minitrace-schema` — field reference for the archive JSON and normalized tables

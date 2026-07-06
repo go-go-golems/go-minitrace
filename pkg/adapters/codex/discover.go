@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-go-golems/go-minitrace/pkg/adapters"
+	"github.com/pkg/errors"
 )
 
 func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
@@ -31,12 +32,7 @@ func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
 			return nil
 		}
 
-		sid := strings.TrimSuffix(filepath.Base(path), ".jsonl")
-		ret = append(ret, adapters.SessionLocator{
-			ID:         sid,
-			FormatHint: detectFormat(path),
-			SourcePath: path,
-		})
+		ret = append(ret, locatorForFile(path))
 		return nil
 	})
 	if err != nil {
@@ -45,6 +41,54 @@ func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
 
 	sort.Slice(ret, func(i, j int) bool { return ret[i].SourcePath < ret[j].SourcePath })
 	return ret, nil
+}
+
+// LocateSession builds a SessionLocator for an explicitly listed Codex
+// session JSONL file, validating that the file exists.
+func LocateSession(path string) (adapters.SessionLocator, error) {
+	root, err := expandHome(path)
+	if err != nil {
+		return adapters.SessionLocator{}, err
+	}
+	if _, err := os.Stat(root); err != nil {
+		return adapters.SessionLocator{}, errors.Wrapf(err, "codex source session %s", path)
+	}
+	return locatorForFile(root), nil
+}
+
+func locatorForFile(path string) adapters.SessionLocator {
+	cwd, startedAt := readSessionHeader(path)
+	return adapters.SessionLocator{
+		ID:         strings.TrimSuffix(filepath.Base(path), ".jsonl"),
+		FormatHint: detectFormat(path),
+		SourcePath: path,
+		Cwd:        cwd,
+		StartedAt:  startedAt,
+	}
+}
+
+// readSessionHeader cheaply extracts the working directory and start
+// timestamp from the leading session_meta record of a Codex session JSONL
+// file. It reads at most a bounded prefix of the file; exec JSONL streams
+// carry no session_meta record and yield empty values.
+func readSessionHeader(path string) (string, string) {
+	var cwd, startedAt string
+	_ = adapters.ScanJSONLHead(path, adapters.HeadMaxLines, adapters.HeadMaxBytes, func(record map[string]any) bool {
+		type_, _ := record["type"].(string)
+		if type_ != "session_meta" {
+			return false
+		}
+		payload, _ := record["payload"].(map[string]any)
+		if payload != nil {
+			cwd, _ = payload["cwd"].(string)
+		}
+		startedAt, _ = record["timestamp"].(string)
+		if startedAt == "" && payload != nil {
+			startedAt, _ = payload["timestamp"].(string)
+		}
+		return true
+	})
+	return cwd, startedAt
 }
 
 func detectFormat(path string) string {

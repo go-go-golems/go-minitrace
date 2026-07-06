@@ -88,8 +88,11 @@ func TestNewCommand_AddsCommandsSubgroup(t *testing.T) {
 	for _, sub := range root.Commands() {
 		seen[sub.Name()] = true
 	}
-	if !seen["duckdb"] || !seen["commands"] {
+	if !seen["run"] || !seen["commands"] {
 		t.Fatalf("query root subcommands missing expected entries: %#v", seen)
+	}
+	if seen["duckdb"] {
+		t.Fatalf("legacy duckdb subcommand should be removed: %#v", seen)
 	}
 
 	if root.CommandPath() != "query" {
