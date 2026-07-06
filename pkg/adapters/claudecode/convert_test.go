@@ -598,6 +598,37 @@ func TestConvertRecordsReadsSessionContextFromAnyRecord(t *testing.T) {
 	}
 }
 
+func TestConvertRecordsExtractsCleartextThinking(t *testing.T) {
+	records := []map[string]any{
+		{
+			"uuid":      "assistant-thinking",
+			"type":      "assistant",
+			"timestamp": "2026-06-01T10:00:00Z",
+			"message": map[string]any{
+				"role": "assistant",
+				"content": []any{
+					map[string]any{"type": "thinking", "thinking": "I should inspect the file first."},
+					map[string]any{"type": "text", "text": "I'll inspect the file."},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-clear-thinking", "/tmp/clear-thinking.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Turns) != 1 {
+		t.Fatalf("expected one assistant turn, got %d", len(session.Turns))
+	}
+	if session.Turns[0].Thinking == nil || *session.Turns[0].Thinking != "I should inspect the file first." {
+		t.Fatalf("expected cleartext thinking extraction, got %+v", session.Turns[0].Thinking)
+	}
+	if session.Turns[0].Content != "I'll inspect the file." {
+		t.Fatalf("expected visible text content only, got %q", session.Turns[0].Content)
+	}
+}
+
 func TestConvertRecordsPreservesSignedThinkingPresence(t *testing.T) {
 	records := []map[string]any{
 		{
