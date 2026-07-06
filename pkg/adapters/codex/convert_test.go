@@ -69,6 +69,14 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 			},
 		},
 		{
+			"timestamp": "2026-03-29T11:00:03Z",
+			"type":      "event_msg",
+			"payload": map[string]any{
+				"type": "agent_reasoning",
+				"text": "Checking command output",
+			},
+		},
+		{
 			"timestamp": "2026-03-29T11:00:04Z",
 			"type":      "event_msg",
 			"payload": map[string]any{
@@ -135,6 +143,58 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	}
 	if session.Metrics.TotalInputTokens == nil || *session.Metrics.TotalInputTokens != 30 {
 		t.Fatalf("expected input tokens 30, got %+v", session.Metrics.TotalInputTokens)
+	}
+	if len(session.Turns) != 2 || session.Turns[1].Thinking == nil || *session.Turns[1].Thinking != "**Inspecting file**\nChecking command output" {
+		t.Fatalf("expected joined reasoning on assistant turn, got %+v", session.Turns)
+	}
+	turnMetadata, ok := session.Turns[1].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected assistant turn metadata map, got %+v", session.Turns[1].FrameworkMetadata)
+	}
+	if turnMetadata["reasoning_block_count"] != 2 {
+		t.Fatalf("expected reasoning block count 2, got %+v", turnMetadata)
+	}
+}
+
+func TestConvertRecordsSessionJSONLFlushesTrailingReasoning(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type": "session_meta",
+			"payload": map[string]any{
+				"id": "session-trailing-reasoning",
+			},
+		},
+		{
+			"type": "event_msg",
+			"payload": map[string]any{
+				"type":    "agent_message",
+				"message": "Initial answer.",
+			},
+		},
+		{
+			"type": "response_item",
+			"payload": map[string]any{
+				"type": "reasoning",
+				"summary": []any{
+					map[string]any{"type": "summary_text", "text": "Trailing thought."},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/session.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Turns) != 1 || session.Turns[0].Thinking == nil || *session.Turns[0].Thinking != "Trailing thought." {
+		t.Fatalf("expected trailing reasoning to attach to last assistant turn, got %+v", session.Turns)
+	}
+	turnMetadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected turn metadata map, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if turnMetadata["reasoning_block_count"] != 1 || turnMetadata["reasoning_flushed_without_following_message"] != true {
+		t.Fatalf("expected flushed reasoning metadata, got %+v", turnMetadata)
 	}
 }
 
@@ -219,6 +279,9 @@ func TestConvertRecordsExecJSONL(t *testing.T) {
 	}
 	if turnMetadata["turn_id"] != "turn-1" || turnMetadata["phase"] != "commentary" {
 		t.Fatalf("expected exec turn metadata, got %+v", turnMetadata)
+	}
+	if turnMetadata["reasoning_block_count"] != 1 {
+		t.Fatalf("expected reasoning block count metadata, got %+v", turnMetadata)
 	}
 }
 
@@ -657,6 +720,13 @@ func TestConvertRecordsLegacyRolloutJSONLConvertsMessagesReasoningAndShell(t *te
 	}
 	if session.Turns[1].Thinking == nil || *session.Turns[1].Thinking != "Need to inspect the directory." {
 		t.Fatalf("expected reasoning attached to assistant turn, got %+v", session.Turns[1].Thinking)
+	}
+	legacyTurnMetadata, ok := session.Turns[1].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected legacy turn metadata map, got %+v", session.Turns[1].FrameworkMetadata)
+	}
+	if legacyTurnMetadata["reasoning_block_count"] != 1 {
+		t.Fatalf("expected legacy reasoning block count metadata, got %+v", legacyTurnMetadata)
 	}
 	if len(session.ToolCalls) != 1 {
 		t.Fatalf("expected one shell tool call, got %d", len(session.ToolCalls))

@@ -119,3 +119,14 @@ Refined coverage profiler attachment classification to avoid treating empty Copi
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py — Attachment classifier refinement
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/sources/coverage-profile/01-coverage-profile.md — Updated coverage findings
 
+
+## 2026-07-06
+
+Preserved Codex reasoning block granularity in turn metadata, flushed trailing reasoning to the last assistant turn, and refined coverage profiling to compare non-empty reasoning text blocks.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert.go — Reasoning block metadata and trailing flush
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert_test.go — Codex reasoning metadata regression tests
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py — Reasoning text-block coverage comparison
+

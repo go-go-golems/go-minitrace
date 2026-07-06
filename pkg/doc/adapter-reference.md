@@ -149,6 +149,7 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 - **Exec JSONL** → tool calls from `codex exec --json` output
 - **Legacy rollout JSONL** → older top-level message/reasoning/function-call records, including `shell` calls normalized to `exec_command`
 - **exec_command events** → native exit codes; structured output metadata also yields scraped `exit_code` and `duration_ms` (from `metadata.duration_seconds` or `"Wall time:"` lines)
+- **reasoning events and summaries** → assistant-turn `thinking`; source block counts are preserved in `turns[].framework_metadata.reasoning_block_count`
 - **token_count events** → input/output/cached/reasoning token usage
 - **Tool-call arguments** → command strings plus optional justification text
 - **spawn_agent / wait_agent calls** → spawned-agent records with sub-session IDs and outcome summaries
@@ -168,7 +169,7 @@ Codex multi-agent sessions carry native coordination fields, captured into `oper
 ### Preserved framework-specific metadata
 
 - `operational_context.framework_config`: `approval_policy`, detailed `sandbox_policy`, `collaboration_mode` (+detail), `truncation_policy`, `rate_limits`, `session_source`, `originator`, `personality`, `reasoning_effort`, `timezone`, `model_context_window`, plus the multi-agent fields above
-- `turns[].framework_metadata`: `turn_id`, `phase`, `memory_citation`
+- `turns[].framework_metadata`: `turn_id`, `phase`, `memory_citation`, `reasoning_block_count`, `reasoning_flushed_without_following_message`
 - `tool_calls[].framework_metadata`: `codex_function`, `justification` (also promoted to `input.justification`), `source`, `parsed_cmd`, `stdout`, `stderr`, `status`, `turn_id`, `exit_code` (also promoted to `output.exit_code`), `targets`, `timed_out`
 
 ### What is not preserved
@@ -177,6 +178,7 @@ Codex multi-agent sessions carry native coordination fields, captured into `oper
 - cache-creation token counts (Codex only reports cached input)
 - Token usage for the exec-JSONL format (not present in that format)
 - Binary exec output is truncated
+- Reasoning timing is turn-level: multiple source reasoning blocks are joined into `turn.thinking` and counted in metadata rather than represented as separate timeline events
 
 ## Pi adapter
 

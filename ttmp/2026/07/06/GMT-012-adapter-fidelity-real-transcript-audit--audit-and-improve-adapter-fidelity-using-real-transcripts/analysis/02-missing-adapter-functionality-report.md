@@ -42,13 +42,13 @@ This report summarizes the first measured source-vs-archive coverage pass for GM
 The most important result is that “missing thinking” is not one problem. It differs by adapter:
 
 - **Claude Code:** source has 983 `thinking` content blocks, but manual structural inspection shows they are empty cleartext blocks with `signature` fields. This is not a direct “adapter dropped thinking text” bug. It is a preservation/classification gap: the archive should probably record that signed thinking blocks existed, but it cannot expose cleartext thinking that is not present.
-- **Codex:** source has many reasoning records/events and only some are visible as `turn.thinking`. This needs mapping/granularity investigation.
+- **Codex:** fixed: source reasoning text blocks are joined into `turn.thinking`, and `turn.framework_metadata.reasoning_block_count` preserves block-level granularity for coverage and queries.
 - **Pi:** source has 1,572 non-empty thinking blocks and archive has 1,523 thinking turns. This is close, but the delta needs explanation.
 
 Highest-priority missing functionality:
 
 1. ~~Codex old JSONL convertibility: 4/12 sampled Codex files failed conversion.~~ Fixed in commit pending after this report update: legacy rollout JSONL now converts.
-2. Codex reasoning granularity: source reasoning signals greatly exceed archive `turn.thinking` count.
+2. ~~Codex reasoning granularity: source reasoning signals greatly exceed archive `turn.thinking` count.~~ Fixed: reasoning block counts are preserved in turn metadata and the coverage profiler compares text-block counts, not only turns-with-thinking.
 3. ~~Claude Code signed thinking preservation: record signed/empty thinking block presence even when cleartext is unavailable.~~ Fixed: signed-thinking presence is preserved in turn metadata.
 4. ~~Pi image block preservation: source image blocks observed but no archive attachments emitted in the sampled corpus.~~ Fixed: Pi image blocks now become bounded `attachments[]`.
 5. ~~Copilot conversion coverage: source sample contains useful events, but the current conversion pass did not produce a Copilot archive.~~ Fixed for the sampled session: `05-convert-sampled-copilot.sh` converts the Copilot session-state directory.
@@ -125,7 +125,7 @@ The adapter now has a legacy rollout parser that maps:
 
 ### Why this matters
 
-Reasoning summaries are valuable for review, debugging, and agent behavior analysis. If multiple source reasoning events are merged per assistant turn, lower archive counts can be correct. If they are dropped, the adapter loses important context.
+Reasoning summaries are valuable for review, debugging, and agent behavior analysis. The lower turn count was mostly expected aggregation: many source reasoning blocks belong to one assistant turn. The adapter now makes that aggregation explicit by storing the number of source reasoning blocks attached to each turn.
 
 ### What to inspect next
 
@@ -337,7 +337,7 @@ Field families:
 | 2 | Copilot | Add conversion coverage script | Fixed for sampled session; no attachment drop proven because sampled attachment arrays are empty. |
 | 3 | Claude Code | Preserve signature-only thinking metadata | Fixed: `signed_thinking_blocks` metadata without inventing text. |
 | 4 | Pi | Map image blocks to attachments | Fixed: image blocks become bounded attachments. |
-| 5 | Codex | Reasoning granularity audit/fix | Valuable reasoning context likely partially hidden. |
+| 5 | Codex | Reasoning granularity audit/fix | Fixed: reasoning text blocks are counted in turn metadata and trailing reasoning is flushed. |
 | 6 | All | Usage exact comparator | Important for cost/performance, but not yet proven broken. |
 | 7 | Claude Code | Promote useful toolUseResult fields | Improves queryability after core coverage gaps. |
 

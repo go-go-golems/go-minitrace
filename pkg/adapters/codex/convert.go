@@ -375,12 +375,9 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 			case "agent_message":
 				source := ptr("model")
 				turn := minitrace.BuildTurn(turnIndex, timestampPtr, "assistant", source, stringValue(payload["message"]))
-				if len(currentThinking) > 0 {
-					thinking := strings.Join(currentThinking, "\n")
-					turn.Thinking = &thinking
-				}
+				thinkingMetadata := attachCodexThinking(&turn, currentThinking)
 				turn.Model = optionalString(metadata.Model)
-				turn.FrameworkMetadata = codexTurnMetadata(currentTurnID, payload, nil)
+				turn.FrameworkMetadata = codexTurnMetadata(currentTurnID, payload, thinkingMetadata)
 				toolIDs := pendingTurnToolIDsSlice(pendingTurnToolIDs)
 				for _, toolID := range toolIDs {
 					if index, ok := pendingFunctionCalls[toolID]; ok {
@@ -479,6 +476,8 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 		}
 	}
 
+	flushCodexThinkingToLastAssistant(turns, currentThinking)
+
 	if len(pendingTurnToolIDs) > 0 {
 		lastTurnIndex := 0
 		if len(turns) > 0 {
@@ -549,9 +548,9 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 				source = ptr("system")
 			}
 			turn := minitrace.BuildTurn(turnIndex, timestampPtr, role, source, flattenCodexLegacyContent(record["content"]))
-			if role == "assistant" && len(currentThinking) > 0 {
-				thinking := strings.Join(currentThinking, "\n")
-				turn.Thinking = &thinking
+			thinkingMetadata := map[string]any(nil)
+			if role == "assistant" {
+				thinkingMetadata = attachCodexThinking(&turn, currentThinking)
 				currentThinking = nil
 			}
 			toolIDs := pendingTurnToolIDsSlice(pendingTurnToolIDs)
@@ -562,7 +561,7 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 				}
 			}
 			turn.ToolCallsInTurn = toolIDs
-			turn.FrameworkMetadata = codexTurnMetadata("", record, nil)
+			turn.FrameworkMetadata = codexTurnMetadata("", record, thinkingMetadata)
 			turns = append(turns, turn)
 			turnIndex++
 			pendingTurnToolIDs = map[string]struct{}{}
@@ -585,6 +584,8 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 			applyCodexFunctionOutput(&toolCalls[index], stringValue(record["output"]))
 		}
 	}
+
+	flushCodexThinkingToLastAssistant(turns, currentThinking)
 
 	if len(pendingTurnToolIDs) > 0 {
 		lastTurnIndex := 0
@@ -691,11 +692,8 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 			case "agent_message":
 				source := ptr("model")
 				turn := minitrace.BuildTurn(turnIndex, timestampPtr, "assistant", source, stringValue(item["text"]))
-				if len(currentThinking) > 0 {
-					thinking := strings.Join(currentThinking, "\n")
-					turn.Thinking = &thinking
-				}
-				turn.FrameworkMetadata = codexTurnMetadata(stringValue(item["turn_id"]), item, nil)
+				thinkingMetadata := attachCodexThinking(&turn, currentThinking)
+				turn.FrameworkMetadata = codexTurnMetadata(stringValue(item["turn_id"]), item, thinkingMetadata)
 				toolIDs := []string{}
 				for _, toolCall := range toolCalls {
 					if toolCall.EmittingTurnIndex != nil && *toolCall.EmittingTurnIndex == turnIndex {
@@ -709,6 +707,8 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 			}
 		}
 	}
+
+	flushCodexThinkingToLastAssistant(turns, currentThinking)
 
 	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata
 }
@@ -1295,6 +1295,63 @@ func frameworkConfig(metadata codexMetadata) any {
 		return nil
 	}
 	return config
+}
+
+func attachCodexThinking(turn *minitrace.Turn, thinkingBlocks []string) map[string]any {
+	return appendCodexThinking(turn, thinkingBlocks, nil)
+}
+
+func flushCodexThinkingToLastAssistant(turns []minitrace.Turn, thinkingBlocks []string) {
+	if len(thinkingBlocks) == 0 {
+		return
+	}
+	for i := len(turns) - 1; i >= 0; i-- {
+		if turns[i].Role != "assistant" {
+			continue
+		}
+		appendCodexThinking(&turns[i], thinkingBlocks, map[string]any{
+			"reasoning_flushed_without_following_message": true,
+		})
+		return
+	}
+}
+
+func appendCodexThinking(turn *minitrace.Turn, thinkingBlocks []string, extra map[string]any) map[string]any {
+	if len(thinkingBlocks) == 0 {
+		return nil
+	}
+	thinking := strings.Join(thinkingBlocks, "\n")
+	if turn.Thinking != nil && *turn.Thinking != "" {
+		thinking = *turn.Thinking + "\n" + thinking
+	}
+	turn.Thinking = &thinking
+
+	metadata := map[string]any{}
+	if current, ok := turn.FrameworkMetadata.(map[string]any); ok {
+		for key, value := range current {
+			metadata[key] = value
+		}
+	}
+	metadata["reasoning_block_count"] = metadataInt(metadata["reasoning_block_count"]) + len(thinkingBlocks)
+	for key, value := range extra {
+		metadata[key] = value
+	}
+	turn.FrameworkMetadata = metadata
+	return map[string]any{
+		"reasoning_block_count": len(thinkingBlocks),
+	}
+}
+
+func metadataInt(value any) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	}
+	return 0
 }
 
 func codexTurnMetadata(turnID string, payload map[string]any, extra map[string]any) map[string]any {

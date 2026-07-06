@@ -571,3 +571,63 @@ After this step, the coverage profile can compare both source-side and archive-s
 ### Technical details
 - The script writes archives under `sources/converted-corpus/copilot/`.
 - The sampled conversion produced one archive: 13 turns, 7 tool calls.
+
+## Step 9: Preserve Codex reasoning block granularity
+
+Resolved the Codex reasoning granularity warning by making aggregation explicit. Codex can emit many reasoning records for one assistant message, so counting only turns with `thinking` made coverage look much worse than the actual content preservation behavior.
+
+The adapter now records how many source reasoning text blocks contributed to each assistant turn. It also flushes trailing reasoning to the most recent assistant turn when a transcript ends with reasoning records and no following assistant message, marking that case explicitly in metadata.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue the next remaining GMT-012 adapter fidelity follow-up after Copilot coverage.
+
+**Inferred user intent:** Keep implementing measured fidelity improvements, committing each coherent fix with docs and validation.
+
+**Commit (code):** 4c728f799042139e3852afc6bd871c33cafceb8a — "GMT-012: preserve Codex reasoning granularity"
+
+### What I did
+- Added Codex `reasoning_block_count` turn metadata when reasoning is attached to an assistant turn.
+- Added a trailing-reasoning flush to the latest assistant turn with `reasoning_flushed_without_following_message = true`.
+- Added regression coverage for multi-block reasoning and trailing reasoning.
+- Refined the coverage profiler to count non-empty Codex reasoning text blocks rather than broad reasoning-related key/event hints.
+- Reran sampled conversion and source-vs-archive profiling.
+- Updated adapter reference docs, the missing functionality report, changelog, and diary.
+
+### Why
+- The previous profile compared source reasoning event counts to archive turns-with-thinking counts, which conflated intentional aggregation with content loss.
+- Block-count metadata lets users query both the merged readable thinking text and the source granularity.
+
+### What worked
+- `GOWORK=off go test ./pkg/adapters/codex -count=1` passed.
+- After reconversion and profiling, Codex no longer appears as a thinking/reasoning warning in the coverage profile.
+
+### What didn't work
+- The first profiler metric over-counted source reasoning by using broad event/key hints. It needed to count actual non-empty reasoning text blocks.
+
+### What I learned
+- Codex reasoning fidelity needs two levels of representation: readable merged `turn.thinking` and machine-checkable source block counts.
+- Some transcripts can end with reasoning after the final assistant message, so a final flush is needed to avoid silently losing cleartext reasoning.
+
+### What was tricky to build
+- The tricky part was preserving honest chronology while avoiding synthetic turns. Flushing trailing reasoning to the last assistant turn is not perfect timing fidelity, so the adapter marks it with `reasoning_flushed_without_following_message` for downstream interpretation.
+
+### What warrants a second pair of eyes
+- Whether trailing reasoning should instead become an `events.kind = reasoning` timeline event in a future schema/API pass.
+- Whether `reasoning_block_count` should become a standardized cross-adapter metadata field.
+
+### What should be done in the future
+- Add JS API examples for querying reasoning block counts.
+- Consider a schema-level representation for reasoning spans if more adapters need precise timing.
+
+### Code review instructions
+- Start in `pkg/adapters/codex/convert.go` at `attachCodexThinking`, `appendCodexThinking`, and `flushCodexThinkingToLastAssistant`.
+- Review `pkg/adapters/codex/convert_test.go` for multi-block and trailing reasoning assertions.
+- Validate with `GOWORK=off go test ./pkg/adapters/codex -count=1` and rerun the GMT-012 coverage profiler.
+
+### Technical details
+- `reasoning_block_count` is an integer per assistant turn.
+- `reasoning_flushed_without_following_message` is set only when pending reasoning is flushed at parser end.
+- The profiler now prefers `codex.reasoning_text_blocks` for source counts and `turn.reasoning_blocks` for archive counts.

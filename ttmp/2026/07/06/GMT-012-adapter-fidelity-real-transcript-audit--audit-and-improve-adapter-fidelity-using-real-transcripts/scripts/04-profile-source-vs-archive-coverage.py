@@ -191,6 +191,16 @@ def profile_jsonl(adapter: str, path: Path, max_lines: int) -> dict[str, Any]:
                     facts["codex.token_count_events"] += 1
                 if ptype in {"agent_reasoning", "reasoning"}:
                     facts["codex.reasoning_events"] += 1
+                if ptype == "agent_reasoning" and str(payload.get("text") or "").strip():
+                    facts["codex.reasoning_text_blocks"] += 1
+                if ptype == "reasoning":
+                    for item in payload.get("summary") or []:
+                        if isinstance(item, dict) and str(item.get("text") or "").strip():
+                            facts["codex.reasoning_text_blocks"] += 1
+                if typ == "reasoning":
+                    for item in obj.get("summary") or []:
+                        if isinstance(item, dict) and str(item.get("text") or "").strip():
+                            facts["codex.reasoning_text_blocks"] += 1
 
             # Lifecycle/source metadata.
             for k in ("cwd", "gitBranch", "version", "sessionId", "parentUuid", "isSidechain", "userType", "uuid"):
@@ -269,6 +279,11 @@ def profile_archives() -> dict[str, Any]:
             if isinstance(fm, dict):
                 if fm.get("thinking_signature_present"):
                     c["turn.signed_thinking"] += 1
+                reasoning_count = fm.get("reasoning_block_count")
+                if isinstance(reasoning_count, int):
+                    c["turn.reasoning_blocks"] += reasoning_count
+                elif isinstance(reasoning_count, float):
+                    c["turn.reasoning_blocks"] += int(reasoning_count)
                 for k in fm:
                     framework_keys[str(adapter)]["turn.framework_metadata." + str(k)] += 1
         for tc in obj.get("tool_calls") or []:
@@ -319,13 +334,15 @@ def classify(source: dict[str, Any], archive: dict[str, Any]) -> list[dict[str, 
 
         thinking_blocks = sum(v for k, v in blocks.items() if k in {"thinking", "reasoning", "redacted_thinking"})
         nonempty_thinking = sum(v for k, v in facts.items() if k.startswith("content_block.") and k.endswith(".nonempty"))
-        reasoning_events = facts.get("codex.reasoning_events", 0) + recs.get("reasoning", 0) + recs.get("agent_reasoning", 0) + payloads.get("agent_reasoning", 0)
+        reasoning_events = facts.get("codex.reasoning_text_blocks", 0)
+        if not reasoning_events:
+            reasoning_events = facts.get("codex.reasoning_events", 0) + recs.get("reasoning", 0) + recs.get("agent_reasoning", 0)
         thinking_src = nonempty_thinking + reasoning_events
-        thinking_out = a.get("turn.thinking", 0)
+        thinking_out = a.get("turn.reasoning_blocks", 0) or a.get("turn.thinking", 0)
         if thinking_src and not thinking_out:
             add("thinking/reasoning", thinking_src, thinking_out, "high", "source has non-empty reasoning/thinking structures but converted turns have no thinking")
         elif thinking_src and thinking_out < thinking_src:
-            add("thinking/reasoning", thinking_src, thinking_out, "medium", "source reasoning count exceeds archive thinking count; inspect mapping granularity")
+            add("thinking/reasoning", thinking_src, thinking_out, "medium", "source reasoning count exceeds archive reasoning block count; inspect mapping granularity")
         elif thinking_blocks and not thinking_src:
             signed_out = a.get("turn.signed_thinking", 0)
             if signed_out:
