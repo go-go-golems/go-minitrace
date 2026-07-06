@@ -942,7 +942,8 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 
 	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
-	server := NewServer(nil, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, archiveGlob)
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/overview/aliases/codex-framework-summary.alias.yaml/execute", strings.NewReader(`{}`))
 	request.SetPathValue("path", "overview/aliases/codex-framework-summary.alias.yaml/execute")
 	response := httptest.NewRecorder()
@@ -965,6 +966,55 @@ func TestHandleExecuteQueryCommandV2ExecutesAliasAgainstLoadedArchive(t *testing
 	}
 	if got := payload.GetRows()[0].GetFields()["framework"].GetStringValue(); got != "codex" {
 		t.Fatalf("expected framework codex, got %q", got)
+	}
+}
+
+func TestHandleExecuteQueryCommandV2SQLUsesServerQueryTargetLimits(t *testing.T) {
+	archiveRoot := t.TempDir()
+	for _, id := range []string{"query-command-limit-a", "query-command-limit-b", "query-command-limit-c"} {
+		if _, err := minitrace.WriteSession(buildFixtureSession(t, id), archiveRoot); err != nil {
+			t.Fatalf("WriteSession returned error: %v", err)
+		}
+	}
+
+	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	target, err := minitracejs.NewArchiveQueryTarget(context.Background(), []string{archiveGlob}, serveQueryOptions(2, 30000))
+	if err != nil {
+		t.Fatalf("NewArchiveQueryTarget returned error: %v", err)
+	}
+	t.Cleanup(func() { _ = target.Close() })
+
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	server.commandSourceRoots = []minitracecmd.SourceRoot{{
+		Name: "test-root",
+		FS: fstest.MapFS{
+			"queries/all-sessions.sql": &fstest.MapFile{Data: []byte(`/* sqleton
+name: all-sessions
+short: List all sessions without an explicit SQL LIMIT
+*/
+SELECT id FROM {{TABLE_NAME}} ORDER BY id;`)},
+		},
+		RootDir:  "queries",
+		Readonly: true,
+	}}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v2/query-commands/all-sessions.sql/execute", strings.NewReader(`{}`))
+	request.SetPathValue("path", "all-sessions.sql/execute")
+	response := httptest.NewRecorder()
+
+	server.handleExecuteQueryCommandV2(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d with body %s", response.Code, response.Body.String())
+	}
+
+	var payload apiv1.ExecuteQueryCommandResponse
+	if err := protojson.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("protojson.Unmarshal execute query command response: %v", err)
+	}
+	if payload.GetRowCount() != 2 {
+		t.Fatalf("expected query command to honor server max rows=2, got row_count=%d rows=%#v", payload.GetRowCount(), payload.GetRows())
 	}
 }
 
@@ -1041,7 +1091,8 @@ func TestHandleExecuteQueryCommandV2ExecutesJSCommandAgainstLoadedArchive(t *tes
 	}
 
 	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
-	server := NewServer(nil, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, archiveGlob)
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = []minitracecmd.SourceRoot{{
 		Name: "test-root",
 		FS: fstest.MapFS{
@@ -1417,7 +1468,8 @@ func newLoadedQueryCommandServer(t *testing.T, repoRoot string, sessions ...*min
 	}
 
 	archiveGlob := filepath.Join(archiveRoot, "active", "*", "*.minitrace.json")
-	server := NewServer(nil, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
+	target := newTestQueryTarget(t, archiveGlob)
+	server := NewServer(target, &ServeSettings{ArchiveGlob: []string{archiveGlob}}, map[string]string{}, nil, nil)
 	server.commandSourceRoots = minitracecmd.SourceRootsFromPaths([]string{repoRoot})
 	return server
 }

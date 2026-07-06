@@ -16,8 +16,6 @@ import (
 	querycmd "github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query"
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
-	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
-	"github.com/go-go-golems/go-minitrace/pkg/minitracejs"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -101,15 +99,13 @@ func (s *Server) handleExecuteQueryCommandV2(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		start := time.Now()
-		target, err := minitracejs.NewArchiveQueryTarget(r.Context(), s.runtimeArchiveGlobs(), minitracedb.DefaultQueryOptions())
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+		if s.queryTarget == nil {
+			writeError(w, http.StatusInternalServerError, "query target is not initialized")
 			return
 		}
-		defer func() { _ = target.Close() }()
 
-		result, err := target.QueryResult(r.Context(), sqlText)
+		start := time.Now()
+		result, err := s.queryTarget.QueryResult(r.Context(), sqlText)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
