@@ -51,7 +51,7 @@ Highest-priority missing functionality:
 2. Codex reasoning granularity: source reasoning signals greatly exceed archive `turn.thinking` count.
 3. ~~Claude Code signed thinking preservation: record signed/empty thinking block presence even when cleartext is unavailable.~~ Fixed: signed-thinking presence is preserved in turn metadata.
 4. ~~Pi image block preservation: source image blocks observed but no archive attachments emitted in the sampled corpus.~~ Fixed: Pi image blocks now become bounded `attachments[]`.
-5. Copilot conversion coverage: source sample contains useful events, but the current conversion pass did not produce a Copilot archive.
+5. ~~Copilot conversion coverage: source sample contains useful events, but the current conversion pass did not produce a Copilot archive.~~ Fixed for the sampled session: `05-convert-sampled-copilot.sh` converts the Copilot session-state directory.
 6. Tool result metadata promotion: many rich tool result facts are preserved only as capped metadata or not query-visible.
 
 ## Evidence base
@@ -268,11 +268,12 @@ The Pi adapter now maps image content blocks to `Attachment` records:
 - Minimized Pi fixtures cover assistant-turn image blocks and tool-result image blocks.
 - The sampled coverage profile no longer reports Pi attachment/image loss.
 
-## Finding 7: Copilot is inventoried but not converted in the first pass
+## Finding 7: Copilot was inventoried but not converted in the first pass — conversion coverage fixed
 
-**Severity:** high for coverage completeness  
-**Classification:** missing audit coverage  
-**Evidence:** one local Copilot JSONL candidate was profiled; no converted Copilot archive exists in the sampled corpus.
+**Severity:** resolved high for coverage completeness  
+**Classification:** formerly missing audit coverage  
+**Evidence before fix:** one local Copilot JSONL candidate was profiled; no converted Copilot archive existed in the sampled corpus.
+**Evidence after fix:** `scripts/05-convert-sampled-copilot.sh` converts the sampled session-state directory and produces one archive with 13 turns and 7 tool calls.
 
 Source sample contains:
 
@@ -282,20 +283,15 @@ Source sample contains:
 - `session.model_change`, `session.info`, `session.shutdown`
 - usage/token and attachment/image key signals
 
-### Recommended fix
+### Implemented fix
 
-Add a Copilot conversion script:
-
-```text
-scripts/05-convert-sampled-copilot.sh
-```
-
-It should use the real adapter CLI path rather than forcing the JSONL `--source-list` shape if Copilot discovery expects session-state directories.
+Added `scripts/05-convert-sampled-copilot.sh`. The script reads the inventory sample list, maps `events.jsonl` paths back to their parent session-state directories, and runs the normal `go-minitrace convert copilot --source-dir ...` command.
 
 ### Acceptance criteria
 
-- The one sampled Copilot session either converts or fails with a documented source-layout reason.
+- The one sampled Copilot session converts successfully.
 - Coverage profiler includes archive facts for Copilot.
+- Remaining Copilot finding is narrower: source attachment/image signals exist, but no first-class attachments are emitted yet.
 
 ## Finding 8: Usage exists but exact field coverage needs a dedicated comparator
 
@@ -337,7 +333,7 @@ Field families:
 | Priority | Adapter | Work item | Reason |
 |---:|---|---|---|
 | 1 | Codex | Legacy/old JSONL convertibility | Fixed: all 12 sampled Codex files now convert. |
-| 2 | Copilot | Add conversion coverage script | Current report cannot judge adapter output. |
+| 2 | Copilot | Add conversion coverage script | Fixed for sampled session; remaining work is attachment/image mapping. |
 | 3 | Claude Code | Preserve signature-only thinking metadata | Fixed: `signed_thinking_blocks` metadata without inventing text. |
 | 4 | Pi | Map image blocks to attachments | Fixed: image blocks become bounded attachments. |
 | 5 | Codex | Reasoning granularity audit/fix | Valuable reasoning context likely partially hidden. |

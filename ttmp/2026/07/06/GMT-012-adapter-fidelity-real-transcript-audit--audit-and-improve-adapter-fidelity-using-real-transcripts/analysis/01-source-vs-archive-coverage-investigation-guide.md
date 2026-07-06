@@ -112,6 +112,22 @@ scripts/04-profile-source-vs-archive-coverage.py --max-lines 20000 \
   | tee scripts/logs/04-profile-source-vs-archive-coverage.log
 ```
 
+## Script: `05-convert-sampled-copilot.sh`
+
+Copilot conversion is directory-based rather than `--source-list` JSONL-based. The inventory sample list stores `events.jsonl` paths, so this script maps each sampled file back to its parent session-state directory and runs the normal adapter CLI:
+
+```bash
+scripts/05-convert-sampled-copilot.sh
+```
+
+It writes converted archives under:
+
+```text
+sources/converted-corpus/copilot/
+```
+
+Use it before rerunning `04-profile-source-vs-archive-coverage.py` if you want Copilot archive-side coverage.
+
 ## Redaction and safety policy
 
 The script must not copy raw prompts, assistant prose, tool output, absolute source paths, or raw transcript files into the ticket. It records only:

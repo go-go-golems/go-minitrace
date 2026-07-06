@@ -512,3 +512,60 @@ This keeps `turn.thinking` semantically honest: it remains nil unless the source
 - `signed_thinking_blocks` is an integer count per assistant turn.
 - `thinking_signature_present` is a boolean convenience flag.
 - Raw signature values are not stored.
+
+## Step 8: Add sampled Copilot conversion coverage
+
+Closed the Copilot audit-coverage gap by adding a script that converts the sampled Copilot session-state directory. The earlier JSONL conversion script intentionally covered only adapters with `--source-list`; Copilot conversion uses `--source-dir` and discovers sessions from directories containing `events.jsonl`.
+
+After this step, the coverage profile can compare both source-side and archive-side Copilot facts. The sampled Copilot session now converts to one archive with 13 turns and 7 tool calls. The remaining Copilot finding is narrower: attachment/image signals exist source-side but do not yet become first-class attachments.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue resolving measured adapter coverage gaps after Claude signed thinking metadata.
+
+**Inferred user intent:** Make the audit complete enough to distinguish converter absence from actual adapter data-loss issues.
+
+**Commit (code):** Pending for this step.
+
+### What I did
+- Added `scripts/05-convert-sampled-copilot.sh`.
+- Mapped sampled `events.jsonl` paths back to their parent session-state directories.
+- Ran `go-minitrace convert copilot --source-dir ...` for the sampled session.
+- Reran `scripts/04-profile-source-vs-archive-coverage.py`.
+- Updated the coverage guide and missing functionality report.
+
+### Why
+- The first pass could only profile Copilot source facts; no Copilot archive existed for comparison.
+- Copilot uses a directory discovery model, so it needed a separate script from the JSONL `--source-list` adapters.
+
+### What worked
+- The sampled Copilot session converted successfully.
+- The profile now reports Copilot archive usage coverage instead of zero archive coverage.
+
+### What didn't work
+- Copilot attachment/image signals remain unrepresented as first-class attachments. This is now a real adapter gap rather than a missing-conversion artifact.
+
+### What I learned
+- The local Copilot sample lives at `~/.copilot/session-state/<id>/events.jsonl`, which matches the adapter's directory-based discovery expectations.
+- The script should operate on session directories, not raw JSONL paths.
+
+### What was tricky to build
+- The inventory intentionally records file paths because most adapters are JSONL-based. Copilot needs a small path transform from `events.jsonl` to its parent directory before invoking the real CLI.
+
+### What warrants a second pair of eyes
+- Whether future Copilot inventory should store session directories directly in addition to event paths.
+- Whether the Copilot adapter should accept `--source-session events.jsonl` for consistency with other adapters.
+
+### What should be done in the future
+- Implement Copilot attachment/image mapping.
+- Add Copilot-specific exact usage/token comparator once more samples exist.
+
+### Code review instructions
+- Review `scripts/05-convert-sampled-copilot.sh`.
+- Validate by running the script, then rerunning `scripts/04-profile-source-vs-archive-coverage.py --max-lines 20000`.
+
+### Technical details
+- The script writes archives under `sources/converted-corpus/copilot/`.
+- The sampled conversion produced one archive: 13 turns, 7 tool calls.

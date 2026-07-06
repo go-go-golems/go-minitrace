@@ -99,3 +99,13 @@ Preserved Claude Code signature-only thinking block presence in turn metadata wi
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/claudecode/convert_test.go — Signed thinking regression test
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py — Reports signed-thinking archive coverage
 
+
+## 2026-07-06
+
+Added Copilot sampled conversion script and reran coverage; sampled Copilot session now converts to one archive with 13 turns and 7 tool calls.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/05-convert-sampled-copilot.sh — Copilot conversion script
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/sources/coverage-profile/01-coverage-profile.md — Updated Copilot archive coverage
+
