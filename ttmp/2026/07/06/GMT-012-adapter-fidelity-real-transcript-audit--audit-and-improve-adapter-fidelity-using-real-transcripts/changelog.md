@@ -77,3 +77,14 @@ Validated GMT-012 lineage and legacy Codex changes with full Go tests and docmgr
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert.go — Validated in full test suite
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/reference/01-diary.md — Validation record
 
+
+## 2026-07-06
+
+Mapped Pi image content blocks to bounded attachments with turn/tool-call links and sanitized raw metadata; reran Pi sampled conversion and coverage profile.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/pi/convert.go — Pi image attachment mapping
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/pi/convert_test.go — Image attachment regression tests
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/doc/adapter-reference.md — Documents Pi image attachments
+

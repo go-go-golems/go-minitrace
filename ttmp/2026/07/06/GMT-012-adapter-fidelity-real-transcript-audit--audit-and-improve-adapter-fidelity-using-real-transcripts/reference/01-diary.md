@@ -387,3 +387,67 @@ The implementation adds a narrow legacy parser instead of changing the modern pa
 ### Technical details
 - Legacy detection triggers on top-level `message`, `reasoning`, `function_call`, `function_call_output`, `record_type: state`, or a first metadata row with `id`/`timestamp` but no `type`.
 - Legacy top-level `git.branch` maps to `operational_context.git_branch`; `git.commit_hash` maps to `operational_context.git_ref`.
+
+## Step 6: Map Pi image blocks to bounded attachments
+
+Fixed the next evidence-backed adapter gap: Pi image content blocks were observed in source transcripts but did not become minitrace attachments. The adapter now creates first-class image attachments without embedding raw base64 image data in the archive metadata path.
+
+The implementation links assistant-message images to their containing turn and tool-result images to the corresponding tool call. Tool-result output now gets a compact placeholder like `[image image/png]` instead of serializing the entire image block into `tool_calls[].output.result`.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue through the prioritized missing functionality list after the Codex legacy conversion fix.
+
+**Inferred user intent:** Keep making concrete adapter fidelity improvements, with tests and commits at natural boundaries.
+
+**Commit (code):** Pending for this step.
+
+### What I did
+- Added Pi image attachment construction in `pkg/adapters/pi/convert.go`.
+- Sanitized attachment raw JSON so inline `data` is not copied into `Attachment.RawJSON`.
+- Added hashes, size metadata, and `content_ref = inline:image` for inline image blocks.
+- Linked normal message images to `turn_index`.
+- Linked tool-result images to `tool_call_id`.
+- Added tests for assistant-turn images and tool-result images.
+- Reran sampled Pi conversion and coverage profiling.
+- Updated `pkg/doc/adapter-reference.md` and the missing functionality report.
+
+### Why
+- The source-vs-archive report showed Pi image signals but zero Pi attachments.
+- Images are high-value multimodal context and should be queryable as attachments.
+- Raw inline image bytes should not be duplicated into metadata or reports.
+
+### What worked
+- `GOWORK=off go test ./pkg/adapters/pi -count=1` passed.
+- Rerunning the coverage profile removed the Pi attachment/image finding.
+
+### What didn't work
+- N/A. The implementation intentionally does not store/decode image blobs; it records bounded metadata and hashes only.
+
+### What I learned
+- Sampled Pi image blocks can appear inside tool-result messages as `{type: image, data: ..., mimeType: image/png}`.
+- Existing `stringifyContent` would have serialized the whole image block for tool output, so it needed an image placeholder path too.
+
+### What was tricky to build
+- The same image block type can appear in normal turns and tool results. Normal turns should link via `TurnIndex`; tool-result images should link via `ToolCallID` and avoid creating synthetic turns.
+- Avoiding raw data leakage required passing a sanitized raw map into `BuildAttachment` instead of the original source block.
+
+### What warrants a second pair of eyes
+- Whether `SizeBytes` should represent base64 string length, decoded bytes, or be omitted for inline data. The current implementation records the source string length because it avoids decoding assumptions.
+- Whether inline image attachments should get an event in addition to the first-class attachment row.
+
+### What should be done in the future
+- Add a small helper to decode data URLs/base64 if exact byte size is needed.
+- Add UI/query examples for listing image attachments.
+
+### Code review instructions
+- Review `buildPiImageAttachment`, `extensionForMediaType`, and the `image` case in the Pi content-block loop.
+- Review `stringifyContent` image placeholder behavior.
+- Validate with `GOWORK=off go test ./pkg/adapters/pi -count=1`.
+
+### Technical details
+- Attachment IDs are deterministic within conversion order: `pi-image-000001`, etc.
+- Attachment raw JSON contains only `{type: image, mimeType: ...}`.
+- Hash is `sha256:` over the source inline data string.

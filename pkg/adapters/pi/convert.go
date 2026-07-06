@@ -2,6 +2,8 @@ package pi
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -50,12 +52,14 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 	toolCalls := make([]minitrace.ToolCall, 0)
 	annotations := make([]minitrace.Annotation, 0)
 	events := make([]minitrace.Event, 0)
+	attachments := make([]minitrace.Attachment, 0)
 	allTimestamps := make([]time.Time, 0, len(records))
 	tokenTotals := &minitrace.TokenTotals{}
 	pendingToolCalls := map[string]int{}
 	piCustomConfig := map[string]any{}
 	sessionInfoName := ""
 	turnIndex := 0
+	attachmentCounter := 0
 
 	for _, record := range records {
 		recordType := stringValue(record["type"])
@@ -136,6 +140,7 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 			textParts := make([]string, 0, len(contentBlocks))
 			thinkingParts := make([]string, 0)
 			toolIDs := make([]string, 0)
+			imageAttachments := make([]minitrace.Attachment, 0)
 
 			for _, rawBlock := range contentBlocks {
 				block := mapValue(rawBlock)
@@ -157,6 +162,9 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 						thinkingParts = append(thinkingParts, thinking)
 						tokenTotals.Reasoning += minitrace.SafeInt(block["token_count"], 0)
 					}
+				case "image":
+					attachmentCounter++
+					imageAttachments = append(imageAttachments, buildPiImageAttachment(block, timestampPtr, turnIndex, attachmentCounter))
 				case "toolCall", "tool_use":
 					toolCallID := firstNonEmpty(stringValue(block["id"]), fmt.Sprintf("tc-%04d", len(toolCalls)))
 					toolName := firstNonEmpty(stringValue(block["name"]), "unknown")
@@ -207,6 +215,13 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 
 			if role == "toolResult" {
 				toolCallID := stringValue(msg["toolCallId"])
+				for i := range imageAttachments {
+					if toolCallID != "" {
+						imageAttachments[i].ToolCallID = &toolCallID
+					}
+					imageAttachments[i].TurnIndex = nil
+				}
+				attachments = append(attachments, imageAttachments...)
 				if toolCallID != "" {
 					if pendingIndex, ok := pendingToolCalls[toolCallID]; ok {
 						isErr := boolValue(firstNonNil(msg["isError"], msg["is_error"]))
@@ -235,6 +250,7 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 			if len(toolIDs) > 0 {
 				turn.ToolCallsInTurn = toolIDs
 			}
+			attachments = append(attachments, imageAttachments...)
 			if normalizedRole == "assistant" {
 				turn.Streaming.WasStreamed = true
 			}
@@ -346,6 +362,7 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 	session.Turns = turns
 	session.ToolCalls = toolCalls
 	session.Events = events
+	session.Attachments = attachments
 	session.Annotations = annotations
 	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, 0, tokenTotals)
 	session.Flags.NeedsCleaning = false
@@ -695,6 +712,37 @@ func uniqueToolNames(toolCalls []minitrace.ToolCall) []string {
 	return ret
 }
 
+func buildPiImageAttachment(block map[string]any, timestamp *string, turnIndex int, ordinal int) minitrace.Attachment {
+	mediaType := firstNonEmpty(stringValue(block["mimeType"]), stringValue(block["media_type"]), "image")
+	name := firstNonEmpty(stringValue(block["name"]), stringValue(block["fileName"]), fmt.Sprintf("pi-image-%04d%s", ordinal, extensionForMediaType(mediaType)))
+	attachment := minitrace.BuildAttachment(fmt.Sprintf("pi-image-%06d", ordinal), timestamp, "image", name, mediaType, map[string]any{"type": "image", "mimeType": mediaType})
+	attachment.TurnIndex = &turnIndex
+	if data := stringValue(block["data"]); data != "" {
+		sum := sha256.Sum256([]byte(data))
+		attachment.Hash = "sha256:" + hex.EncodeToString(sum[:])
+		sizeBytes := len(data)
+		attachment.SizeBytes = &sizeBytes
+		attachment.ContentRef = "inline:image"
+	}
+	attachment.FrameworkMetadata = map[string]any{"source_block": "message.content", "inline_data_present": stringValue(block["data"]) != ""}
+	return attachment
+}
+
+func extensionForMediaType(mediaType string) string {
+	switch strings.ToLower(mediaType) {
+	case "image/png":
+		return ".png"
+	case "image/jpeg", "image/jpg":
+		return ".jpg"
+	case "image/webp":
+		return ".webp"
+	case "image/gif":
+		return ".gif"
+	default:
+		return ""
+	}
+}
+
 func stringifyContent(value any) string {
 	switch typed := value.(type) {
 	case nil:
@@ -708,6 +756,9 @@ func stringifyContent(value any) string {
 		}
 		return strings.Join(filterEmpty(parts), "\n")
 	case map[string]any:
+		if stringValue(typed["type"]) == "image" {
+			return "[image " + firstNonEmpty(stringValue(typed["mimeType"]), stringValue(typed["media_type"]), "unknown") + "]"
+		}
 		if text := stringValue(typed["text"]); text != "" {
 			return text
 		}

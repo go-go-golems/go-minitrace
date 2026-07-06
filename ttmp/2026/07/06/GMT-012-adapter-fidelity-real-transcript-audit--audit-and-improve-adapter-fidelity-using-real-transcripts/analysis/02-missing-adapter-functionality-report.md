@@ -16,7 +16,7 @@ RelatedFiles:
     - Path: pkg/adapters/codex/convert.go
       Note: Adapter with unsupported old JSONL samples and partial reasoning/token/lifecycle coverage.
     - Path: pkg/adapters/pi/convert.go
-      Note: Adapter with high but not perfect thinking/tool-duration coverage and no current image attachments.
+      Note: Adapter with high thinking/tool-duration coverage and newly fixed image attachment mapping.
     - Path: /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py
       Note: |-
         Coverage profiler used to classify findings.
@@ -50,7 +50,7 @@ Highest-priority missing functionality:
 1. ~~Codex old JSONL convertibility: 4/12 sampled Codex files failed conversion.~~ Fixed in commit pending after this report update: legacy rollout JSONL now converts.
 2. Codex reasoning granularity: source reasoning signals greatly exceed archive `turn.thinking` count.
 3. Claude Code signed thinking preservation: record signed/empty thinking block presence even when cleartext is unavailable.
-4. Pi image block preservation: source image blocks observed but no archive attachments emitted in the sampled corpus.
+4. ~~Pi image block preservation: source image blocks observed but no archive attachments emitted in the sampled corpus.~~ Fixed: Pi image blocks now become bounded `attachments[]`.
 5. Copilot conversion coverage: source sample contains useful events, but the current conversion pass did not produce a Copilot archive.
 6. Tool result metadata promotion: many rich tool result facts are preserved only as capped metadata or not query-visible.
 
@@ -243,31 +243,32 @@ If multiple source blocks are joined into one turn, document this as intended. I
 - Explain the 1,572 vs 1,523 difference.
 - Add a test for multiple thinking blocks in one Pi assistant message.
 
-## Finding 6: Pi image blocks are not represented as attachments
+## Finding 6: Pi image blocks were not represented as attachments — fixed
 
-**Severity:** medium  
-**Classification:** dropped or not-yet-mapped  
-**Evidence:** Pi source profiler found 6 `image` content blocks and attachment/image key signals; converted Pi archives have `attachments = 0`.
+**Severity:** resolved medium  
+**Classification:** formerly dropped/not-yet-mapped  
+**Evidence before fix:** Pi source profiler found 6 `image` content blocks and attachment/image key signals; converted Pi archives had `attachments = 0`.
+**Evidence after fix:** rerunning the sampled Pi conversion and coverage profile removes the Pi attachment/image finding; Pi image blocks become first-class bounded attachments.
 
 ### Why this matters
 
 Images are high-value context for multimodal agent sessions. Dropping them makes replay and audit incomplete.
 
-### Recommended fix
+### Implemented fix
 
-Inspect Pi image block shapes and map to `Attachment` plus optional event.
-
-Possible mapping:
+The Pi adapter now maps image content blocks to `Attachment` records:
 
 - `Attachment.Kind = image`
-- `Attachment.MediaType` from source if present;
-- `Attachment.Path`, `URL`, `Hash`, or `ContentRef` from source if present;
-- link to the containing turn via `TurnIndex` or an `Event` if schema supports it.
+- `Attachment.MediaType` from `mimeType` / `media_type`
+- inline image data is not embedded in `RawJSON`; instead a sha256 hash, size, and `content_ref = inline:image` are recorded
+- normal message images link to `turn_index`
+- tool-result images link to `tool_call_id`
+- tool-result textual output uses an image placeholder such as `[image image/png]` instead of serializing base64 data
 
 ### Acceptance criteria
 
-- Minimized Pi fixture with an image block converts to a first-class attachment.
-- The web/query layer can list Pi image attachments.
+- Minimized Pi fixtures cover assistant-turn image blocks and tool-result image blocks.
+- The sampled coverage profile no longer reports Pi attachment/image loss.
 
 ## Finding 7: Copilot is inventoried but not converted in the first pass
 
@@ -340,7 +341,7 @@ Field families:
 | 1 | Codex | Legacy/old JSONL convertibility | Fixed: all 12 sampled Codex files now convert. |
 | 2 | Copilot | Add conversion coverage script | Current report cannot judge adapter output. |
 | 3 | Claude Code | Preserve signature-only thinking metadata | Clarifies “missing thinking” without inventing text. |
-| 4 | Pi | Map image blocks to attachments | Clear source fact appears absent from archive. |
+| 4 | Pi | Map image blocks to attachments | Fixed: image blocks become bounded attachments. |
 | 5 | Codex | Reasoning granularity audit/fix | Valuable reasoning context likely partially hidden. |
 | 6 | All | Usage exact comparator | Important for cost/performance, but not yet proven broken. |
 | 7 | Claude Code | Promote useful toolUseResult fields | Improves queryability after core coverage gaps. |

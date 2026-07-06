@@ -192,6 +192,7 @@ Pi stores one JSONL file per session in workspace-named directories (e.g., `--ho
 - **Thinking blocks** → `turns[].thinking` plus reasoning token counts
 - **Tool calls** → tool calls with mapped operation types
 - **Tool results** → tool call outputs with derived `duration_ms` (result timestamp minus emit timestamp)
+- **Image blocks** → first-class `attachments[]` with bounded metadata, hashes, and turn/tool-call links instead of embedded image bytes
 - **Usage records** → per-turn token counters and session cost (`usage.cost.total`)
 - **Lifecycle records** → source events for session info, compactions, model changes, thinking-level changes, and custom records
 - **Fork lineage** → `session.parentSession` paths are normalized in framework metadata and the extracted parent session ID is promoted to `coordination.predecessor_session`
@@ -207,6 +208,7 @@ Pi stores one JSONL file per session in workspace-named directories (e.g., `--ho
 | `turns[].usage` | Token counts from usage records (input, output, cache read/write, reasoning) |
 | `metrics.session_cost` | Accumulated `usage.cost.total` |
 | `tool_calls[].output.duration_ms` | Derived from emit→result timestamps |
+| `attachments[]` | Image content blocks; inline image data is not embedded, but hash/content-ref metadata is preserved |
 
 ### Tool operation mapping
 
