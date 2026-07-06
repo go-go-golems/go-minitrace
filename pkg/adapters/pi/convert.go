@@ -305,6 +305,16 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 		session.OperationalContext.WorkingDirectory = &normalized
 	}
 	frameworkConfig := buildFrameworkConfig(modelInfo)
+	if parentSession := stringValue(sessionMeta["parentSession"]); parentSession != "" {
+		if frameworkConfig == nil {
+			frameworkConfig = map[string]any{}
+		}
+		frameworkConfig["parent_session"] = minitrace.NormalizePath(parentSession)
+		if parentSessionID := extractPiSessionID(parentSession); parentSessionID != "" {
+			frameworkConfig["parent_session_id"] = parentSessionID
+			session.Coordination.PredecessorSession = &parentSessionID
+		}
+	}
 	if len(piCustomConfig) > 0 {
 		if frameworkConfig == nil {
 			frameworkConfig = map[string]any{}
@@ -837,6 +847,14 @@ func floatValuePath(root map[string]any, keys ...string) *float64 {
 	default:
 		return nil
 	}
+}
+
+func extractPiSessionID(path string) string {
+	base := strings.TrimSuffix(filepathBase(path), ".jsonl")
+	if index := strings.LastIndex(base, "_"); index >= 0 && index < len(base)-1 {
+		return base[index+1:]
+	}
+	return base
 }
 
 func filepathBase(path string) string {

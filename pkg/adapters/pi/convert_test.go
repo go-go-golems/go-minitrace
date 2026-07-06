@@ -418,3 +418,44 @@ func TestConvertRecordsDerivesToolDurationAndPreservesEmitTimestamp(t *testing.T
 		t.Fatalf("expected 3250ms duration, got %+v", toolCall.Output.DurationMS)
 	}
 }
+
+func TestConvertRecordsPreservesParentSessionLineage(t *testing.T) {
+	parentPath := "/home/me/.pi/agent/sessions/project/2026-07-01T21-32-52-892Z_parent-session-id.jsonl"
+	records := []map[string]any{
+		{
+			"type":          "session",
+			"id":            "child-session-id",
+			"version":       3,
+			"timestamp":     "2026-07-01T22:00:00Z",
+			"cwd":           "/tmp/project",
+			"parentSession": parentPath,
+		},
+		{
+			"type":      "message",
+			"id":        "m1",
+			"timestamp": "2026-07-01T22:00:01Z",
+			"message": map[string]any{
+				"role":    "user",
+				"content": []any{map[string]any{"type": "text", "text": "continue"}},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback", "/tmp/child.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if session.Coordination.PredecessorSession == nil || *session.Coordination.PredecessorSession != "parent-session-id" {
+		t.Fatalf("expected predecessor parent-session-id, got %+v", session.Coordination.PredecessorSession)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework config map, got %+v", session.OperationalContext.FrameworkConfig)
+	}
+	if config["parent_session_id"] != "parent-session-id" {
+		t.Fatalf("expected parent_session_id metadata, got %+v", config)
+	}
+	if config["parent_session"] == "" {
+		t.Fatalf("expected parent_session metadata, got %+v", config)
+	}
+}

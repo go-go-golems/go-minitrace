@@ -44,3 +44,15 @@ Uploaded GMT-012 coverage investigation and missing functionality report bundle 
 
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/analysis/02-missing-adapter-functionality-report.md — Uploaded missing functionality report
 
+
+## 2026-07-06
+
+Implemented lineage preservation for Pi parentSession, Codex parent_thread_id, and Claude Code subagent parent sessions; added regression tests and updated adapter reference.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/claudecode/convert.go — Promotes Claude subagent parent lineage
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert.go — Promotes Codex parent_thread_id lineage
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/pi/convert.go — Promotes Pi parentSession lineage
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/doc/adapter-reference.md — Documents normalized predecessor lineage
+

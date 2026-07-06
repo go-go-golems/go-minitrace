@@ -255,3 +255,69 @@ I also created a broader missing-functionality report that prioritizes actual ad
 - Generated profile directory: `sources/coverage-profile/`
 - GitHub issue: https://github.com/go-go-golems/go-minitrace/issues/23
 - Key findings: Codex 4/12 sampled files unsupported; Claude Code 983 signature-only thinking blocks; Pi 1,572 non-empty source thinking blocks vs 1,523 archive turns with thinking; Copilot source has useful events but no converted archive yet.
+
+## Step 4: Promote fork and subagent lineage into normalized coordination
+
+Started task-by-task implementation with a small, high-confidence lineage fix across the three JSONL adapters. Pi `parentSession`, Codex `parent_thread_id`, and Claude Code subagent parent sessions were already partially preserved as framework metadata, but the normalized `coordination.predecessor_session` field was not populated consistently.
+
+The change keeps framework-specific metadata intact while also making parent-child traversal available through a common schema field. This is deliberately narrow: message-level Pi `parentId` remains turn-local metadata, while session-level Pi `parentSession` becomes predecessor lineage.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, work task by task, commit at appropriate intervals. Also check that we properly handle forked threads in pi / codex / subagents in claude etc... If necessary we might need to create some test threads, although more recent one fromt he last week should definitely have some."
+
+**Assistant interpretation:** Proceed incrementally, commit useful checkpoints, and specifically verify/fix fork/thread/subagent lineage handling for Pi, Codex, and Claude Code.
+
+**Inferred user intent:** Ensure adapter fixes preserve cross-session relationships, not just per-session turns/tools.
+
+**Commit (code):** Pending for this step.
+
+### What I did
+- Committed the initial GMT-012 docs/scripts checkpoint as `69092058d3060e14b77e2a21067dd08a9b1e41fd`.
+- Inspected recent local Pi/Codex/Claude JSONL structures for lineage signals.
+- Updated `pkg/adapters/pi/convert.go` to extract `session.parentSession` into `coordination.predecessor_session` and `framework_config.parent_session_id`.
+- Updated `pkg/adapters/codex/convert.go` to promote `parent_thread_id` into `coordination.predecessor_session`.
+- Updated `pkg/adapters/claudecode/convert.go` so adjusted subagent sessions record the parent in `coordination.predecessor_session`.
+- Added/updated regression tests for all three adapters.
+- Updated `pkg/doc/adapter-reference.md` with the normalized predecessor mapping.
+
+### Why
+- Framework metadata alone is hard to query across adapters.
+- `coordination.predecessor_session` is the schema-level destination for parent/fork lineage.
+- Real local transcripts show Pi `parentSession`, Codex parent thread metadata, and Claude sidechain/subagent metadata are common enough to preserve deliberately.
+
+### What worked
+- Focused adapter tests passed:
+  - `GOWORK=off go test ./pkg/adapters/pi ./pkg/adapters/codex ./pkg/adapters/claudecode -count=1`
+- Existing framework metadata behavior remained intact.
+
+### What didn't work
+- N/A for the code change. Broader fork replay suppression is not yet implemented; this step only promotes known parent identifiers into the normalized schema.
+
+### What I learned
+- Pi has session-level `parentSession` separate from per-message `parentId`; only the former should become session predecessor lineage.
+- Codex already captured `parent_thread_id` in framework config, so the normalized promotion is low-risk.
+- Claude Code subagent conversion already had explicit parent-session adjustment, making it the safest place to set predecessor lineage.
+
+### What was tricky to build
+- Avoiding over-normalization was the main risk. Pi `parentId` appears on many message records and should not be treated as session fork lineage. The implementation only uses the session header `parentSession` field.
+
+### What warrants a second pair of eyes
+- Whether storing normalized `parent_session` path in Pi framework metadata is acceptable, or whether only `parent_session_id` should be retained for privacy.
+- Whether Codex fork replay suppression should be handled in this ticket or tracked as a separate larger parser task.
+
+### What should be done in the future
+- Add a dedicated lineage audit script that compares parent/child source IDs to converted archive fields.
+- Investigate Codex replayed parent history/fork suppression separately.
+- Add Copilot conversion coverage before judging its lineage behavior.
+
+### Code review instructions
+- Start with `pkg/adapters/pi/convert.go` around `parentSession` handling.
+- Then review `pkg/adapters/codex/convert.go` where `metadata.ParentThreadID` is promoted.
+- Then review `pkg/adapters/claudecode/convert.go` in `AdjustSubagentSession`.
+- Validate with `GOWORK=off go test ./pkg/adapters/pi ./pkg/adapters/codex ./pkg/adapters/claudecode -count=1`.
+
+### Technical details
+- Pi parent ID extraction mirrors existing filename-based session ID extraction: trim `.jsonl`, then take the suffix after the final `_`.
+- Codex uses the source-native `parent_thread_id` string directly.
+- Claude Code uses the parent session ID passed through subagent discovery/conversion.

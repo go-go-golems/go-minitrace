@@ -48,6 +48,7 @@ Not every source records the same facts, and not every fact an adapter emits is 
 | session cost | native (`usage.cost.total`) | – | – | – | – | – | – |
 | session `summary` | – | – | – | – | – | native | – |
 | spawned agents | – | native (Agent/Task tools) | native (spawn_agent/wait_agent) | – | – | native (extended search) | – |
+| `coordination.predecessor_session` | native (`parentSession` ID) | native (subagent parent session) | native (`parent_thread_id`) | – | – | – | – |
 
 Truncation is uniform across adapters: tool results longer than 10 KiB are cut at the limit with a `[truncated]` marker, and `output.full_bytes`/`output.full_hash` always describe the **full pre-truncation** payload (its byte length and sha256), so you can detect and deduplicate truncated outputs honestly.
 
@@ -118,7 +119,7 @@ Content origin is classified separately: `mcp__`-prefixed tools → `mcp_server`
 
 ### Subagent handling
 
-When a session directory contains a `subagents/` subdirectory, each subagent JSONL file becomes its own minitrace session. The parent session's `Agent`/`Task` tool call receives a `spawned_agent` field with the subagent's `sub_session_id`, and `metrics.subagent_count` reflects the real number of spawned agents. The subagent session's title is prefixed with `[subagent]` and its `framework_config.parent_session` points back at the parent.
+When a session directory contains a `subagents/` subdirectory, each subagent JSONL file becomes its own minitrace session. The parent session's `Agent`/`Task` tool call receives a `spawned_agent` field with the subagent's `sub_session_id`, and `metrics.subagent_count` reflects the real number of spawned agents. The subagent session's title is prefixed with `[subagent]`; its `framework_config.parent_session` points back at the parent, and `coordination.predecessor_session` is set to the parent session ID so parent-child traversal works through the normalized schema.
 
 ### Preserved framework-specific metadata
 
@@ -158,7 +159,7 @@ Sessions in unrecognized formats are skipped and reported as failed rows; the re
 
 Codex multi-agent sessions carry native coordination fields, captured into `operational_context.framework_config`:
 
-- `parent_thread_id` — the spawning session's thread
+- `parent_thread_id` — the spawning session's thread; also promoted to `coordination.predecessor_session`
 - `agent_nickname` and `agent_role` — how the agent was addressed and what role it played
 - `metrics.subagent_count` counts actual `spawn_agent` calls
 
@@ -192,6 +193,7 @@ Pi stores one JSONL file per session in workspace-named directories (e.g., `--ho
 - **Tool results** → tool call outputs with derived `duration_ms` (result timestamp minus emit timestamp)
 - **Usage records** → per-turn token counters and session cost (`usage.cost.total`)
 - **Lifecycle records** → source events for session info, compactions, model changes, thinking-level changes, and custom records
+- **Fork lineage** → `session.parentSession` paths are normalized in framework metadata and the extracted parent session ID is promoted to `coordination.predecessor_session`
 
 ### Field mapping
 

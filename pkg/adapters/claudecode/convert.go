@@ -506,6 +506,9 @@ func AdjustSubagentSession(session *minitrace.Session, agentID, parentSessionID,
 	session.Provenance.OriginalSessionID = &agentID
 	session.Provenance.SourceFormat = SourceFormatV2 + "+subagent"
 	session.Flags.Category = appendUnique(session.Flags.Category, "subagent")
+	if parentSessionID != "" {
+		session.Coordination.PredecessorSession = &parentSessionID
+	}
 
 	switch {
 	case slug != "":

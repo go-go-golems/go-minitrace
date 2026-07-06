@@ -645,6 +645,9 @@ func TestConvertRecordsSessionJSONLCapturesSubagentMetadataAndCount(t *testing.T
 	if config["parent_thread_id"] != "parent-thread" {
 		t.Fatalf("expected parent_thread_id in framework config, got %+v", config)
 	}
+	if session.Coordination.PredecessorSession == nil || *session.Coordination.PredecessorSession != "parent-thread" {
+		t.Fatalf("expected predecessor parent-thread, got %+v", session.Coordination.PredecessorSession)
+	}
 	if config["agent_nickname"] != "Dewey" || config["agent_role"] != "explorer" {
 		t.Fatalf("expected agent nickname/role in framework config, got %+v", config)
 	}

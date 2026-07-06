@@ -101,6 +101,9 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	session.OperationalContext.AutonomyLevel = optionalString(mapApprovalPolicy(metadata.ApprovalPolicy))
 	session.OperationalContext.Sandbox = sandboxValue(metadata.SandboxPolicy)
 	session.OperationalContext.FrameworkConfig = frameworkConfig(metadata)
+	if metadata.ParentThreadID != "" {
+		session.Coordination.PredecessorSession = &metadata.ParentThreadID
+	}
 	if sourcePath != "" {
 		session.Provenance.SourcePath = ptr(sourcePath)
 	}
