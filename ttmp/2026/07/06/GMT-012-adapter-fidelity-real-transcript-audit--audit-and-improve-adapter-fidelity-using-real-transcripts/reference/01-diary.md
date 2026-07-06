@@ -321,3 +321,69 @@ The change keeps framework-specific metadata intact while also making parent-chi
 - Pi parent ID extraction mirrors existing filename-based session ID extraction: trim `.jsonl`, then take the suffix after the final `_`.
 - Codex uses the source-native `parent_thread_id` string directly.
 - Claude Code uses the parent session ID passed through subagent discovery/conversion.
+
+## Step 5: Add Codex legacy rollout JSONL conversion
+
+Fixed the highest-severity coverage gap from the report: sampled older Codex rollout JSONL files no longer fail conversion. These files use a pre-`session_meta` shape with top-level session metadata, `record_type: state` rows, and top-level `message`, `reasoning`, `function_call`, and `function_call_output` records.
+
+The implementation adds a narrow legacy parser instead of changing the modern parser path. Legacy `shell` function calls are normalized to `exec_command`, reasoning summaries attach to the next assistant turn, and legacy top-level git metadata is promoted into operational context and framework config.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue task-by-task implementation after the lineage fix, prioritizing evidence-backed missing functionality.
+
+**Inferred user intent:** Remove high-value conversion gaps found by the source-vs-archive audit while keeping commits focused and reviewable.
+
+**Commit (code):** Pending for this step.
+
+### What I did
+- Added `SourceFormatLegacy = codex-legacy-rollout-jsonl-v0`.
+- Added `parseLegacyRolloutJSONL` for older Codex rollout records.
+- Updated Codex format detection for top-level legacy records.
+- Normalized legacy `shell` calls to `exec_command` tool calls.
+- Added a regression test covering legacy metadata, user/assistant turns, reasoning, shell call output, exit code, and duration parsing.
+- Re-ran sampled conversion and source-vs-archive coverage profiling.
+- Updated `pkg/doc/adapter-reference.md` and the missing functionality report.
+- Marked tasks 9 and 10 complete.
+
+### Why
+- Four of twelve sampled Codex files failed conversion before this change.
+- Whole-session conversion failure is more severe than partial field loss.
+- The source shape was simple enough to support safely with a minimized test.
+
+### What worked
+- `GOWORK=off go test ./pkg/adapters/codex -count=1` passed.
+- `GOWORK=off go test ./pkg/adapters/... -count=1` passed.
+- Re-running the sampled conversion produced 12 Codex sessions instead of 8.
+- Converted legacy archives record `provenance.source_format = codex-legacy-rollout-jsonl-v0`.
+- The coverage profile no longer reports Codex convertibility as a high-severity finding.
+
+### What didn't work
+- The conversion command summary still prints the locator/discovery source format as `unknown-jsonl` for the legacy files, even though the archive provenance correctly records the detected legacy format. This is a reporting polish issue, not a conversion failure.
+
+### What I learned
+- Older Codex rollout files encode shell calls as top-level `function_call` records with `name: shell` and JSON arguments containing a command array.
+- The existing `applyCodexFunctionOutput` path could be reused once the legacy call was normalized to `exec_command`.
+
+### What was tricky to build
+- The old format does not carry exactly the same turn context as modern `event_msg`/`response_item` records. The implementation attaches pending tool IDs to the next message turn and falls back to the last turn at EOF, matching the modern parser's pending-tool behavior.
+
+### What warrants a second pair of eyes
+- Whether joining legacy shell command arrays with spaces is sufficient, or whether shell quoting should be reconstructed more faithfully.
+- Whether command summary rows should display the detected archive source format instead of the original discovery hint.
+
+### What should be done in the future
+- Add fixture coverage for legacy Codex files with non-shell tools if such files are found.
+- Decide whether legacy encrypted reasoning payloads should be represented as signature/encrypted-only metadata.
+
+### Code review instructions
+- Start in `pkg/adapters/codex/convert.go` at `parseLegacyRolloutJSONL`.
+- Review `normalizeLegacyCodexFunctionCall` and `flattenCodexLegacyContent`.
+- Validate with `GOWORK=off go test ./pkg/adapters/... -count=1`.
+- Optionally re-run the GMT-012 conversion/profile scripts to verify 12 sampled Codex sessions convert.
+
+### Technical details
+- Legacy detection triggers on top-level `message`, `reasoning`, `function_call`, `function_call_output`, `record_type: state`, or a first metadata row with `id`/`timestamp` but no `type`.
+- Legacy top-level `git.branch` maps to `operational_context.git_branch`; `git.commit_hash` maps to `operational_context.git_ref`.

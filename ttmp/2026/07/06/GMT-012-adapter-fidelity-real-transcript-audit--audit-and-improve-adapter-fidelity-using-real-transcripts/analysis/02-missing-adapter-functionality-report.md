@@ -47,7 +47,7 @@ The most important result is that “missing thinking” is not one problem. It 
 
 Highest-priority missing functionality:
 
-1. Codex old JSONL convertibility: 4/12 sampled Codex files failed conversion.
+1. ~~Codex old JSONL convertibility: 4/12 sampled Codex files failed conversion.~~ Fixed in commit pending after this report update: legacy rollout JSONL now converts.
 2. Codex reasoning granularity: source reasoning signals greatly exceed archive `turn.thinking` count.
 3. Claude Code signed thinking preservation: record signed/empty thinking block presence even when cleartext is unavailable.
 4. Pi image block preservation: source image blocks observed but no archive attachments emitted in the sampled corpus.
@@ -80,11 +80,12 @@ Converted archive totals from the profile:
 | Pi | 12 | 3,854 | 4,179 | 144 | 0 |
 | Copilot | 0 | 0 | 0 | 0 | 0 |
 
-## Finding 1: Codex old JSONL files do not convert
+## Finding 1: Codex old JSONL files did not convert — fixed
 
-**Severity:** high  
-**Classification:** unsupported-source-shape  
-**Evidence:** 12 sampled Codex files; 8 converted; 4 failed as `unsupported Codex format hint: unknown-jsonl`.
+**Severity:** resolved high  
+**Classification:** formerly unsupported-source-shape  
+**Evidence before fix:** 12 sampled Codex files; 8 converted; 4 failed as `unsupported Codex format hint: unknown-jsonl`.
+**Evidence after fix:** all 12 sampled Codex files convert; the four older files produce archives with `provenance.source_format = codex-legacy-rollout-jsonl-v0`.
 
 ### Why this matters
 
@@ -98,28 +99,23 @@ The failing samples are older Codex rollout JSONL shapes. Manual structural insp
 - follow-up records with `record_type`;
 - no modern `session_meta` wrapper.
 
-The current adapter appears optimized for newer `session_meta` / `event_msg` / `response_item` shapes.
+The adapter was optimized for newer `session_meta` / `event_msg` / `response_item` shapes. It now also detects older top-level rollout records (`message`, `reasoning`, `function_call`, `function_call_output`, and `record_type: state`).
 
-### Recommended fix
+### Implemented fix
 
-Add a legacy Codex format detector and converter path if these files are semantically recoverable.
+The adapter now has a legacy rollout parser that maps:
 
-Implementation steps:
-
-1. Create a minimized fixture from one old file shape:
-   - `pkg/adapters/codex/testdata/legacy-rollout-jsonl-minimal.jsonl`
-2. Add a detector test that currently fails.
-3. Decide whether to map old records to turns/tools or emit a clear unsupported diagnostic with the exact detected format.
-4. If supported, map:
-   - top-level `git` to operational context;
-   - old `record_type` messages to turns/events;
-   - old reasoning records to thinking/metadata;
-   - old tool records to tool calls.
+- top-level `id` to session ID;
+- top-level `git.branch`/`git.commit_hash` to normalized operational context;
+- `message` records to turns;
+- `reasoning.summary[].text` to assistant-turn thinking when cleartext is present;
+- legacy `shell` function calls to normalized `exec_command` tool calls;
+- `function_call_output` payloads through the existing output parser.
 
 ### Acceptance criteria
 
-- The 4 sampled old Codex files either convert or fail with a documented `legacy-codex-rollout-jsonl` reason.
-- `adapter-reference.md` says whether that shape is supported.
+- The 4 sampled old Codex files now convert.
+- `adapter-reference.md` documents `codex-legacy-rollout-jsonl-v0`.
 
 ## Finding 2: Codex reasoning coverage is partial
 
@@ -341,7 +337,7 @@ Field families:
 
 | Priority | Adapter | Work item | Reason |
 |---:|---|---|---|
-| 1 | Codex | Legacy/old JSONL convertibility | Whole sessions missing. |
+| 1 | Codex | Legacy/old JSONL convertibility | Fixed: all 12 sampled Codex files now convert. |
 | 2 | Copilot | Add conversion coverage script | Current report cannot judge adapter output. |
 | 3 | Claude Code | Preserve signature-only thinking metadata | Clarifies “missing thinking” without inventing text. |
 | 4 | Pi | Map image blocks to attachments | Clear source fact appears absent from archive. |

@@ -20,6 +20,7 @@ const (
 	AdapterVersion      = "go-minitrace-codex-adapter-dev"
 	SourceFormatExec    = "codex-exec-jsonl-v1"
 	SourceFormatSession = "codex-session-jsonl-v1"
+	SourceFormatLegacy  = "codex-legacy-rollout-jsonl-v0"
 )
 
 var (
@@ -82,6 +83,8 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 		turns, toolCalls, annotations, timestamps, tokenTotals, metadata = parseSessionJSONL(records)
 	case "exec-jsonl-v1":
 		turns, toolCalls, annotations, timestamps, tokenTotals, metadata = parseExecJSONL(records)
+	case "legacy-rollout-jsonl-v0":
+		turns, toolCalls, annotations, timestamps, tokenTotals, metadata = parseLegacyRolloutJSONL(records)
 	default:
 		return nil, errors.Errorf("unsupported Codex format hint: %s", actualFormat)
 	}
@@ -98,6 +101,8 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	session.Environment.ProviderHint = providerHint(metadata.ModelProvider)
 	session.Environment.ToolsEnabled = uniqueToolNames(toolCalls)
 	session.OperationalContext.WorkingDirectory = optionalNormalizedPath(metadata.CWD)
+	session.OperationalContext.GitBranch = optionalString(metadata.GitBranch)
+	session.OperationalContext.GitRef = optionalString(metadata.GitCommit)
 	session.OperationalContext.AutonomyLevel = optionalString(mapApprovalPolicy(metadata.ApprovalPolicy))
 	session.OperationalContext.Sandbox = sandboxValue(metadata.SandboxPolicy)
 	session.OperationalContext.FrameworkConfig = frameworkConfig(metadata)
@@ -172,6 +177,9 @@ type codexMetadata struct {
 	ContextWindow           int
 	TruncationPolicy        any
 	LatestRateLimits        any
+	GitBranch               string
+	GitCommit               string
+	RepositoryURL           string
 }
 
 func buildCodexEventsAndAttachments(toolCalls []minitrace.ToolCall, metadata codexMetadata) ([]minitrace.Event, []minitrace.Attachment) {
@@ -486,6 +494,113 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata
 }
 
+func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.ToolCall, []minitrace.Annotation, []time.Time, *minitrace.TokenTotals, codexMetadata) {
+	turns := []minitrace.Turn{}
+	toolCalls := []minitrace.ToolCall{}
+	annotations := []minitrace.Annotation{}
+	timestamps := []time.Time{}
+	tokenTotals := &minitrace.TokenTotals{}
+	metadata := codexMetadata{}
+
+	pendingFunctionCalls := map[string]int{}
+	pendingTurnToolIDs := map[string]struct{}{}
+	currentThinking := []string{}
+	turnIndex := 0
+	toolCounter := 0
+
+	for _, record := range records {
+		timestamp := stringValue(record["timestamp"])
+		if parsed, ok := minitrace.ParseTimestamp(timestamp); ok {
+			timestamps = append(timestamps, parsed)
+		}
+		timestampPtr := optionalString(timestamp)
+
+		recordType := firstNonEmpty(stringValue(record["type"]), stringValue(record["record_type"]))
+		if recordType == "" && record["id"] != nil {
+			metadata.SessionID = firstNonEmpty(stringValue(record["id"]), metadata.SessionID)
+			metadata.SystemPrompt = firstNonEmpty(stringValue(record["instructions"]), metadata.SystemPrompt)
+			if git := mapValue(record["git"]); git != nil {
+				metadata.GitBranch = firstNonEmpty(stringValue(git["branch"]), metadata.GitBranch)
+				metadata.GitCommit = firstNonEmpty(stringValue(git["commit_hash"]), metadata.GitCommit)
+				metadata.RepositoryURL = firstNonEmpty(stringValue(git["repository_url"]), metadata.RepositoryURL)
+			}
+			continue
+		}
+
+		switch recordType {
+		case "state":
+			continue
+		case "reasoning":
+			for _, item := range listValue(record["summary"]) {
+				summary := mapValue(item)
+				if summary == nil {
+					continue
+				}
+				if text := stringValue(summary["text"]); text != "" {
+					currentThinking = append(currentThinking, text)
+				}
+			}
+		case "message":
+			role := firstNonEmpty(stringValue(record["role"]), "assistant")
+			source := ptr("model")
+			if role == "user" {
+				source = ptr("human")
+			} else if role == "system" {
+				source = ptr("system")
+			}
+			turn := minitrace.BuildTurn(turnIndex, timestampPtr, role, source, flattenCodexLegacyContent(record["content"]))
+			if role == "assistant" && len(currentThinking) > 0 {
+				thinking := strings.Join(currentThinking, "\n")
+				turn.Thinking = &thinking
+				currentThinking = nil
+			}
+			toolIDs := pendingTurnToolIDsSlice(pendingTurnToolIDs)
+			for _, toolID := range toolIDs {
+				if index, ok := pendingFunctionCalls[toolID]; ok {
+					turnIndexCopy := turnIndex
+					toolCalls[index].EmittingTurnIndex = &turnIndexCopy
+				}
+			}
+			turn.ToolCallsInTurn = toolIDs
+			turn.FrameworkMetadata = codexTurnMetadata("", record, nil)
+			turns = append(turns, turn)
+			turnIndex++
+			pendingTurnToolIDs = map[string]struct{}{}
+		case "function_call":
+			callID := stringValue(record["call_id"])
+			if callID == "" {
+				callID = firstNonEmpty(stringValue(record["id"]), fmt.Sprintf("tc-codex-legacy-%04d", toolCounter))
+			}
+			toolCounter++
+			toolCall := buildCodexResponseToolCall(callID, timestampPtr, "", normalizeLegacyCodexFunctionCall(record))
+			toolCalls = append(toolCalls, toolCall)
+			pendingFunctionCalls[callID] = len(toolCalls) - 1
+			pendingTurnToolIDs[callID] = struct{}{}
+		case "function_call_output":
+			callID := stringValue(record["call_id"])
+			index, ok := pendingFunctionCalls[callID]
+			if !ok {
+				continue
+			}
+			applyCodexFunctionOutput(&toolCalls[index], stringValue(record["output"]))
+		}
+	}
+
+	if len(pendingTurnToolIDs) > 0 {
+		lastTurnIndex := 0
+		if len(turns) > 0 {
+			lastTurnIndex = len(turns) - 1
+		}
+		for toolID := range pendingTurnToolIDs {
+			if index, ok := pendingFunctionCalls[toolID]; ok {
+				toolCalls[index].EmittingTurnIndex = &lastTurnIndex
+			}
+		}
+	}
+
+	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata
+}
+
 func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.ToolCall, []minitrace.Annotation, []time.Time, *minitrace.TokenTotals, codexMetadata) {
 	turns := []minitrace.Turn{}
 	toolCalls := []minitrace.ToolCall{}
@@ -637,6 +752,14 @@ func detectFormatRecords(records []map[string]any) string {
 			return "session-jsonl-v1"
 		case "thread.started", "turn.started", "turn.completed", "item.started", "item.completed":
 			return "exec-jsonl-v1"
+		case "message", "reasoning", "function_call", "function_call_output":
+			return "legacy-rollout-jsonl-v0"
+		}
+		if stringValue(record["record_type"]) == "state" {
+			return "legacy-rollout-jsonl-v0"
+		}
+		if record["id"] != nil && record["timestamp"] != nil && record["type"] == nil {
+			return "legacy-rollout-jsonl-v0"
 		}
 	}
 	return "unknown-jsonl"
@@ -648,6 +771,8 @@ func sourceFormatName(formatHint string) string {
 		return SourceFormatSession
 	case "exec-jsonl-v1":
 		return SourceFormatExec
+	case "legacy-rollout-jsonl-v0":
+		return SourceFormatLegacy
 	default:
 		return formatHint
 	}
@@ -669,6 +794,48 @@ func parseArguments(raw any) map[string]any {
 	default:
 		return map[string]any{}
 	}
+}
+
+func normalizeLegacyCodexFunctionCall(record map[string]any) map[string]any {
+	payload := map[string]any{}
+	for key, value := range record {
+		payload[key] = value
+	}
+	if stringValue(payload["name"]) == "shell" {
+		payload["name"] = "exec_command"
+		args := parseArguments(payload["arguments"])
+		if commandList := listValue(args["command"]); len(commandList) > 0 {
+			parts := make([]string, 0, len(commandList))
+			for _, part := range commandList {
+				parts = append(parts, stringValue(part))
+			}
+			args["cmd"] = strings.Join(parts, " ")
+		} else if command := stringValue(args["command"]); command != "" {
+			args["cmd"] = command
+		}
+		payload["arguments"] = args
+	}
+	return payload
+}
+
+func flattenCodexLegacyContent(value any) string {
+	parts := []string{}
+	for _, item := range listValue(value) {
+		block := mapValue(item)
+		if block == nil {
+			if text := strings.TrimSpace(fmt.Sprint(item)); text != "" {
+				parts = append(parts, text)
+			}
+			continue
+		}
+		if text := stringValue(block["text"]); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	if len(parts) == 0 {
+		return stringValue(value)
+	}
+	return strings.Join(parts, "\n")
 }
 
 func buildCodexResponseToolCall(callID string, timestamp *string, currentTurnID string, payload map[string]any) minitrace.ToolCall {
@@ -1110,6 +1277,13 @@ func frameworkConfig(metadata codexMetadata) any {
 	}
 	if metadata.LatestRateLimits != nil {
 		config["rate_limits"] = metadata.LatestRateLimits
+	}
+	if metadata.GitBranch != "" || metadata.GitCommit != "" || metadata.RepositoryURL != "" {
+		config["git"] = map[string]any{
+			"branch":         metadata.GitBranch,
+			"commit_hash":    metadata.GitCommit,
+			"repository_url": metadata.RepositoryURL,
+		}
 	}
 	if metadata.ContextWindow != 0 {
 		config["model_context_window"] = metadata.ContextWindow

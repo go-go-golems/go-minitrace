@@ -592,6 +592,87 @@ func TestConvertRecordsExecJSONLAssignsPerTurnEmittingIndexes(t *testing.T) {
 	}
 }
 
+func TestConvertRecordsLegacyRolloutJSONLConvertsMessagesReasoningAndShell(t *testing.T) {
+	records := []map[string]any{
+		{
+			"id":           "legacy-session",
+			"timestamp":    "2025-08-27T12:42:14Z",
+			"instructions": "be helpful",
+			"git": map[string]any{
+				"branch":         "feature/legacy",
+				"commit_hash":    "abc123",
+				"repository_url": "git@example.com/repo.git",
+			},
+		},
+		{"record_type": "state"},
+		{
+			"type": "message",
+			"role": "user",
+			"content": []any{
+				map[string]any{"type": "input_text", "text": "list files"},
+			},
+		},
+		{
+			"type": "reasoning",
+			"summary": []any{
+				map[string]any{"type": "summary_text", "text": "Need to inspect the directory."},
+			},
+		},
+		{
+			"type":      "function_call",
+			"id":        "fc-1",
+			"call_id":   "call-1",
+			"name":      "shell",
+			"arguments": `{"command":["bash","-lc","ls -la"]}`,
+		},
+		{
+			"type":    "function_call_output",
+			"call_id": "call-1",
+			"output":  `{"output":"ok","metadata":{"exit_code":0,"duration_seconds":0.25}}`,
+		},
+		{
+			"type": "message",
+			"role": "assistant",
+			"content": []any{
+				map[string]any{"type": "output_text", "text": "done"},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "fallback-id", "/tmp/legacy.jsonl", "")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if session.ID != "legacy-session" {
+		t.Fatalf("expected legacy session id, got %s", session.ID)
+	}
+	if session.Provenance.SourceFormat != SourceFormatLegacy {
+		t.Fatalf("expected legacy source format, got %s", session.Provenance.SourceFormat)
+	}
+	if session.OperationalContext.GitBranch == nil || *session.OperationalContext.GitBranch != "feature/legacy" {
+		t.Fatalf("expected git branch from legacy metadata, got %+v", session.OperationalContext.GitBranch)
+	}
+	if len(session.Turns) != 2 {
+		t.Fatalf("expected two turns, got %d", len(session.Turns))
+	}
+	if session.Turns[1].Thinking == nil || *session.Turns[1].Thinking != "Need to inspect the directory." {
+		t.Fatalf("expected reasoning attached to assistant turn, got %+v", session.Turns[1].Thinking)
+	}
+	if len(session.ToolCalls) != 1 {
+		t.Fatalf("expected one shell tool call, got %d", len(session.ToolCalls))
+	}
+	toolCall := session.ToolCalls[0]
+	if toolCall.ToolName != "exec_command" || toolCall.Input.Command == nil || *toolCall.Input.Command != "bash -lc ls -la" {
+		t.Fatalf("expected normalized shell command, got %+v", toolCall)
+	}
+	if toolCall.Output.ExitCode == nil || *toolCall.Output.ExitCode != 0 {
+		t.Fatalf("expected parsed exit code 0, got %+v", toolCall.Output.ExitCode)
+	}
+	if toolCall.Output.DurationMS == nil || *toolCall.Output.DurationMS != 250 {
+		t.Fatalf("expected parsed duration 250ms, got %+v", toolCall.Output.DurationMS)
+	}
+}
+
 func TestConvertRecordsSessionJSONLCapturesSubagentMetadataAndCount(t *testing.T) {
 	records := []map[string]any{
 		{

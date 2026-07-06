@@ -42,7 +42,7 @@ Not every source records the same facts, and not every fact an adapter emits is 
 | cache-read tokens | native | native | native | session totals only | – | – | – |
 | cache-creation tokens | native | native | – | – | – | – | – |
 | reasoning tokens | native | – | native | – | – | – | – |
-| session `git_branch` | – | native | – | native | – | – | – |
+| session `git_branch` | – | native | native for legacy rollout JSONL, otherwise – | native | – | – | – |
 | `working_directory` | native | native | native | native | – | – | – |
 | `agent_version` | – | native | native | native | – | – | – |
 | session cost | native (`usage.cost.total`) | – | – | – | – | – | – |
@@ -137,7 +137,7 @@ When a session directory contains a `subagents/` subdirectory, each subagent JSO
 ## Codex adapter
 
 **Source**: Session and exec JSONL files in `~/.codex/`
-**Source format**: `codex-session-jsonl-v1` (sessions), `codex-exec-jsonl-v1` (exec logs)
+**Source format**: `codex-session-jsonl-v1` (sessions), `codex-exec-jsonl-v1` (exec logs), `codex-legacy-rollout-jsonl-v0` (older rollout JSONL)
 **Converter version**: `go-minitrace-codex-adapter-dev`
 
 ### What it reads
@@ -146,6 +146,7 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 
 - **Session JSONL** → conversation turns and tool invocations
 - **Exec JSONL** → tool calls from `codex exec --json` output
+- **Legacy rollout JSONL** → older top-level message/reasoning/function-call records, including `shell` calls normalized to `exec_command`
 - **exec_command events** → native exit codes; structured output metadata also yields scraped `exit_code` and `duration_ms` (from `metadata.duration_seconds` or `"Wall time:"` lines)
 - **token_count events** → input/output/cached/reasoning token usage
 - **Tool-call arguments** → command strings plus optional justification text
@@ -153,7 +154,7 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 - **Lifecycle/source signals** → source events when they describe timeline facts outside turns
 - **Image-view signals** → attachment references when a `view_image` tool call points at an image
 
-Sessions in unrecognized formats are skipped and reported as failed rows; the rest of the batch converts normally.
+Sessions in unrecognized formats are skipped and reported as failed rows; the rest of the batch converts normally. Older rollout JSONL files that start with top-level session metadata plus `message`, `reasoning`, `function_call`, `function_call_output`, and `record_type: state` records are recognized as legacy rollout JSONL and converted.
 
 ### Multi-agent metadata
 
@@ -171,7 +172,7 @@ Codex multi-agent sessions carry native coordination fields, captured into `oper
 
 ### What is not preserved
 
-- git branch (not recorded in the source)
+- git branch for modern session JSONL when not recorded in the source
 - cache-creation token counts (Codex only reports cached input)
 - Token usage for the exec-JSONL format (not present in that format)
 - Binary exec output is truncated

@@ -10,7 +10,7 @@
 - [x] Query converted archives for fidelity coverage and suspicious null/zero/drop patterns
 - [x] Compare source facts vs minitrace output for pi, claude-code, codex, copilot, chatgpt, claude.ai, and turnsdb
 - [x] Write adapter-by-adapter gap report with evidence and severity
-- [ ] Implement high-confidence adapter fixes with fixture/regression tests
-- [ ] Update `pkg/doc/adapter-reference.md` and related docs with measured fidelity results
+- [x] Implement high-confidence adapter fixes with fixture/regression tests
+- [x] Update `pkg/doc/adapter-reference.md` and related docs with measured fidelity results
 - [ ] Validate with full tests, conversion smoke tests, and docmgr doctor
 - [ ] Commit implementation and ticket docs at appropriate checkpoints

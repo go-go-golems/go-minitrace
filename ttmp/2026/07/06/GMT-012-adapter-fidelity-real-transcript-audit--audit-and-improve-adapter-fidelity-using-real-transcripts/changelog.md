@@ -56,3 +56,14 @@ Implemented lineage preservation for Pi parentSession, Codex parent_thread_id, a
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/pi/convert.go — Promotes Pi parentSession lineage
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/doc/adapter-reference.md — Documents normalized predecessor lineage
 
+
+## 2026-07-06
+
+Added Codex legacy rollout JSONL conversion support; all 12 sampled Codex files now convert, and adapter docs/profile report were updated.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert.go — Legacy rollout JSONL parser
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert_test.go — Legacy rollout regression test
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/doc/adapter-reference.md — Documents legacy Codex support
+
