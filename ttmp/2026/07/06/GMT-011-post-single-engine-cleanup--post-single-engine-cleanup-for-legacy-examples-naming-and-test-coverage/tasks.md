@@ -9,4 +9,4 @@
 - [x] Add top-level migration checklist for users moving from DuckDB-era commands
 - [x] Tighten small naming/style drift in the query authorizer API
 - [x] Validate Go tests and lint; record frontend validation limitation
-- [ ] Commit implementation and ticket docs
+- [x] Commit implementation and ticket docs

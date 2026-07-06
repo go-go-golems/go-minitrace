@@ -193,7 +193,9 @@ The fix was to remove duplicated helpers from the renamed JS test file and enric
 
 Ran the Go validation suite and lint after the cleanup. The Go side passes, and the ignored-test check confirms that the JS runtime tests are now active. Frontend validation was attempted and failed before reaching project code because dependencies are missing in the local web workspace.
 
-The remaining work is to commit the implementation and ticket docs.
+The implementation and initial ticket docs were committed as `d973bed394c1d14bd2392f3a7a384ebeef44136f`. A final docs-only bookkeeping commit records the checked task and changelog update.
+
+**Commit (code):** `d973bed394c1d14bd2392f3a7a384ebeef44136f` — "GMT-011: clean up single-engine migration leftovers"
 
 ### Prompt Context
 
@@ -209,6 +211,7 @@ The remaining work is to commit the implementation and ticket docs.
 - Ran `GOWORK=off go test ./...`.
 - Ran `GOWORK=off go list -f '{{.IgnoredGoFiles}}' ./cmd/go-minitrace/cmds/query`.
 - Attempted `pnpm lint` and `pnpm build` in `web/` and recorded the dependency limitation.
+- Committed the implementation and initial ticket docs as `d973bed394c1d14bd2392f3a7a384ebeef44136f`.
 
 ### Why
 - The cleanup touches tests, docs/examples, and TypeScript story strings. Go validation is required; frontend validation should be attempted even if dependency setup blocks it.
@@ -234,6 +237,7 @@ The remaining work is to commit the implementation and ticket docs.
 
 ### What should be done in the future
 - Consider adding a documented one-command frontend validation target that installs/uses pnpm dependencies consistently.
+- Push `d973bed394c1d14bd2392f3a7a384ebeef44136f` and the follow-up diary bookkeeping commit when updating the remote PR branch.
 
 ### Code review instructions
 - Run the Go validation commands listed in the design doc.
