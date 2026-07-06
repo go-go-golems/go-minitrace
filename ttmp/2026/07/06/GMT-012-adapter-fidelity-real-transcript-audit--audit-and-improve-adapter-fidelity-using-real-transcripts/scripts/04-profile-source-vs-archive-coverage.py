@@ -130,6 +130,8 @@ def profile_jsonl(adapter: str, path: Path, max_lines: int) -> dict[str, Any]:
                 inc_if(facts, "keys.thinking_or_reasoning", "thinking" in lk or "reason" in lk)
                 inc_if(facts, "keys.usage_or_tokens", "usage" in lk or "token" in lk)
                 inc_if(facts, "keys.attachments_or_images", "attachment" in lk or "image" in lk)
+                if key.lower().endswith("attachments") and isinstance(value, list) and len(value) > 0:
+                    facts["attachments.nonempty"] += 1
                 inc_if(facts, "keys.parent_or_lineage", "parent" in lk or "fork" in lk or "thread" in lk)
 
             # Common message roles and content blocks.
@@ -144,6 +146,8 @@ def profile_jsonl(adapter: str, path: Path, max_lines: int) -> dict[str, Any]:
                         if isinstance(block, dict):
                             bt = str(block.get("type") or "<missing>")
                             block_types[bt] += 1
+                            if bt == "image":
+                                facts["content_block.image"] += 1
                             if bt in {"thinking", "reasoning", "redacted_thinking"}:
                                 facts[f"content_block.{bt}"] += 1
                                 if string_value := block.get("thinking") or block.get("text") or block.get("content"):
@@ -338,7 +342,7 @@ def classify(source: dict[str, Any], archive: dict[str, Any]) -> list[dict[str, 
         elif usage_src and usage_out:
             add("usage/tokens", usage_src, usage_out, "info", "usage exists in both source and archive; compare exact token fields if needed")
 
-        attach_src = facts.get("keys.attachments_or_images", 0)
+        attach_src = facts.get("attachments.nonempty", 0) + facts.get("content_block.image", 0)
         attach_out = a.get("attachments", 0)
         if attach_src and not attach_out:
             add("attachments/images", attach_src, attach_out, "medium", "source has attachment/image signals but archive has no attachments")

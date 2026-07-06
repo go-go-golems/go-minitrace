@@ -517,7 +517,7 @@ This keeps `turn.thinking` semantically honest: it remains nil unless the source
 
 Closed the Copilot audit-coverage gap by adding a script that converts the sampled Copilot session-state directory. The earlier JSONL conversion script intentionally covered only adapters with `--source-list`; Copilot conversion uses `--source-dir` and discovers sessions from directories containing `events.jsonl`.
 
-After this step, the coverage profile can compare both source-side and archive-side Copilot facts. The sampled Copilot session now converts to one archive with 13 turns and 7 tool calls. The remaining Copilot finding is narrower: attachment/image signals exist source-side but do not yet become first-class attachments.
+After this step, the coverage profile can compare both source-side and archive-side Copilot facts. The sampled Copilot session now converts to one archive with 13 turns and 7 tool calls. I also refined the profiler so empty `attachments: []` arrays are not counted as dropped attachments; the sampled Copilot attachment finding was a classifier false positive, not a proven adapter gap.
 
 ### Prompt Context
 
@@ -534,6 +534,7 @@ After this step, the coverage profile can compare both source-side and archive-s
 - Mapped sampled `events.jsonl` paths back to their parent session-state directories.
 - Ran `go-minitrace convert copilot --source-dir ...` for the sampled session.
 - Reran `scripts/04-profile-source-vs-archive-coverage.py`.
+- Refined attachment classification to count non-empty attachment arrays and image content blocks, not empty attachment keys.
 - Updated the coverage guide and missing functionality report.
 
 ### Why
@@ -545,7 +546,7 @@ After this step, the coverage profile can compare both source-side and archive-s
 - The profile now reports Copilot archive usage coverage instead of zero archive coverage.
 
 ### What didn't work
-- Copilot attachment/image signals remain unrepresented as first-class attachments. This is now a real adapter gap rather than a missing-conversion artifact.
+- N/A for the sampled Copilot session. The previous attachment/image warning came from empty source `attachments` arrays, so no attachment drop is proven by this sample.
 
 ### What I learned
 - The local Copilot sample lives at `~/.copilot/session-state/<id>/events.jsonl`, which matches the adapter's directory-based discovery expectations.
@@ -561,6 +562,7 @@ After this step, the coverage profile can compare both source-side and archive-s
 ### What should be done in the future
 - Implement Copilot attachment/image mapping.
 - Add Copilot-specific exact usage/token comparator once more samples exist.
+- Revisit Copilot attachment mapping if a sample with non-empty attachments is found.
 
 ### Code review instructions
 - Review `scripts/05-convert-sampled-copilot.sh`.

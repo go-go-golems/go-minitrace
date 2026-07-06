@@ -109,3 +109,13 @@ Added Copilot sampled conversion script and reran coverage; sampled Copilot sess
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/05-convert-sampled-copilot.sh — Copilot conversion script
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/sources/coverage-profile/01-coverage-profile.md — Updated Copilot archive coverage
 
+
+## 2026-07-06
+
+Refined coverage profiler attachment classification to avoid treating empty Copilot attachment arrays as dropped attachments; reran coverage profile.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py — Attachment classifier refinement
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/sources/coverage-profile/01-coverage-profile.md — Updated coverage findings
+

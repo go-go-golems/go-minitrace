@@ -78,7 +78,7 @@ Converted archive totals from the profile:
 | Claude Code | 12 | 3,375 | 1,661 | 2,392 | 1,555 |
 | Codex | 8 | 649 | 2,416 | 20 | 1 |
 | Pi | 12 | 3,854 | 4,179 | 144 | 0 |
-| Copilot | 0 | 0 | 0 | 0 | 0 |
+| Copilot | 1 | 13 | 7 | converted after adding `05-convert-sampled-copilot.sh` | 0 |
 
 ## Finding 1: Codex old JSONL files did not convert — fixed
 
@@ -281,7 +281,8 @@ Source sample contains:
 - `tool.execution_start`, `tool.execution_complete`
 - `permission.requested`, `permission.completed`
 - `session.model_change`, `session.info`, `session.shutdown`
-- usage/token and attachment/image key signals
+- usage/token signals
+- empty `attachments: []` arrays (not proof of dropped attachments)
 
 ### Implemented fix
 
@@ -291,7 +292,7 @@ Added `scripts/05-convert-sampled-copilot.sh`. The script reads the inventory sa
 
 - The one sampled Copilot session converts successfully.
 - Coverage profiler includes archive facts for Copilot.
-- Remaining Copilot finding is narrower: source attachment/image signals exist, but no first-class attachments are emitted yet.
+- The earlier Copilot attachment/image finding was a classifier false positive caused by empty `attachments: []` arrays in user-message records; the profiler now only treats non-empty attachment arrays and image content blocks as attachment evidence.
 
 ## Finding 8: Usage exists but exact field coverage needs a dedicated comparator
 
@@ -333,7 +334,7 @@ Field families:
 | Priority | Adapter | Work item | Reason |
 |---:|---|---|---|
 | 1 | Codex | Legacy/old JSONL convertibility | Fixed: all 12 sampled Codex files now convert. |
-| 2 | Copilot | Add conversion coverage script | Fixed for sampled session; remaining work is attachment/image mapping. |
+| 2 | Copilot | Add conversion coverage script | Fixed for sampled session; no attachment drop proven because sampled attachment arrays are empty. |
 | 3 | Claude Code | Preserve signature-only thinking metadata | Fixed: `signed_thinking_blocks` metadata without inventing text. |
 | 4 | Pi | Map image blocks to attachments | Fixed: image blocks become bounded attachments. |
 | 5 | Codex | Reasoning granularity audit/fix | Valuable reasoning context likely partially hidden. |
