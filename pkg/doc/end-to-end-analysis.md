@@ -5,7 +5,7 @@ Short: Complete walkthrough analyzing your Claude Code and Pi usage from raw ses
 Topics:
 - minitrace
 - tutorial
-- duckdb
+- sqlite
 IsTemplate: false
 IsTopLevel: false
 ShowPerDefault: true
@@ -66,7 +66,7 @@ go-minitrace validate --path ./analysis --recursive --output json \
 Start with the framework summary:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --preset framework-summary
 ```
@@ -78,16 +78,16 @@ This shows per-framework averages for tools, turns, read ratio, duration, and ti
 See which models you rely on:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --sql "
     SELECT
-      environment->>'agent_framework' AS framework,
-      environment->>'model' AS model,
+      agent_framework AS framework,
+      model,
       COUNT(*) AS sessions,
-      ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools,
-      ROUND(AVG(CAST(metrics->>'turn_count' AS INT)), 1) AS avg_turns
-    FROM sessions_base
+      ROUND(AVG(tool_call_count), 1) AS avg_tools,
+      ROUND(AVG(turn_count), 1) AS avg_turns
+    FROM sessions
     GROUP BY framework, model
     ORDER BY sessions DESC
   "
@@ -98,15 +98,16 @@ go-minitrace query duckdb \
 Understand your token spend:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --sql "
     SELECT
-      environment->>'agent_framework' AS framework,
-      ROUND(SUM(CAST(metrics->>'total_input_tokens' AS BIGINT)) / 1e6, 2) AS input_M,
-      ROUND(SUM(CAST(metrics->>'total_output_tokens' AS BIGINT)) / 1e6, 2) AS output_M,
-      ROUND(SUM(CAST(metrics->>'total_cache_read_tokens' AS BIGINT)) / 1e6, 2) AS cache_read_M
-    FROM sessions_base
+      s.agent_framework AS framework,
+      ROUND(SUM(m.total_input_tokens) / 1e6, 2) AS input_M,
+      ROUND(SUM(m.total_output_tokens) / 1e6, 2) AS output_M,
+      ROUND(SUM(m.total_cache_read_tokens) / 1e6, 2) AS cache_read_M
+    FROM sessions s
+    JOIN metrics m USING (session_id)
     GROUP BY framework
   "
 ```
@@ -118,7 +119,7 @@ Cache read tokens are often significantly larger than input tokens because Anthr
 See which tools are used most and how the usage pattern differs between frameworks:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --preset tool-operation-breakdown
 ```
@@ -126,14 +127,15 @@ go-minitrace query duckdb \
 For a more detailed tool-name view:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --sql "
     SELECT
-      environment->>'agent_framework' AS framework,
-      REPLACE(CAST(json_extract(tc, '\$.tool_name') AS VARCHAR), '\"', '') AS tool,
+      s.agent_framework AS framework,
+      tc.tool_name AS tool,
       COUNT(*) AS uses
-    FROM sessions_base, UNNEST(tool_calls) AS t(tc)
+    FROM tool_calls tc
+    JOIN sessions s USING (session_id)
     GROUP BY framework, tool
     ORDER BY framework, uses DESC
   " --output json | jq 'group_by(.framework) | .[] | {framework: .[0].framework, tools: [.[:10] | .[] | {tool, uses}]}'
@@ -144,15 +146,15 @@ go-minitrace query duckdb \
 When do you use AI agents?
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --sql "
     SELECT
-      CAST(timing->>'hour_of_day' AS INT) AS hour,
+      hour_of_day AS hour,
       COUNT(*) AS sessions,
-      ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools
-    FROM sessions_base
-    WHERE (timing->>'hour_of_day') IS NOT NULL
+      ROUND(AVG(tool_call_count), 1) AS avg_tools
+    FROM sessions
+    WHERE hour_of_day IS NOT NULL
     GROUP BY hour
     ORDER BY hour
   "
@@ -163,18 +165,18 @@ go-minitrace query duckdb \
 Identify sessions that may be interesting to review:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --sql "
     SELECT
-      id, title,
-      environment->>'agent_framework' AS framework,
-      CAST(metrics->>'turn_count' AS INT) AS turns,
-      CAST(metrics->>'tool_call_count' AS INT) AS tools,
-      ROUND(CAST(timing->>'duration_seconds' AS DOUBLE) / 60, 1) AS minutes,
+      session_id, title,
+      agent_framework AS framework,
+      turn_count AS turns,
+      tool_call_count AS tools,
+      ROUND(duration_seconds / 60, 1) AS minutes,
       quality
-    FROM sessions_base
-    WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
+    FROM sessions
+    WHERE source_format NOT LIKE '%subagent%'
     ORDER BY tools DESC
     LIMIT 20
   "
@@ -185,19 +187,19 @@ go-minitrace query duckdb \
 If you use Claude Code with subagent delegation, analyze that separately:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --sql "
     SELECT
       CASE
-        WHEN provenance->>'source_format' LIKE '%subagent%' THEN 'subagent'
+        WHEN source_format LIKE '%subagent%' THEN 'subagent'
         ELSE 'main'
       END AS session_type,
       COUNT(*) AS sessions,
-      ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools,
-      ROUND(AVG(CAST(metrics->>'turn_count' AS INT)), 1) AS avg_turns
-    FROM sessions_base
-    WHERE (environment->>'agent_framework') = 'claude-code'
+      ROUND(AVG(tool_call_count), 1) AS avg_tools,
+      ROUND(AVG(turn_count), 1) AS avg_turns
+    FROM sessions
+    WHERE agent_framework = 'claude-code'
     GROUP BY session_type
   "
 ```
@@ -207,27 +209,19 @@ go-minitrace query duckdb \
 Save results to CSV for spreadsheet analysis:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './analysis/active/*/*.minitrace.json' \
   --preset session-list --output csv > sessions.csv
 ```
 
-Or create a persistent DuckDB database for interactive exploration:
+Or explore interactively in the web UI, which shares the same normalized engine, saved-query library, and structured commands:
 
 ```bash
-duckdb analysis.duckdb
-```
-
-Then inside DuckDB:
-
-```sql
-.read queries/load.sql
--- Now run any query interactively
-SELECT COUNT(*) FROM sessions_base;
+go-minitrace serve --archive-glob './analysis/active/*/*.minitrace.json'
 ```
 
 ## See also
 
 - `go-minitrace help getting-started` — shorter getting-started tutorial
-- `go-minitrace help writing-duckdb-queries` — how to write the SQL queries used above
-- `go-minitrace help duckdb-query-recipes` — more query recipes to try
+- `go-minitrace help writing-queries` — how to write the SQL queries used above
+- `go-minitrace help query-recipes` — more query recipes to try

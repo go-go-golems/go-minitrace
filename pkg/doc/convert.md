@@ -1,7 +1,7 @@
 ---
 Title: Convert Commands
 Slug: convert-commands
-Short: Convert sessions from Claude Code, Codex, Pi, claude.ai, ChatGPT, and turnsdb into minitrace archives
+Short: Convert sessions from Claude Code, Codex, Pi, Copilot, claude.ai, ChatGPT, and turnsdb into minitrace archives
 Topics:
 - minitrace
 - convert
@@ -10,6 +10,7 @@ Commands:
 - convert claude-code
 - convert codex
 - convert pi
+- convert copilot
 - convert claude-ai
 - convert chatgpt
 - convert chatgpt-json
@@ -29,7 +30,9 @@ All convert subcommands share these common behaviors:
 - **Dry run**: `--dry-run` inspects sources and reports what would be converted without writing files.
 - **Quality grading**: Every session is assigned quality A, B, or C based on content richness.
 - **Path normalization**: Home directory paths in tool call inputs are normalized to `~`.
-- **Content truncation**: Tool call outputs larger than 10 KB are truncated with a SHA-256 hash of the original.
+- **Content truncation**: Tool call outputs larger than 10 KB are truncated; `full_bytes` and `full_hash` record the size and SHA-256 of the full original content.
+- **Failure handling**: Sessions that fail to convert are skipped and reported as `status: failed` rows with an `error` column. The command exits 0 as long as at least one session converted.
+- **Targeted conversion**: `convert pi`, `convert codex`, and `convert claude-code` accept a repeatable `--source-session` flag (explicit session files) and a `--source-list` flag (file with newline-separated paths; blank lines and `#` comments ignored) instead of scanning `--source-dir`.
 
 ## convert claude-code
 
@@ -43,6 +46,8 @@ go-minitrace convert claude-code --dry-run
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--source-dir` | `~/.claude/projects` | Claude Code projects directory |
+| `--source-session` | | Explicit session JSONL files to convert (repeatable) |
+| `--source-list` | | File with newline-separated session paths |
 | `--output-dir` | `./output` | Target archive directory |
 | `--dry-run` | `false` | Preview without writing |
 
@@ -63,12 +68,14 @@ go-minitrace convert codex --source-dir ~/.codex --output-dir ./output
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--source-dir` | `~/.codex` | Codex base directory |
+| `--source-session` | | Explicit session JSONL files to convert (repeatable) |
+| `--source-list` | | File with newline-separated session paths |
 | `--output-dir` | `./output` | Target archive directory |
 | `--dry-run` | `false` | Preview without writing |
 
 **What it reads**: Session JSONL files from `~/.codex/sessions/` and exec JSONL files from `codex exec --json` output.
 
-**Known limitation**: Older Codex sessions with unrecognized JSONL formats produce an `unsupported Codex format hint: unknown-jsonl` error. These sessions are skipped by the discovery phase but cause a hard error if the converter encounters them.
+**Unrecognized formats**: Older Codex sessions with unrecognized JSONL formats are skipped and reported as `status: failed` rows (`unsupported Codex format hint: unknown-jsonl`); the rest of the batch converts normally.
 
 **Source format value**: `codex-session-jsonl-v1` or similar depending on the detected format.
 
@@ -84,13 +91,32 @@ go-minitrace convert pi --source-session /path/to/session.jsonl --output-dir ./o
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--source-dir` | `~/.pi/agent/sessions` | Pi sessions directory |
-| `--source-session` | | Single JSONL file to convert |
+| `--source-session` | | Explicit session JSONL files to convert (repeatable) |
+| `--source-list` | | File with newline-separated session paths |
 | `--output-dir` | `./output` | Target archive directory |
 | `--dry-run` | `false` | Preview without writing |
 
 **What it reads**: JSONL v3 session files. The directory structure uses workspace-encoded paths like `--home-manuel-code-foo--/`.
 
 **Source format value**: `pi-agent-jsonl-v3`.
+
+## convert copilot
+
+Converts GitHub Copilot CLI sessions from the local session-state store.
+
+```bash
+go-minitrace convert copilot --output-dir ./output
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source-dir` | Copilot CLI home | Copilot CLI home, session-state directory, or one session directory |
+| `--output-dir` | `./output` | Target archive directory |
+| `--dry-run` | `false` | Preview without writing |
+
+**What it reads**: Copilot CLI session directories with event logs, workspace metadata (cwd, branch, repository), and tool telemetry.
+
+**Source format value**: `copilot-cli-session-v1`.
 
 ## convert claude-ai
 
@@ -195,13 +221,15 @@ output/
 
 Sessions are bucketed by the month they started. The root `manifest.json` contains aggregate statistics (total sessions, breakdowns by profile/quality/classification, date range).
 
+Manifests are maintained read-merge-write: each conversion rescans the output tree and merges with the existing manifest, so converting different sources (or targeted subsets) into the same directory never loses entries.
+
 ## Troubleshooting
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| `unsupported Codex format hint: unknown-jsonl` | Older Codex session with unrecognized format | Known limitation; these sessions cannot be converted yet |
+| `unsupported Codex format hint: unknown-jsonl` | Older Codex session with unrecognized format | The session is skipped and reported as a `status: failed` row; the rest converts normally |
 | Empty output after conversion | Source directory does not contain expected file patterns | Run `discover` first to verify sessions exist at the expected path |
-| Very large number of output files | Claude Code subagents each become separate sessions | This is expected; filter subagents in queries using `provenance->>'source_format'` |
+| Very large number of output files | Claude Code subagents each become separate sessions | This is expected; filter subagents in queries with `WHERE source_format NOT LIKE '%subagent%'` |
 | Permission denied reading source | Session files owned by another user | Check file ownership and permissions |
 
 ## See also

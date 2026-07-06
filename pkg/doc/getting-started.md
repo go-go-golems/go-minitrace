@@ -56,10 +56,22 @@ If you use Pi:
 go-minitrace discover pi
 ```
 
-Each command outputs a table with one row per session, showing the session ID, format hint, and source path. To get a machine-readable count:
+If you use the GitHub Copilot CLI:
+
+```bash
+go-minitrace discover copilot
+```
+
+Each command outputs a table with one row per session, showing the session ID, format hint, source path, working directory, and start time. To get a machine-readable count:
 
 ```bash
 go-minitrace discover claude-code --output json | jq length
+```
+
+To narrow discovery to one project or time window, use the shared filters:
+
+```bash
+go-minitrace discover pi --cwd-contains my-repo --since 2026-06-01
 ```
 
 The other source formats (claude.ai, ChatGPT, turnsdb) do not have discover commands because they take explicit file paths rather than scanning a directory tree.
@@ -89,12 +101,20 @@ go-minitrace convert pi --output-dir ./output
 go-minitrace convert turnsdb --source /tmp/turns.db --output-dir ./output
 ```
 
-## Step 3: Run your first query
-
-The query command loads your converted archive into DuckDB and runs analysis against it. Start with the built-in presets:
+To convert only specific sessions (for example the ones a filtered `discover` run surfaced), pass their paths directly with the repeatable `--source-session` flag or a `--source-list` file — no staging directory needed:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace convert pi \
+  --source-session ~/.pi/agent/sessions/.../session.jsonl \
+  --output-dir ./output
+```
+
+## Step 3: Run your first query
+
+The query command builds a normalized SQLite database from your converted archive (cached between runs) and runs analysis against it. Start with the built-in presets:
+
+```bash
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset session-list
 ```
@@ -104,28 +124,31 @@ This shows every session with its framework, model, turn count, tool count, dura
 Try the framework summary to see aggregate statistics:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset framework-summary
 ```
 
 ## Step 4: Explore with presets
 
-Six built-in presets are available:
+Nine built-in presets are available:
 
 | Preset | What it shows |
 |--------|---------------|
 | `session-list` | One row per session with key metadata |
 | `framework-summary` | Aggregate stats grouped by agent framework |
 | `tool-operation-breakdown` | Tool call counts by framework and operation type |
+| `tool-failures` | Failed tool calls with target and error detail |
 | `timing-analysis` | Duration, active time, TTFA, and idle ratio by framework |
 | `read-ratio-distribution` | Per-session read/write/execute breakdown |
+| `file-operations` | Every file touch in session order |
+| `file-timeline` | Chronological operations on files with result labels |
 | `annotations` | All annotations across sessions |
 
 To get JSON output for piping to other tools:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --preset framework-summary \
   --output json
@@ -133,25 +156,23 @@ go-minitrace query duckdb \
 
 ## Step 5: Write a custom query
 
-Once you are comfortable with the presets, write your own SQL. The converted sessions are loaded into a table called `sessions_base` with nested JSON columns that you access using DuckDB's `->>'field'` operator.
-
-When you use DuckDB JSON arrow operators (`->` / `->>`) inside predicates, parenthesize the extraction. The arrow operators have low precedence, so `(provenance->>'source_format') NOT LIKE '%subagent%'` is safer and clearer than relying on implicit grouping.
+Once you are comfortable with the presets, write your own SQL. The converted sessions are loaded into normalized tables — `sessions`, `turns`, `tool_calls`, `annotations`, `metrics`, and more — with the interesting fields as real columns, so most queries need no JSON extraction.
 
 Count your sessions:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "SELECT COUNT(*) AS total_sessions FROM sessions_base"
+  --sql "SELECT COUNT(*) AS total_sessions FROM sessions"
 ```
 
 See which models you use most:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "SELECT environment->>'model' AS model, COUNT(*) AS sessions
-         FROM sessions_base
+  --sql "SELECT model, COUNT(*) AS sessions
+         FROM sessions
          GROUP BY model
          ORDER BY sessions DESC"
 ```
@@ -159,12 +180,10 @@ go-minitrace query duckdb \
 Find your most tool-heavy sessions:
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "SELECT id, title,
-                CAST(metrics->>'tool_call_count' AS INT) AS tools,
-                CAST(metrics->>'turn_count' AS INT) AS turns
-         FROM sessions_base
+  --sql "SELECT session_id, title, tool_call_count AS tools, turn_count AS turns
+         FROM sessions
          ORDER BY tools DESC
          LIMIT 10"
 ```
@@ -210,9 +229,9 @@ go-minitrace help annotation-playbook
 - `go-minitrace help analysis-guide` — comprehensive end-to-end workflow: discover, convert, query, annotate, serve
 - `go-minitrace help js-api-reference` — JavaScript runtime API for `.js` command handlers
 - `go-minitrace help structured-query-commands` — author reusable `.sql` and `.js` query commands with typed flags
-- `go-minitrace help duckdb-query-recipes` — ready-to-use queries for common questions
-- `go-minitrace help writing-duckdb-queries` — learn DuckDB JSON operators and query patterns
-- `go-minitrace help query-duckdb` — preset list, `--sql-file`, and archive loading flags reference
+- `go-minitrace help query-recipes` — ready-to-use queries for common questions
+- `go-minitrace help writing-queries` — learn SQL patterns for the normalized schema
+- `go-minitrace help query-commands` — preset list, `--sql-file`, and query flags reference
 - `go-minitrace help annotation-playbook` — step-by-step workflow for adding, syncing, and querying annotations correctly
 - `go-minitrace help minitrace-schema` — understand every field in a session
 - `go-minitrace help convert-commands` — detailed reference for each conversion subcommand
@@ -224,5 +243,5 @@ go-minitrace help annotation-playbook
 |---------|----------|
 | `discover` finds 0 sessions | Check that the source directory exists and contains session files |
 | `convert` errors on a specific session | Use `--dry-run` first, then convert with an ID filter if available |
-| `query duckdb` returns no rows | Verify the `--archive-glob` pattern matches your output directory |
+| `query run` returns no rows | Verify the `--archive-glob` pattern matches your output directory |
 | Output is too wide for terminal | Use `--output json` and pipe to `jq` |

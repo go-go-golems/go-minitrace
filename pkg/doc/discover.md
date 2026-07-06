@@ -10,6 +10,7 @@ Commands:
 - discover claude-code
 - discover codex
 - discover pi
+- discover copilot
 IsTemplate: false
 IsTopLevel: false
 ShowPerDefault: true
@@ -33,6 +34,8 @@ Each discover command emits one row per detected session with these fields:
 | `id` | Session identifier from the source format |
 | `format_hint` | Detected format type (e.g., `jsonl-v2`, `jsonl-v3`) |
 | `source_path` | Absolute path to the session file on disk |
+| `cwd` | Working directory the session ran in (when the source records it) |
+| `started_at` | Session start timestamp (when the source records it) |
 
 The output goes through Glazed, so you can choose your format:
 
@@ -40,6 +43,25 @@ The output goes through Glazed, so you can choose your format:
 go-minitrace discover claude-code --output json
 go-minitrace discover claude-code --output yaml
 go-minitrace discover claude-code --output csv
+```
+
+## Shared filters
+
+Every discover command supports two filters for narrowing large session stores:
+
+| Flag | Description |
+|------|-------------|
+| `--cwd-contains` | Only keep sessions whose working directory contains this case-sensitive substring |
+| `--since` | Only keep sessions started at or after this time (RFC3339 or `YYYY-MM-DD`); sessions without a start timestamp are excluded |
+
+```bash
+# Sessions for one repository, this month
+go-minitrace discover pi --cwd-contains my-repo --since 2026-07-01
+
+# Feed the result straight into a targeted conversion
+go-minitrace discover codex --cwd-contains my-repo --output json \
+  | jq -r '.[].source_path' > /tmp/sessions.txt
+go-minitrace convert codex --source-list /tmp/sessions.txt --output-dir ./output
 ```
 
 ## discover claude-code
@@ -87,6 +109,21 @@ go-minitrace discover pi --output json
 
 Pi session directories use workspace-encoded path names like `--home-manuel-code-foo--/` containing timestamped JSONL files.
 
+## discover copilot
+
+Scans GitHub Copilot CLI session-state directories.
+
+```bash
+go-minitrace discover copilot
+go-minitrace discover copilot --output json
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source-dir` | Copilot CLI home | Copilot CLI home, session-state directory, or one session directory |
+
+Copilot rows additionally include `session_dir`, `workspace_path`, and `session_db_path` columns.
+
 ## Why some formats lack discover
 
 The `claude-ai`, `chatgpt`, `chatgpt-json`, and `turnsdb` converters do not have discover subcommands. These formats take explicit file paths (`--source` for ZIPs and SQLite files, `--source-dir` for JSON directories) rather than scanning a directory tree, so there is no discovery phase — you already know the file you want to convert.
@@ -110,8 +147,7 @@ go-minitrace discover claude-code --output json | jq '[.[].format_hint] | unique
 Find sessions in a specific project directory:
 
 ```bash
-go-minitrace discover claude-code --output json \
-  | jq '[.[] | select(.source_path | contains("my-project"))]'
+go-minitrace discover claude-code --cwd-contains my-project --output json
 ```
 
 ## Troubleshooting

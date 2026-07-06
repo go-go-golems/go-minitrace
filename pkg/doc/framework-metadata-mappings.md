@@ -49,6 +49,9 @@ Framework-specific raw fields are preserved in three places:
 | `rate_limits` | latest `event_msg.payload.rate_limits` from token-count events |
 | `model_context_window` | `task_started` / token-count info |
 | `timezone` | `turn_context.payload.timezone` |
+| `parent_thread_id` | `session_meta.payload.parent_thread_id` (multi-agent sessions) |
+| `agent_nickname` | `session_meta.payload.agent_nickname` |
+| `agent_role` | `session_meta.payload.agent_role` |
 
 ### `turns[].framework_metadata`
 
@@ -71,6 +74,8 @@ Framework-specific raw fields are preserved in three places:
 | `status` | exec event/item status |
 | `turn_id` | exec event/item `turn_id` |
 | `exit_code` | retained in metadata for compatibility, even though a first-class `output.exit_code` now exists |
+| `targets` | `spawn_agent`/`wait_agent` argument targets |
+| `timed_out` | `wait_agent` output timeout flag |
 
 ## Claude Code mappings
 
@@ -79,6 +84,13 @@ Framework-specific raw fields are preserved in three places:
 | Stored key | Raw source |
 |---|---|
 | `entrypoint` | top-level Claude record `entrypoint` |
+| `agent_id` | top-level Claude record `agentId` |
+| `session_id` | top-level Claude record `sessionId` |
+| `parent_uuid` / `is_sidechain` | top-level Claude record fields |
+| `user_type` | top-level Claude record `userType` |
+| `attribution_agent` | attribution record agent |
+| `mode` / `permission_mode` | mode and permission-mode records |
+| `ai_title` | `ai-title` record |
 
 ### `turns[].framework_metadata`
 
@@ -86,8 +98,11 @@ Framework-specific raw fields are preserved in three places:
 |---|---|
 | `entrypoint` | top-level Claude record `entrypoint` |
 | `slug` | top-level Claude record `slug` |
+| `agent_id` | top-level Claude record `agentId` |
+| `session_id` | top-level Claude record `sessionId` |
 | `parent_uuid` | top-level Claude record `parentUuid` |
 | `is_sidechain` | top-level Claude record `isSidechain` |
+| `attribution_agent` | attribution record agent |
 | `stop_reason` | `message.stop_reason` |
 | `stop_sequence` | `message.stop_sequence` |
 | `cache_creation` | `message.usage.cache_creation` |
@@ -101,6 +116,8 @@ Framework-specific raw fields are preserved in three places:
 | `slug` | preserved from the emitting assistant/tool-result record |
 | `parent_uuid` | preserved from the emitting assistant/tool-result record |
 | `is_sidechain` | preserved from the emitting assistant/tool-result record |
+| `tool_use_result` | full `toolUseResult` payload from the tool-result record, size-capped (16 KiB total, 2 KiB per field). Scalar facts are also promoted: exit codes parsed from the `"Error: Exit code N"` string form become `output.exit_code`; `stderr` becomes `output.error` on failures |
+| `interrupted` | `toolUseResult.interrupted` (also marks the call failed with error `interrupted by user`) |
 
 ## Pi mappings
 

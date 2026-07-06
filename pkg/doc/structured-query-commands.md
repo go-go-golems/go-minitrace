@@ -4,7 +4,7 @@ Slug: structured-query-commands
 Short: Run and author repository-backed sqleton-style query commands for go-minitrace
 Topics:
 - minitrace
-- duckdb
+- sqlite
 - sqleton
 - glazed
 Commands:
@@ -72,7 +72,7 @@ A special case avoids redundant doubled paths for self-named single-verb JS file
 
 instead of `hardware-research research-summary research-summary`.
 
-The command-specific flags come from the sqleton-style file metadata. The query-runtime flags are the same execution settings used by the DuckDB loader, such as `--archive-glob`, `--db-path`, `--table-name`, and `--persist-loaded`.
+The command-specific flags come from the sqleton-style file metadata. The query-runtime flags control which archives are loaded: `--archive-glob` selects the session files that get materialized into the normalized SQLite database. The legacy DuckDB flags `--db-path`, `--table-name`, and `--persist-loaded` are still accepted but deprecated: SQL commands ignore them (a warning is printed when they are set), and they are only surfaced to JS commands through `mt.runtime`.
 
 List sessions with the embedded command:
 
@@ -104,7 +104,7 @@ go-minitrace query commands overview aliases codex-framework-summary \
   --archive-glob './output/active/*/*.minitrace.json'
 ```
 
-Use `--output json`, `--output csv`, `--fields ...`, and the other standard Glazed output flags exactly as you would with `query duckdb`, because the rendered SQL still flows through the normal query engine and processor stack.
+Use `--output json`, `--output csv`, `--fields ...`, and the other standard Glazed output flags exactly as you would with `query run`. The rendered SQL executes through the same sandboxed normalized-SQLite query runner that JS commands use (read-only validation, row/column/cell limits, per-query timeout).
 
 ## Using structured commands through serve and the web UI
 
@@ -249,7 +249,7 @@ The CLI leaf command name still comes from the file metadata `name:` field, not 
 
 A structured SQL command is a `.sql` file whose first block is a `/* sqleton ... */` YAML preamble.
 
-The preamble describes the command name, help text, and typed parameters. The rest of the file is the SQL template that will be rendered against the loaded table.
+The preamble describes the command name, help text, and typed parameters. The rest of the file is the SQL template that runs against the normalized SQLite schema (`sessions`, `turns`, `tool_calls`, `annotations`, `metrics`, ...).
 
 Here is a minimal but realistic example:
 
@@ -270,21 +270,21 @@ flags:
     help: Limit the number of rows returned
 */
 SELECT
-  id,
-  environment->>'agent_framework' AS framework,
-  environment->>'model' AS model,
+  session_id AS id,
+  agent_framework AS framework,
+  model,
   title,
-  CAST(metrics->>'turn_count' AS INT) AS turns,
-  CAST(metrics->>'tool_call_count' AS INT) AS tools
-FROM {{TABLE_NAME}}
+  turn_count AS turns,
+  tool_call_count AS tools
+FROM sessions
 WHERE 1=1
 {{ if .framework -}}
-AND (environment->>'agent_framework') IN ({{ .framework | sqlStringIn }})
+AND agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
 {{ if .title_like -}}
 AND title LIKE {{ .title_like | sqlLike }}
 {{ end -}}
-ORDER BY timing->>'started_at' DESC
+ORDER BY started_at DESC
 LIMIT {{ .limit }};
 ```
 
@@ -330,12 +330,10 @@ If you choose a field type outside that currently supported UI set, the CLI may 
 
 The SQL body is rendered locally by go-minitrace before execution. Two inputs matter most:
 
-- `{{TABLE_NAME}}` expands to the loaded DuckDB table name
+- `{{TABLE_NAME}}` expands to the `sessions_base` compatibility view, which reconstructs the legacy session-level JSON-blob columns from the normalized `sessions` table. New command files should reference the normalized tables (`sessions`, `tool_calls`, ...) directly instead.
 - `{{ .flag_name }}` accesses one of your structured flag values
 
 The current helper functions are:
-
-One DuckDB parser rule is worth keeping in mind when authoring both SQL and JS-backed commands: JSON arrow operators (`->` / `->>`) have low precedence. Inside predicates, parenthesize the extraction so comparisons such as `LIKE`, `=`, and `IN` bind the way you intend.
 
 - `sqlString`
 - `sqlStringIn`
@@ -513,13 +511,13 @@ Use `query commands` when:
 - you want the same definition to work in CLI, API, and browser UI
 - you want aliases for common defaults
 
-Use `query duckdb --sql` or `--sql-file` when:
+Use `query run --sql` or `--sql-file` when:
 
 - you are doing one-off exploration
 - the query is still changing rapidly
 - the query does not need a typed parameter schema yet
 
-The two approaches are complementary. Raw `query duckdb` is the fastest ad hoc path over the DuckDB `sessions_base` table. Structured SQL commands make that style reusable, while structured JS commands can build normalized SQLite databases with `mt.db()` when the analysis needs multiple queries, post-processing, caching, or table-level schema discovery.
+The two approaches are complementary. Raw `query run` is the fastest ad hoc path over the normalized SQLite tables. Structured SQL commands make that style reusable, while structured JS commands can post-process results in JavaScript when the analysis needs multiple queries, reshaping, or table-level schema discovery.
 
 ## Troubleshooting
 
@@ -539,9 +537,9 @@ The two approaches are complementary. Raw `query duckdb` is the fastest ad hoc p
 
 - `go-minitrace help js-api-reference` — complete JS runtime API: `mt.db()`, `db.query()`, normalized SQLite tables, cache modes, `mt.sql.*`, `mt.runtime`, built-in modules, scanner markers, field types
 - `go-minitrace help analysis-guide` — end-to-end workflow with JS command guidance, authoring loop, and when to use JS vs SQL
-- `go-minitrace help query-duckdb` — worked examples for raw DuckDB exploration alongside structured commands
-- `go-minitrace help duckdb-query-recipes` — ready-to-use DuckDB examples that can often be translated to normalized `mt.db()` SQL
-- `go-minitrace help writing-duckdb-queries` — SQL patterns for the older `sessions_base` DuckDB JSON table: JSON access, UNNEST, casting
-- `go-minitrace help query-commands` — the raw DuckDB query group, presets, and custom SQL modes
+- `go-minitrace help query-recipes` — ready-to-use SQL examples that can be promoted into structured commands
+- `go-minitrace help writing-queries` — SQL patterns for the normalized schema: joins, JSON access, filtering
+- `go-minitrace help query-duckdb` — migrating saved DuckDB-era SQL to the normalized engine
+- `go-minitrace help query-commands` — the `query run` command, presets, and custom SQL modes
 - `go-minitrace help getting-started` — end-to-end first-run tutorial
 - `README.md` — project overview and quick-start commands

@@ -5,7 +5,7 @@ Short: Create a nightly transcript review from Pi and Codex sessions using go-mi
 Topics:
 - minitrace
 - tutorial
-- duckdb
+- sqlite
 - annotations
 - pi
 - codex
@@ -16,7 +16,7 @@ Commands:
 - query commands
 - annotate
 - validate
-- query duckdb
+- query run
 Flags:
 - --source-dir
 - --archive-glob

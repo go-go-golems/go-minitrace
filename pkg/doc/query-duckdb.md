@@ -1,199 +1,68 @@
 ---
-Title: Query DuckDB Examples
+Title: Migrating from query duckdb
 Slug: query-duckdb
-Short: Worked examples of querying minitrace archives with the DuckDB backend
+Short: The legacy DuckDB backend was removed; how to move saved SQL to query run
 Topics:
 - minitrace
-- duckdb
+- sqlite
 - glazed
 Commands:
-- query duckdb
+- query run
 IsTemplate: false
 IsTopLevel: false
 ShowPerDefault: true
-SectionType: Example
+SectionType: GeneralTopic
 ---
 
-This page shows concrete query examples against converted minitrace archives. For the full flag reference, see `go-minitrace help query-commands`. For guidance on writing your own queries, see `go-minitrace help writing-duckdb-queries`.
+The legacy DuckDB backend (`go-minitrace query duckdb`) has been removed. All
+SQL now runs on the normalized SQLite engine through a single sandboxed query
+runner shared by `query run`, `.sql` query-command files, the JS runtime
+(`mt.db()`), and `serve`.
 
-All examples assume an archive at `./output/active/*/*.minitrace.json`. Adjust the `--archive-glob` for your setup.
-
-One annotation-specific nuance is worth stating up front: `go-minitrace query duckdb` reads the `.minitrace.json` archive files it loads. If you created or edited annotations through `go-minitrace annotate ...`, run `go-minitrace annotate sync --output-dir ...` first so those annotation changes are present in the archive.
-
-One DuckDB-specific nuance is also worth stating before the examples: JSON arrow operators (`->` / `->>`) have low precedence. Inside predicates such as `WHERE`, `AND`, and `OR`, parenthesize JSON-arrow extractions so the expression is grouped the way you intend.
-
-## Using built-in presets
-
-List all sessions sorted by start time:
+## The replacement
 
 ```bash
-go-minitrace query duckdb \
+go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
-  --preset session-list
+  --sql 'SELECT session_id, title, turn_count FROM sessions ORDER BY started_at'
 ```
 
-Compare frameworks side by side:
+`query run` supports `--sql`, `--sql-file`, and `--preset`. The nine presets
+were ported to the normalized schema (`session-list`, `framework-summary`,
+`annotations`, `timing-analysis`, `tool-operation-breakdown`, `tool-failures`,
+`read-ratio-distribution`, `file-operations`, `file-timeline`; see
+`go-minitrace help query-commands` for descriptions). Limits are configurable
+via `--max-rows`, `--max-cell-chars`, and `--timeout-ms`.
 
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --preset framework-summary \
-  --output json
-```
+## Rewriting saved DuckDB SQL
 
-See how tools are used across frameworks:
+The normalized schema pre-flattens what `sessions_base` kept as JSON blobs:
 
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --preset tool-operation-breakdown
-```
+| DuckDB pattern | Normalized SQLite equivalent |
+|---|---|
+| `environment->>'agent_framework'` | `sessions.agent_framework` column |
+| `metrics->>'turn_count'` | `sessions.turn_count` (more rollups in the `metrics` table) |
+| `->` / `->>` on other blob columns | prefer the real `sessions` columns; unchanged SQL keeps working against the `sessions_base` compat view |
+| `UNNEST(tool_calls) AS t(tc)` | query the `tool_calls` table, join `USING (session_id)` |
+| `UNNEST(turns) WITH ORDINALITY` | query the `turns` table (`turn_index` column) |
+| `LEFT(x, n)` | `substr(x, 1, n)` |
+| `CAST(x AS DATE)` | `date(x)` |
+| `REPLACE(CAST(json_extract(...) AS VARCHAR), '"', '')` | plain `json_extract(...)` — SQLite returns unquoted values |
+| `DESCRIBE` / `SHOW TABLES` | `db.schema()` / `db.tables()` from JS (the sandbox blocks `sqlite_master`), or `go-minitrace help minitrace-schema` |
+| `read_json(...)` | not needed — the database is built from archives automatically |
 
-## Custom SQL examples
+Session-level SQL using `->`/`->>` on the old blob columns keeps working
+unmodified against the `sessions_base` compatibility view (SQLite >= 3.38
+supports the JSON arrow operators); per-tool-call and per-turn SQL must move to
+the `tool_calls`/`turns` tables. Long-tail fields that never got a real column
+are reachable via `json_extract(raw_json, ...)` on every table.
 
-### Count sessions by model
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "
-    SELECT
-      environment->>'model' AS model,
-      COUNT(*) AS sessions,
-      ROUND(AVG(CAST(metrics->>'tool_call_count' AS INT)), 1) AS avg_tools
-    FROM sessions_base
-    GROUP BY model
-    ORDER BY sessions DESC
-  "
-```
-
-### Token usage by framework
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "
-    SELECT
-      environment->>'agent_framework' AS framework,
-      ROUND(SUM(CAST(metrics->>'total_input_tokens' AS BIGINT)) / 1e6, 1) AS input_M,
-      ROUND(SUM(CAST(metrics->>'total_output_tokens' AS BIGINT)) / 1e6, 1) AS output_M,
-      ROUND(SUM(CAST(metrics->>'total_cache_read_tokens' AS BIGINT)) / 1e6, 1) AS cache_M
-    FROM sessions_base
-    GROUP BY framework
-  "
-```
-
-### Most active tools
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "
-    SELECT
-      REPLACE(CAST(json_extract(tc, '\$.tool_name') AS VARCHAR), '\"', '') AS tool,
-      COUNT(*) AS invocations
-    FROM sessions_base, UNNEST(tool_calls) AS t(tc)
-    GROUP BY tool
-    ORDER BY invocations DESC
-    LIMIT 20
-  "
-```
-
-### Sessions by hour of day
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "
-    SELECT
-      CAST(timing->>'hour_of_day' AS INT) AS hour,
-      COUNT(*) AS sessions
-    FROM sessions_base
-    WHERE (timing->>'hour_of_day') IS NOT NULL
-    GROUP BY hour
-    ORDER BY hour
-  "
-```
-
-### Find long-running sessions
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "
-    SELECT
-      id, title,
-      ROUND(CAST(timing->>'duration_seconds' AS DOUBLE) / 3600, 1) AS hours,
-      CAST(metrics->>'turn_count' AS INT) AS turns,
-      CAST(metrics->>'tool_call_count' AS INT) AS tools
-    FROM sessions_base
-    WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
-    ORDER BY hours DESC
-    LIMIT 10
-  "
-```
-
-### Filter to non-subagent sessions only
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql "
-    SELECT COUNT(*) AS main_sessions
-    FROM sessions_base
-    WHERE (provenance->>'source_format') NOT LIKE '%subagent%'
-  "
-```
-
-## Using a SQL file
-
-Save a query to a file:
-
-```sql
--- my-query.sql
-SELECT
-  environment->>'agent_framework' AS framework,
-  environment->>'model' AS model,
-  COUNT(*) AS sessions
-FROM sessions_base
-GROUP BY framework, model
-ORDER BY sessions DESC;
-```
-
-Run it:
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --sql-file ./my-query.sql
-```
-
-## Combining with external tools
-
-Pipe JSON output to jq for further filtering:
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --preset session-list --output json \
-  | jq '[.[] | select(.turns > 50)]'
-```
-
-Export to CSV for spreadsheets:
-
-```bash
-go-minitrace query duckdb \
-  --archive-glob './output/active/*/*.minitrace.json' \
-  --preset framework-summary --output csv > summary.csv
-```
+Annotations are attached live by `serve` as `anno.annotations`; from the CLI,
+the archive-synced annotations are in the `annotations` table (run
+`go-minitrace annotate sync` first).
 
 ## See also
 
-- `go-minitrace help js-api-reference` — use JavaScript command handlers with `mt.db()` and normalized SQLite tables when you need reusable multi-query logic
-- `go-minitrace help analysis-guide` — end-to-end workflow with preset guidance and output format examples
-- `go-minitrace help structured-query-commands` — promote useful queries into named, reusable structured commands with typed flags
-- `go-minitrace help duckdb-query-recipes` — more ready-to-use query examples
-- `go-minitrace help writing-duckdb-queries` — DuckDB JSON syntax, UNNEST, casting, and annotation joins
-- `go-minitrace help query-commands` — full flag reference
-- `go-minitrace help annotation-playbook` — correct sync-first workflow when querying annotations created through the CLI
-- `go-minitrace help getting-started` — step-by-step tutorial that uses `query duckdb` from the start
+- `go-minitrace help writing-queries` — the current query-writing tutorial
+- `go-minitrace help query-recipes` — ported, ready-to-run recipes
+- `go-minitrace help query-commands` — `query run` flags and preset list

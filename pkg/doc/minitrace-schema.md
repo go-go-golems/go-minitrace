@@ -168,25 +168,19 @@ Every tool invocation is recorded with its input, output, and contextual positio
 | `justification` | string? | Tool-use rationale if the source transcript provides one |
 | `arguments` | any? | Full arguments blob |
 
-A practical querying note: `input.file_path` is the normalized shared field when the adapter can provide one, while `input.arguments` preserves the tool-specific raw payload. In SQL, that often means the safest file-oriented pattern is:
+A practical querying note: in the normalized SQL schema, `input.file_path` and `input.command` are promoted to the `file_path` and `command` columns on `tool_calls`, while `input.arguments` is preserved as `arguments_json`. A safe file-oriented pattern is:
 
 ```sql
-COALESCE(tc->'input'->>'file_path', tc->'input'->'arguments'->>'path')
+COALESCE(file_path, json_extract(arguments_json, '$.path'))
 ```
 
-Likewise, shell tools often use:
+Tools such as web search may expose their key values only under arguments, for example:
 
 ```sql
-(tc->'input'->>'command')
+json_extract(arguments_json, '$.query')
 ```
 
-and tools such as web search may expose their key values under `input.arguments`, for example:
-
-```sql
-(tc->'input'->'arguments'->>'query')
-```
-
-Do not assume every tool uses the same nested keys. When in doubt, inspect a bounded preview of one unnested tool call first.
+Do not assume every tool uses the same nested keys. When in doubt, inspect a bounded preview of one tool call's `arguments_json` first.
 
 ### Tool Call Output
 
@@ -195,14 +189,16 @@ Do not assume every tool uses the same nested keys. When in doubt, inspect a bou
 | `success` | bool | Whether the tool call succeeded |
 | `result` | string? | Output text (truncated to 10 KB if larger) |
 | `error` | string? | Error message if the call failed |
-| `exit_code` | int? | Process exit code when the source transcript exposes one |
-| `duration_ms` | int? | Execution time in milliseconds |
+| `exit_code` | int? | Process exit code when the source exposes one (native for codex exec events; parsed from the `"Error: Exit code N"` result string for claude-code) |
+| `duration_ms` | int? | Execution time in milliseconds. Pi, claude-code, and claude.ai derive it from the emit→result timestamps; codex parses it from exec output metadata |
 | `truncated` | bool | Whether the result was truncated |
-| `full_bytes` | int? | Original size before truncation |
-| `full_hash` | string? | SHA-256 hash of the full output (for deduplication) |
+| `full_bytes` | int? | Byte length of the **full pre-truncation** output (only set when truncated) |
+| `full_hash` | string? | SHA-256 hash of the **full pre-truncation** output (for deduplication) |
 | `full_reference` | string? | External reference to the full output |
 | `redacted` | bool? | Whether the output was redacted |
 | `content_origin` | string? | Where the content came from |
+
+Adapters differ in how much of this they can populate — see the fidelity matrix in `go-minitrace help adapter-reference`. Claude Code additionally preserves the full `toolUseResult` payload (stderr, interruption flags, structured results) under `tool_calls[].framework_metadata.tool_use_result`.
 
 ## Framework-specific metadata conventions
 
@@ -267,12 +263,11 @@ Computed summary statistics. These are calculated during conversion from the tur
 
 Optional human or automated labels attached to a session, turn, or tool call.
 
-At the file-format level, annotations live inside the session JSON as the `annotations` array. In SQL, this appears as the `annotations` column on `sessions_base`, and the normal query pattern is:
+At the file-format level, annotations live inside the session JSON as the `annotations` array. In SQL, each annotation becomes one row in the normalized `annotations` table, and the normal query pattern is:
 
 ```sql
-SELECT ...
-FROM sessions_base,
-     UNNEST(annotations) AS a(ann)
+SELECT session_id, scope_type, category, title
+FROM annotations
 ```
 
 The annotation object has these fields:
@@ -326,34 +321,30 @@ The current built-in categories are:
 | `taxonomy_mappings.mast` | string[] | MAST taxonomy codes |
 | `taxonomy_mappings.toolemu` | string[] | ToolEmu taxonomy codes |
 
-### Annotation query paths
+### Annotation SQL columns
 
-These are the JSON paths you will most often use in SQL after `UNNEST(annotations)`:
+These are the `annotations` table columns you will most often use in SQL (JSON paths on the left for reference):
 
-| Path | Meaning |
+| JSON path | SQL column |
 |------|---------|
-| `$.annotator` | annotation author |
-| `$.scope.type` | annotation scope |
-| `$.scope.target_id` | transcript target |
-| `$.content.category` | primary label |
-| `$.content.title` | short summary |
-| `$.content.detail` | detailed note |
-| `$.content.tags` | free-form tag array |
-| `$.taxonomy_mappings.minitrace` | minitrace taxonomy array |
-| `$.taxonomy_mappings.mast` | MAST taxonomy array |
-| `$.taxonomy_mappings.toolemu` | ToolEmu taxonomy array |
-| `$.classification` | classification level |
+| `$.annotator` | `annotator` |
+| `$.scope.type` | `scope_type` |
+| `$.scope.target_id` | `target_id` |
+| `$.content.category` | `category` |
+| `$.content.title` | `title` |
+| `$.content.detail` | `detail` |
+| `$.content.tags` | `tags_json` (JSON array text) |
+| `$.taxonomy_mappings.minitrace` | `minitrace_taxonomy_json` (JSON array text) |
+| `$.taxonomy_mappings.mast` | `mast_taxonomy_json` |
+| `$.taxonomy_mappings.toolemu` | `toolemu_taxonomy_json` |
+| `$.classification` | `classification` |
 
 A compact SQL example:
 
 ```sql
-SELECT
-  id AS session_id,
-  REPLACE(CAST(json_extract(ann, '$.scope.type') AS VARCHAR), '"', '') AS scope_type,
-  REPLACE(CAST(json_extract(ann, '$.content.category') AS VARCHAR), '"', '') AS category,
-  REPLACE(CAST(json_extract(ann, '$.content.title') AS VARCHAR), '"', '') AS title
-FROM sessions_base,
-     UNNEST(annotations) AS a(ann);
+SELECT session_id, scope_type, category, title
+FROM annotations
+ORDER BY session_id;
 ```
 
 ## Coordination
@@ -378,5 +369,5 @@ Quality is assigned automatically during conversion based on content richness:
 ## See also
 
 - `go-minitrace help what-is-minitrace` — conceptual overview
-- `go-minitrace help writing-duckdb-queries` — how to query these fields with SQL
+- `go-minitrace help writing-queries` — how to query these fields with SQL
 - `go-minitrace help adapter-reference` — how each source format maps to this schema

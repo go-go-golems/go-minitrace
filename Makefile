@@ -136,8 +136,8 @@ dev:
 		echo "Sessions: $(DEV_SESSION_GLOB)" && \
 		echo "" && \
 		echo "Quick test:" && \
-		echo "  curl http://localhost:$(DEV_PORT)/api/sessions | python3 -m json.tool | head -20" && \
-		echo "  curl http://localhost:$(DEV_PORT)/api/annotations" && \
+		echo "  curl http://localhost:$(DEV_PORT)/api/v2/sessions | python3 -m json.tool | head -20" && \
+		echo "  curl http://localhost:$(DEV_PORT)/api/v2/annotations" && \
 		echo "  ./go-minitrace annotate add --output-dir ./tmp/output --session <id> --category ai-failure --title test" && \
 		echo "" && \
 		echo "Tmux keybindings: Ctrl-b d=detach  Ctrl-b o=cycle panes  Ctrl-b x=kill pane"' Enter

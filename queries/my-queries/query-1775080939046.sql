@@ -1,4 +1,6 @@
-SELECT id, title,
-  CAST(metrics->>'turn_count' AS INT) AS turns
-FROM sessions_base
+SELECT
+  session_id AS id,
+  title,
+  turn_count AS turns
+FROM sessions
 LIMIT 20;
