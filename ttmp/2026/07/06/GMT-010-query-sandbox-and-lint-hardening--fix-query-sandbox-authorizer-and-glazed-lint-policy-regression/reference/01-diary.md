@@ -162,7 +162,7 @@ Validated the hardening patch with focused tests, full tests, lint, and the orig
 
 I committed the implementation in the clean PR worktree (`go-minitrace-pr`), whose HEAD already included the GMT-009 PR commits. This avoided creating a misleading giant commit in the dirty `go-minitrace` worktree where the entire GMT-009 diff appears uncommitted against `main`.
 
-**Commit (code):** `d1beea2fb3f8d8e85f78d6f8e9eb6107b12e86e5` — "GMT-010: harden query sandbox and fix lint"
+**Commit (code):** `4065f0c0d272e82aafc2f1bf0c261afca8796cfa` — "GMT-010: harden query sandbox and fix lint"
 
 ### Prompt Context
 
@@ -193,7 +193,7 @@ I committed the implementation in the clean PR worktree (`go-minitrace-pr`), who
 - Authorizer script: pass with the expected denial.
 
 ### What didn't work
-- Initial implementation and docs commit completed in `go-minitrace-pr` as `d1beea2fb3f8d8e85f78d6f8e9eb6107b12e86e5`.
+- Initial implementation and docs commit completed in `go-minitrace-pr` as `4065f0c0d272e82aafc2f1bf0c261afca8796cfa`.
 
 ### What I learned
 - The original GMT-009 review scripts are useful before/after regression checks and should be kept.
@@ -211,7 +211,7 @@ I committed the implementation in the clean PR worktree (`go-minitrace-pr`), who
   - `ttmp/2026/07/06/GMT-010...`
 
 ### What should be done in the future
-- Push `d1beea2fb3f8d8e85f78d6f8e9eb6107b12e86e5` from `go-minitrace-pr` if the PR branch should be updated immediately.
+- Push `4065f0c0d272e82aafc2f1bf0c261afca8796cfa` from `go-minitrace-pr` if the PR branch should be updated immediately.
 
 ### Code review instructions
 - Re-run the exact validation commands listed above.

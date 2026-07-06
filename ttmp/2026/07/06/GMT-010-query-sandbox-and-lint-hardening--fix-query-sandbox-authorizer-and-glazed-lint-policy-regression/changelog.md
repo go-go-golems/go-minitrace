@@ -20,7 +20,7 @@ Implemented lint and query-sandbox hardening: cache-size lookup is explicit on D
 
 ## 2026-07-06
 
-Committed GMT-010 hardening implementation as d1beea2: schema-aware SQLite authorizer, explicit cache-size builder setting, regression tests, and passing go test/glazed-lint.
+Committed GMT-010 hardening implementation as 4065f0c: schema-aware SQLite authorizer, explicit cache-size builder setting, regression tests, and passing go test/glazed-lint.
 
 ### Related Files
 
