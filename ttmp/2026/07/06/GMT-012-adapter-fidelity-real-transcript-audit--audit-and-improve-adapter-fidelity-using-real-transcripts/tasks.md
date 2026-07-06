@@ -12,5 +12,5 @@
 - [x] Write adapter-by-adapter gap report with evidence and severity
 - [x] Implement high-confidence adapter fixes with fixture/regression tests
 - [x] Update `pkg/doc/adapter-reference.md` and related docs with measured fidelity results
-- [ ] Validate with full tests, conversion smoke tests, and docmgr doctor
-- [ ] Commit implementation and ticket docs at appropriate checkpoints
+- [x] Validate with full tests, conversion smoke tests, and docmgr doctor
+- [x] Commit implementation and ticket docs at appropriate checkpoints

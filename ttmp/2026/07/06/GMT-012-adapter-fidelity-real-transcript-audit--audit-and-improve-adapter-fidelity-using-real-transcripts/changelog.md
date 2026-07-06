@@ -67,3 +67,13 @@ Added Codex legacy rollout JSONL conversion support; all 12 sampled Codex files 
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert_test.go — Legacy rollout regression test
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/doc/adapter-reference.md — Documents legacy Codex support
 
+
+## 2026-07-06
+
+Validated GMT-012 lineage and legacy Codex changes with full Go tests and docmgr doctor; committed checkpoints 6909205, 4c89999, and 0de7545.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/codex/convert.go — Validated in full test suite
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/reference/01-diary.md — Validation record
+
