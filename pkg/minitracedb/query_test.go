@@ -3,6 +3,7 @@ package minitracedb
 import (
 	"context"
 	"database/sql"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -168,6 +169,80 @@ func TestQueryRunnerAllowsSchemaQualifiedAllowedObjects(t *testing.T) {
 	}
 	if len(rows) != 1 || rows[0]["session_id"] != "s1" {
 		t.Fatalf("unexpected rows %#v", rows)
+	}
+}
+
+func TestQueryRunnerAttachmentAllowlistIsSchemaAware(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	mainPath := filepath.Join(dir, "main.sqlite")
+	annoPath := filepath.Join(dir, "annotations.db")
+
+	mainDB, err := OpenSQLiteFile(ctx, mainPath)
+	if err != nil {
+		t.Fatalf("OpenSQLiteFile main: %v", err)
+	}
+	if err := CreateSchema(ctx, mainDB); err != nil {
+		t.Fatalf("CreateSchema: %v", err)
+	}
+	if _, err := mainDB.ExecContext(ctx, `INSERT INTO sessions(session_id, title) VALUES ('main-session', 'main row')`); err != nil {
+		t.Fatalf("insert main session: %v", err)
+	}
+	if err := mainDB.Close(); err != nil {
+		t.Fatalf("close main db: %v", err)
+	}
+
+	annoDB, err := sql.Open("sqlite3", annoPath)
+	if err != nil {
+		t.Fatalf("open annotation fixture: %v", err)
+	}
+	_, err = annoDB.ExecContext(ctx, `
+		CREATE TABLE annotations (id TEXT PRIMARY KEY, detail TEXT);
+		INSERT INTO annotations VALUES ('a1', 'expected annotation row');
+		CREATE TABLE sync_state (session_id TEXT PRIMARY KEY);
+		CREATE TABLE sessions (secret TEXT);
+		INSERT INTO sessions VALUES ('attached schema leak sentinel');
+	`)
+	if err != nil {
+		t.Fatalf("seed annotation fixture: %v", err)
+	}
+	if err := annoDB.Close(); err != nil {
+		t.Fatalf("close annotation fixture: %v", err)
+	}
+
+	attachedDB, err := OpenSQLiteReadOnlyAttached(ctx, mainPath, map[string]string{AnnotationsAttachSchema: annoPath})
+	if err != nil {
+		t.Fatalf("OpenSQLiteReadOnlyAttached: %v", err)
+	}
+	target, err := NewDBQueryTarget(attachedDB, AllowedObjectNamesWithLiveAnnotations(), QueryOptions{MaxRows: 10})
+	if err != nil {
+		_ = attachedDB.Close()
+		t.Fatalf("NewDBQueryTarget: %v", err)
+	}
+	defer func() { _ = target.Close() }()
+
+	rows, err := target.Query(ctx, `SELECT detail FROM anno.annotations`)
+	if err != nil {
+		t.Fatalf("query anno.annotations: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["detail"] != "expected annotation row" {
+		t.Fatalf("unexpected annotation rows %#v", rows)
+	}
+
+	rows, err = target.Query(ctx, `SELECT title FROM main.sessions`)
+	if err != nil {
+		t.Fatalf("query main.sessions: %v", err)
+	}
+	if len(rows) != 1 || rows[0]["title"] != "main row" {
+		t.Fatalf("unexpected main rows %#v", rows)
+	}
+
+	result, err := target.QueryResult(ctx, `SELECT secret FROM anno.sessions`)
+	if err != nil {
+		t.Fatalf("QueryResult anno.sessions: %v", err)
+	}
+	if result.Error == "" || !strings.Contains(result.Error, "anno.sessions") {
+		t.Fatalf("expected anno.sessions to be denied with schema-qualified error, got %#v", result)
 	}
 }
 

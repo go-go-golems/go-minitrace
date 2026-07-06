@@ -64,8 +64,9 @@ func AllowedTableNames() []string {
 	return ret
 }
 
-// AllowedObjectNames returns every table and compatibility view a sandboxed
-// query is allowed to read.
+// AllowedObjectNames returns every main-schema table and compatibility view a
+// sandboxed query is allowed to read. Bare names are interpreted by
+// NewQueryRunner as main.<name>.
 func AllowedObjectNames() []string {
 	return append(AllowedTableNames(), SessionsBaseCompatView)
 }
@@ -76,12 +77,11 @@ func AllowedObjectNames() []string {
 const AnnotationsAttachSchema = "anno"
 
 // AllowedObjectNamesWithLiveAnnotations extends the sandbox allowlist with the
-// tables of the attached live annotation store. The SQLite authorizer sees
-// bare object names (without the schema qualifier), so "annotations" is
-// already covered by the normalized schema table of the same name; only the
-// store's sync_state table needs adding.
+// exact tables of the attached live annotation store. Attached objects must be
+// schema-qualified so a crafted annotations.db cannot expose a colliding table
+// name such as anno.sessions through the main-schema allowlist.
 func AllowedObjectNamesWithLiveAnnotations() []string {
-	return append(AllowedObjectNames(), "sync_state")
+	return append(AllowedObjectNames(), AnnotationsAttachSchema+".annotations", AnnotationsAttachSchema+".sync_state")
 }
 
 func CreateSchema(ctx context.Context, db *sql.DB) error {

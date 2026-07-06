@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +23,7 @@ type DBBuilder struct {
 	storage             string
 	cacheMode           string
 	cacheDir            string
+	cacheMaxBytes       int64
 	forceRebuild        bool
 	query               minitracedb.QueryOptions
 	sources             []dbSource
@@ -662,25 +662,22 @@ func (b *DBBuilder) buildDiskCacheFile(cacheKey minitracedb.CacheKey, path strin
 		_ = os.Remove(tmpPath)
 		return nil, fmt.Errorf("install disk cache db: %w", err)
 	}
-	evictDiskCacheOverLimit(cacheDir, path, diskCacheMaxBytes())
+	evictDiskCacheOverLimit(cacheDir, path, b.diskCacheMaxBytes())
 	return diagnostics, nil
 }
 
 const defaultDiskCacheMaxBytes int64 = 2 * 1024 * 1024 * 1024
 
-// diskCacheMaxBytes returns the disk cache size limit in bytes. It defaults to
-// 2 GiB and can be overridden via the GO_MINITRACE_CACHE_MAX_BYTES environment
-// variable; invalid or non-positive values fall back to the default.
-func diskCacheMaxBytes() int64 {
-	raw := strings.TrimSpace(os.Getenv("GO_MINITRACE_CACHE_MAX_BYTES"))
-	if raw == "" {
-		return defaultDiskCacheMaxBytes
+// diskCacheMaxBytes returns the disk cache size limit in bytes. Keep this as
+// an explicit builder/config concern rather than a package-level environment
+// variable lookup so CLI-facing code stays compliant with the Glazed policy
+// linter. A future command/config field can plumb a non-default value through
+// DBBuilder without reintroducing direct os.Getenv access here.
+func (b *DBBuilder) diskCacheMaxBytes() int64 {
+	if b != nil && b.cacheMaxBytes > 0 {
+		return b.cacheMaxBytes
 	}
-	value, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil || value <= 0 {
-		return defaultDiskCacheMaxBytes
-	}
-	return value
+	return defaultDiskCacheMaxBytes
 }
 
 // evictDiskCacheOverLimit deletes the oldest *.sqlite cache files in cacheDir
