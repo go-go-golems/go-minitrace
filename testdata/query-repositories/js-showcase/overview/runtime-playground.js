@@ -42,7 +42,7 @@ function buildSyntheticRows(options) {
 
 __verb__("showContext", {
   name: "show-context",
-  short: "Return runtime metadata without querying DuckDB",
+  short: "Return runtime metadata without opening a database",
   fields: {
     options: { bind: "options" },
   },

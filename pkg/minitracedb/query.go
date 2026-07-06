@@ -55,12 +55,12 @@ func WithDefaultQueryOptions(opts QueryOptions) QueryOptions {
 	return ret
 }
 
-func NewQueryRunner(db *sql.DB, allowedObjects []string, opts QueryOptions) (*QueryRunner, error) {
+func NewQueryRunner(db *sql.DB, allowedReads []string, opts QueryOptions) (*QueryRunner, error) {
 	if db == nil {
 		return nil, fmt.Errorf("db is nil")
 	}
 	allowed := map[string]struct{}{}
-	for _, object := range allowedObjects {
+	for _, object := range allowedReads {
 		key := normalizeAllowedReadKey(object)
 		if key != "" {
 			allowed[key] = struct{}{}

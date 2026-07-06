@@ -164,6 +164,13 @@ go-minitrace query run \
 
 Long-tail fields stay reachable via `json_extract` on `raw_json`/`framework_metadata_json`, and session-level SQL written for the old DuckDB engine keeps working against the `sessions_base` compatibility view (`go-minitrace help query-duckdb` has the migration table).
 
+Migration checklist for pre-single-engine users:
+
+- replace `go-minitrace query duckdb ...` with `go-minitrace query run ...`;
+- remove `--db-path`, `--table-name`, and `--persist-loaded` from SQL command invocations;
+- rewrite `UNNEST(turns/tool_calls)` queries against the `turns` and `tool_calls` tables;
+- in JS commands, build a handle with `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and call `db.query(sql)`.
+
 Output formats: `--output table` (default), `--output json`, `--output csv`.
 
 ### 3. Structured query commands (reusable tooling)

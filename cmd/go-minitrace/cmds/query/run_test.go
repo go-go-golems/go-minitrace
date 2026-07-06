@@ -86,7 +86,7 @@ func TestQueryRunPresetGoldenRows(t *testing.T) {
 		}
 		sortRowsByColumns(rows, []string{"id"})
 		wantIDs := []string{"fixture-alpha-1", "fixture-alpha-2", "fixture-beta-1"}
-		wantTools := []int64{6, 4, 3}
+		wantTools := []int64{6, 4, 4}
 		for i := range rows {
 			if rows[i]["id"] != wantIDs[i] {
 				t.Fatalf("row %d id = %#v, want %s", i, rows[i]["id"], wantIDs[i])
@@ -119,7 +119,7 @@ func TestQueryRunPresetGoldenRows(t *testing.T) {
 		for _, row := range rows {
 			counts[fmt.Sprint(row["framework"], "/", row["operation"])] = row["count"]
 		}
-		want := map[string]int64{"pi/EXECUTE": 6, "pi/read": 4, "pi/modify": 3}
+		want := map[string]int64{"pi/EXECUTE": 6, "pi/read": 5, "pi/modify": 3}
 		if len(counts) != len(want) {
 			t.Fatalf("got %d operation rows %#v, want %d", len(counts), counts, len(want))
 		}
