@@ -542,9 +542,10 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 		case "message":
 			role := firstNonEmpty(stringValue(record["role"]), "assistant")
 			source := ptr("model")
-			if role == "user" {
+			switch role {
+			case "user":
 				source = ptr("human")
-			} else if role == "system" {
+			case "system":
 				source = ptr("system")
 			}
 			turn := minitrace.BuildTurn(turnIndex, timestampPtr, role, source, flattenCodexLegacyContent(record["content"]))

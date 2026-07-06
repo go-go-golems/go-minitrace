@@ -285,6 +285,12 @@ func (b *DBBuilder) addFile(path string) {
 		b.errors = append(b.errors, "file path must not be empty")
 		return
 	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		b.errors = append(b.errors, fmt.Sprintf("resolving absolute path for %s: %v", path, err))
+		return
+	}
+	path = filepath.Clean(absPath)
 	for _, source := range b.sources {
 		if source.Kind == "file" && source.Path == path {
 			return
