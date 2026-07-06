@@ -597,3 +597,38 @@ func TestConvertRecordsReadsSessionContextFromAnyRecord(t *testing.T) {
 		t.Fatalf("expected git branch from later record, got %+v", session.OperationalContext.GitBranch)
 	}
 }
+
+func TestConvertRecordsPreservesSignedThinkingPresence(t *testing.T) {
+	records := []map[string]any{
+		{
+			"type":      "assistant",
+			"timestamp": "2026-07-06T10:00:00Z",
+			"message": map[string]any{
+				"role":  "assistant",
+				"model": "claude-opus-4-1",
+				"content": []any{
+					map[string]any{"type": "thinking", "thinking": "", "signature": "sig-1"},
+					map[string]any{"type": "text", "text": "answer"},
+				},
+			},
+		},
+	}
+
+	session, err := ConvertRecords(records, "session-signed-thinking", "/tmp/signed-thinking.jsonl")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+	if len(session.Turns) != 1 {
+		t.Fatalf("expected one turn, got %d", len(session.Turns))
+	}
+	if session.Turns[0].Thinking != nil {
+		t.Fatalf("empty signed thinking must not synthesize cleartext thinking, got %+v", session.Turns[0].Thinking)
+	}
+	metadata, ok := session.Turns[0].FrameworkMetadata.(map[string]any)
+	if !ok {
+		t.Fatalf("expected framework metadata map, got %+v", session.Turns[0].FrameworkMetadata)
+	}
+	if metadata["signed_thinking_blocks"] != 1 || metadata["thinking_signature_present"] != true {
+		t.Fatalf("expected signed thinking metadata, got %+v", metadata)
+	}
+}

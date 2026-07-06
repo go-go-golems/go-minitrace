@@ -263,6 +263,8 @@ def profile_archives() -> dict[str, Any]:
                 c["turn.model"] += 1
             fm = t.get("framework_metadata")
             if isinstance(fm, dict):
+                if fm.get("thinking_signature_present"):
+                    c["turn.signed_thinking"] += 1
                 for k in fm:
                     framework_keys[str(adapter)]["turn.framework_metadata." + str(k)] += 1
         for tc in obj.get("tool_calls") or []:
@@ -321,7 +323,11 @@ def classify(source: dict[str, Any], archive: dict[str, Any]) -> list[dict[str, 
         elif thinking_src and thinking_out < thinking_src:
             add("thinking/reasoning", thinking_src, thinking_out, "medium", "source reasoning count exceeds archive thinking count; inspect mapping granularity")
         elif thinking_blocks and not thinking_src:
-            add("thinking/reasoning", thinking_blocks, thinking_out, "info", "source has thinking blocks but no cleartext thinking payload; blocks appear signature/encrypted-only")
+            signed_out = a.get("turn.signed_thinking", 0)
+            if signed_out:
+                add("thinking/reasoning", thinking_blocks, signed_out, "info", "source thinking blocks are signature/encrypted-only and archive preserves signed-thinking presence in turn metadata")
+            else:
+                add("thinking/reasoning", thinking_blocks, thinking_out, "info", "source has thinking blocks but no cleartext thinking payload; blocks appear signature/encrypted-only")
         elif not thinking_src and thinking_out == 0:
             add("thinking/reasoning", 0, 0, "info", "not observed in profiled source sample")
 

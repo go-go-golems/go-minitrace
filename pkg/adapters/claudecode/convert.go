@@ -259,6 +259,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 
 			textParts := make([]string, 0, len(contentBlocks))
 			thinkingParts := make([]string, 0)
+			signedThinkingBlocks := 0
 			toolIDs := make([]string, 0)
 
 			for _, item := range contentBlocks {
@@ -274,6 +275,9 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 				case "thinking":
 					if thinking := stringValue(block["thinking"]); thinking != "" {
 						thinkingParts = append(thinkingParts, thinking)
+					}
+					if stringValue(block["signature"]) != "" {
+						signedThinkingBlocks++
 					}
 				case "tool_use":
 					toolCallID := stringValue(block["id"])
@@ -333,6 +337,12 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 			turn.Streaming.WasStreamed = true
 			turn.Model = sessionModel
 			turn.FrameworkMetadata = claudeTurnMetadata(record, message)
+			if signedThinkingBlocks > 0 {
+				turn.FrameworkMetadata = mergeMetadataMap(turn.FrameworkMetadata, map[string]any{
+					"signed_thinking_blocks":     signedThinkingBlocks,
+					"thinking_signature_present": true,
+				})
+			}
 			turns = append(turns, turn)
 			turnIndex++
 		}

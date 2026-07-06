@@ -88,3 +88,14 @@ Mapped Pi image content blocks to bounded attachments with turn/tool-call links 
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/pi/convert_test.go — Image attachment regression tests
 - /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/doc/adapter-reference.md — Documents Pi image attachments
 
+
+## 2026-07-06
+
+Preserved Claude Code signature-only thinking block presence in turn metadata without synthesizing unavailable cleartext; updated coverage profiler and docs.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/claudecode/convert.go — Signed thinking metadata mapping
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/pkg/adapters/claudecode/convert_test.go — Signed thinking regression test
+- /home/manuel/workspaces/2026-07-05/improve-docmgr/go-minitrace-pr/ttmp/2026/07/06/GMT-012-adapter-fidelity-real-transcript-audit--audit-and-improve-adapter-fidelity-using-real-transcripts/scripts/04-profile-source-vs-archive-coverage.py — Reports signed-thinking archive coverage
+

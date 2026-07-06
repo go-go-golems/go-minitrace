@@ -451,3 +451,64 @@ The implementation links assistant-message images to their containing turn and t
 - Attachment IDs are deterministic within conversion order: `pi-image-000001`, etc.
 - Attachment raw JSON contains only `{type: image, mimeType: ...}`.
 - Hash is `sha256:` over the source inline data string.
+
+## Step 7: Preserve Claude Code signature-only thinking presence
+
+Fixed the Claude Code signed-thinking classification gap without inventing unavailable cleartext reasoning. Sampled Claude Code transcripts contain many `thinking` blocks, but manual inspection showed empty `thinking` strings with `signature` fields. The adapter now records that signed-thinking blocks existed on the assistant turn.
+
+This keeps `turn.thinking` semantically honest: it remains nil unless the source contains cleartext thinking. Reviewers and query users can still distinguish “no thinking blocks observed” from “signed/encrypted thinking blocks observed but no cleartext payload available.”
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Continue through the next concrete adapter gap after Pi image attachments.
+
+**Inferred user intent:** Improve coverage for useful source facts that were previously invisible, while preserving semantic correctness.
+
+**Commit (code):** Pending for this step.
+
+### What I did
+- Updated Claude Code assistant content-block handling to count `thinking` blocks with signatures.
+- Added `signed_thinking_blocks` and `thinking_signature_present` to turn framework metadata.
+- Added a regression test proving empty signed thinking does not synthesize `turn.thinking`.
+- Updated the coverage profiler to count `turn.signed_thinking` archive coverage.
+- Reran sampled Claude Code conversion and coverage profiling.
+- Updated `pkg/doc/adapter-reference.md` and the missing functionality report.
+
+### Why
+- Output-only metrics previously made Claude Code look like it dropped thinking.
+- Source inspection showed the actual fact was signature-only thinking presence.
+- Preserving presence metadata makes coverage visible without exposing or fabricating unavailable reasoning text.
+
+### What worked
+- `GOWORK=off go test ./pkg/adapters/claudecode -count=1` passed.
+- The coverage profile now reports Claude Code thinking as source=983, archive=983 through signed-thinking metadata.
+
+### What didn't work
+- N/A. Cleartext thinking is still absent because the sampled source blocks contain no cleartext thinking payload.
+
+### What I learned
+- Claude Code `thinking` blocks can be structurally present while carrying only signatures.
+- The right mapping is metadata, not `turn.thinking`, unless a future source actually contains cleartext.
+
+### What was tricky to build
+- The adapter must preserve the distinction between cleartext thinking and signed/encrypted thinking presence. Collapsing both into `turn.thinking` would make downstream analysis misleading.
+
+### What warrants a second pair of eyes
+- Whether the metadata key names should become standardized fields in the minitrace schema if other adapters expose encrypted/signed reasoning.
+- Whether UI/query docs should show signed-thinking blocks as a badge.
+
+### What should be done in the future
+- Add JS API examples for querying signed-thinking metadata after the documentation cleanup issue is addressed.
+- Investigate whether any recent Claude Code transcripts contain non-empty cleartext thinking and add a fixture if found.
+
+### Code review instructions
+- Review the `case "thinking"` branch in `pkg/adapters/claudecode/convert.go`.
+- Confirm the test keeps `turn.thinking == nil` for empty signed blocks.
+- Validate with `GOWORK=off go test ./pkg/adapters/claudecode -count=1`.
+
+### Technical details
+- `signed_thinking_blocks` is an integer count per assistant turn.
+- `thinking_signature_present` is a boolean convenience flag.
+- Raw signature values are not stored.

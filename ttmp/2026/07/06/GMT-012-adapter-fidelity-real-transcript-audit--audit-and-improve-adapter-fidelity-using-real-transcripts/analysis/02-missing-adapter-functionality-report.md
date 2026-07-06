@@ -49,7 +49,7 @@ Highest-priority missing functionality:
 
 1. ~~Codex old JSONL convertibility: 4/12 sampled Codex files failed conversion.~~ Fixed in commit pending after this report update: legacy rollout JSONL now converts.
 2. Codex reasoning granularity: source reasoning signals greatly exceed archive `turn.thinking` count.
-3. Claude Code signed thinking preservation: record signed/empty thinking block presence even when cleartext is unavailable.
+3. ~~Claude Code signed thinking preservation: record signed/empty thinking block presence even when cleartext is unavailable.~~ Fixed: signed-thinking presence is preserved in turn metadata.
 4. ~~Pi image block preservation: source image blocks observed but no archive attachments emitted in the sampled corpus.~~ Fixed: Pi image blocks now become bounded `attachments[]`.
 5. Copilot conversion coverage: source sample contains useful events, but the current conversion pass did not produce a Copilot archive.
 6. Tool result metadata promotion: many rich tool result facts are preserved only as capped metadata or not query-visible.
@@ -155,11 +155,12 @@ First determine intended granularity:
 - A regression fixture with multiple Codex reasoning payloads proves whether they merge, append, or emit events.
 - Coverage report classifies Codex reasoning as covered/partial with a written explanation.
 
-## Finding 3: Claude Code thinking blocks are signature-only in sampled data
+## Finding 3: Claude Code thinking blocks are signature-only in sampled data — metadata fixed
 
-**Severity:** info-to-medium  
-**Classification:** encrypted-or-signature-only / not-query-visible  
-**Evidence:** 983 Claude Code `thinking` blocks; 0 archive `turn.thinking`; manual structural inspection showed empty `thinking` strings and present `signature` fields.
+**Severity:** resolved info-to-medium  
+**Classification:** encrypted-or-signature-only, now query-visible through metadata  
+**Evidence before fix:** 983 Claude Code `thinking` blocks; 0 archive `turn.thinking`; manual structural inspection showed empty `thinking` strings and present `signature` fields.
+**Evidence after fix:** coverage profile reports archive `turn.signed_thinking = 983`; cleartext `turn.thinking` remains empty because the source cleartext is empty.
 
 ### Why this matters
 
@@ -167,22 +168,19 @@ The initial output-only metric looked alarming: Claude Code had zero turns with 
 
 However, the source does contain useful metadata: signed thinking blocks occurred. This may matter for completeness, UI explanation, and documentation.
 
-### Recommended fix
+### Implemented fix
 
-Do not synthesize thinking text. Instead, preserve signed-thinking presence.
-
-Possible representation:
+The adapter does not synthesize unavailable thinking text. It preserves signed-thinking presence as bounded turn metadata:
 
 - `turn.framework_metadata.signed_thinking_blocks = N`
 - `turn.framework_metadata.thinking_signature_present = true`
-- optionally `events.kind = signed_thinking` if the UI needs timeline visibility
 
-Avoid storing raw signatures unless there is a known replay/verification use case.
+Raw signatures are not stored because there is no current replay/verification use case.
 
 ### Acceptance criteria
 
 - A minimized Claude Code fixture with a `thinking` block containing `signature` but empty `thinking` converts to a turn that records signature-only thinking presence.
-- `adapter-reference.md` says: cleartext Claude Code thinking not observed; signed/empty thinking blocks preserved as metadata.
+- `adapter-reference.md` says: cleartext Claude Code thinking is only populated when present; signed/empty thinking blocks are preserved as metadata.
 
 ## Finding 4: Claude Code toolUseResult has rich fields that are not all first-class/query-visible
 
@@ -340,7 +338,7 @@ Field families:
 |---:|---|---|---|
 | 1 | Codex | Legacy/old JSONL convertibility | Fixed: all 12 sampled Codex files now convert. |
 | 2 | Copilot | Add conversion coverage script | Current report cannot judge adapter output. |
-| 3 | Claude Code | Preserve signature-only thinking metadata | Clarifies “missing thinking” without inventing text. |
+| 3 | Claude Code | Preserve signature-only thinking metadata | Fixed: `signed_thinking_blocks` metadata without inventing text. |
 | 4 | Pi | Map image blocks to attachments | Fixed: image blocks become bounded attachments. |
 | 5 | Codex | Reasoning granularity audit/fix | Valuable reasoning context likely partially hidden. |
 | 6 | All | Usage exact comparator | Important for cost/performance, but not yet proven broken. |

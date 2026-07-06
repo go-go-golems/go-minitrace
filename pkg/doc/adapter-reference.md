@@ -90,7 +90,7 @@ Additionally, dir-v1 tool-results sessions (an older format that stores tool res
 | `operational_context.autonomy_level` | Mapped from `permission-mode` records (bypassPermissions → full-auto, plan → suggest) |
 | `timing.*` | Computed from message timestamps |
 | `title` | `ai-title` record when present, else first human message |
-| `turns[].thinking` | Extracted from thinking blocks if present |
+| `turns[].thinking` | Extracted from cleartext thinking blocks if present; signature-only thinking blocks are counted in `turns[].framework_metadata.signed_thinking_blocks` |
 | `turns[].usage` | Per-message token counts |
 | `tool_calls[].output.duration_ms` | Derived: tool-result timestamp minus tool-use timestamp |
 | `events[]` | Source lifecycle records such as mode, permission-mode, title, and attachment events |
@@ -124,7 +124,7 @@ When a session directory contains a `subagents/` subdirectory, each subagent JSO
 ### Preserved framework-specific metadata
 
 - `operational_context.framework_config`: `entrypoint`, `agent_id`, `session_id`, `parent_uuid`, `is_sidechain`, `user_type`, `attribution_agent`, `mode`, `permission_mode`, `ai_title`
-- `turns[].framework_metadata`: `entrypoint`, `slug`, `agent_id`, `session_id`, `parent_uuid`, `is_sidechain`, `attribution_agent`, `stop_reason`, `stop_sequence`, `cache_creation`
+- `turns[].framework_metadata`: `entrypoint`, `slug`, `agent_id`, `session_id`, `parent_uuid`, `is_sidechain`, `attribution_agent`, `stop_reason`, `stop_sequence`, `cache_creation`, `signed_thinking_blocks`, `thinking_signature_present`
 - `tool_calls[].framework_metadata`: `caller`, tool-result record context, `tool_use_result`, `interrupted`
 
 ### What is not preserved
@@ -132,6 +132,7 @@ When a session directory contains a `subagents/` subdirectory, each subagent JSO
 - System prompt content (set to null for privacy)
 - Streaming event-level detail (only the final content is kept)
 - Image and binary content (references only)
+- Cleartext thinking when Claude Code records only empty signed thinking blocks; the adapter preserves signed-thinking presence but does not synthesize unavailable text
 - Reasoning token counts (not present in the source usage records)
 
 ## Codex adapter
