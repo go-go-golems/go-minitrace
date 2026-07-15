@@ -45,6 +45,8 @@ topics:
       description: copilot topic
     - slug: design
       description: design topic
+    - slug: architecture
+      description: Software architecture, subsystem boundaries, and implementation design
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
