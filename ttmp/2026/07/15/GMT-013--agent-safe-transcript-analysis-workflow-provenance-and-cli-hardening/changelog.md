@@ -110,3 +110,13 @@ P1.11 progress: Codex conversion rows now expose preflight source fingerprint, i
 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Structured preflight provenance columns in conversion output
 
+
+## 2026-07-15
+
+P1.15 progress: Codex --run-record writes atomic conversion provenance JSON with sorted inspected inputs, outputs, collision policy, timestamps, and completion state
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Codex run-record flag and successful-run integration
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/run_record.go — Conversion receipt v1 serialization
+

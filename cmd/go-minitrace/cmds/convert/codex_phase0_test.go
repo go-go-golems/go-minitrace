@@ -2,6 +2,7 @@ package convert
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -81,8 +82,9 @@ func TestConvertCodexEmitsPreflightProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewConvertCodexGlazeCommand returned error: %v", err)
 	}
+	runRecordPath := filepath.Join(dir, "runs", "conversion.json")
 	values, err := runner.ParseCommandValues(command, runner.WithValuesForSections(map[string]map[string]any{
-		schema.DefaultSlug: {"source-session": []string{source}, "output-dir": filepath.Join(dir, "output")},
+		schema.DefaultSlug: {"source-session": []string{source}, "output-dir": filepath.Join(dir, "output"), "run-record": runRecordPath},
 	}))
 	if err != nil {
 		t.Fatalf("ParseCommandValues returned error: %v", err)
@@ -97,6 +99,17 @@ func TestConvertCodexEmitsPreflightProvenance(t *testing.T) {
 	row := phase0RowToMap(processor.rows[0])
 	if row["identity_basis"] != "first-session-meta" || row["parent_session_id"] != "parent-id" || row["source_fingerprint"] == "" {
 		t.Fatalf("missing provenance columns: %#v", row)
+	}
+	payload, err := os.ReadFile(runRecordPath)
+	if err != nil {
+		t.Fatalf("reading run record: %v", err)
+	}
+	var record conversionRunRecord
+	if err := json.Unmarshal(payload, &record); err != nil {
+		t.Fatalf("decoding run record: %v", err)
+	}
+	if record.Schema != "go-minitrace-conversion-run-v1" || !record.Complete || len(record.Inputs) != 1 || len(record.Outputs) != 1 {
+		t.Fatalf("unexpected run record: %+v", record)
 	}
 }
 

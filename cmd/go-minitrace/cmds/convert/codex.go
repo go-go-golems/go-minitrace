@@ -3,6 +3,7 @@ package convert
 import (
 	"context"
 	"path/filepath"
+	"time"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -30,6 +31,7 @@ type ConvertCodexSettings struct {
 	SourceList     string   `glazed:"source-list"`
 	OutputDir      string   `glazed:"output-dir"`
 	Collision      string   `glazed:"collision"`
+	RunRecord      string   `glazed:"run-record"`
 	DryRun         bool     `glazed:"dry-run"`
 }
 
@@ -65,6 +67,7 @@ Examples:
 			fields.New("source-list", fields.TypeString, fields.WithDefault(""), fields.WithHelp("File with newline-separated Codex session paths; blank lines and # comments are ignored")),
 			fields.New("output-dir", fields.TypeString, fields.WithDefault("./output"), fields.WithHelp("Target minitrace archive directory")),
 			fields.New("collision", fields.TypeString, fields.WithDefault(string(minitrace.CollisionError)), fields.WithHelp("Archive ID collision policy: error (default) or replace")),
+			fields.New("run-record", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Write an atomic JSON conversion run record")),
 			fields.New("dry-run", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Inspect sources without writing output")),
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
@@ -111,6 +114,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		return errors.Errorf("unsupported collision policy %q", settings_.Collision)
 	}
 
+	runRecord := newConversionRunRecord("codex", settings_.OutputDir, collisionPolicy, locators)
 	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
 	convertedCount := 0
 	failedCount := 0
@@ -131,6 +135,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 				return errors.Wrapf(err, "writing minitrace session %s", locator.ID)
 			}
 			indexEntries = append(indexEntries, entry)
+			runRecord.Outputs = append(runRecord.Outputs, conversionRunOutput{SessionID: session.ID, Path: entry.FilePath})
 			sessionPath = entry.FilePath
 		}
 
@@ -177,6 +182,11 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 	if !settings_.DryRun {
 		if err := minitrace.WriteManifests(indexEntries, settings_.OutputDir); err != nil {
 			return errors.Wrap(err, "writing Codex manifests")
+		}
+		runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
+		runRecord.Complete = failedCount == 0
+		if err := writeConversionRunRecord(settings_.RunRecord, runRecord); err != nil {
+			return err
 		}
 		manifestRow := types.NewRow(
 			types.MRP("framework", "codex"),
