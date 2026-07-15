@@ -19,7 +19,7 @@ func TestCollectSourceSessionsMergesFlagsAndListFile(t *testing.T) {
 		t.Fatalf("writing list file: %v", err)
 	}
 
-	paths, err := collectSourceSessions([]string{"/tmp/explicit.jsonl", " "}, listPath)
+	paths, err := collectSourceSessions([]string{"/tmp/explicit.jsonl", "/tmp/session-a.jsonl", " "}, listPath)
 	if err != nil {
 		t.Fatalf("collectSourceSessions returned error: %v", err)
 	}
@@ -38,6 +38,17 @@ func TestCollectSourceSessionsMissingListFile(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "missing.txt")
 	if _, err := collectSourceSessions(nil, missing); err == nil {
 		t.Fatalf("expected error for missing source list file")
+	}
+}
+
+func TestCollectSourceSessionsSortsRelativePaths(t *testing.T) {
+	dir := t.TempDir()
+	paths, err := collectSourceSessions([]string{filepath.Join(dir, "b.jsonl"), filepath.Join(dir, "a.jsonl")}, "")
+	if err != nil {
+		t.Fatalf("collectSourceSessions returned error: %v", err)
+	}
+	if got, want := paths, []string{filepath.Join(dir, "a.jsonl"), filepath.Join(dir, "b.jsonl")}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("paths = %+v, want %+v", got, want)
 	}
 }
 

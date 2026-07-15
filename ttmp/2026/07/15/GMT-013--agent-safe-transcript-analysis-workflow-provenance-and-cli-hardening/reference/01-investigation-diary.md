@@ -23,6 +23,8 @@ RelatedFiles:
       Note: P1 public collision policy flag
     - Path: repo://cmd/go-minitrace/cmds/convert/codex_phase0_test.go
       Note: P0 partial-batch publication characterization
+    - Path: repo://cmd/go-minitrace/cmds/convert/sources.go
+      Note: Deterministic explicit source path normalization, deduplication, and ordering
     - Path: repo://cmd/go-minitrace/cmds/query/output_phase0_test.go
       Note: P0 zero-row JSON formatter and empty-JS-result characterization
     - Path: repo://pkg/adapters/codex/convert.go
@@ -35,6 +37,8 @@ RelatedFiles:
       Note: Phase 0 child-identity regression and fixture reader
     - Path: repo://pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
       Note: Redacted four-record regression fixture for child header followed by replayed parent metadata
+    - Path: repo://pkg/adapters/conversion.go
+      Note: Shared future batch/receipt conversion outcome contract
     - Path: repo://pkg/adapters/source_identity.go
       Note: |-
         P1 shared source identity and raw-byte SHA-256 evidence helper
@@ -60,6 +64,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1294,4 +1299,84 @@ Warning representation:
     }
   ]
 }
+```
+
+## Step 12: Establish deterministic source-list and conversion-result foundations
+
+I began the shared batch-runner work by making explicit source selection deterministic. `--source-session` and `--source-list` inputs are now normalized to absolute paths, deduplicated, and sorted before adapter location/conversion begins. This removes invocation-order variance before P1.12 adds source inspection, fingerprints, collision preflight, and staging.
+
+I also added adapter-neutral conversion result/status types. They are not yet wired through the Codex command because batch publication and receipts need a single migration rather than a temporary second result format.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, continue"
+
+**Assistant interpretation:** Continue Phase 1 toward shared batch preflight and structured outcomes after finishing replay warnings and single-archive durability.
+
+**Inferred user intent:** Move the remaining conversion workflow toward deterministic, receipt-ready batch behavior.
+
+**Commit (code):** Pending commit for the deterministic source preflight and conversion-result foundation.
+
+### What I did
+
+- Updated `collectSourceSessions` to normalize paths to absolute cleaned paths, deduplicate them, and sort them lexically.
+- Updated and extended source-list tests to prove duplicate removal and deterministic ordering.
+- Added `adapters.ConversionStatus` values: created, unchanged, replaced, failed, and skipped.
+- Added `adapters.ConversionResult`, combining source identity, optional converted session, status, structured warnings, and a diagnostic string.
+
+### Why
+
+- Batch result order must not depend on the order users repeat flags or arrange source-list lines.
+- A shared result type is necessary before command rows, staging outcomes, partial behavior, and receipts can agree on source status names.
+
+### What worked
+
+- Existing source-list behavior still accepts comments and blank lines.
+- Converter and adapter package tests pass with deterministic source selection.
+
+### What didn't work
+
+- This is intentionally only the foundation for P1.11/P1.12. It does not yet inspect/fingerprint all sources during preflight, detect conflicting native IDs before publication, or expose `ConversionResult` from the command.
+
+### What I learned
+
+- Source-list normalization belongs before `LocateSession`, so all adapters receive canonical paths without duplicating list parsing logic.
+- Conversion status needs to be adapter-neutral because collision/idempotence is a publisher result while parse failures are adapter results.
+
+### What was tricky to build
+
+The current `collectSourceSessions` helper has no framework information and should not fingerprint files itself; hashing belongs in the source-inspection/preflight layer where errors and identities can become structured per-source outcomes. The change therefore stops at deterministic path selection rather than mixing generic list parsing with Codex semantics.
+
+### What warrants a second pair of eyes
+
+- Confirm sorting absolute paths is the correct stable ordering for all supported platforms.
+- Review whether later preflight should preserve an explicit caller ordinal alongside sorted processing for diagnostics.
+- Review the conversion-result error field before receipts make it externally stable.
+
+### What should be done in the future
+
+- Wire `ConversionResult` into Codex after adding a shared preflight/publisher function.
+- Add preflight inspection/fingerprint/native-ID conflict detection and staged publication.
+
+### Code review instructions
+
+- Review `cmd/go-minitrace/cmds/convert/sources.go` and its tests.
+- Review `pkg/adapters/conversion.go` as a contract-only type addition.
+- Validate with:
+
+  ```bash
+  go test ./cmd/go-minitrace/cmds/convert ./pkg/adapters -count=1
+  ```
+
+### Technical details
+
+Current deterministic flow:
+
+```text
+source-session flags + source-list lines
+  -> trim/comment filtering
+  -> absolute cleaned paths
+  -> deduplicated set
+  -> lexical sort
+  -> adapter LocateSession
 ```

@@ -82,3 +82,13 @@ P1.5/P1.10: added record-indexed Codex replay warnings and durable single-archiv
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert.go — Replay warning evidence
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/archive.go — Durable individual archive publish
 
+
+## 2026-07-15
+
+P1 batch foundation: normalized, deduplicated, and sorted explicit source paths; added adapter-neutral conversion statuses/results for upcoming preflight and receipts
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/sources.go — Deterministic source selection
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/conversion.go — Shared conversion outcome types
+
