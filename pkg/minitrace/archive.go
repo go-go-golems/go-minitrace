@@ -95,17 +95,36 @@ func WriteSessionWithCollisionPolicy(session *Session, outputDir string, policy 
 		_ = tempFile.Close()
 		return nil, errors.Wrap(err, "writing temporary session file")
 	}
+	if err := tempFile.Sync(); err != nil {
+		_ = tempFile.Close()
+		return nil, errors.Wrap(err, "syncing temporary session file")
+	}
 	if err := tempFile.Close(); err != nil {
 		return nil, errors.Wrap(err, "closing temporary session file")
 	}
 	if err := os.Rename(tempPath, filePath); err != nil {
 		return nil, errors.Wrap(err, "publishing session file")
 	}
+	if err := syncDirectory(dir); err != nil {
+		return nil, err
+	}
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "stating written session file")
 	}
 	return sessionIndexEntry(session, period, filePath, info.Size()), nil
+}
+
+func syncDirectory(dir string) error {
+	directory, err := os.Open(dir)
+	if err != nil {
+		return errors.Wrap(err, "opening archive directory for sync")
+	}
+	defer func() { _ = directory.Close() }()
+	if err := directory.Sync(); err != nil {
+		return errors.Wrap(err, "syncing archive directory")
+	}
+	return nil
 }
 
 func readExistingSession(path string) (*Session, os.FileInfo, error) {

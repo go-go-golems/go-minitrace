@@ -30,18 +30,22 @@ RelatedFiles:
         Source evidence for corrected Codex identity diagnosis
         First-header identity lock in session_meta parsing
         P1 Codex header inspection and provenance application
+        P1 replay metadata warning capture and archive framework metadata
     - Path: repo://pkg/adapters/codex/convert_test.go
       Note: Phase 0 child-identity regression and fixture reader
     - Path: repo://pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
       Note: Redacted four-record regression fixture for child header followed by replayed parent metadata
     - Path: repo://pkg/adapters/source_identity.go
-      Note: P1 shared source identity and raw-byte SHA-256 evidence helper
+      Note: |-
+        P1 shared source identity and raw-byte SHA-256 evidence helper
+        P1 structured conversion warning contract
     - Path: repo://pkg/adapters/source_identity_test.go
       Note: P1 deterministic fingerprint coverage
     - Path: repo://pkg/minitrace/archive.go
       Note: |-
         Source evidence for collision and manifest behavior
         P1 collision policy, idempotent fingerprint comparison, and temporary-file publication
+        P1 temporary file and directory sync during individual publication
     - Path: repo://pkg/minitrace/archive_test.go
       Note: |-
         P0 collision overwrite characterization
@@ -56,6 +60,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1202,4 +1207,91 @@ no destination                         -> write
 existing + same non-empty fingerprint  -> unchanged/idempotent
 existing + different/missing fingerprint + error   -> reject, retain bytes
 existing + different/missing fingerprint + replace -> temporary write + rename
+```
+
+## Step 11: Preserve replay warnings and durably publish individual archives
+
+I completed the remaining narrow identity and individual-publication tasks before introducing a shared batch runner. Codex source inspection now retains a structured, record-indexed warning whenever a later `session_meta` uses a different ID than the first native header. The converted session keeps this warning in framework metadata, making the lineage anomaly inspectable without letting it alter archive identity.
+
+The archive publisher now synchronizes the temporary file before rename and synchronizes the containing directory after rename. The test suite verifies that a successful publication leaves no `.minitrace-*.tmp` file behind. This protects individual writes; it does not claim multi-file batch atomicity.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Continue."
+
+**Assistant interpretation:** Continue Phase 1 after collision rejection by completing replay-warning precedence and individual archive durability work.
+
+**Inferred user intent:** Close the remaining foundational identity/publication gaps before moving into batch orchestration.
+
+**Commit (code):** Pending commit for P1.5 and P1.10.
+
+### What I did
+
+- Added `adapters.ConversionWarning` with a stable code, message, and record index.
+- Made Codex source inspection examine all `session_meta` records after locking the first ID.
+- Added warning code `codex-replayed-session-meta` for later differing IDs.
+- Stored warnings under `operational_context.framework_config.conversion_warnings` on converted Codex archives.
+- Extended the replay fixture test to assert warning count, code, and record index.
+- Added `tempFile.Sync()` before archive rename and directory sync after rename.
+- Added a test assertion that successful archive publication leaves no temporary staging file.
+
+### Why
+
+- Ignoring replayed metadata prevents corruption but hides source-shape evidence needed to audit adapter behavior.
+- A temporary-file rename without syncing leaves a durability gap during sudden interruption; syncing both file and directory establishes the expected single-file persistence boundary.
+
+### What worked
+
+- Codex tests confirm later parent metadata is retained as a warning while child identity and parent lineage remain correct.
+- Archive tests pass with the new sync path and confirm no temp-file residue after normal publication.
+
+### What didn't work
+
+- N/A. There is no multi-file failure injection test yet; P1.13 must address staging and rollback behavior rather than extrapolating from the single-file test.
+
+### What I learned
+
+- Structured warnings can be preserved in framework metadata without changing the general archive schema again.
+- `os.Rename` is only one part of the durability boundary; the source file and parent directory each need sync calls for the intended persistence semantics.
+
+### What was tricky to build
+
+The source inspector originally stopped after the first native header, which was correct for identity but insufficient for warning evidence. I removed that early exit while retaining first-header identity ownership. The loop now collects later mismatch evidence without allowing it to modify the selected native ID.
+
+### What warrants a second pair of eyes
+
+- Confirm `framework_config.conversion_warnings` is the preferred archive location versus a first-class schema field for cross-adapter warnings.
+- Verify directory syncing behavior on every supported platform and decide whether unsupported filesystems need a documented fallback.
+- Review batch staging separately; individual atomic publication must not be represented as batch atomicity.
+
+### What should be done in the future
+
+- Build P1.11 conversion result/warning types and surface warnings in command rows/receipts.
+- Build P1.12–P1.14 shared preflight, staging, and partial semantics.
+
+### Code review instructions
+
+- Read `inspectSourceRecords` in `pkg/adapters/codex/convert.go` for first-header and later-warning separation.
+- Inspect `applySourceIdentity` for warning serialization.
+- Inspect `WriteSessionWithCollisionPolicy` and `syncDirectory` in `pkg/minitrace/archive.go`.
+- Run:
+
+  ```bash
+  go test ./pkg/adapters/codex ./pkg/minitrace -count=1
+  ```
+
+### Technical details
+
+Warning representation:
+
+```json
+{
+  "conversion_warnings": [
+    {
+      "code": "codex-replayed-session-meta",
+      "record_index": 3,
+      "message": "later session_meta ID differs from the source header and was retained as replay metadata"
+    }
+  ]
+}
 ```

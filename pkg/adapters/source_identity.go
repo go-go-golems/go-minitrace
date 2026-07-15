@@ -12,16 +12,23 @@ import (
 // intentionally adapter-neutral: adapters establish NativeSessionID, lineage,
 // and role from their own source format, while this package owns normalized
 // path and byte-level fingerprint evidence.
+type ConversionWarning struct {
+	Code        string `json:"code"`
+	Message     string `json:"message"`
+	RecordIndex int    `json:"record_index"`
+}
+
 type SourceIdentity struct {
-	NativeSessionID  string `json:"native_session_id,omitempty"`
-	ParentSessionID  string `json:"parent_session_id,omitempty"`
-	SourcePath       string `json:"source_path"`
-	SourceFormat     string `json:"source_format,omitempty"`
-	WorkingDirectory string `json:"working_directory,omitempty"`
-	Role             string `json:"role,omitempty"`
-	IdentityBasis    string `json:"identity_basis,omitempty"`
-	SHA256           string `json:"sha256,omitempty"`
-	SizeBytes        int64  `json:"size_bytes,omitempty"`
+	NativeSessionID  string              `json:"native_session_id,omitempty"`
+	ParentSessionID  string              `json:"parent_session_id,omitempty"`
+	SourcePath       string              `json:"source_path"`
+	SourceFormat     string              `json:"source_format,omitempty"`
+	WorkingDirectory string              `json:"working_directory,omitempty"`
+	Role             string              `json:"role,omitempty"`
+	IdentityBasis    string              `json:"identity_basis,omitempty"`
+	SHA256           string              `json:"sha256,omitempty"`
+	SizeBytes        int64               `json:"size_bytes,omitempty"`
+	Warnings         []ConversionWarning `json:"warnings,omitempty"`
 }
 
 // FingerprintSource returns byte-level evidence for one source file. It does

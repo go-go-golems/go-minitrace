@@ -121,7 +121,7 @@
   - Populate child ID in `Session.ID` and `provenance.original_session_id`.
   - Populate parent ID in `coordination.predecessor_session` and documented framework metadata.
   - Done when: P0.4 identity regression passes.
-- [ ] **P1.5 — Define later-metadata merge precedence.**
+- [x] **P1.5 — Define later-metadata merge precedence.**
   - Enumerate which child/header fields are immutable and which later records may update.
   - Emit a structured warning for replay/mismatch records with record index.
   - Done when: precedence is covered by table-driven tests and documented in adapter reference draft notes.
@@ -143,7 +143,7 @@
   - Add `--collision error|replace` to converter settings.
   - Record previous and new hashes when replacement is explicit.
   - Done when: replacement is impossible without an explicit flag and is visible in result/receipt data.
-- [ ] **P1.10 — Make individual archive writes atomic.**
+- [x] **P1.10 — Make individual archive writes atomic.**
   - Write temp file in destination filesystem, sync as appropriate, and rename.
   - Clean temp files on failures.
   - Done when: interruption/error tests never leave a truncated destination.

@@ -173,6 +173,9 @@ func TestConvertLocatorRecordsSourceIdentityEvidence(t *testing.T) {
 	if identity.SHA256 == "" || identity.SizeBytes == 0 || identity.SourcePath == "" {
 		t.Fatalf("expected fingerprint evidence, got %+v", identity)
 	}
+	if len(identity.Warnings) != 1 || identity.Warnings[0].Code != "codex-replayed-session-meta" || identity.Warnings[0].RecordIndex != 3 {
+		t.Fatalf("unexpected replay warnings: %+v", identity.Warnings)
+	}
 
 	session, err := ConvertLocator(adapters.SessionLocator{ID: "locator-id", SourcePath: path, FormatHint: "session-jsonl-v1"})
 	if err != nil {
@@ -186,6 +189,14 @@ func TestConvertLocatorRecordsSourceIdentityEvidence(t *testing.T) {
 	}
 	if session.Provenance.IdentityBasis == nil || *session.Provenance.IdentityBasis != "first-session-meta" {
 		t.Fatalf("identity basis = %+v", session.Provenance.IdentityBasis)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("framework config = %#v, want map", session.OperationalContext.FrameworkConfig)
+	}
+	warnings, ok := config["conversion_warnings"].([]adapters.ConversionWarning)
+	if !ok || len(warnings) != 1 || warnings[0].RecordIndex != 3 {
+		t.Fatalf("conversion warnings = %#v", config["conversion_warnings"])
 	}
 }
 

@@ -72,3 +72,13 @@ P1.7-P1.9: replaced silent archive overwrite with default collision rejection, f
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Explicit caller policy
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/archive.go — Collision-safe archive publication
 
+
+## 2026-07-15
+
+P1.5/P1.10: added record-indexed Codex replay warnings and durable single-archive temporary-file publication with file/directory sync
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert.go — Replay warning evidence
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/archive.go — Durable individual archive publish
+

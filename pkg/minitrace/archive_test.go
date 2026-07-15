@@ -118,6 +118,13 @@ func TestWriteSessionRejectsDifferentContentOnIDCollision(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading first archive: %v", err)
 	}
+	staging, err := filepath.Glob(filepath.Join(outputDir, "active", "2026-01", ".minitrace-*.tmp"))
+	if err != nil {
+		t.Fatalf("glob temporary archives: %v", err)
+	}
+	if len(staging) != 0 {
+		t.Fatalf("temporary archive files remain after publication: %v", staging)
+	}
 
 	second := BuildSessionSkeleton("session-collision", "codex", "codex-format-v1", "go-minitrace/test")
 	second.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")

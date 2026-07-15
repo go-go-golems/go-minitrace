@@ -95,7 +95,7 @@ func inspectSourceRecords(records []map[string]any, sourcePath, formatHint strin
 		SizeBytes:    sizeBytes,
 		Role:         "unknown",
 	}
-	for _, record := range records {
+	for recordIndex, record := range records {
 		if stringValue(record["type"]) != "session_meta" {
 			continue
 		}
@@ -103,11 +103,18 @@ func inspectSourceRecords(records []map[string]any, sourcePath, formatHint strin
 		if payload == nil {
 			continue
 		}
+		recordID := stringValue(payload["id"])
 		if identity.NativeSessionID == "" {
-			identity.NativeSessionID = stringValue(payload["id"])
+			identity.NativeSessionID = recordID
 			if identity.NativeSessionID != "" {
 				identity.IdentityBasis = "first-session-meta"
 			}
+		} else if recordID != "" && recordID != identity.NativeSessionID {
+			identity.Warnings = append(identity.Warnings, adapters.ConversionWarning{
+				Code:        "codex-replayed-session-meta",
+				Message:     "later session_meta ID differs from the source header and was retained as replay metadata",
+				RecordIndex: recordIndex,
+			})
 		}
 		identity.WorkingDirectory = firstNonEmpty(identity.WorkingDirectory, stringValue(payload["cwd"]))
 		identity.ParentSessionID = firstNonEmpty(identity.ParentSessionID, stringValue(payload["parent_thread_id"]))
@@ -118,9 +125,6 @@ func inspectSourceRecords(records []map[string]any, sourcePath, formatHint strin
 					identity.ParentSessionID = firstNonEmpty(identity.ParentSessionID, stringValue(spawn["parent_thread_id"]))
 				}
 			}
-		}
-		if identity.NativeSessionID != "" {
-			break
 		}
 	}
 	if identity.ParentSessionID != "" && identity.Role == "unknown" {
@@ -148,6 +152,14 @@ func applySourceIdentity(session *minitrace.Session, identity adapters.SourceIde
 	}
 	if identity.ParentSessionID != "" {
 		session.Coordination.PredecessorSession = ptr(identity.ParentSessionID)
+	}
+	if len(identity.Warnings) > 0 {
+		config, _ := session.OperationalContext.FrameworkConfig.(map[string]any)
+		if config == nil {
+			config = map[string]any{}
+		}
+		config["conversion_warnings"] = identity.Warnings
+		session.OperationalContext.FrameworkConfig = config
 	}
 }
 
