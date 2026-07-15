@@ -319,7 +319,13 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 
 		switch recordType {
 		case "session_meta":
-			metadata.SessionID = firstNonEmpty(stringValue(payload["id"]), metadata.SessionID)
+			// A Codex subagent transcript can replay its parent's session_meta
+			// record after its own header. The first native session header owns
+			// this source file's identity; later metadata must not turn a child
+			// archive into its parent and overwrite another archive on disk.
+			if metadata.SessionID == "" {
+				metadata.SessionID = stringValue(payload["id"])
+			}
 			metadata.ParentThreadID = firstNonEmpty(stringValue(payload["parent_thread_id"]), metadata.ParentThreadID)
 			metadata.AgentNickname = firstNonEmpty(stringValue(payload["agent_nickname"]), metadata.AgentNickname)
 			metadata.AgentRole = firstNonEmpty(stringValue(payload["agent_role"]), metadata.AgentRole)

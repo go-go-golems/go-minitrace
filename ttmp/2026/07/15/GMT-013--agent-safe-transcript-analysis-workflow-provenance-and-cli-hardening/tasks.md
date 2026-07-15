@@ -45,20 +45,20 @@
 
 **Phase dependency:** D.1–D.12 complete.
 
-- [ ] **P0.1 — Create the Phase 0 implementation branch and baseline record.**
+- [x] **P0.1 — Create the Phase 0 implementation branch and baseline record.**
   - Record `git rev-parse HEAD`, `go version`, relevant dependency versions, and clean working-tree state in the diary.
   - Run `go test ./... -count=1` before editing.
   - Done when: the baseline command output and any pre-existing failures are recorded verbatim.
-- [ ] **P0.2 — Inventory existing adapter and archive fixtures.**
+- [x] **P0.2 — Inventory existing adapter and archive fixtures.**
   - Inspect `pkg/adapters/codex/testdata/`, Codex conversion tests, archive tests, query integration tests, and CLI test helpers.
   - Produce a short fixture map in the diary; do not add a separate planning document.
   - Done when: each planned fixture has an identified destination and nearest reusable test helper.
-- [ ] **P0.3 — Minimize a Codex child-header/parent-replay source fixture.**
+- [x] **P0.3 — Minimize a Codex child-header/parent-replay source fixture.**
   - Preserve only structural records needed to reproduce: child `session_meta`, direct/nested parent identity, representative child event, later parent `session_meta`.
   - Replace private content, paths, models, and IDs with deterministic synthetic values while preserving record shape and ordering.
   - Files: `pkg/adapters/codex/testdata/`.
   - Done when: the fixture contains no private transcript text and the current adapter still reproduces the wrong parent archive ID.
-- [ ] **P0.4 — Add a failing Codex identity regression test.**
+- [x] **P0.4 — Add a failing Codex identity regression test.**
   - Assert child `Session.ID`, child `provenance.original_session_id`, and parent `coordination.predecessor_session`.
   - Also assert that later parent metadata does not become the archive identity.
   - Files: `pkg/adapters/codex/convert_test.go` or the nearest existing Codex test file.

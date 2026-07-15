@@ -32,3 +32,13 @@ Expanded all GMT-013 implementation phases into stable, evidence-bearing tasks w
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/reference/01-investigation-diary.md — Step 6 records the task decomposition rationale and review guidance
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md — Detailed phase-by-phase implementation plan
 
+
+## 2026-07-15
+
+P0.1-P0.4: recorded clean baseline, added redacted Codex child-to-parent replay fixture, captured the parent-ID overwrite, and locked session identity to the first native header
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert.go — Prevents replayed parent metadata from replacing child archive identity
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert_test.go — Regression test proving child ID and parent lineage
+

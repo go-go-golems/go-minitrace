@@ -1,6 +1,7 @@
 package codex
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
@@ -153,6 +154,28 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	}
 	if turnMetadata["reasoning_block_count"] != 2 {
 		t.Fatalf("expected reasoning block count 2, got %+v", turnMetadata)
+	}
+}
+
+func TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays(t *testing.T) {
+	records, err := parseJSONLFile(filepath.Join("testdata", "child-session-meta-then-parent-replay.jsonl"))
+	if err != nil {
+		t.Fatalf("parseJSONLFile returned error: %v", err)
+	}
+
+	session, err := ConvertRecords(records, "locator-child-session-001", "/tmp/child-session.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+
+	if session.ID != "child-session-001" {
+		t.Fatalf("session ID = %q, want child-session-001; replayed parent metadata must not replace child identity", session.ID)
+	}
+	if session.Provenance.OriginalSessionID == nil || *session.Provenance.OriginalSessionID != "child-session-001" {
+		t.Fatalf("original session ID = %+v, want child-session-001", session.Provenance.OriginalSessionID)
+	}
+	if session.Coordination.PredecessorSession == nil || *session.Coordination.PredecessorSession != "parent-thread-001" {
+		t.Fatalf("predecessor session = %+v, want parent-thread-001", session.Coordination.PredecessorSession)
 	}
 }
 

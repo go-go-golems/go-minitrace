@@ -20,7 +20,13 @@ RelatedFiles:
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/researchctl/ttmp/2026/07/15/RESEARCHCTL-012--cross-purpose-immutable-research-laboratory-for-researchctl/experiments/01-goja-pr95-review-hardening-skill-holdout/04-evaluation.md
       Note: Exact holdout findings and evaluation score
     - Path: repo://pkg/adapters/codex/convert.go
-      Note: Source evidence for corrected Codex identity diagnosis
+      Note: |-
+        Source evidence for corrected Codex identity diagnosis
+        First-header identity lock in session_meta parsing
+    - Path: repo://pkg/adapters/codex/convert_test.go
+      Note: Phase 0 child-identity regression and fixture reader
+    - Path: repo://pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
+      Note: Redacted four-record regression fixture for child header followed by replayed parent metadata
     - Path: repo://pkg/minitrace/archive.go
       Note: Source evidence for collision and manifest behavior
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
@@ -31,6 +37,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -723,4 +730,156 @@ P4.n   enriched discovery and strict execution
 P5.n   documentation consolidation and skill thinning
 P6.n   evidence-bearing historical tool outcomes
 R.n    cross-phase review checkpoints
+```
+
+## Step 7: Establish the Phase 0 baseline and preserve the Codex identity regression
+
+I started implementation on branch `gmt-013-phase-0-failure-contracts` from `2898bef6b2399d3189d104106285fd47accbf142`. The clean baseline passed the complete Go test suite. I then added a minimized fixture that has a child Codex header, a parent-thread link, two harmless message records, and a later replayed parent header.
+
+The new test failed exactly as predicted: the current parser used the later parent ID as the session ID. I recorded that failure, then made the smallest P1-oriented correction needed to keep the test suite green: the first Codex `session_meta` owns the native source identity while later metadata cannot replace it. This necessarily overlaps the Phase 0 characterization and P1 implementation sequencing; leaving a known-red test in the branch would make the normal test suite unusable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Begin implementing the detailed GMT-013 plan, starting with the Phase 0 baseline, regression fixtures, and the highest-priority Codex identity defect.
+
+**Inferred user intent:** Move from design into traceable, evidence-backed implementation work without waiting for further planning discussion.
+
+**Commit (code):** `11c88d720dedcfc11e9cbb694589bdf18b1ac2ed` — "Preserve Codex child session identity"
+
+### What I did
+
+- Created branch:
+
+  ```text
+  gmt-013-phase-0-failure-contracts
+  ```
+
+- Recorded baseline:
+
+  ```text
+  commit: 2898bef6b2399d3189d104106285fd47accbf142
+  go version go1.26.4 linux/amd64
+  github.com/go-go-golems/glazed v1.3.6
+  github.com/mattn/go-sqlite3 v1.14.32
+  ```
+
+- Ran:
+
+  ```bash
+  go test ./... -count=1
+  ```
+
+  Result: all packages passed before edits.
+
+- Inventoried reusable fixture/test locations:
+  - Codex conversion: `pkg/adapters/codex/convert_test.go`.
+  - New Codex JSONL fixtures: `pkg/adapters/codex/testdata/`.
+  - Archive write/manifests: `pkg/minitrace/archive_test.go`.
+  - Query command/result fixtures: `cmd/go-minitrace/cmds/query/{run_test.go,sqlite_fixtures_test.go}`.
+  - Explicit source-list behavior: `cmd/go-minitrace/cmds/convert/sources_test.go`.
+- Added redacted fixture:
+
+  ```text
+  pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
+  ```
+
+- Added regression test:
+
+  ```text
+  TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays
+  ```
+
+- Captured the pre-fix failure with:
+
+  ```bash
+  go test ./pkg/adapters/codex -run TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays -count=1
+  ```
+
+  Exact failure:
+
+  ```text
+  session ID = "parent-thread-001", want child-session-001; replayed parent metadata must not replace child identity
+  ```
+
+- Changed the `session_meta` branch in `parseSessionJSONL` so `metadata.SessionID` is assigned only when it is empty.
+- Formatted and verified:
+
+  ```bash
+  gofmt -w pkg/adapters/codex/convert.go pkg/adapters/codex/convert_test.go
+  go test ./pkg/adapters/codex -count=1
+  git diff --check
+  ```
+
+  Result: Codex adapter tests pass and the diff has no whitespace errors.
+
+### Why
+
+- The fixture protects the exact observed identity corruption without committing a private transcript.
+- The initial failure proves the bug is adapter-induced rather than a native source-ID collision.
+- First-header identity preserves a child session while the already-existing `ParentThreadID` mapping preserves the parent as lineage.
+
+### What worked
+
+- The fixture is only four JSONL records and still reproduces the parent-ID overwrite.
+- Existing test structure allowed a direct package-local call to `parseJSONLFile` and `ConvertRecords`; no integration harness was needed.
+- The targeted code change makes the regression pass while all pre-existing Codex adapter tests remain green.
+
+### What didn't work
+
+The first version of the new regression failed as expected:
+
+```text
+--- FAIL: TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays (0.00s)
+    convert_test.go:172: session ID = "parent-thread-001", want child-session-001; replayed parent metadata must not replace child identity
+FAIL
+```
+
+The Phase 0 plan originally called for a fixture-only commit with intentionally failing tests. That is not compatible with a continuously runnable repository test suite, so the characterization and the minimal first-header correction are being committed together. The exact pre-fix failure is preserved here instead.
+
+### What I learned
+
+- `BuildSessionSkeleton` automatically sets `provenance.original_session_id` from the final `sessionID`, so correcting the adapter's final child ID fixes that provenance field without a schema change.
+- The current `ParentThreadID` mapping already populates `coordination.predecessor_session`; the regression confirms that source lineage remains available after identity locking.
+- The existing Codex test package had no file fixture helper, but `parseJSONLFile` is package-local and makes a minimized JSONL fixture straightforward.
+
+### What was tricky to build
+
+The key ordering rule is subtle: `firstNonEmpty(newValue, oldValue)` reads like a safe fill operation but gives the new value precedence. A later parent replay is therefore destructive. The correction intentionally applies only to `SessionID`; other metadata retains current merge behavior until P0.5/P1.5 define their own evidence-backed precedence rules.
+
+### What warrants a second pair of eyes
+
+- Confirm that first-header identity is correct for Codex fork/resume records beyond the observed subagent shape.
+- Review whether a later mismatching session header should become a structured adapter warning in P1.5 rather than remain invisible after this minimal fix.
+- Confirm direct and nested parent-thread extraction against additional redacted fixtures before adding enriched discovery.
+
+### What should be done in the future
+
+- Complete P0.5–P0.12 before broadening the source identity API.
+- Add collision and zero-row JSON regression characterization next; those are independent of this fix.
+- In P1.5, add record-indexed warning behavior for replayed/mismatched metadata.
+
+### Code review instructions
+
+- Start with `pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl`.
+- Read the new regression in `pkg/adapters/codex/convert_test.go`.
+- Review the `session_meta` branch in `pkg/adapters/codex/convert.go`; confirm only session identity is locked.
+- Validate with:
+
+  ```bash
+  go test ./pkg/adapters/codex -count=1
+  ```
+
+### Technical details
+
+Identity behavior before and after:
+
+```text
+before: child header -> metadata.SessionID=child
+        parent replay -> metadata.SessionID=parent -> archive ID=parent
+
+after:  child header -> metadata.SessionID=child
+        parent replay -> metadata.SessionID stays child
+        parent link -> coordination.predecessor_session=parent
 ```
