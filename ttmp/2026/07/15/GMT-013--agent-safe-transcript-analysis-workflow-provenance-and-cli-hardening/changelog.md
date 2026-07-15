@@ -52,3 +52,13 @@ P0.5-P0.12: completed green characterization tests for identity precedence, dest
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query/output_phase0_test.go — Captures empty streaming JSON behavior for Phase 3 replacement
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/archive_test.go — Captures current overwrite behavior for Phase 1 replacement
 
+
+## 2026-07-15
+
+P1.1-P1.4/P1.6: added shared source identity and SHA-256 fingerprinting, Codex first-header inspection, and additive provenance evidence
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert.go — Codex source inspection and child/parent provenance mapping
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/source_identity.go — Adapter-neutral fingerprint and source identity contract
+

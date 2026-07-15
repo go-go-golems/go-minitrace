@@ -27,14 +27,21 @@ RelatedFiles:
       Note: |-
         Source evidence for corrected Codex identity diagnosis
         First-header identity lock in session_meta parsing
+        P1 Codex header inspection and provenance application
     - Path: repo://pkg/adapters/codex/convert_test.go
       Note: Phase 0 child-identity regression and fixture reader
     - Path: repo://pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
       Note: Redacted four-record regression fixture for child header followed by replayed parent metadata
+    - Path: repo://pkg/adapters/source_identity.go
+      Note: P1 shared source identity and raw-byte SHA-256 evidence helper
+    - Path: repo://pkg/adapters/source_identity_test.go
+      Note: P1 deterministic fingerprint coverage
     - Path: repo://pkg/minitrace/archive.go
       Note: Source evidence for collision and manifest behavior
     - Path: repo://pkg/minitrace/archive_test.go
       Note: P0 collision overwrite characterization
+    - Path: repo://pkg/minitrace/schema.go
+      Note: P1 additive source fingerprint and identity basis archive fields
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
       Note: Stable D, P0-P6, and R task IDs with per-task evidence and phase gates
 ExternalSources: []
@@ -43,6 +50,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -991,3 +999,111 @@ Current failure-boundary matrix:
 | mixed conversion batch | publishes successes and returns nil | P1 batch policy |
 | zero rows + JSON array | formatter emits no bytes | P3 formatter fix |
 | empty JS array | emits no processor rows | P3 formatter fix |
+
+## Step 9: Add shared source identity evidence and Codex inspection
+
+I began Phase 1 by adding an adapter-neutral source identity type and byte-level fingerprint helper, then used it in Codex conversion. A converted source now carries the native ID, parent lineage, normalized source path, raw-byte SHA-256, source size, and the fact that identity came from the first `session_meta` record.
+
+The implementation deliberately does not yet make those new provenance fields queryable in normalized SQLite. They are additive archive evidence first; P1's collision publisher will consume the fingerprint before a later decision determines whether query columns are useful.
+
+### Prompt Context
+
+**User prompt (verbatim):** "do it"
+
+**Assistant interpretation:** Proceed with the Phase 1 source identity, fingerprinting, Codex inspection, and additive provenance tasks identified after Phase 0.
+
+**Inferred user intent:** Replace ad hoc source identity reasoning with reusable, testable provenance data that later collision and batch work can rely on.
+
+**Commit (code):** `f7af1c3416c2aa8c6c0cc89a0956f218fa46dc87` — "Add transcript source identity evidence"
+
+### What I did
+
+- Added `adapters.SourceIdentity` with native ID, parent ID, source path/format, cwd, role, identity basis, SHA-256, and byte size.
+- Added `adapters.FingerprintSource`, which normalizes a path to an absolute path and hashes exact source bytes with SHA-256.
+- Added optional `Identity` to `adapters.SessionLocator` without changing existing adapters' required construction paths.
+- Added `codex.InspectSource` and the shared internal inspection path used by `ConvertLocator`.
+  - It reads the first Codex `session_meta` as native identity.
+  - It recognizes direct `parent_thread_id` and nested subagent spawn parent IDs.
+  - It treats object-valued `source.subagent` as a subagent role without assuming `.source` is always an object.
+- Applied inspected evidence to converted Codex sessions:
+  - `Session.ID` and `provenance.original_session_id` use the native child ID.
+  - `coordination.predecessor_session` uses the parent ID.
+  - `provenance.source_path`, `source_fingerprint`, and `identity_basis` carry evidence.
+- Added archive-schema fields `source_fingerprint` and `identity_basis` as additive `omitempty` fields.
+- Added shared helper and Codex conversion tests, including the redacted child/replay fixture.
+- Ran focused adapter, Codex, archive-schema, and normalized SQLite package tests.
+
+### Why
+
+- Collision handling cannot distinguish safe reconversion from destructive replacement without stable raw-source evidence.
+- Discovery and conversion need one Codex identity rule so a source cannot be classified as a child during discovery and converted as a parent later.
+- Additive archive provenance preserves backward decoding while providing the facts P1 publication and P2 validation will need.
+
+### What worked
+
+- `FingerprintSource` has deterministic digest, byte size, and absolute-path coverage.
+- `InspectSource` and `ConvertLocator` agree on child ID, parent ID, subagent role, and `first-session-meta` basis for the replay fixture.
+- Existing adapter and normalized SQLite tests pass without a schema migration because the added fields are not yet materialized as columns.
+
+### What didn't work
+
+The first digest assertion used the wrong expected SHA-256 value:
+
+```text
+--- FAIL: TestFingerprintSource (0.00s)
+    source_identity_test.go:21: digest = "7cefb9aa217c81555befc729d7fa5d70dbc83bfe20d91eaac7e8af9aee481432"
+```
+
+I corrected the fixture's expected digest to the value produced from the exact `"fixture source\\n"` bytes, then reran the affected suites.
+
+The first commit attempt also failed the repository's `nonamedreturns` lint rule:
+
+```text
+pkg/adapters/source_identity.go:30:1: named return "sha256Hex" with type "string" found
+```
+
+I changed `FingerprintSource` to use unnamed return types before rerunning the commit checks.
+
+### What I learned
+
+- The source fingerprint must be raw-byte evidence, not a parsed-record hash; record parsing can discard malformed lines and lose proof of the exact input.
+- `ConvertLocator` is the correct initial integration seam because it has both the source path and parsed records. `ConvertRecords` remains useful for in-memory tests and does not fabricate a file fingerprint.
+- Existing `BuildSessionSkeleton` initialization and the earlier first-header lock mean provenance changes can remain additive and localized.
+
+### What was tricky to build
+
+The central constraint was avoiding a dependency cycle: generic `pkg/adapters` cannot parse Codex metadata, while Codex still needs a reusable fingerprint helper. The solution separates generic byte/path evidence (`FingerprintSource`) from Codex-specific header interpretation (`InspectSource` and `inspectSourceRecords`). This keeps source-format parsing in the adapter and lets future adapters reuse the common evidence function.
+
+### What warrants a second pair of eyes
+
+- Confirm that a source with direct `parent_thread_id` but no nested `source.subagent` should always be classified as `subagent`; this is conservative for the observed source but may need a distinct lineage role later.
+- Review whether `SessionLocator.Identity` should be populated during normal discovery now or remain conversion-only until P4's opt-in fingerprinting work.
+- Confirm P1 collision policy should compare source fingerprint only, or additionally compare normalized source path for legacy/operational diagnostics.
+
+### What should be done in the future
+
+- Complete P1.5 with structured, record-indexed warnings for later mismatching headers.
+- Implement P1.7–P1.10 so the fingerprint actually prevents destructive writes.
+- Add materialized SQLite columns only if P2/P4 queries need provenance fields; avoid schema churn otherwise.
+
+### Code review instructions
+
+- Start with `pkg/adapters/source_identity.go` and its test.
+- Then inspect `codex.InspectSource`, `inspectSourceRecords`, and `applySourceIdentity`.
+- Run:
+
+  ```bash
+  go test ./pkg/adapters ./pkg/adapters/codex ./pkg/minitrace ./pkg/minitracedb -count=1
+  ```
+
+### Technical details
+
+The new evidence flow is:
+
+```text
+native JSONL bytes
+  -> FingerprintSource(path): absolute path, SHA-256, size
+  -> Codex InspectSource(records): first header ID, parent, role, basis
+  -> ConvertLocator: ConvertRecords + applySourceIdentity
+  -> archive provenance and coordination fields
+```

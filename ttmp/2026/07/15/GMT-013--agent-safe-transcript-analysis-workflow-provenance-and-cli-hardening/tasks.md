@@ -104,19 +104,19 @@
 
 **Phase dependency:** P0.1–P0.12 complete.
 
-- [ ] **P1.1 — Introduce the source identity data structure.**
+- [x] **P1.1 — Introduce the source identity data structure.**
   - Add fields for native session ID, parent session ID, path, format, role, identity basis, SHA-256, and size.
   - Files: `pkg/adapters/types.go` and focused tests.
   - Done when: the type has documented field semantics and no adapter-specific payload fields.
-- [ ] **P1.2 — Implement a shared source fingerprint helper.**
+- [x] **P1.2 — Implement a shared source fingerprint helper.**
   - Hash exact raw bytes with SHA-256; return size and normalized path.
   - Cover empty files, unreadable files, symlinks/path normalization, and deterministic hashes.
   - Done when: helper tests pass and adapters do not duplicate hashing logic.
-- [ ] **P1.3 — Implement Codex header identity inspection.**
+- [x] **P1.3 — Implement Codex header identity inspection.**
   - Parse the first valid native session header before full conversion.
   - Support direct `parent_thread_id` and nested `source.subagent.thread_spawn.parent_thread_id` without assuming `.source` is always an object.
   - Done when: source descriptors correctly classify parent, subagent, and unknown shapes.
-- [ ] **P1.4 — Lock Codex conversion identity to the inspected header.**
+- [x] **P1.4 — Lock Codex conversion identity to the inspected header.**
   - Prevent later replayed `session_meta` IDs from replacing the native child ID.
   - Populate child ID in `Session.ID` and `provenance.original_session_id`.
   - Populate parent ID in `coordination.predecessor_session` and documented framework metadata.
@@ -125,7 +125,7 @@
   - Enumerate which child/header fields are immutable and which later records may update.
   - Emit a structured warning for replay/mismatch records with record index.
   - Done when: precedence is covered by table-driven tests and documented in adapter reference draft notes.
-- [ ] **P1.6 — Extend archive provenance additively.**
+- [x] **P1.6 — Extend archive provenance additively.**
   - Add `source_fingerprint` and `identity_basis`; update normalized SQLite materialization only if these fields must be queryable in Phase 1.
   - Update schema docs/tests and JSON round-trip tests.
   - Done when: old archives still decode and new archives preserve evidence fields.

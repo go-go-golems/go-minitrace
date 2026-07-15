@@ -32,6 +32,8 @@ type Provenance struct {
 	ConvertedAt       string  `json:"converted_at"`
 	ConverterVersion  string  `json:"converter_version"`
 	OriginalSessionID *string `json:"original_session_id"`
+	SourceFingerprint *string `json:"source_fingerprint,omitempty"`
+	IdentityBasis     *string `json:"identity_basis,omitempty"`
 }
 
 type Flags struct {

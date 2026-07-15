@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-go-golems/go-minitrace/pkg/adapters"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
 
@@ -154,6 +155,37 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	}
 	if turnMetadata["reasoning_block_count"] != 2 {
 		t.Fatalf("expected reasoning block count 2, got %+v", turnMetadata)
+	}
+}
+
+func TestConvertLocatorRecordsSourceIdentityEvidence(t *testing.T) {
+	path := filepath.Join("testdata", "child-session-meta-then-parent-replay.jsonl")
+	identity, err := InspectSource(path)
+	if err != nil {
+		t.Fatalf("InspectSource returned error: %v", err)
+	}
+	if identity.NativeSessionID != "child-session-001" || identity.ParentSessionID != "parent-thread-001" {
+		t.Fatalf("unexpected source identity: %+v", identity)
+	}
+	if identity.Role != "subagent" || identity.IdentityBasis != "first-session-meta" {
+		t.Fatalf("unexpected identity role/basis: %+v", identity)
+	}
+	if identity.SHA256 == "" || identity.SizeBytes == 0 || identity.SourcePath == "" {
+		t.Fatalf("expected fingerprint evidence, got %+v", identity)
+	}
+
+	session, err := ConvertLocator(adapters.SessionLocator{ID: "locator-id", SourcePath: path, FormatHint: "session-jsonl-v1"})
+	if err != nil {
+		t.Fatalf("ConvertLocator returned error: %v", err)
+	}
+	if session.ID != "child-session-001" || session.Provenance.OriginalSessionID == nil || *session.Provenance.OriginalSessionID != "child-session-001" {
+		t.Fatalf("unexpected converted identity: %+v", session.Provenance)
+	}
+	if session.Provenance.SourceFingerprint == nil || *session.Provenance.SourceFingerprint != identity.SHA256 {
+		t.Fatalf("source fingerprint = %+v, want %q", session.Provenance.SourceFingerprint, identity.SHA256)
+	}
+	if session.Provenance.IdentityBasis == nil || *session.Provenance.IdentityBasis != "first-session-meta" {
+		t.Fatalf("identity basis = %+v", session.Provenance.IdentityBasis)
 	}
 }
 

@@ -60,7 +60,95 @@ func ConvertLocator(locator adapters.SessionLocator) (*minitrace.Session, error)
 	if err != nil {
 		return nil, err
 	}
-	return ConvertRecords(records, locator.ID, locator.SourcePath, locator.FormatHint)
+	identity, err := inspectSourceRecords(records, locator.SourcePath, locator.FormatHint)
+	if err != nil {
+		return nil, err
+	}
+	session, err := ConvertRecords(records, locator.ID, locator.SourcePath, locator.FormatHint)
+	if err != nil {
+		return nil, err
+	}
+	applySourceIdentity(session, identity)
+	return session, nil
+}
+
+// InspectSource returns native identity and byte-level evidence for a Codex
+// source file. Conversion uses the same inspection result so discovery and
+// conversion do not need incompatible identity rules.
+func InspectSource(path string) (adapters.SourceIdentity, error) {
+	records, err := parseJSONLFile(path)
+	if err != nil {
+		return adapters.SourceIdentity{}, err
+	}
+	return inspectSourceRecords(records, path, detectFormatRecords(records))
+}
+
+func inspectSourceRecords(records []map[string]any, sourcePath, formatHint string) (adapters.SourceIdentity, error) {
+	sha256Hex, sizeBytes, normalizedPath, err := adapters.FingerprintSource(sourcePath)
+	if err != nil {
+		return adapters.SourceIdentity{}, err
+	}
+	identity := adapters.SourceIdentity{
+		SourcePath:   normalizedPath,
+		SourceFormat: sourceFormatName(formatHint),
+		SHA256:       sha256Hex,
+		SizeBytes:    sizeBytes,
+		Role:         "unknown",
+	}
+	for _, record := range records {
+		if stringValue(record["type"]) != "session_meta" {
+			continue
+		}
+		payload := mapValue(record["payload"])
+		if payload == nil {
+			continue
+		}
+		if identity.NativeSessionID == "" {
+			identity.NativeSessionID = stringValue(payload["id"])
+			if identity.NativeSessionID != "" {
+				identity.IdentityBasis = "first-session-meta"
+			}
+		}
+		identity.WorkingDirectory = firstNonEmpty(identity.WorkingDirectory, stringValue(payload["cwd"]))
+		identity.ParentSessionID = firstNonEmpty(identity.ParentSessionID, stringValue(payload["parent_thread_id"]))
+		if source := mapValue(payload["source"]); source != nil {
+			if subagent := mapValue(source["subagent"]); subagent != nil {
+				identity.Role = "subagent"
+				if spawn := mapValue(subagent["thread_spawn"]); spawn != nil {
+					identity.ParentSessionID = firstNonEmpty(identity.ParentSessionID, stringValue(spawn["parent_thread_id"]))
+				}
+			}
+		}
+		if identity.NativeSessionID != "" {
+			break
+		}
+	}
+	if identity.ParentSessionID != "" && identity.Role == "unknown" {
+		identity.Role = "subagent"
+	}
+	return identity, nil
+}
+
+func applySourceIdentity(session *minitrace.Session, identity adapters.SourceIdentity) {
+	if session == nil {
+		return
+	}
+	if identity.NativeSessionID != "" {
+		session.ID = identity.NativeSessionID
+		session.Provenance.OriginalSessionID = ptr(identity.NativeSessionID)
+	}
+	if identity.SourcePath != "" {
+		session.Provenance.SourcePath = ptr(identity.SourcePath)
+	}
+	if identity.SHA256 != "" {
+		session.Provenance.SourceFingerprint = ptr(identity.SHA256)
+	}
+	if identity.IdentityBasis != "" {
+		session.Provenance.IdentityBasis = ptr(identity.IdentityBasis)
+	}
+	if identity.ParentSessionID != "" {
+		session.Coordination.PredecessorSession = ptr(identity.ParentSessionID)
+	}
 }
 
 func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint string) (*minitrace.Session, error) {
