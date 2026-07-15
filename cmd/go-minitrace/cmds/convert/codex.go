@@ -115,19 +115,23 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 	}
 
 	runRecord := newConversionRunRecord("codex", settings_.OutputDir, collisionPolicy, locators)
-	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
-	convertedCount := 0
-	failedCount := 0
+	type convertedSource struct {
+		locator adapters.SessionLocator
+		session *minitrace.Session
+	}
+	converted := make([]convertedSource, 0, len(locators))
 	for _, locator := range locators {
 		session, err := codex.ConvertLocator(locator)
 		if err != nil {
-			failedCount++
-			if rowErr := emitFailedSessionRow(ctx, gp, "codex", locator.ID, "", locator.FormatHint, locator.SourcePath, settings_.DryRun, err); rowErr != nil {
-				return rowErr
-			}
-			continue
+			return errors.Wrapf(err, "converting Codex source %s before publication", locator.SourcePath)
 		}
+		converted = append(converted, convertedSource{locator: locator, session: session})
+	}
 
+	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(converted))
+	for _, source := range converted {
+		locator := source.locator
+		session := source.session
 		var sessionPath string
 		if !settings_.DryRun {
 			entry, err := minitrace.WriteSessionWithCollisionPolicy(session, settings_.OutputDir, collisionPolicy)
@@ -173,10 +177,6 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
 		}
-		convertedCount++
-	}
-	if failedCount > 0 && convertedCount == 0 {
-		return errors.Errorf("all %d Codex sessions failed to convert", failedCount)
 	}
 
 	if !settings_.DryRun {
@@ -184,7 +184,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 			return errors.Wrap(err, "writing Codex manifests")
 		}
 		runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
-		runRecord.Complete = failedCount == 0
+		runRecord.Complete = true
 		if err := writeConversionRunRecord(settings_.RunRecord, runRecord); err != nil {
 			return err
 		}
