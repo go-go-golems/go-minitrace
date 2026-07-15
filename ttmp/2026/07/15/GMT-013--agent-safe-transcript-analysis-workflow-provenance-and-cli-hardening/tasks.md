@@ -151,7 +151,7 @@
   - Return session, source identity, and structured warnings from the shared conversion boundary.
   - Migrate Codex first; document migration path for Pi and Claude Code.
   - Done when: Codex command output and tests can report warnings without parsing error strings.
-- [ ] **P1.12 — Implement a shared batch preflight.**
+- [x] **P1.12 — Implement a shared batch preflight.**
   - Resolve, normalize, deduplicate, sort, inspect, and fingerprint all requested sources before publication.
   - Detect duplicate paths and conflicting native IDs during preflight.
   - Done when: a collision in input N is found before output 1 is published in strict mode.

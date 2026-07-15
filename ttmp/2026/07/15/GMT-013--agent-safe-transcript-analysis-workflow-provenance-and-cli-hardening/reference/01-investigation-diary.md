@@ -20,9 +20,13 @@ RelatedFiles:
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/researchctl/ttmp/2026/07/15/RESEARCHCTL-012--cross-purpose-immutable-research-laboratory-for-researchctl/experiments/01-goja-pr95-review-hardening-skill-holdout/04-evaluation.md
       Note: Exact holdout findings and evaluation score
     - Path: repo://cmd/go-minitrace/cmds/convert/codex.go
-      Note: P1 public collision policy flag
+      Note: |-
+        P1 public collision policy flag
+        Strict all-input Codex preflight and duplicate/conflict detection
     - Path: repo://cmd/go-minitrace/cmds/convert/codex_phase0_test.go
-      Note: P0 partial-batch publication characterization
+      Note: |-
+        P0 partial-batch publication characterization
+        Preflight conflict, duplicate, and no-publication tests
     - Path: repo://cmd/go-minitrace/cmds/convert/sources.go
       Note: Deterministic explicit source path normalization, deduplication, and ordering
     - Path: repo://cmd/go-minitrace/cmds/query/output_phase0_test.go
@@ -64,6 +68,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1379,4 +1384,89 @@ source-session flags + source-list lines
   -> deduplicated set
   -> lexical sort
   -> adapter LocateSession
+```
+
+## Step 13: Preflight all Codex sources before writing any archive
+
+I wired Codex source inspection into conversion preflight. Before the command converts or writes anything, it now fingerprints every selected source, attaches its inspected identity to the locator, rejects a missing native ID, rejects one native ID backed by differing raw bytes, and collapses byte-identical duplicate sources.
+
+This changes the earlier mixed-batch behavior for strict conversion: an invalid or conflicting later source fails preflight before the earlier valid source is published. It is not yet staged batch publication or `--allow-partial`; those remain distinct P1 tasks.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue from deterministic source-list foundations into preflighted strict conversion behavior.
+
+**Inferred user intent:** Prevent source conflicts from being discovered after output has already changed.
+
+**Commit (code):** Pending commit for P1.12 strict Codex preflight.
+
+### What I did
+
+- Added `preflightCodexLocators` before Codex collision policy and conversion loops.
+- Inspected every source with `codex.InspectSource` and attached the result to `SessionLocator.Identity`.
+- Reused preflighted identity in `ConvertLocator` instead of hashing/parsing identity a second time.
+- Rejected missing native IDs and differing fingerprints for the same native ID before output creation.
+- Collapsed duplicate files with same native ID and byte-identical fingerprint.
+- Replaced the former partial-publication characterization test with a strict-preflight test that asserts no archive, manifest, or rows exist after an invalid later input.
+- Added direct preflight tests for conflicting sources and identical duplicates.
+
+### Why
+
+- Collision safety at `WriteSession` is too late for a batch: earlier archives can already be written before a later bad source is encountered.
+- Preflight supplies the source identity evidence later receipts and staged publication need, while immediately eliminating the observed invalid-source partial publication case.
+
+### What worked
+
+- Conflicting same-ID files fail before the command emits any processor rows or writes output.
+- Identical duplicate files reduce to one deterministic candidate.
+- Codex conversion reuses the preflight identity rather than rehashing it.
+
+### What didn't work
+
+- Preflight failures currently return one command error rather than per-source structured failure rows/results; P1.11/P1.14 must add that contract.
+- The command still writes successful sources one by one after preflight, so a conversion error after preflight is not yet batch-atomic. P1.13 staging remains necessary.
+
+### What I learned
+
+- Input path ordering from `collectSourceSessions` and native-ID deduplication are separate: two paths can be distinct but represent one byte-identical native source.
+- The appropriate strict boundary is before `ConvertLocator`, because malformed/unknown sources must not leave a valid sibling archive behind.
+
+### What was tricky to build
+
+The previous P0 test deliberately documented partial output after a later bad source. Once preflight was introduced, that behavior correctly became obsolete. I changed the assertion to the replacement contract—no output before preflight failure—rather than retaining a legacy test that would encourage unsafe behavior.
+
+### What warrants a second pair of eyes
+
+- Confirm whether byte-identical sources at different paths should emit a skipped/duplicate result in future receipts instead of disappearing silently from the processing list.
+- Review error taxonomy for missing native IDs versus parsing failures versus native-ID conflicts.
+- Confirm Pi and Claude Code can implement the same preflight interface without forcing Codex-specific assumptions.
+
+### What should be done in the future
+
+- Implement staged post-preflight conversion/publication and explicit partial policy.
+- Surface `ConversionResult` rows and conversion receipts for every requested input, including collapsed duplicates and preflight failures.
+
+### Code review instructions
+
+- Read `preflightCodexLocators` in `cmd/go-minitrace/cmds/convert/codex.go`.
+- Review the three preflight tests in `codex_phase0_test.go`.
+- Verify `ConvertLocator` only reuses an identity supplied by its locator.
+- Run:
+
+  ```bash
+  go test ./cmd/go-minitrace/cmds/convert ./pkg/adapters/codex -count=1
+  ```
+
+### Technical details
+
+Strict preflight flow:
+
+```text
+normalized/sorted explicit paths
+  -> InspectSource for every path
+  -> native ID + raw SHA-256 conflict/dedup check
+  -> attach identity to locators
+  -> only then ConvertLocator / WriteSession
 ```

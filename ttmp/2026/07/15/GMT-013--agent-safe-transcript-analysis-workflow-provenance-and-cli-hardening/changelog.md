@@ -92,3 +92,12 @@ P1 batch foundation: normalized, deduplicated, and sorted explicit source paths;
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/sources.go — Deterministic source selection
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/conversion.go — Shared conversion outcome types
 
+
+## 2026-07-15
+
+P1.12: added strict Codex preflight that fingerprints all sources, detects conflicting native IDs, collapses byte-identical duplicates, and prevents output before later-source failure
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Preflight before conversion/publication
+

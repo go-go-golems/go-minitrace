@@ -60,9 +60,14 @@ func ConvertLocator(locator adapters.SessionLocator) (*minitrace.Session, error)
 	if err != nil {
 		return nil, err
 	}
-	identity, err := inspectSourceRecords(records, locator.SourcePath, locator.FormatHint)
-	if err != nil {
-		return nil, err
+	var identity adapters.SourceIdentity
+	if locator.Identity != nil {
+		identity = *locator.Identity
+	} else {
+		identity, err = inspectSourceRecords(records, locator.SourcePath, locator.FormatHint)
+		if err != nil {
+			return nil, err
+		}
 	}
 	session, err := ConvertRecords(records, locator.ID, locator.SourcePath, locator.FormatHint)
 	if err != nil {

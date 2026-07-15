@@ -101,6 +101,10 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 			return err
 		}
 	}
+	locators, err = preflightCodexLocators(locators)
+	if err != nil {
+		return err
+	}
 
 	collisionPolicy := minitrace.CollisionPolicy(settings_.Collision)
 	if collisionPolicy != minitrace.CollisionError && collisionPolicy != minitrace.CollisionReplace {
@@ -169,6 +173,34 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 	}
 
 	return nil
+}
+
+// preflightCodexLocators inspects every requested source before the command
+// writes an archive. It attaches source evidence to locators, rejects one
+// native ID backed by differing bytes, and collapses byte-identical duplicate
+// sources so a batch has one deterministic publication candidate per ID.
+func preflightCodexLocators(locators []adapters.SessionLocator) ([]adapters.SessionLocator, error) {
+	ret := make([]adapters.SessionLocator, 0, len(locators))
+	seen := map[string]string{}
+	for _, locator := range locators {
+		identity, err := codex.InspectSource(locator.SourcePath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "preflighting Codex source %s", locator.SourcePath)
+		}
+		locator.Identity = &identity
+		if identity.NativeSessionID == "" {
+			return nil, errors.Errorf("preflighting Codex source %s: missing native session ID", locator.SourcePath)
+		}
+		if fingerprint, ok := seen[identity.NativeSessionID]; ok {
+			if fingerprint != identity.SHA256 {
+				return nil, errors.Errorf("preflighting Codex source %s: native session ID %q conflicts with another source fingerprint", locator.SourcePath, identity.NativeSessionID)
+			}
+			continue
+		}
+		seen[identity.NativeSessionID] = identity.SHA256
+		ret = append(ret, locator)
+	}
+	return ret, nil
 }
 
 func NewCodexCommand() (*cobra.Command, error) {

@@ -10,6 +10,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/go-go-golems/glazed/pkg/middlewares"
 	"github.com/go-go-golems/glazed/pkg/types"
+	"github.com/go-go-golems/go-minitrace/pkg/adapters"
 )
 
 type phase0CaptureProcessor struct {
@@ -28,7 +29,41 @@ func (p *phase0CaptureProcessor) Close(context.Context) error { return nil }
 // TestConvertCodexPublishesSuccessfulSourcesWhenAnotherSourceFails captures
 // the current partial-batch behavior for P0.7. P1 must replace this with an
 // explicit strict/allow-partial contract and a durable batch receipt.
-func TestConvertCodexPublishesSuccessfulSourcesWhenAnotherSourceFails(t *testing.T) {
+func TestPreflightCodexLocatorsRejectsConflictingNativeIDsBeforePublication(t *testing.T) {
+	dir := t.TempDir()
+	first := filepath.Join(dir, "first.jsonl")
+	second := filepath.Join(dir, "second.jsonl")
+	if err := os.WriteFile(first, []byte(`{"type":"session_meta","payload":{"id":"same-native-id"}}`+"\n"), 0o644); err != nil {
+		t.Fatalf("writing first source: %v", err)
+	}
+	if err := os.WriteFile(second, []byte(`{"type":"session_meta","payload":{"id":"same-native-id","cwd":"/different"}}`+"\n"), 0o644); err != nil {
+		t.Fatalf("writing second source: %v", err)
+	}
+	if _, err := preflightCodexLocators([]adapters.SessionLocator{{SourcePath: first}, {SourcePath: second}}); err == nil {
+		t.Fatalf("expected conflicting native-ID fingerprints to fail preflight")
+	}
+}
+
+func TestPreflightCodexLocatorsCollapsesIdenticalNativeSources(t *testing.T) {
+	dir := t.TempDir()
+	first := filepath.Join(dir, "first.jsonl")
+	second := filepath.Join(dir, "second.jsonl")
+	payload := []byte(`{"type":"session_meta","payload":{"id":"same-native-id"}}` + "\n")
+	for _, path := range []string{first, second} {
+		if err := os.WriteFile(path, payload, 0o644); err != nil {
+			t.Fatalf("writing source %s: %v", path, err)
+		}
+	}
+	locators, err := preflightCodexLocators([]adapters.SessionLocator{{SourcePath: second}, {SourcePath: first}})
+	if err != nil {
+		t.Fatalf("preflightCodexLocators returned error: %v", err)
+	}
+	if len(locators) != 1 || locators[0].Identity == nil || locators[0].Identity.NativeSessionID != "same-native-id" {
+		t.Fatalf("unexpected preflight result: %+v", locators)
+	}
+}
+
+func TestConvertCodexPreflightRejectsInvalidSourceBeforePublication(t *testing.T) {
 	dir := t.TempDir()
 	valid := filepath.Join(dir, "valid.jsonl")
 	invalid := filepath.Join(dir, "invalid.jsonl")
@@ -55,18 +90,18 @@ func TestConvertCodexPublishesSuccessfulSourcesWhenAnotherSourceFails(t *testing
 	}
 
 	processor := &phase0CaptureProcessor{}
-	if err := command.RunIntoGlazeProcessor(context.Background(), values, processor); err != nil {
-		t.Fatalf("RunIntoGlazeProcessor returned error: %v; current behavior returns success when at least one source converts", err)
+	if err := command.RunIntoGlazeProcessor(context.Background(), values, processor); err == nil {
+		t.Fatalf("expected invalid source to fail preflight")
 	}
 
 	archive := filepath.Join(outputDir, "active", "unknown", "valid-session.minitrace.json")
-	if _, err := os.Stat(archive); err != nil {
-		t.Fatalf("expected successful source archive after partial conversion: %v", err)
+	if _, err := os.Stat(archive); !os.IsNotExist(err) {
+		t.Fatalf("preflight published archive before rejecting batch: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(outputDir, "manifest.json")); err != nil {
-		t.Fatalf("expected manifest after partial conversion: %v", err)
+	if _, err := os.Stat(filepath.Join(outputDir, "manifest.json")); !os.IsNotExist(err) {
+		t.Fatalf("preflight published manifest before rejecting batch: %v", err)
 	}
-	if len(processor.rows) != 3 {
-		t.Fatalf("row count = %d, want 3 (success, failed source, manifest)", len(processor.rows))
+	if len(processor.rows) != 0 {
+		t.Fatalf("row count = %d, want 0 before preflight failure", len(processor.rows))
 	}
 }
