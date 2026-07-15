@@ -23,12 +23,15 @@ RelatedFiles:
       Note: Source evidence for corrected Codex identity diagnosis
     - Path: repo://pkg/minitrace/archive.go
       Note: Source evidence for collision and manifest behavior
+    - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
+      Note: Stable D, P0-P6, and R task IDs with per-task evidence and phase gates
 ExternalSources: []
 Summary: Chronological record of the GMT-013 source investigation, external-agent evidence, corrected Codex collision diagnosis, documentation consolidation decision, commands, failures, and review guidance.
 LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 # Diary
@@ -632,3 +635,92 @@ Primary deliverables:
 - tasks and changelog;
 - docmgr file relations;
 - validated reMarkable bundle under `/ai/2026/07/15/GMT-013`.
+
+## Step 6: Expand each implementation phase into traceable tasks
+
+The original task list named the six future implementation phases but did not provide enough granularity to connect individual edits, tests, diary entries, and commits to the design. I replaced those broad placeholders with stable task IDs, explicit dependencies, file-level scope, completion evidence, and phase gates.
+
+The expanded plan now separates characterization from production fixes and gives each phase a verifiable exit condition. It also adds cross-phase review checkpoints so identity, publication, archive integrity, output semantics, attribution, documentation ownership, and schema uncertainty receive explicit review rather than being inferred from a phase checkbox.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add detailed tasks per phase, so that we can trace your steps more precisely."
+
+**Assistant interpretation:** Expand `tasks.md` into an implementation-grade checklist whose items can be referenced in commits, diary entries, and reviews.
+
+**Inferred user intent:** Make future implementation progress auditable at a finer granularity than one checkbox per broad phase.
+
+### What I did
+
+- Added stable identifiers for completed design work (`D.*`), implementation work (`P0.*` through `P6.*`), and cross-phase review checkpoints (`R.*`).
+- Added task-plan usage rules requiring task IDs in commits, diary steps, and changelog entries.
+- Expanded Phase 0 into fixture inventory, minimized regressions, baseline characterization, exact failure recording, and a phase gate.
+- Expanded Phase 1 into source identity, fingerprinting, Codex precedence, additive provenance, collision-aware publication, batch semantics, receipts, adapter migrations, and a phase gate.
+- Expanded Phase 2 into finding schemas, root detection, archive/manifests/receipt reconciliation, process status, helper retirement, and a phase gate.
+- Expanded Phase 3 into the upstream Glazed formatter fix, cross-command empty-output coverage, deterministic archive inventories, query receipts, saved SQL, truncation, unified errors, and a phase gate.
+- Expanded Phase 4 into shared discovery fields, time/cwd/role filters, adapter enrichment, strict profile wiring, bounded holdout validation, and a phase gate.
+- Expanded Phase 5 into help tests, explicit page merges/removals, command contract updates, skill thinning, helper review, and a page-count gate.
+- Expanded Phase 6 into measured outcome semantics, status/evidence design, adapter mappings, query/API/UI migration, reevaluation, and a final gate.
+- Added a **Done when** condition and concrete files/evidence for every implementation task.
+
+### Why
+
+- Broad phase checkboxes cannot show whether a phase is still in evidence gathering, API design, implementation, migration, or validation.
+- Stable IDs make it possible to write focused commits such as `P1.4: lock Codex identity to first header` and tie each commit back to one acceptance condition.
+- Explicit phase dependencies reduce the risk of implementing generalized APIs before the observed failures have regression coverage.
+
+### What worked
+
+- The design document already had clear phase boundaries, so the detailed checklist could expand those boundaries without changing the architecture.
+- The task format remains plain Markdown and is still readable by docmgr's task listing.
+- Separating **Done when** evidence from the checkbox keeps each checkbox meaningful without creating nested pseudo-tasks.
+
+### What didn't work
+
+- N/A. This was a documentation-only refinement and required no product-code changes.
+
+### What I learned
+
+- Phase 0 needed its own commit and gate; otherwise characterization tests could become mixed with production fixes and lose their value as evidence of the original defects.
+- Phase 5 requires tests before page deletion, not after, because every Markdown file is runtime-registered help content.
+- Phase 6 needs a separate compatibility decision before schema edits because tool outcome changes affect archives, SQLite, presets, APIs, and the web UI together.
+
+### What was tricky to build
+
+The main difficulty was choosing task granularity. A task must be small enough to produce reviewable evidence but large enough to represent one coherent outcome. I used a consistent boundary: one behavior contract, fixture family, API seam, migration step, or validation gate per checkbox. Supporting commands and expected evidence are bullets under that checkbox rather than separate tasks.
+
+### What warrants a second pair of eyes
+
+- Confirm the task order matches the preferred commit sequence, especially P1.7–P1.17 around publisher and batch-runner migration.
+- Review whether Phase 3 should wait for all of Phase 2 or can proceed after Phase 1 receipt primitives, as currently documented.
+- Confirm the Phase 5 net reduction of four help pages remains correct after checking published registry links.
+- Review whether P6 should remain in GMT-013 or become a linked follow-up ticket after P0–P5 land.
+
+### What should be done in the future
+
+- Start every implementation diary entry with the relevant `P*` task ID.
+- Check tasks only after their **Done when** conditions and validation evidence are recorded.
+- Split tasks into follow-up tickets rather than weakening completion conditions if a phase becomes too large.
+
+### Code review instructions
+
+- Review `tasks.md` alongside design sections 9–11.
+- Verify every design phase has implementation tasks, a documentation update, and a validation gate.
+- Use `docmgr task list --ticket GMT-013` to confirm the expanded checklist parses.
+- Run `docmgr doctor --ticket GMT-013 --stale-after 30` after relations and changelog updates.
+
+### Technical details
+
+Task ID conventions:
+
+```text
+D.n    completed research/design evidence
+P0.n   regression fixtures and failure contracts
+P1.n   identity and collision-safe publication
+P2.n   archive/manifests/receipt validation
+P3.n   query evidence and structured output
+P4.n   enriched discovery and strict execution
+P5.n   documentation consolidation and skill thinning
+P6.n   evidence-bearing historical tool outcomes
+R.n    cross-phase review checkpoints
+```

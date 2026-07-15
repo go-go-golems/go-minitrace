@@ -22,3 +22,13 @@ Completed evidence-backed design and diary for identity-safe conversion, collisi
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/design-doc/01-agent-safe-transcript-analysis-architecture-and-implementation-guide.md — Primary design deliverable
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/reference/01-investigation-diary.md — Chronological investigation record
 
+
+## 2026-07-15
+
+Expanded all GMT-013 implementation phases into stable, evidence-bearing tasks with dependencies, file scope, Done-when criteria, phase gates, and cross-phase review checkpoints
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/reference/01-investigation-diary.md — Step 6 records the task decomposition rationale and review guidance
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md — Detailed phase-by-phase implementation plan
+

@@ -17,12 +17,15 @@ RelatedFiles:
       Note: Primary architecture and implementation plan
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/reference/01-investigation-diary.md
       Note: Chronological evidence, failures, decisions, and review guidance
+    - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
+      Note: Detailed implementation backlog and cross-phase review checkpoints
 ExternalSources: []
 Summary: Design ticket for deterministic transcript attribution, Codex child/parent identity correctness, collision-safe archives, conversion and query receipts, archive validation, valid structured output, strict execution semantics, and consolidation of existing help pages.
 LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Track the evidence-backed design and future implementation of an agent-safe go-minitrace workflow.
 WhenToUse: Start here when reviewing or resuming GMT-013.
 ---
+
 
 
 # Agent-safe transcript analysis workflow provenance and CLI hardening
