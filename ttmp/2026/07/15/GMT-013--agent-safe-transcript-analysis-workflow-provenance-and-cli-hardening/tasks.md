@@ -63,37 +63,37 @@
   - Also assert that later parent metadata does not become the archive identity.
   - Files: `pkg/adapters/codex/convert_test.go` or the nearest existing Codex test file.
   - Done when: the test fails for the expected current last-record-wins reason, not because the fixture is malformed.
-- [ ] **P0.5 — Add locator/header mismatch cases.**
+- [x] **P0.5 — Add locator/header mismatch cases.**
   - Cases: matching locator/header, empty locator, conflicting locator/header, malformed first header, later replay header.
   - Define expected warning/error behavior in test names even if implementation comes in Phase 1.
   - Done when: the desired precedence table is executable as table-driven tests.
-- [ ] **P0.6 — Add archive collision fixtures and failing tests.**
+- [x] **P0.6 — Add archive collision fixtures and failing tests.**
   - Cases: destination absent; same ID/same bytes; same ID/different bytes; same ID/different source path; legacy archive without fingerprint.
   - Assert destination bytes and manifests remain unchanged after a rejected collision.
   - Files: `pkg/minitrace/archive_test.go`.
   - Done when: at least one test demonstrates the current silent overwrite.
-- [ ] **P0.7 — Add partial-batch failure characterization.**
+- [x] **P0.7 — Add partial-batch failure characterization.**
   - Convert three synthetic sources where the second fails.
   - Record which files/manifests current code leaves behind.
   - Files: converter command tests or a new shared batch-runner test location selected during P0.2.
   - Done when: current partial publication is captured without yet changing behavior.
-- [ ] **P0.8 — Add zero-row SQL JSON integration coverage.**
+- [x] **P0.8 — Add zero-row SQL JSON integration coverage.**
   - Execute `query run` through the Cobra/Glazed command path with `--output json` and a zero-row query.
   - Assert exact desired bytes `[]\n`.
   - Done when: the test fails because current streaming output is empty, not because command construction failed.
-- [ ] **P0.9 — Add zero-row JS and non-query command coverage.**
+- [x] **P0.9 — Add zero-row JS and non-query command coverage.**
   - Cover a JS command returning an empty array and one row-producing command with no matches, such as discovery or validation.
   - Separate JSON-array semantics from explicit NDJSON semantics.
   - Done when: the formatter-level scope of the defect is demonstrated.
-- [ ] **P0.10 — Add query error and truncation contract tests.**
+- [x] **P0.10 — Add query error and truncation contract tests.**
   - Cases: invalid SQL, denied read, timeout, max rows reached, output processor failure.
   - Assert desired exit/non-exit and receipt behavior in test names; implementation follows in Phase 3.
   - Done when: successful-zero, failed, and incomplete/truncated outcomes are distinct test cases.
-- [ ] **P0.11 — Document Phase 0 findings in the diary.**
+- [x] **P0.11 — Document Phase 0 findings in the diary.**
   - Record exact failing test names, commands, and failure messages.
   - Relate every fixture/test file that materially shaped the contract.
   - Done when: another engineer can reproduce each failure from the diary.
-- [ ] **P0.12 — Phase 0 gate.**
+- [x] **P0.12 — Phase 0 gate.**
   - Run narrow suites for Codex, archive, query, and command integration.
   - Commit fixtures/tests without production fixes using a message such as `Test agent-safe transcript failure contracts`.
   - Done when: failures expected to remain red are explicitly isolated or marked according to repository policy, and the phase commit is recorded.

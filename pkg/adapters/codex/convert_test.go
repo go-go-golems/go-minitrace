@@ -179,6 +179,55 @@ func TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataRepla
 	}
 }
 
+func TestConvertRecordsSessionJSONLIdentityPrecedence(t *testing.T) {
+	tests := []struct {
+		name       string
+		fallbackID string
+		records    []map[string]any
+		wantID     string
+	}{
+		{
+			name:       "fallback when no native header supplies an ID",
+			fallbackID: "locator-id",
+			records: []map[string]any{{
+				"type":    "session_meta",
+				"payload": map[string]any{"cwd": "/redacted/project"},
+			}},
+			wantID: "locator-id",
+		},
+		{
+			name:       "first native header wins over locator",
+			fallbackID: "locator-id",
+			records: []map[string]any{{
+				"type":    "session_meta",
+				"payload": map[string]any{"id": "native-id"},
+			}},
+			wantID: "native-id",
+		},
+		{
+			name:       "first native header wins over later replay",
+			fallbackID: "locator-id",
+			records: []map[string]any{
+				{"type": "session_meta", "payload": map[string]any{"id": "child-id", "parent_thread_id": "parent-id"}},
+				{"type": "session_meta", "payload": map[string]any{"id": "parent-id"}},
+			},
+			wantID: "child-id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			session, err := ConvertRecords(tc.records, tc.fallbackID, "/tmp/session.jsonl", "session-jsonl-v1")
+			if err != nil {
+				t.Fatalf("ConvertRecords returned error: %v", err)
+			}
+			if session.ID != tc.wantID {
+				t.Fatalf("session ID = %q, want %q", session.ID, tc.wantID)
+			}
+		})
+	}
+}
+
 func TestConvertRecordsSessionJSONLFlushesTrailingReasoning(t *testing.T) {
 	records := []map[string]any{
 		{

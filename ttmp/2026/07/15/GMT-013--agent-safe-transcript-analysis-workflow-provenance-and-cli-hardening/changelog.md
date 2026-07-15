@@ -42,3 +42,13 @@ P0.1-P0.4: recorded clean baseline, added redacted Codex child-to-parent replay 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert.go — Prevents replayed parent metadata from replacing child archive identity
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert_test.go — Regression test proving child ID and parent lineage
 
+
+## 2026-07-15
+
+P0.5-P0.12: completed green characterization tests for identity precedence, destructive archive overwrite, partial conversion publication, and zero-row JSON/empty-JS output; full Go suite passes
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query/output_phase0_test.go — Captures empty streaming JSON behavior for Phase 3 replacement
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/archive_test.go — Captures current overwrite behavior for Phase 1 replacement
+

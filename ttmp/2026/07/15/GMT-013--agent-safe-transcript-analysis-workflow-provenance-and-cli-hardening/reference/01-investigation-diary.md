@@ -19,6 +19,10 @@ RelatedFiles:
       Note: Isolated holdout setup, bounded-source methodology, and acceptance context
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/researchctl/ttmp/2026/07/15/RESEARCHCTL-012--cross-purpose-immutable-research-laboratory-for-researchctl/experiments/01-goja-pr95-review-hardening-skill-holdout/04-evaluation.md
       Note: Exact holdout findings and evaluation score
+    - Path: repo://cmd/go-minitrace/cmds/convert/codex_phase0_test.go
+      Note: P0 partial-batch publication characterization
+    - Path: repo://cmd/go-minitrace/cmds/query/output_phase0_test.go
+      Note: P0 zero-row JSON formatter and empty-JS-result characterization
     - Path: repo://pkg/adapters/codex/convert.go
       Note: |-
         Source evidence for corrected Codex identity diagnosis
@@ -29,6 +33,8 @@ RelatedFiles:
       Note: Redacted four-record regression fixture for child header followed by replayed parent metadata
     - Path: repo://pkg/minitrace/archive.go
       Note: Source evidence for collision and manifest behavior
+    - Path: repo://pkg/minitrace/archive_test.go
+      Note: P0 collision overwrite characterization
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
       Note: Stable D, P0-P6, and R task IDs with per-task evidence and phase gates
 ExternalSources: []
@@ -37,6 +43,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -883,3 +890,104 @@ after:  child header -> metadata.SessionID=child
         parent replay -> metadata.SessionID stays child
         parent link -> coordination.predecessor_session=parent
 ```
+
+## Step 8: Characterize the remaining Phase 0 failure boundaries
+
+I completed the remaining Phase 0 characterization work without prematurely broadening production behavior. The tests now make three unsafe current behaviors explicit: archive writes replace different content with the same ID, a mixed conversion batch publishes successful archives and returns success when another source fails, and Glazed streaming JSON writes no document when no rows reach its formatter.
+
+These are characterization contracts, not the final desired contracts. They preserve the observed behavior in runnable tests while the desired replacement behavior remains assigned to the later implementation phases: collision-safe publication in P1, batch semantics in P1, and total JSON-array output in P3.
+
+### Prompt Context
+
+**User prompt (verbatim):** "build all of P0 now"
+
+**Assistant interpretation:** Finish the Phase 0 fixture, failure-characterization, documentation, and validation work now.
+
+**Inferred user intent:** Establish a complete executable baseline for the remaining GMT-013 work before advancing into broader architectural changes.
+
+### What I did
+
+- Added Codex identity precedence cases covering fallback locator ID, a native header overriding a locator ID, and a child header surviving a later parent replay.
+- Added `TestWriteSessionSilentlyOverwritesDifferentContentOnIDCollision` to record current unsafe archive replacement in `pkg/minitrace/archive_test.go`.
+- Added `TestConvertCodexPublishesSuccessfulSourcesWhenAnotherSourceFails` to record current partial conversion behavior in `cmd/go-minitrace/cmds/convert/codex_phase0_test.go`.
+  - The fixture has one valid JSONL source and one unrecognized JSONL source.
+  - Current behavior writes the valid archive and manifest, emits success/failure/manifest rows, and returns no command error.
+- Added `TestStreamingJSONFormatterEmitsNoDocumentForZeroRows` and `TestEmitJSResultWithEmptyArrayEmitsNoRows` in `cmd/go-minitrace/cmds/query/output_phase0_test.go`.
+  - The former records current formatter output as `""` when `Close` happens before any row.
+  - The latter proves an empty JavaScript array reaches the formatter with no rows.
+- Reused existing query tests for P0.10:
+  - `TestRunQueryCommand_RejectsWriteSQL` covers sandbox rejection.
+  - `TestQueryRunPresetGoldenRows/tools/tool-failures` covers a successful zero-row query result.
+  - `pkg/minitracedb` query tests cover limits, errors, and truncation behavior at the engine boundary.
+- Ran focused Codex, archive, conversion-command, and query-command tests, then ran the full Go suite and `docmgr doctor`.
+
+### Why
+
+- P1 needs a stable proof that archive collisions currently overwrite bytes before it can replace the behavior with fingerprints and explicit policies.
+- P1 batch work needs a stable proof that partial output is currently published and can appear successful.
+- P3 needs a formatter-level proof that the empty JSON bug is broader than SQL and is also reachable through JS commands.
+
+### What worked
+
+- All new characterization tests pass against the current behavior, so the branch remains continuously testable.
+- The tests are small, synthetic, and avoid private transcript or repository data.
+- The direct formatter test identifies the correct upstream boundary without requiring a fragile Cobra/stdout harness.
+
+### What didn't work
+
+The desired JSON-array assertion cannot be made green in Phase 0 because the behavior belongs to the upstream Glazed formatter. Current output is exactly an empty byte stream rather than the intended document:
+
+```text
+current:  ""
+desired:  "[]\\n"
+```
+
+The phase plan originally described a deliberately failing desired-output test. As with the Codex regression, keeping an intentional failure in the repository would make normal CI red. The current behavior is therefore recorded in a passing characterization test, and P3.1 will replace it with the upstream failing test before P3.2 fixes the formatter.
+
+### What I learned
+
+- `WriteSession` alone is sufficient to demonstrate destructive collision behavior; manifests are a downstream consistency concern, not the initial overwrite mechanism.
+- `ConvertCodexCommand` increments `failedCount` and emits a failed-source row, but returns an error only when **all** sources fail. It writes manifests after a mixed batch.
+- An empty JS command result and zero SQL rows both produce no `Processor.AddRow` calls; the invalid JSON is a formatter lifecycle issue.
+- Direct unit tests of the result/formatter boundary are more deterministic than a subprocess test and still capture the root cause.
+
+### What was tricky to build
+
+Phase 0 needed executable evidence while preserving a green repository. The design originally used red tests as temporary evidence, but those would block normal `go test ./...`. I used passing characterization tests that name the unsafe behavior explicitly and recorded the desired replacement contracts in the diary and task plan. P1/P3 will invert each relevant assertion when the replacement behavior is implemented.
+
+### What warrants a second pair of eyes
+
+- Confirm whether the Phase 1 collision test should replace the characterization test or retain it as a legacy-behavior test with an explicit name.
+- Confirm the final batch contract: whether `--allow-partial` publishes successful items but returns a distinct non-zero/incomplete exit by default.
+- Confirm the Glazed upstream test can exercise actual processor/formatter lifecycle without coupling to an internal implementation detail.
+
+### What should be done in the future
+
+- P1.7–P1.15 should replace archive and batch characterization tests with desired collision, staging, partial-mode, and receipt assertions.
+- P3.1 should move the zero-row formatter assertion upstream and then make the desired `[]\\n` output mandatory.
+- Do not mark the cross-phase P1/P3 reviews complete until those assertions are inverted and the replacement semantics are live.
+
+### Code review instructions
+
+- Review `pkg/minitrace/archive_test.go` first to see destructive overwrite in isolation.
+- Review `cmd/go-minitrace/cmds/convert/codex_phase0_test.go` for current partial publication semantics.
+- Review `cmd/go-minitrace/cmds/query/output_phase0_test.go` with Glazed's `formatters/json.OutputFormatter.Close` implementation.
+- Validate with:
+
+  ```bash
+  go test ./pkg/adapters/codex ./pkg/minitrace -count=1
+  go test ./cmd/go-minitrace/cmds/convert ./cmd/go-minitrace/cmds/query -count=1
+  go test ./... -count=1
+  ```
+
+### Technical details
+
+Current failure-boundary matrix:
+
+| Boundary | Current behavior | Replacement phase |
+|---|---|---|
+| Codex replayed `session_meta` | parent replaced child ID | fixed in P0/P1 seed commit |
+| archive ID collision | later bytes silently replace earlier bytes | P1 collision publisher |
+| mixed conversion batch | publishes successes and returns nil | P1 batch policy |
+| zero rows + JSON array | formatter emits no bytes | P3 formatter fix |
+| empty JS array | emits no processor rows | P3 formatter fix |
