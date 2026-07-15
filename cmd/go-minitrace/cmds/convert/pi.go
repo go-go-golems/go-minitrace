@@ -95,29 +95,28 @@ func (c *ConvertPiCommand) RunIntoGlazeProcessor(ctx context.Context, vals *valu
 		}
 	}
 
-	indexEntries := []*minitrace.SessionIndexEntry{}
-	convertedCount := 0
-	failedCount := 0
+	type convertedSource struct {
+		locator adapters.SessionLocator
+		session *minitrace.Session
+	}
+	converted := make([]convertedSource, 0, len(locators))
 	for _, locator := range locators {
 		session, err := pi.ConvertLocator(locator)
 		if err != nil {
-			failedCount++
-			if rowErr := emitFailedSessionRow(ctx, gp, "pi", locator.ID, "", locator.FormatHint, locator.SourcePath, settings_.DryRun, err); rowErr != nil {
-				return rowErr
-			}
-			continue
+			return errors.Wrapf(err, "converting Pi source %s before publication", locator.SourcePath)
 		}
-		entry, err := emitConvertedSession(ctx, gp, session, locator.SourcePath, locator.FormatHint, settings_.OutputDir, settings_.DryRun)
+		converted = append(converted, convertedSource{locator: locator, session: session})
+	}
+
+	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(converted))
+	for _, source := range converted {
+		entry, err := emitConvertedSession(ctx, gp, source.session, source.locator.SourcePath, source.locator.FormatHint, settings_.OutputDir, settings_.DryRun)
 		if err != nil {
 			return err
 		}
-		convertedCount++
 		if entry != nil {
 			indexEntries = append(indexEntries, entry)
 		}
-	}
-	if failedCount > 0 && convertedCount == 0 {
-		return errors.Errorf("all %d Pi sessions failed to convert", failedCount)
 	}
 
 	if !settings_.DryRun {
