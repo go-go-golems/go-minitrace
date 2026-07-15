@@ -129,17 +129,17 @@
   - Add `source_fingerprint` and `identity_basis`; update normalized SQLite materialization only if these fields must be queryable in Phase 1.
   - Update schema docs/tests and JSON round-trip tests.
   - Done when: old archives still decode and new archives preserve evidence fields.
-- [ ] **P1.7 — Separate archive serialization from publication.**
+- [x] **P1.7 — Separate archive serialization from publication.**
   - Create a deterministic serialization helper and a publication API returning created/unchanged/replaced status.
   - Keep existing callers compiling while migrating them in focused commits; avoid silent behavior shims.
   - Done when: serialization can be tested without touching disk.
-- [ ] **P1.8 — Implement default collision detection.**
+- [x] **P1.8 — Implement default collision detection.**
   - Destination absent → create.
   - Matching source fingerprint → unchanged/idempotent.
   - Different fingerprint → collision error before write.
   - Legacy missing fingerprint → conservative error unless explicit replacement policy applies.
   - Done when: P0.6 cases pass and rejected writes preserve original bytes.
-- [ ] **P1.9 — Implement explicit replacement policy.**
+- [x] **P1.9 — Implement explicit replacement policy.**
   - Add `--collision error|replace` to converter settings.
   - Record previous and new hashes when replacement is explicit.
   - Done when: replacement is impossible without an explicit flag and is visible in result/receipt data.

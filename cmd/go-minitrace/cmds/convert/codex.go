@@ -29,6 +29,7 @@ type ConvertCodexSettings struct {
 	SourceSessions []string `glazed:"source-session"`
 	SourceList     string   `glazed:"source-list"`
 	OutputDir      string   `glazed:"output-dir"`
+	Collision      string   `glazed:"collision"`
 	DryRun         bool     `glazed:"dry-run"`
 }
 
@@ -63,6 +64,7 @@ Examples:
 			fields.New("source-session", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Explicit Codex session JSONL files to convert instead of scanning --source-dir (repeatable)")),
 			fields.New("source-list", fields.TypeString, fields.WithDefault(""), fields.WithHelp("File with newline-separated Codex session paths; blank lines and # comments are ignored")),
 			fields.New("output-dir", fields.TypeString, fields.WithDefault("./output"), fields.WithHelp("Target minitrace archive directory")),
+			fields.New("collision", fields.TypeString, fields.WithDefault(string(minitrace.CollisionError)), fields.WithHelp("Archive ID collision policy: error (default) or replace")),
 			fields.New("dry-run", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Inspect sources without writing output")),
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
@@ -100,6 +102,11 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		}
 	}
 
+	collisionPolicy := minitrace.CollisionPolicy(settings_.Collision)
+	if collisionPolicy != minitrace.CollisionError && collisionPolicy != minitrace.CollisionReplace {
+		return errors.Errorf("unsupported collision policy %q", settings_.Collision)
+	}
+
 	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
 	convertedCount := 0
 	failedCount := 0
@@ -115,7 +122,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 
 		var sessionPath string
 		if !settings_.DryRun {
-			entry, err := minitrace.WriteSession(session, settings_.OutputDir)
+			entry, err := minitrace.WriteSessionWithCollisionPolicy(session, settings_.OutputDir, collisionPolicy)
 			if err != nil {
 				return errors.Wrapf(err, "writing minitrace session %s", locator.ID)
 			}

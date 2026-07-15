@@ -62,3 +62,13 @@ P1.1-P1.4/P1.6: added shared source identity and SHA-256 fingerprinting, Codex f
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/codex/convert.go — Codex source inspection and child/parent provenance mapping
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/adapters/source_identity.go — Adapter-neutral fingerprint and source identity contract
 
+
+## 2026-07-15
+
+P1.7-P1.9: replaced silent archive overwrite with default collision rejection, fingerprint-idempotent reuse, explicit replacement, temporary-file publish, and Codex --collision flag
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Explicit caller policy
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/archive.go — Collision-safe archive publication
+

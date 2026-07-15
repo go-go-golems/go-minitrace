@@ -19,6 +19,8 @@ RelatedFiles:
       Note: Isolated holdout setup, bounded-source methodology, and acceptance context
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/researchctl/ttmp/2026/07/15/RESEARCHCTL-012--cross-purpose-immutable-research-laboratory-for-researchctl/experiments/01-goja-pr95-review-hardening-skill-holdout/04-evaluation.md
       Note: Exact holdout findings and evaluation score
+    - Path: repo://cmd/go-minitrace/cmds/convert/codex.go
+      Note: P1 public collision policy flag
     - Path: repo://cmd/go-minitrace/cmds/convert/codex_phase0_test.go
       Note: P0 partial-batch publication characterization
     - Path: repo://cmd/go-minitrace/cmds/query/output_phase0_test.go
@@ -37,9 +39,13 @@ RelatedFiles:
     - Path: repo://pkg/adapters/source_identity_test.go
       Note: P1 deterministic fingerprint coverage
     - Path: repo://pkg/minitrace/archive.go
-      Note: Source evidence for collision and manifest behavior
+      Note: |-
+        Source evidence for collision and manifest behavior
+        P1 collision policy, idempotent fingerprint comparison, and temporary-file publication
     - Path: repo://pkg/minitrace/archive_test.go
-      Note: P0 collision overwrite characterization
+      Note: |-
+        P0 collision overwrite characterization
+        P1 default-reject and explicit-replace archive collision coverage
     - Path: repo://pkg/minitrace/schema.go
       Note: P1 additive source fingerprint and identity basis archive fields
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
@@ -50,6 +56,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1106,4 +1113,93 @@ native JSONL bytes
   -> Codex InspectSource(records): first header ID, parent, role, basis
   -> ConvertLocator: ConvertRecords + applySourceIdentity
   -> archive provenance and coordination fields
+```
+
+## Step 10: Reject conflicting archive IDs by default
+
+I replaced `WriteSession`'s unconditional `os.WriteFile` behavior with a collision-aware publisher. Existing archives are now decoded before publication. A matching non-empty source fingerprint is idempotent; otherwise the default policy rejects the write and preserves existing bytes. A caller can select an explicit `replace` policy when destructive replacement has been reviewed.
+
+The Codex conversion command now exposes `--collision error|replace`, defaulting to `error`. Publication uses a temporary file and same-directory rename, so an individual write does not expose a partially written destination.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, continue"
+
+**Assistant interpretation:** Continue from identity evidence into the next concrete Phase 1 behavior: collision-safe archive publication.
+
+**Inferred user intent:** Make the new source fingerprints enforce safety rather than merely annotate converted archives.
+
+**Commit (code):** `f25faa049ffee78660189c477192431881c66d00` — "Reject conflicting transcript archives"
+
+### What I did
+
+- Added `minitrace.CollisionPolicy` with `error` and `replace` values.
+- Made `WriteSession` call `WriteSessionWithCollisionPolicy(..., CollisionError)`.
+- Added existing-destination handling:
+  - matching non-empty source fingerprint → return the existing archive index without rewriting;
+  - different/missing fingerprint + default policy → return a collision error before changing bytes;
+  - explicit `replace` → publish the new archive.
+- Split session-index construction into a helper that can represent a newly written or existing archive.
+- Replaced direct writes with temporary-file creation in the destination directory followed by `os.Rename`.
+- Changed the P0 destructive-overwrite characterization into `TestWriteSessionRejectsDifferentContentOnIDCollision`.
+- Kept an explicit replacement test for manifest behavior via `WriteSessionWithCollisionPolicy(..., CollisionReplace)`.
+- Added `--collision` to `convert codex`; invalid values fail before conversion.
+
+### Why
+
+- Archive filename identity is a normalized database key, so silently replacing unrelated source content corrupts downstream attribution even if the JSON remains syntactically valid.
+- A fingerprint makes repeat conversion of the exact source idempotent while requiring an intentional action for any differing input.
+- Same-directory rename is the minimum safe publication primitive before staged multi-source batch publication is implemented.
+
+### What worked
+
+- The archive package and converter tests pass with default collision rejection.
+- Explicit replacement keeps the old manifest test's intended behavior without leaving it as an accidental default.
+- The conversion command can now opt into a destructive replacement policy visibly at the CLI boundary.
+
+### What didn't work
+
+- N/A during this step. The remaining batch-level behavior is intentionally not solved here: mixed conversion can still publish earlier successful sources before a later collision/failure, which belongs to P1.12–P1.14.
+
+### What I learned
+
+- Existing fixture archives built with `BuildSessionSkeleton` have no source fingerprint, so they correctly take the conservative collision path unless replacement is explicit.
+- Fingerprint equality must be tested before candidate serialization/publish; comparing archive bytes would be unstable because conversion timestamps can differ for the same raw input.
+
+### What was tricky to build
+
+The archive API must support both a safe default and explicitly reviewed replacement without making callers manually reproduce path/period/index logic. `WriteSessionWithCollisionPolicy` centralizes that decision; `WriteSession` remains a small default-safe wrapper so existing callers become safer automatically.
+
+### What warrants a second pair of eyes
+
+- Review whether `replace` should also require a human-readable justification/receipt before it is exposed outside advanced workflows.
+- Verify filesystem durability requirements: this step uses atomic rename but does not yet call `fsync`; P1.10 remains open for interruption and durability tests.
+- Confirm how collision errors should be emitted as per-source batch rows rather than terminating a later shared batch runner.
+
+### What should be done in the future
+
+- Complete P1.10 with interruption/temp-file tests and any required sync semantics.
+- Complete P1.11–P1.15 so collision decisions, warnings, and partial outcomes appear in structured conversion results and receipts.
+- Migrate Pi and Claude Code after the shared batch runner exists.
+
+### Code review instructions
+
+- Start with `pkg/minitrace/archive.go` and inspect the collision branch before the temporary-file branch.
+- Read `pkg/minitrace/archive_test.go` for default rejection and explicit replacement.
+- Read `cmd/go-minitrace/cmds/convert/codex.go` for the public `--collision` setting.
+- Validate with:
+
+  ```bash
+  go test ./pkg/minitrace ./cmd/go-minitrace/cmds/convert -count=1
+  ```
+
+### Technical details
+
+Publication policy:
+
+```text
+no destination                         -> write
+existing + same non-empty fingerprint  -> unchanged/idempotent
+existing + different/missing fingerprint + error   -> reject, retain bytes
+existing + different/missing fingerprint + replace -> temporary write + rename
 ```

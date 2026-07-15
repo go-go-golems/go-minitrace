@@ -104,11 +104,7 @@ func TestWriteManifestsMergesSessionsFromEarlierInvocations(t *testing.T) {
 	}
 }
 
-// TestWriteSessionSilentlyOverwritesDifferentContentOnIDCollision characterizes
-// the pre-Phase-1 publisher behavior. It is intentionally explicit about the
-// unsafe behavior so the collision-safe publisher can replace this test with
-// a rejection contract in P1.8.
-func TestWriteSessionSilentlyOverwritesDifferentContentOnIDCollision(t *testing.T) {
+func TestWriteSessionRejectsDifferentContentOnIDCollision(t *testing.T) {
 	outputDir := t.TempDir()
 	first := BuildSessionSkeleton("session-collision", "codex", "codex-format-v1", "go-minitrace/test")
 	first.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")
@@ -126,25 +122,16 @@ func TestWriteSessionSilentlyOverwritesDifferentContentOnIDCollision(t *testing.
 	second := BuildSessionSkeleton("session-collision", "codex", "codex-format-v1", "go-minitrace/test")
 	second.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")
 	second.Title = ptr("different payload")
-	if _, err := WriteSession(&second, outputDir); err != nil {
-		t.Fatalf("writing second session: %v", err)
+	if _, err := WriteSession(&second, outputDir); err == nil {
+		t.Fatalf("expected collision error for distinct session content")
 	}
 
-	secondBytes, err := os.ReadFile(path)
+	storedBytes, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("reading overwritten archive: %v", err)
+		t.Fatalf("reading retained archive: %v", err)
 	}
-	if string(firstBytes) == string(secondBytes) {
-		t.Fatalf("expected distinct archive payloads for collision characterization")
-	}
-	var stored struct {
-		Title *string `json:"title"`
-	}
-	if err := json.Unmarshal(secondBytes, &stored); err != nil {
-		t.Fatalf("decoding overwritten archive: %v", err)
-	}
-	if stored.Title == nil || *stored.Title != "different payload" {
-		t.Fatalf("stored title = %+v, want second payload", stored.Title)
+	if string(firstBytes) != string(storedBytes) {
+		t.Fatalf("collision changed existing archive bytes")
 	}
 }
 
@@ -160,7 +147,7 @@ func TestWriteManifestsCurrentInvocationWinsOnIDCollision(t *testing.T) {
 	session := BuildSessionSkeleton("session-x", "codex", "codex-format-v1", "go-minitrace/test")
 	session.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")
 	session.Title = ptr("updated title")
-	entryNew, err := WriteSession(&session, outputDir)
+	entryNew, err := WriteSessionWithCollisionPolicy(&session, outputDir, CollisionReplace)
 	if err != nil {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}
