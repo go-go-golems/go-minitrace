@@ -138,10 +138,25 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		if session.Quality != nil {
 			quality = *session.Quality
 		}
+		identity := locator.Identity
+		fingerprint := ""
+		identityBasis := ""
+		parentSessionID := ""
+		warningCount := 0
+		if identity != nil {
+			fingerprint = identity.SHA256
+			identityBasis = identity.IdentityBasis
+			parentSessionID = identity.ParentSessionID
+			warningCount = len(identity.Warnings)
+		}
 		row := types.NewRow(
 			types.MRP("framework", "codex"),
 			types.MRP("session_id", session.ID),
 			types.MRP("source_format", locator.FormatHint),
+			types.MRP("source_fingerprint", fingerprint),
+			types.MRP("identity_basis", identityBasis),
+			types.MRP("parent_session_id", parentSessionID),
+			types.MRP("warning_count", warningCount),
 			types.MRP("source_path", locator.SourcePath),
 			types.MRP("turn_count", session.Metrics.TurnCount),
 			types.MRP("tool_call_count", session.Metrics.ToolCallCount),

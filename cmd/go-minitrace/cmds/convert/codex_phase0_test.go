@@ -26,6 +26,14 @@ func (p *phase0CaptureProcessor) AddRow(_ context.Context, row types.Row) error 
 
 func (p *phase0CaptureProcessor) Close(context.Context) error { return nil }
 
+func phase0RowToMap(row types.Row) map[string]any {
+	ret := map[string]any{}
+	for pair := row.Oldest(); pair != nil; pair = pair.Next() {
+		ret[pair.Key] = pair.Value
+	}
+	return ret
+}
+
 // TestConvertCodexPublishesSuccessfulSourcesWhenAnotherSourceFails captures
 // the current partial-batch behavior for P0.7. P1 must replace this with an
 // explicit strict/allow-partial contract and a durable batch receipt.
@@ -60,6 +68,35 @@ func TestPreflightCodexLocatorsCollapsesIdenticalNativeSources(t *testing.T) {
 	}
 	if len(locators) != 1 || locators[0].Identity == nil || locators[0].Identity.NativeSessionID != "same-native-id" {
 		t.Fatalf("unexpected preflight result: %+v", locators)
+	}
+}
+
+func TestConvertCodexEmitsPreflightProvenance(t *testing.T) {
+	dir := t.TempDir()
+	source := filepath.Join(dir, "source.jsonl")
+	if err := os.WriteFile(source, []byte(`{"type":"session_meta","payload":{"id":"child-id","parent_thread_id":"parent-id"}}`+"\n"), 0o644); err != nil {
+		t.Fatalf("writing source: %v", err)
+	}
+	command, err := NewConvertCodexGlazeCommand()
+	if err != nil {
+		t.Fatalf("NewConvertCodexGlazeCommand returned error: %v", err)
+	}
+	values, err := runner.ParseCommandValues(command, runner.WithValuesForSections(map[string]map[string]any{
+		schema.DefaultSlug: {"source-session": []string{source}, "output-dir": filepath.Join(dir, "output")},
+	}))
+	if err != nil {
+		t.Fatalf("ParseCommandValues returned error: %v", err)
+	}
+	processor := &phase0CaptureProcessor{}
+	if err := command.RunIntoGlazeProcessor(context.Background(), values, processor); err != nil {
+		t.Fatalf("RunIntoGlazeProcessor returned error: %v", err)
+	}
+	if len(processor.rows) < 1 {
+		t.Fatalf("expected conversion row")
+	}
+	row := phase0RowToMap(processor.rows[0])
+	if row["identity_basis"] != "first-session-meta" || row["parent_session_id"] != "parent-id" || row["source_fingerprint"] == "" {
+		t.Fatalf("missing provenance columns: %#v", row)
 	}
 }
 

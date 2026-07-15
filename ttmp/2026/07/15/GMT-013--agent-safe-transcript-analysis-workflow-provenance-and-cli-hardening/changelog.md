@@ -101,3 +101,12 @@ P1.12: added strict Codex preflight that fingerprints all sources, detects confl
 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Preflight before conversion/publication
 
+
+## 2026-07-15
+
+P1.11 progress: Codex conversion rows now expose preflight source fingerprint, identity basis, parent session ID, and warning count
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Structured preflight provenance columns in conversion output
+
