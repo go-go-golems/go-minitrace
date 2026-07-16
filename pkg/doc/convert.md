@@ -31,8 +31,10 @@ All convert subcommands share these common behaviors:
 - **Quality grading**: Every session is assigned quality A, B, or C based on content richness.
 - **Path normalization**: Home directory paths in tool call inputs are normalized to `~`.
 - **Content truncation**: Tool call outputs larger than 10 KB are truncated; `full_bytes` and `full_hash` record the size and SHA-256 of the full original content.
-- **Failure handling**: Sessions that fail to convert are skipped and reported as `status: failed` rows with an `error` column. The command exits 0 as long as at least one session converted.
-- **Targeted conversion**: `convert pi`, `convert codex`, and `convert claude-code` accept a repeatable `--source-session` flag (explicit session files) and a `--source-list` flag (file with newline-separated paths; blank lines and `#` comments ignored) instead of scanning `--source-dir`.
+- **Strict batch conversion**: `pi`, `codex`, and `claude-code` convert all selected inputs before publication. Their archives are staged and collision-checked as one batch; an ordinary conversion or publish error does not leave earlier entries from that invocation published. A process crash can still interrupt the final multi-file rename sequence, so this is not a claim of filesystem-wide atomicity.
+- **Collision safety**: matching source fingerprints are unchanged; distinct content for an existing archive ID is rejected by default. Codex exposes deliberate replacement as `--collision replace`.
+- **Receipts and partial mode**: Codex `--run-record` writes conversion receipt v1 for completed and failed preflight/conversion/publication runs. `--allow-partial` permits successfully converted inputs to publish while failed conversion inputs are emitted as `status: failed`; the receipt remains incomplete.
+- **Targeted conversion**: `convert pi`, `convert codex`, and `convert claude-code` accept a repeatable `--source-session` flag and a deterministic, normalized `--source-list` instead of scanning `--source-dir`.
 
 ## convert claude-code
 
@@ -71,11 +73,14 @@ go-minitrace convert codex --source-dir ~/.codex --output-dir ./output
 | `--source-session` | | Explicit session JSONL files to convert (repeatable) |
 | `--source-list` | | File with newline-separated session paths |
 | `--output-dir` | `./output` | Target archive directory |
+| `--collision` | `error` | `error` or explicit `replace` |
+| `--run-record` | | Atomic conversion receipt path |
+| `--allow-partial` | `false` | Publish valid conversions when another conversion fails |
 | `--dry-run` | `false` | Preview without writing |
 
 **What it reads**: Session JSONL files from `~/.codex/sessions/` and exec JSONL files from `codex exec --json` output.
 
-**Unrecognized formats**: Older Codex sessions with unrecognized JSONL formats are skipped and reported as `status: failed` rows (`unsupported Codex format hint: unknown-jsonl`); the rest of the batch converts normally.
+**Unrecognized formats**: Strict mode rejects the batch before publication. With `--allow-partial`, valid converted entries publish, failed sources produce structured failure rows, and the receipt records `complete: false`.
 
 **Source format value**: `codex-session-jsonl-v1` or similar depending on the detected format.
 

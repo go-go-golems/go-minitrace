@@ -52,7 +52,7 @@ Not every source records the same facts, and not every fact an adapter emits is 
 
 Truncation is uniform across adapters: tool results longer than 10 KiB are cut at the limit with a `[truncated]` marker, and `output.full_bytes`/`output.full_hash` always describe the **full pre-truncation** payload (its byte length and sha256), so you can detect and deduplicate truncated outputs honestly.
 
-All converters (`pi`, `codex`, `claude-code`) skip sessions that fail to convert and report them as `status: failed` rows in the output instead of aborting; the command exits 0 as long as at least one session converted.
+The primary JSONL converters (`pi`, `codex`, `claude-code`) convert their selected inputs before publishing a staged archive batch. Strict mode aborts without publication on conversion failure. Codex additionally supports explicit `--allow-partial`, collision policy, and conversion receipts; partial receipts remain incomplete and enumerate failed sources.
 
 ## Claude Code adapter
 
@@ -156,7 +156,7 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 - **Lifecycle/source signals** → source events when they describe timeline facts outside turns
 - **Image-view signals** → attachment references when a `view_image` tool call points at an image
 
-Sessions in unrecognized formats are skipped and reported as failed rows; the rest of the batch converts normally. Older rollout JSONL files that start with top-level session metadata plus `message`, `reasoning`, `function_call`, `function_call_output`, and `record_type: state` records are recognized as legacy rollout JSONL and converted.
+Sessions in unrecognized formats fail strict conversion before publication. With explicit Codex `--allow-partial`, valid sessions publish and failures are recorded in output rows and the incomplete run receipt. Older rollout JSONL files that start with top-level session metadata plus `message`, `reasoning`, `function_call`, `function_call_output`, and `record_type: state` records are recognized as legacy rollout JSONL and converted.
 
 ### Multi-agent metadata
 

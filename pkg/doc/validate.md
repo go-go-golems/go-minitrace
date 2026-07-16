@@ -1,7 +1,7 @@
 ---
 Title: Validate Command
 Slug: validate-command
-Short: Check JSON syntax of minitrace files and directories
+Short: Validate minitrace JSON, archives, manifests, source identity, and conversion receipts
 Topics:
 - minitrace
 - validate
@@ -13,79 +13,79 @@ ShowPerDefault: true
 SectionType: GeneralTopic
 ---
 
-The `validate` command checks that minitrace JSON files are syntactically valid. It walks files or directories and reports whether each file parses as valid JSON.
+The `validate` command supports file-level JSON/session checks and native archive-integrity checks.
 
-## Current scope
-
-This is a bootstrap validation implementation. It performs JSON syntax checks only — it does not validate against the minitrace schema (field presence, types, or value constraints). Full schema and semantic validation from the Python reference validator will be ported into `pkg/validate` in a future release.
-
-For now, use `validate` to catch truncated files, encoding issues, or accidental corruption after conversion.
-
-## Usage
-
-Validate a single file:
+## File validation
 
 ```bash
-go-minitrace validate --path ./output/active/2026-03/abc123.minitrace.json
+go-minitrace validate --path ./session.minitrace.json
+go-minitrace validate --path ./output --recursive --output json
 ```
 
-Validate an entire directory recursively:
+File mode reports `path`, `valid_json`, and `error`. It checks JSON syntax plus the session fields currently covered by `pkg/validate`, including annotations, events, and attachments.
+
+## Archive validation
 
 ```bash
-go-minitrace validate --path ./output --recursive
+go-minitrace validate --path ./output --archive --output json
 ```
 
-### Flags
+Archive mode locates the archive root even when `--path` points to a period directory or session file. It emits stable machine-readable findings with `code`, `severity`, `path`, `session_id`, and `detail`.
+
+Checks include:
+
+- archive filename versus payload ID;
+- archive period versus `timing.started_at`;
+- root and period manifest syntax and consistency;
+- orphan archives and orphan manifest entries;
+- recorded manifest file sizes;
+- source SHA-256 when the recorded source path still exists;
+- conversion receipt timestamps and completion state.
+
+Select checks by repeating `--check`:
+
+```bash
+go-minitrace validate --path ./output --archive \
+  --check archive --check manifest
+```
+
+Valid check names are `archive`, `manifest`, `source`, and `receipt`. With no `--check`, all checks run.
+
+Error findings make the command return non-zero by default. Use `--fail-on-error=false` only when collecting diagnostics without gating a workflow.
+
+## Rebuild manifests
+
+Root and period manifests are written atomically. Rebuild them from archive files before validation with:
+
+```bash
+go-minitrace validate --path ./output --archive --rebuild-manifests
+```
+
+This is the supported replacement for directory-shape-sensitive manifest audit scripts.
+
+## Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--path` | | File or directory to validate (required) |
-| `--recursive` | `false` | Recursively scan directories for JSON files |
+| `--path` | | File, directory, archive root, or path below an archive root |
+| `--recursive` | `false` | Recursively scan JSON files in file mode |
+| `--archive` | `false` | Enable archive integrity validation |
+| `--check` | all | Repeatable archive check selector |
+| `--rebuild-manifests` | `false` | Atomically rebuild manifests before validation |
+| `--fail-on-error` | `true` | Return non-zero for error findings |
 
-## Output
-
-Each file produces one row with these fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `path` | string | Absolute path to the validated file |
-| `valid_json` | bool | Whether the file is syntactically valid JSON |
-| `error` | string | Parse error message (empty if valid) |
-
-The output goes through Glazed:
+## Recommended conversion gate
 
 ```bash
-# Table output (default)
-go-minitrace validate --path ./output --recursive
+go-minitrace convert codex \
+  --source-list ./sources.txt \
+  --output-dir ./output \
+  --run-record ./output/conversion-run.json
 
-# JSON for scripting
-go-minitrace validate --path ./output --recursive --output json
-
-# Count valid files
-go-minitrace validate --path ./output --recursive --output json \
-  | jq '[.[] | select(.valid_json)] | length'
+go-minitrace validate --path ./output --archive --output json
 ```
-
-## Typical workflow
-
-Run validation after conversion to check that all output files are well-formed:
-
-```bash
-go-minitrace convert claude-code --output-dir ./output
-go-minitrace validate --path ./output --recursive
-```
-
-If validation reports errors, the affected files may have been truncated during conversion (e.g., due to disk space) or corrupted afterward. Re-run the conversion for those sessions.
-
-## Troubleshooting
-
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| All files show `valid_json: true` but queries fail | JSON is syntactically valid but has unexpected schema | This is expected; `validate` currently checks syntax only |
-| `valid_json: false` on some files | File was truncated or corrupted | Re-convert the source session |
-| Validate is slow on large archives | Reads and parses every file | Validate a single period directory instead: `--path ./output/active/2026-03/` |
 
 ## See also
 
-- `go-minitrace help convert-commands` — conversion that produces the files to validate
-- `go-minitrace help minitrace-schema` — the schema these files should conform to
+- `go-minitrace help convert-commands`
+- `go-minitrace help minitrace-schema`

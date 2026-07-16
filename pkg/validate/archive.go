@@ -59,8 +59,9 @@ type periodManifestDocument struct {
 
 type rootManifestDocument struct {
 	Periods []struct {
-		Period string `json:"period"`
-		Path   string `json:"path"`
+		Period       string `json:"period"`
+		Path         string `json:"path"`
+		SessionCount int    `json:"session_count"`
 	} `json:"periods"`
 }
 
@@ -115,13 +116,17 @@ func ValidateArchive(path string, checks []string) ([]Finding, error) {
 				findings = append(findings, finding("archive-period-mismatch", filePath, session.ID, "expected period "+expectedPeriod))
 			}
 		}
-		if enabled[CheckSource] && session.Provenance.SourceFingerprint != nil && session.Provenance.SourcePath != nil {
-			if sourcePayload, sourceErr := os.ReadFile(*session.Provenance.SourcePath); sourceErr == nil {
+		if enabled[CheckSource] && session.Provenance.SourcePath != nil {
+			if session.Provenance.SourceFingerprint == nil || *session.Provenance.SourceFingerprint == "" {
+				findings = append(findings, Finding{Code: "source-fingerprint-missing", Severity: SeverityWarning, Path: filePath, SessionID: session.ID, Detail: "source path is recorded without a source fingerprint"})
+			} else if sourcePayload, sourceErr := os.ReadFile(*session.Provenance.SourcePath); sourceErr == nil {
 				sum := sha256.Sum256(sourcePayload)
 				actual := hex.EncodeToString(sum[:])
 				if actual != *session.Provenance.SourceFingerprint {
 					findings = append(findings, finding("source-fingerprint-mismatch", filePath, session.ID, "source bytes no longer match recorded fingerprint"))
 				}
+			} else {
+				findings = append(findings, Finding{Code: "source-unavailable", Severity: SeverityInfo, Path: filePath, SessionID: session.ID, Detail: sourceErr.Error()})
 			}
 		}
 		return nil
@@ -190,6 +195,9 @@ func validateManifests(root string, archives, periodByID map[string]string) []Fi
 		if manifest.Period != period.Period {
 			findings = append(findings, finding("period-manifest-period-mismatch", manifestPath, "", "root and period manifest disagree"))
 		}
+		if period.SessionCount != len(manifest.Sessions) {
+			findings = append(findings, finding("root-manifest-count-mismatch", rootPath, "", "period count disagrees with period manifest"))
+		}
 		for _, session := range manifest.Sessions {
 			manifestIDs[session.ID] = true
 			archivePath, ok := archives[session.ID]
@@ -213,6 +221,29 @@ func validateManifests(root string, archives, periodByID map[string]string) []Fi
 	return findings
 }
 
+type conversionReceiptDocument struct {
+	Schema     string `json:"schema"`
+	Adapter    string `json:"adapter"`
+	StartedAt  string `json:"started_at"`
+	FinishedAt string `json:"finished_at"`
+	OutputDir  string `json:"output_dir"`
+	Complete   *bool  `json:"complete"`
+	Outputs    []struct {
+		SessionID string `json:"session_id"`
+		Path      string `json:"path"`
+		Status    string `json:"status"`
+	} `json:"outputs"`
+	Failures []struct {
+		Stage string `json:"stage"`
+		Error string `json:"error"`
+	} `json:"failures"`
+	Summary struct {
+		Requested int `json:"requested"`
+		Published int `json:"published"`
+		Failed    int `json:"failed"`
+	} `json:"summary"`
+}
+
 func validateReceipts(root string) []Finding {
 	findings := []Finding{}
 	_ = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
@@ -223,17 +254,45 @@ func validateReceipts(root string) []Finding {
 		if err != nil {
 			return nil
 		}
-		var header struct {
-			Schema     string `json:"schema"`
-			StartedAt  string `json:"started_at"`
-			FinishedAt string `json:"finished_at"`
-			Complete   *bool  `json:"complete"`
-		}
-		if json.Unmarshal(payload, &header) != nil || header.Schema != "go-minitrace-conversion-run-v1" {
+		var receipt conversionReceiptDocument
+		if json.Unmarshal(payload, &receipt) != nil || receipt.Schema != "go-minitrace-conversion-run-v1" {
 			return nil
 		}
-		if header.StartedAt == "" || header.FinishedAt == "" || header.Complete == nil {
-			findings = append(findings, finding("conversion-receipt-invalid", path, "", "receipt lacks timestamps or completion state"))
+		invalid := func(detail string) {
+			findings = append(findings, finding("conversion-receipt-invalid", path, "", detail))
+		}
+		if receipt.Adapter == "" || receipt.OutputDir == "" || receipt.StartedAt == "" || receipt.FinishedAt == "" || receipt.Complete == nil {
+			invalid("receipt lacks adapter, output directory, timestamps, or completion state")
+		}
+		if receipt.Summary.Published != len(receipt.Outputs) || receipt.Summary.Failed != len(receipt.Failures) {
+			invalid("receipt summary does not reconcile with outputs and failures")
+		}
+		if receipt.Summary.Requested < receipt.Summary.Published+receipt.Summary.Failed {
+			invalid("receipt requested count is smaller than terminal results")
+		}
+		if receipt.Complete != nil && *receipt.Complete && len(receipt.Failures) != 0 {
+			invalid("complete receipt contains failures")
+		}
+		if receipt.Complete != nil && !*receipt.Complete && len(receipt.Failures) == 0 {
+			invalid("incomplete receipt does not explain its failure")
+		}
+		for _, output := range receipt.Outputs {
+			if output.SessionID == "" || (output.Status != "created" && output.Status != "unchanged" && output.Status != "replaced") {
+				invalid("receipt output lacks session identity or has an unknown status")
+				continue
+			}
+			outputPath := output.Path
+			if !filepath.IsAbs(outputPath) {
+				outputPath = filepath.Join(receipt.OutputDir, outputPath)
+			}
+			if _, err := os.Stat(outputPath); err != nil {
+				findings = append(findings, finding("conversion-receipt-output-missing", path, output.SessionID, output.Path))
+			}
+		}
+		for _, failure := range receipt.Failures {
+			if failure.Stage == "" || failure.Error == "" {
+				invalid("receipt failure lacks stage or error detail")
+			}
 		}
 		return nil
 	})

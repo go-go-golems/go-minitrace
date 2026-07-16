@@ -89,7 +89,11 @@ func TestValidateArchiveChecksConversionReceipts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ValidateArchive: %v", err)
 	}
-	if len(findings) != 1 || findings[0].Code != "conversion-receipt-invalid" {
+	foundInvalid := false
+	for _, finding := range findings {
+		foundInvalid = foundInvalid || finding.Code == "conversion-receipt-invalid"
+	}
+	if !foundInvalid {
 		t.Fatalf("unexpected findings: %+v", findings)
 	}
 }
