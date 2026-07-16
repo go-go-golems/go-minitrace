@@ -3,6 +3,7 @@ package convert
 import (
 	"context"
 	"path/filepath"
+	"time"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -29,6 +30,9 @@ type ConvertCodexSettings struct {
 	SourceSessions []string `glazed:"source-session"`
 	SourceList     string   `glazed:"source-list"`
 	OutputDir      string   `glazed:"output-dir"`
+	Collision      string   `glazed:"collision"`
+	RunRecord      string   `glazed:"run-record"`
+	AllowPartial   bool     `glazed:"allow-partial"`
 	DryRun         bool     `glazed:"dry-run"`
 }
 
@@ -63,6 +67,9 @@ Examples:
 			fields.New("source-session", fields.TypeStringList, fields.WithDefault([]string{}), fields.WithHelp("Explicit Codex session JSONL files to convert instead of scanning --source-dir (repeatable)")),
 			fields.New("source-list", fields.TypeString, fields.WithDefault(""), fields.WithHelp("File with newline-separated Codex session paths; blank lines and # comments are ignored")),
 			fields.New("output-dir", fields.TypeString, fields.WithDefault("./output"), fields.WithHelp("Target minitrace archive directory")),
+			fields.New("collision", fields.TypeString, fields.WithDefault(string(minitrace.CollisionError)), fields.WithHelp("Archive ID collision policy: error (default) or replace")),
+			fields.New("run-record", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Write an atomic JSON conversion run record, including incomplete runs")),
+			fields.New("allow-partial", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Publish valid sessions when other requested sources fail conversion")),
 			fields.New("dry-run", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Inspect sources without writing output")),
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
@@ -99,38 +106,106 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 			return err
 		}
 	}
+	collisionPolicy := minitrace.CollisionPolicy(settings_.Collision)
+	if collisionPolicy != minitrace.CollisionError && collisionPolicy != minitrace.CollisionReplace {
+		return errors.Errorf("unsupported collision policy %q", settings_.Collision)
+	}
 
-	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
-	convertedCount := 0
-	failedCount := 0
+	runRecord := newConversionRunRecord("codex", settings_.OutputDir, collisionPolicy, locators)
+	locators, err = preflightCodexLocators(locators)
+	if err != nil {
+		runRecord.Failures = append(runRecord.Failures, conversionRunFailure{Stage: "preflight", Error: err.Error()})
+		runRecord.Summary.Failed = len(runRecord.Failures)
+		runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
+		if receiptErr := writeConversionRunRecord(settings_.RunRecord, runRecord); receiptErr != nil {
+			return errors.Wrapf(err, "also failed to write conversion receipt: %v", receiptErr)
+		}
+		return err
+	}
+	// Rebuild inputs after preflight attached normalized source identities.
+	runRecord.Inputs = conversionRunInputs(locators)
+	type convertedSource struct {
+		locator adapters.SessionLocator
+		session *minitrace.Session
+	}
+	converted := make([]convertedSource, 0, len(locators))
+	failed := make([]conversionRunFailure, 0)
 	for _, locator := range locators {
-		session, err := codex.ConvertLocator(locator)
-		if err != nil {
-			failedCount++
-			if rowErr := emitFailedSessionRow(ctx, gp, "codex", locator.ID, "", locator.FormatHint, locator.SourcePath, settings_.DryRun, err); rowErr != nil {
-				return rowErr
+		session, convertErr := codex.ConvertLocator(locator)
+		if convertErr != nil {
+			failure := conversionRunFailure{SourcePath: locator.SourcePath, SessionID: locator.ID, Stage: "convert", Error: convertErr.Error()}
+			failed = append(failed, failure)
+			runRecord.Failures = append(runRecord.Failures, failure)
+			if !settings_.AllowPartial {
+				runRecord.Summary.Failed = len(runRecord.Failures)
+				runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
+				if receiptErr := writeConversionRunRecord(settings_.RunRecord, runRecord); receiptErr != nil {
+					return errors.Wrapf(convertErr, "also failed to write conversion receipt: %v", receiptErr)
+				}
+				return errors.Wrapf(convertErr, "converting Codex source %s before publication", locator.SourcePath)
 			}
 			continue
 		}
+		converted = append(converted, convertedSource{locator: locator, session: session})
+	}
 
-		var sessionPath string
-		if !settings_.DryRun {
-			entry, err := minitrace.WriteSession(session, settings_.OutputDir)
-			if err != nil {
-				return errors.Wrapf(err, "writing minitrace session %s", locator.ID)
+	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(converted))
+	publicationByID := map[string]minitrace.PublicationResult{}
+	if !settings_.DryRun {
+		sessions := make([]*minitrace.Session, 0, len(converted))
+		for _, source := range converted {
+			sessions = append(sessions, source.session)
+		}
+		publications, err := minitrace.PublishSessionBatch(sessions, settings_.OutputDir, collisionPolicy)
+		if err != nil {
+			runRecord.Failures = append(runRecord.Failures, conversionRunFailure{Stage: "publish", Error: err.Error()})
+			runRecord.Summary.Failed = len(runRecord.Failures)
+			runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
+			if receiptErr := writeConversionRunRecord(settings_.RunRecord, runRecord); receiptErr != nil {
+				return errors.Wrapf(err, "also failed to write conversion receipt: %v", receiptErr)
 			}
-			indexEntries = append(indexEntries, entry)
-			sessionPath = entry.FilePath
+			return errors.Wrap(err, "publishing staged Codex batch")
+		}
+		for _, publication := range publications {
+			publicationByID[publication.SessionID] = publication
+			indexEntries = append(indexEntries, publication.Entry)
+			runRecord.Outputs = append(runRecord.Outputs, conversionRunOutput{SessionID: publication.SessionID, Path: publication.Entry.FilePath, Status: publication.Status})
+		}
+	}
+
+	for _, source := range converted {
+		locator := source.locator
+		session := source.session
+		sessionPath := ""
+		publicationStatus := "dry-run"
+		if publication, ok := publicationByID[session.ID]; ok {
+			sessionPath = publication.Entry.FilePath
+			publicationStatus = string(publication.Status)
 		}
 
 		quality := ""
 		if session.Quality != nil {
 			quality = *session.Quality
 		}
+		identity := locator.Identity
+		fingerprint := ""
+		identityBasis := ""
+		parentSessionID := ""
+		warningCount := 0
+		if identity != nil {
+			fingerprint = identity.SHA256
+			identityBasis = identity.IdentityBasis
+			parentSessionID = identity.ParentSessionID
+			warningCount = len(identity.Warnings)
+		}
 		row := types.NewRow(
 			types.MRP("framework", "codex"),
 			types.MRP("session_id", session.ID),
 			types.MRP("source_format", locator.FormatHint),
+			types.MRP("source_fingerprint", fingerprint),
+			types.MRP("identity_basis", identityBasis),
+			types.MRP("parent_session_id", parentSessionID),
+			types.MRP("warning_count", warningCount),
 			types.MRP("source_path", locator.SourcePath),
 			types.MRP("turn_count", session.Metrics.TurnCount),
 			types.MRP("tool_call_count", session.Metrics.ToolCallCount),
@@ -138,19 +213,36 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 			types.MRP("classification", session.Classification),
 			types.MRP("dry_run", settings_.DryRun),
 			types.MRP("session_path", sessionPath),
+			types.MRP("status", publicationStatus),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
 		}
-		convertedCount++
 	}
-	if failedCount > 0 && convertedCount == 0 {
-		return errors.Errorf("all %d Codex sessions failed to convert", failedCount)
+
+	for _, failure := range failed {
+		row := types.NewRow(
+			types.MRP("framework", "codex"),
+			types.MRP("session_id", failure.SessionID),
+			types.MRP("source_path", failure.SourcePath),
+			types.MRP("status", "failed"),
+			types.MRP("error", failure.Error),
+			types.MRP("dry_run", settings_.DryRun),
+		)
+		if err := gp.AddRow(ctx, row); err != nil {
+			return err
+		}
 	}
 
 	if !settings_.DryRun {
 		if err := minitrace.WriteManifests(indexEntries, settings_.OutputDir); err != nil {
 			return errors.Wrap(err, "writing Codex manifests")
+		}
+		runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
+		runRecord.Complete = len(failed) == 0
+		runRecord.Summary = conversionRunSummary{Requested: len(locators), Published: len(indexEntries), Failed: len(failed)}
+		if err := writeConversionRunRecord(settings_.RunRecord, runRecord); err != nil {
+			return err
 		}
 		manifestRow := types.NewRow(
 			types.MRP("framework", "codex"),
@@ -162,6 +254,34 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 	}
 
 	return nil
+}
+
+// preflightCodexLocators inspects every requested source before the command
+// writes an archive. It attaches source evidence to locators, rejects one
+// native ID backed by differing bytes, and collapses byte-identical duplicate
+// sources so a batch has one deterministic publication candidate per ID.
+func preflightCodexLocators(locators []adapters.SessionLocator) ([]adapters.SessionLocator, error) {
+	ret := make([]adapters.SessionLocator, 0, len(locators))
+	seen := map[string]string{}
+	for _, locator := range locators {
+		identity, err := codex.InspectSource(locator.SourcePath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "preflighting Codex source %s", locator.SourcePath)
+		}
+		locator.Identity = &identity
+		if identity.NativeSessionID == "" {
+			return nil, errors.Errorf("preflighting Codex source %s: missing native session ID", locator.SourcePath)
+		}
+		if fingerprint, ok := seen[identity.NativeSessionID]; ok {
+			if fingerprint != identity.SHA256 {
+				return nil, errors.Errorf("preflighting Codex source %s: native session ID %q conflicts with another source fingerprint", locator.SourcePath, identity.NativeSessionID)
+			}
+			continue
+		}
+		seen[identity.NativeSessionID] = identity.SHA256
+		ret = append(ret, locator)
+	}
+	return ret, nil
 }
 
 func NewCodexCommand() (*cobra.Command, error) {

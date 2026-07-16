@@ -37,10 +37,30 @@ var ValidAnnotationScopeTypes = map[string]bool{
 	"tool_call": true,
 }
 
+type Severity string
+
+const (
+	SeverityInfo    Severity = "info"
+	SeverityWarning Severity = "warning"
+	SeverityError   Severity = "error"
+)
+
+// Finding is the stable machine-readable diagnostic shape used by archive and
+// receipt validation. Result remains for existing callers while Phase 2
+// progressively migrates validation checks to findings.
+type Finding struct {
+	Code      string   `json:"code"`
+	Severity  Severity `json:"severity"`
+	Path      string   `json:"path"`
+	SessionID string   `json:"session_id,omitempty"`
+	Detail    string   `json:"detail"`
+}
+
 type Result struct {
-	Path  string
-	Valid bool
-	Error string
+	Path     string    `json:"path"`
+	Valid    bool      `json:"valid"`
+	Error    string    `json:"error,omitempty"`
+	Findings []Finding `json:"findings,omitempty"`
 }
 
 func ValidatePath(path string, recursive bool) ([]Result, error) {
@@ -66,6 +86,7 @@ func validateFile(path string) Result {
 	if err != nil {
 		result.Valid = false
 		result.Error = err.Error()
+		result.Findings = []Finding{{Code: "read-error", Severity: SeverityError, Path: path, Detail: result.Error}}
 		return result
 	}
 
@@ -73,6 +94,7 @@ func validateFile(path string) Result {
 	if err := json.Unmarshal(data, &payload); err != nil {
 		result.Valid = false
 		result.Error = fmt.Sprintf("JSON parse error: %s", err.Error())
+		result.Findings = []Finding{{Code: "json-parse-error", Severity: SeverityError, Path: path, Detail: result.Error}}
 		return result
 	}
 
@@ -96,6 +118,7 @@ func validateFile(path string) Result {
 	if len(errs) > 0 {
 		result.Valid = false
 		result.Error = strings.Join(errs, "; ")
+		result.Findings = []Finding{{Code: "session-schema-error", Severity: SeverityError, Path: path, Detail: result.Error}}
 		return result
 	}
 

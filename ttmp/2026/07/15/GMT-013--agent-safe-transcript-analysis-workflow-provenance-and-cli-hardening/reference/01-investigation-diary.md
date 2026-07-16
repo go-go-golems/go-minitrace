@@ -19,10 +19,56 @@ RelatedFiles:
       Note: Isolated holdout setup, bounded-source methodology, and acceptance context
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/researchctl/ttmp/2026/07/15/RESEARCHCTL-012--cross-purpose-immutable-research-laboratory-for-researchctl/experiments/01-goja-pr95-review-hardening-skill-holdout/04-evaluation.md
       Note: Exact holdout findings and evaluation score
+    - Path: repo://cmd/go-minitrace/cmds/convert/claude_code.go
+      Note: In-memory backlinking and staged Claude publication
+    - Path: repo://cmd/go-minitrace/cmds/convert/codex.go
+      Note: |-
+        P1 public collision policy flag
+        Strict all-input Codex preflight and duplicate/conflict detection
+        Codex staged publication, partial mode, and failure receipts
+    - Path: repo://cmd/go-minitrace/cmds/convert/codex_phase0_test.go
+      Note: |-
+        P0 partial-batch publication characterization
+        Preflight conflict, duplicate, and no-publication tests
+    - Path: repo://cmd/go-minitrace/cmds/convert/sources.go
+      Note: Deterministic explicit source path normalization, deduplication, and ordering
+    - Path: repo://cmd/go-minitrace/cmds/query/output_phase0_test.go
+      Note: P0 zero-row JSON formatter and empty-JS-result characterization
+    - Path: repo://cmd/go-minitrace/cmds/validate/validate.go
+      Note: Archive validation CLI and rebuild gate
     - Path: repo://pkg/adapters/codex/convert.go
-      Note: Source evidence for corrected Codex identity diagnosis
+      Note: |-
+        Source evidence for corrected Codex identity diagnosis
+        First-header identity lock in session_meta parsing
+        P1 Codex header inspection and provenance application
+        P1 replay metadata warning capture and archive framework metadata
+    - Path: repo://pkg/adapters/codex/convert_test.go
+      Note: Phase 0 child-identity regression and fixture reader
+    - Path: repo://pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
+      Note: Redacted four-record regression fixture for child header followed by replayed parent metadata
+    - Path: repo://pkg/adapters/conversion.go
+      Note: Shared future batch/receipt conversion outcome contract
+    - Path: repo://pkg/adapters/source_identity.go
+      Note: |-
+        P1 shared source identity and raw-byte SHA-256 evidence helper
+        P1 structured conversion warning contract
+    - Path: repo://pkg/adapters/source_identity_test.go
+      Note: P1 deterministic fingerprint coverage
     - Path: repo://pkg/minitrace/archive.go
-      Note: Source evidence for collision and manifest behavior
+      Note: |-
+        Source evidence for collision and manifest behavior
+        P1 collision policy, idempotent fingerprint comparison, and temporary-file publication
+        P1 temporary file and directory sync during individual publication
+    - Path: repo://pkg/minitrace/archive_test.go
+      Note: |-
+        P0 collision overwrite characterization
+        P1 default-reject and explicit-replace archive collision coverage
+    - Path: repo://pkg/minitrace/batch.go
+      Note: Shared staged batch publication and rollback semantics
+    - Path: repo://pkg/minitrace/schema.go
+      Note: P1 additive source fingerprint and identity basis archive fields
+    - Path: repo://pkg/validate/archive.go
+      Note: Native archive, manifest, source, and receipt validation
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
       Note: Stable D, P0-P6, and R task IDs with per-task evidence and phase gates
 ExternalSources: []
@@ -31,6 +77,14 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
+
+
+
+
+
+
+
 
 
 
@@ -724,3 +778,791 @@ P5.n   documentation consolidation and skill thinning
 P6.n   evidence-bearing historical tool outcomes
 R.n    cross-phase review checkpoints
 ```
+
+## Step 7: Establish the Phase 0 baseline and preserve the Codex identity regression
+
+I started implementation on branch `gmt-013-phase-0-failure-contracts` from `2898bef6b2399d3189d104106285fd47accbf142`. The clean baseline passed the complete Go test suite. I then added a minimized fixture that has a child Codex header, a parent-thread link, two harmless message records, and a later replayed parent header.
+
+The new test failed exactly as predicted: the current parser used the later parent ID as the session ID. I recorded that failure, then made the smallest P1-oriented correction needed to keep the test suite green: the first Codex `session_meta` owns the native source identity while later metadata cannot replace it. This necessarily overlaps the Phase 0 characterization and P1 implementation sequencing; leaving a known-red test in the branch would make the normal test suite unusable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Begin implementing the detailed GMT-013 plan, starting with the Phase 0 baseline, regression fixtures, and the highest-priority Codex identity defect.
+
+**Inferred user intent:** Move from design into traceable, evidence-backed implementation work without waiting for further planning discussion.
+
+**Commit (code):** `11c88d720dedcfc11e9cbb694589bdf18b1ac2ed` — "Preserve Codex child session identity"
+
+### What I did
+
+- Created branch:
+
+  ```text
+  gmt-013-phase-0-failure-contracts
+  ```
+
+- Recorded baseline:
+
+  ```text
+  commit: 2898bef6b2399d3189d104106285fd47accbf142
+  go version go1.26.4 linux/amd64
+  github.com/go-go-golems/glazed v1.3.6
+  github.com/mattn/go-sqlite3 v1.14.32
+  ```
+
+- Ran:
+
+  ```bash
+  go test ./... -count=1
+  ```
+
+  Result: all packages passed before edits.
+
+- Inventoried reusable fixture/test locations:
+  - Codex conversion: `pkg/adapters/codex/convert_test.go`.
+  - New Codex JSONL fixtures: `pkg/adapters/codex/testdata/`.
+  - Archive write/manifests: `pkg/minitrace/archive_test.go`.
+  - Query command/result fixtures: `cmd/go-minitrace/cmds/query/{run_test.go,sqlite_fixtures_test.go}`.
+  - Explicit source-list behavior: `cmd/go-minitrace/cmds/convert/sources_test.go`.
+- Added redacted fixture:
+
+  ```text
+  pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl
+  ```
+
+- Added regression test:
+
+  ```text
+  TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays
+  ```
+
+- Captured the pre-fix failure with:
+
+  ```bash
+  go test ./pkg/adapters/codex -run TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays -count=1
+  ```
+
+  Exact failure:
+
+  ```text
+  session ID = "parent-thread-001", want child-session-001; replayed parent metadata must not replace child identity
+  ```
+
+- Changed the `session_meta` branch in `parseSessionJSONL` so `metadata.SessionID` is assigned only when it is empty.
+- Formatted and verified:
+
+  ```bash
+  gofmt -w pkg/adapters/codex/convert.go pkg/adapters/codex/convert_test.go
+  go test ./pkg/adapters/codex -count=1
+  git diff --check
+  ```
+
+  Result: Codex adapter tests pass and the diff has no whitespace errors.
+
+### Why
+
+- The fixture protects the exact observed identity corruption without committing a private transcript.
+- The initial failure proves the bug is adapter-induced rather than a native source-ID collision.
+- First-header identity preserves a child session while the already-existing `ParentThreadID` mapping preserves the parent as lineage.
+
+### What worked
+
+- The fixture is only four JSONL records and still reproduces the parent-ID overwrite.
+- Existing test structure allowed a direct package-local call to `parseJSONLFile` and `ConvertRecords`; no integration harness was needed.
+- The targeted code change makes the regression pass while all pre-existing Codex adapter tests remain green.
+
+### What didn't work
+
+The first version of the new regression failed as expected:
+
+```text
+--- FAIL: TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays (0.00s)
+    convert_test.go:172: session ID = "parent-thread-001", want child-session-001; replayed parent metadata must not replace child identity
+FAIL
+```
+
+The Phase 0 plan originally called for a fixture-only commit with intentionally failing tests. That is not compatible with a continuously runnable repository test suite, so the characterization and the minimal first-header correction are being committed together. The exact pre-fix failure is preserved here instead.
+
+### What I learned
+
+- `BuildSessionSkeleton` automatically sets `provenance.original_session_id` from the final `sessionID`, so correcting the adapter's final child ID fixes that provenance field without a schema change.
+- The current `ParentThreadID` mapping already populates `coordination.predecessor_session`; the regression confirms that source lineage remains available after identity locking.
+- The existing Codex test package had no file fixture helper, but `parseJSONLFile` is package-local and makes a minimized JSONL fixture straightforward.
+
+### What was tricky to build
+
+The key ordering rule is subtle: `firstNonEmpty(newValue, oldValue)` reads like a safe fill operation but gives the new value precedence. A later parent replay is therefore destructive. The correction intentionally applies only to `SessionID`; other metadata retains current merge behavior until P0.5/P1.5 define their own evidence-backed precedence rules.
+
+### What warrants a second pair of eyes
+
+- Confirm that first-header identity is correct for Codex fork/resume records beyond the observed subagent shape.
+- Review whether a later mismatching session header should become a structured adapter warning in P1.5 rather than remain invisible after this minimal fix.
+- Confirm direct and nested parent-thread extraction against additional redacted fixtures before adding enriched discovery.
+
+### What should be done in the future
+
+- Complete P0.5–P0.12 before broadening the source identity API.
+- Add collision and zero-row JSON regression characterization next; those are independent of this fix.
+- In P1.5, add record-indexed warning behavior for replayed/mismatched metadata.
+
+### Code review instructions
+
+- Start with `pkg/adapters/codex/testdata/child-session-meta-then-parent-replay.jsonl`.
+- Read the new regression in `pkg/adapters/codex/convert_test.go`.
+- Review the `session_meta` branch in `pkg/adapters/codex/convert.go`; confirm only session identity is locked.
+- Validate with:
+
+  ```bash
+  go test ./pkg/adapters/codex -count=1
+  ```
+
+### Technical details
+
+Identity behavior before and after:
+
+```text
+before: child header -> metadata.SessionID=child
+        parent replay -> metadata.SessionID=parent -> archive ID=parent
+
+after:  child header -> metadata.SessionID=child
+        parent replay -> metadata.SessionID stays child
+        parent link -> coordination.predecessor_session=parent
+```
+
+## Step 8: Characterize the remaining Phase 0 failure boundaries
+
+I completed the remaining Phase 0 characterization work without prematurely broadening production behavior. The tests now make three unsafe current behaviors explicit: archive writes replace different content with the same ID, a mixed conversion batch publishes successful archives and returns success when another source fails, and Glazed streaming JSON writes no document when no rows reach its formatter.
+
+These are characterization contracts, not the final desired contracts. They preserve the observed behavior in runnable tests while the desired replacement behavior remains assigned to the later implementation phases: collision-safe publication in P1, batch semantics in P1, and total JSON-array output in P3.
+
+### Prompt Context
+
+**User prompt (verbatim):** "build all of P0 now"
+
+**Assistant interpretation:** Finish the Phase 0 fixture, failure-characterization, documentation, and validation work now.
+
+**Inferred user intent:** Establish a complete executable baseline for the remaining GMT-013 work before advancing into broader architectural changes.
+
+### What I did
+
+- Added Codex identity precedence cases covering fallback locator ID, a native header overriding a locator ID, and a child header surviving a later parent replay.
+- Added `TestWriteSessionSilentlyOverwritesDifferentContentOnIDCollision` to record current unsafe archive replacement in `pkg/minitrace/archive_test.go`.
+- Added `TestConvertCodexPublishesSuccessfulSourcesWhenAnotherSourceFails` to record current partial conversion behavior in `cmd/go-minitrace/cmds/convert/codex_phase0_test.go`.
+  - The fixture has one valid JSONL source and one unrecognized JSONL source.
+  - Current behavior writes the valid archive and manifest, emits success/failure/manifest rows, and returns no command error.
+- Added `TestStreamingJSONFormatterEmitsNoDocumentForZeroRows` and `TestEmitJSResultWithEmptyArrayEmitsNoRows` in `cmd/go-minitrace/cmds/query/output_phase0_test.go`.
+  - The former records current formatter output as `""` when `Close` happens before any row.
+  - The latter proves an empty JavaScript array reaches the formatter with no rows.
+- Reused existing query tests for P0.10:
+  - `TestRunQueryCommand_RejectsWriteSQL` covers sandbox rejection.
+  - `TestQueryRunPresetGoldenRows/tools/tool-failures` covers a successful zero-row query result.
+  - `pkg/minitracedb` query tests cover limits, errors, and truncation behavior at the engine boundary.
+- Ran focused Codex, archive, conversion-command, and query-command tests, then ran the full Go suite and `docmgr doctor`.
+
+### Why
+
+- P1 needs a stable proof that archive collisions currently overwrite bytes before it can replace the behavior with fingerprints and explicit policies.
+- P1 batch work needs a stable proof that partial output is currently published and can appear successful.
+- P3 needs a formatter-level proof that the empty JSON bug is broader than SQL and is also reachable through JS commands.
+
+### What worked
+
+- All new characterization tests pass against the current behavior, so the branch remains continuously testable.
+- The tests are small, synthetic, and avoid private transcript or repository data.
+- The direct formatter test identifies the correct upstream boundary without requiring a fragile Cobra/stdout harness.
+
+### What didn't work
+
+The desired JSON-array assertion cannot be made green in Phase 0 because the behavior belongs to the upstream Glazed formatter. Current output is exactly an empty byte stream rather than the intended document:
+
+```text
+current:  ""
+desired:  "[]\\n"
+```
+
+The phase plan originally described a deliberately failing desired-output test. As with the Codex regression, keeping an intentional failure in the repository would make normal CI red. The current behavior is therefore recorded in a passing characterization test, and P3.1 will replace it with the upstream failing test before P3.2 fixes the formatter.
+
+### What I learned
+
+- `WriteSession` alone is sufficient to demonstrate destructive collision behavior; manifests are a downstream consistency concern, not the initial overwrite mechanism.
+- `ConvertCodexCommand` increments `failedCount` and emits a failed-source row, but returns an error only when **all** sources fail. It writes manifests after a mixed batch.
+- An empty JS command result and zero SQL rows both produce no `Processor.AddRow` calls; the invalid JSON is a formatter lifecycle issue.
+- Direct unit tests of the result/formatter boundary are more deterministic than a subprocess test and still capture the root cause.
+
+### What was tricky to build
+
+Phase 0 needed executable evidence while preserving a green repository. The design originally used red tests as temporary evidence, but those would block normal `go test ./...`. I used passing characterization tests that name the unsafe behavior explicitly and recorded the desired replacement contracts in the diary and task plan. P1/P3 will invert each relevant assertion when the replacement behavior is implemented.
+
+### What warrants a second pair of eyes
+
+- Confirm whether the Phase 1 collision test should replace the characterization test or retain it as a legacy-behavior test with an explicit name.
+- Confirm the final batch contract: whether `--allow-partial` publishes successful items but returns a distinct non-zero/incomplete exit by default.
+- Confirm the Glazed upstream test can exercise actual processor/formatter lifecycle without coupling to an internal implementation detail.
+
+### What should be done in the future
+
+- P1.7–P1.15 should replace archive and batch characterization tests with desired collision, staging, partial-mode, and receipt assertions.
+- P3.1 should move the zero-row formatter assertion upstream and then make the desired `[]\\n` output mandatory.
+- Do not mark the cross-phase P1/P3 reviews complete until those assertions are inverted and the replacement semantics are live.
+
+### Code review instructions
+
+- Review `pkg/minitrace/archive_test.go` first to see destructive overwrite in isolation.
+- Review `cmd/go-minitrace/cmds/convert/codex_phase0_test.go` for current partial publication semantics.
+- Review `cmd/go-minitrace/cmds/query/output_phase0_test.go` with Glazed's `formatters/json.OutputFormatter.Close` implementation.
+- Validate with:
+
+  ```bash
+  go test ./pkg/adapters/codex ./pkg/minitrace -count=1
+  go test ./cmd/go-minitrace/cmds/convert ./cmd/go-minitrace/cmds/query -count=1
+  go test ./... -count=1
+  ```
+
+### Technical details
+
+Current failure-boundary matrix:
+
+| Boundary | Current behavior | Replacement phase |
+|---|---|---|
+| Codex replayed `session_meta` | parent replaced child ID | fixed in P0/P1 seed commit |
+| archive ID collision | later bytes silently replace earlier bytes | P1 collision publisher |
+| mixed conversion batch | publishes successes and returns nil | P1 batch policy |
+| zero rows + JSON array | formatter emits no bytes | P3 formatter fix |
+| empty JS array | emits no processor rows | P3 formatter fix |
+
+## Step 9: Add shared source identity evidence and Codex inspection
+
+I began Phase 1 by adding an adapter-neutral source identity type and byte-level fingerprint helper, then used it in Codex conversion. A converted source now carries the native ID, parent lineage, normalized source path, raw-byte SHA-256, source size, and the fact that identity came from the first `session_meta` record.
+
+The implementation deliberately does not yet make those new provenance fields queryable in normalized SQLite. They are additive archive evidence first; P1's collision publisher will consume the fingerprint before a later decision determines whether query columns are useful.
+
+### Prompt Context
+
+**User prompt (verbatim):** "do it"
+
+**Assistant interpretation:** Proceed with the Phase 1 source identity, fingerprinting, Codex inspection, and additive provenance tasks identified after Phase 0.
+
+**Inferred user intent:** Replace ad hoc source identity reasoning with reusable, testable provenance data that later collision and batch work can rely on.
+
+**Commit (code):** `f7af1c3416c2aa8c6c0cc89a0956f218fa46dc87` — "Add transcript source identity evidence"
+
+### What I did
+
+- Added `adapters.SourceIdentity` with native ID, parent ID, source path/format, cwd, role, identity basis, SHA-256, and byte size.
+- Added `adapters.FingerprintSource`, which normalizes a path to an absolute path and hashes exact source bytes with SHA-256.
+- Added optional `Identity` to `adapters.SessionLocator` without changing existing adapters' required construction paths.
+- Added `codex.InspectSource` and the shared internal inspection path used by `ConvertLocator`.
+  - It reads the first Codex `session_meta` as native identity.
+  - It recognizes direct `parent_thread_id` and nested subagent spawn parent IDs.
+  - It treats object-valued `source.subagent` as a subagent role without assuming `.source` is always an object.
+- Applied inspected evidence to converted Codex sessions:
+  - `Session.ID` and `provenance.original_session_id` use the native child ID.
+  - `coordination.predecessor_session` uses the parent ID.
+  - `provenance.source_path`, `source_fingerprint`, and `identity_basis` carry evidence.
+- Added archive-schema fields `source_fingerprint` and `identity_basis` as additive `omitempty` fields.
+- Added shared helper and Codex conversion tests, including the redacted child/replay fixture.
+- Ran focused adapter, Codex, archive-schema, and normalized SQLite package tests.
+
+### Why
+
+- Collision handling cannot distinguish safe reconversion from destructive replacement without stable raw-source evidence.
+- Discovery and conversion need one Codex identity rule so a source cannot be classified as a child during discovery and converted as a parent later.
+- Additive archive provenance preserves backward decoding while providing the facts P1 publication and P2 validation will need.
+
+### What worked
+
+- `FingerprintSource` has deterministic digest, byte size, and absolute-path coverage.
+- `InspectSource` and `ConvertLocator` agree on child ID, parent ID, subagent role, and `first-session-meta` basis for the replay fixture.
+- Existing adapter and normalized SQLite tests pass without a schema migration because the added fields are not yet materialized as columns.
+
+### What didn't work
+
+The first digest assertion used the wrong expected SHA-256 value:
+
+```text
+--- FAIL: TestFingerprintSource (0.00s)
+    source_identity_test.go:21: digest = "7cefb9aa217c81555befc729d7fa5d70dbc83bfe20d91eaac7e8af9aee481432"
+```
+
+I corrected the fixture's expected digest to the value produced from the exact `"fixture source\\n"` bytes, then reran the affected suites.
+
+The first commit attempt also failed the repository's `nonamedreturns` lint rule:
+
+```text
+pkg/adapters/source_identity.go:30:1: named return "sha256Hex" with type "string" found
+```
+
+I changed `FingerprintSource` to use unnamed return types before rerunning the commit checks.
+
+### What I learned
+
+- The source fingerprint must be raw-byte evidence, not a parsed-record hash; record parsing can discard malformed lines and lose proof of the exact input.
+- `ConvertLocator` is the correct initial integration seam because it has both the source path and parsed records. `ConvertRecords` remains useful for in-memory tests and does not fabricate a file fingerprint.
+- Existing `BuildSessionSkeleton` initialization and the earlier first-header lock mean provenance changes can remain additive and localized.
+
+### What was tricky to build
+
+The central constraint was avoiding a dependency cycle: generic `pkg/adapters` cannot parse Codex metadata, while Codex still needs a reusable fingerprint helper. The solution separates generic byte/path evidence (`FingerprintSource`) from Codex-specific header interpretation (`InspectSource` and `inspectSourceRecords`). This keeps source-format parsing in the adapter and lets future adapters reuse the common evidence function.
+
+### What warrants a second pair of eyes
+
+- Confirm that a source with direct `parent_thread_id` but no nested `source.subagent` should always be classified as `subagent`; this is conservative for the observed source but may need a distinct lineage role later.
+- Review whether `SessionLocator.Identity` should be populated during normal discovery now or remain conversion-only until P4's opt-in fingerprinting work.
+- Confirm P1 collision policy should compare source fingerprint only, or additionally compare normalized source path for legacy/operational diagnostics.
+
+### What should be done in the future
+
+- Complete P1.5 with structured, record-indexed warnings for later mismatching headers.
+- Implement P1.7–P1.10 so the fingerprint actually prevents destructive writes.
+- Add materialized SQLite columns only if P2/P4 queries need provenance fields; avoid schema churn otherwise.
+
+### Code review instructions
+
+- Start with `pkg/adapters/source_identity.go` and its test.
+- Then inspect `codex.InspectSource`, `inspectSourceRecords`, and `applySourceIdentity`.
+- Run:
+
+  ```bash
+  go test ./pkg/adapters ./pkg/adapters/codex ./pkg/minitrace ./pkg/minitracedb -count=1
+  ```
+
+### Technical details
+
+The new evidence flow is:
+
+```text
+native JSONL bytes
+  -> FingerprintSource(path): absolute path, SHA-256, size
+  -> Codex InspectSource(records): first header ID, parent, role, basis
+  -> ConvertLocator: ConvertRecords + applySourceIdentity
+  -> archive provenance and coordination fields
+```
+
+## Step 10: Reject conflicting archive IDs by default
+
+I replaced `WriteSession`'s unconditional `os.WriteFile` behavior with a collision-aware publisher. Existing archives are now decoded before publication. A matching non-empty source fingerprint is idempotent; otherwise the default policy rejects the write and preserves existing bytes. A caller can select an explicit `replace` policy when destructive replacement has been reviewed.
+
+The Codex conversion command now exposes `--collision error|replace`, defaulting to `error`. Publication uses a temporary file and same-directory rename, so an individual write does not expose a partially written destination.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, continue"
+
+**Assistant interpretation:** Continue from identity evidence into the next concrete Phase 1 behavior: collision-safe archive publication.
+
+**Inferred user intent:** Make the new source fingerprints enforce safety rather than merely annotate converted archives.
+
+**Commit (code):** `f25faa049ffee78660189c477192431881c66d00` — "Reject conflicting transcript archives"
+
+### What I did
+
+- Added `minitrace.CollisionPolicy` with `error` and `replace` values.
+- Made `WriteSession` call `WriteSessionWithCollisionPolicy(..., CollisionError)`.
+- Added existing-destination handling:
+  - matching non-empty source fingerprint → return the existing archive index without rewriting;
+  - different/missing fingerprint + default policy → return a collision error before changing bytes;
+  - explicit `replace` → publish the new archive.
+- Split session-index construction into a helper that can represent a newly written or existing archive.
+- Replaced direct writes with temporary-file creation in the destination directory followed by `os.Rename`.
+- Changed the P0 destructive-overwrite characterization into `TestWriteSessionRejectsDifferentContentOnIDCollision`.
+- Kept an explicit replacement test for manifest behavior via `WriteSessionWithCollisionPolicy(..., CollisionReplace)`.
+- Added `--collision` to `convert codex`; invalid values fail before conversion.
+
+### Why
+
+- Archive filename identity is a normalized database key, so silently replacing unrelated source content corrupts downstream attribution even if the JSON remains syntactically valid.
+- A fingerprint makes repeat conversion of the exact source idempotent while requiring an intentional action for any differing input.
+- Same-directory rename is the minimum safe publication primitive before staged multi-source batch publication is implemented.
+
+### What worked
+
+- The archive package and converter tests pass with default collision rejection.
+- Explicit replacement keeps the old manifest test's intended behavior without leaving it as an accidental default.
+- The conversion command can now opt into a destructive replacement policy visibly at the CLI boundary.
+
+### What didn't work
+
+- N/A during this step. The remaining batch-level behavior is intentionally not solved here: mixed conversion can still publish earlier successful sources before a later collision/failure, which belongs to P1.12–P1.14.
+
+### What I learned
+
+- Existing fixture archives built with `BuildSessionSkeleton` have no source fingerprint, so they correctly take the conservative collision path unless replacement is explicit.
+- Fingerprint equality must be tested before candidate serialization/publish; comparing archive bytes would be unstable because conversion timestamps can differ for the same raw input.
+
+### What was tricky to build
+
+The archive API must support both a safe default and explicitly reviewed replacement without making callers manually reproduce path/period/index logic. `WriteSessionWithCollisionPolicy` centralizes that decision; `WriteSession` remains a small default-safe wrapper so existing callers become safer automatically.
+
+### What warrants a second pair of eyes
+
+- Review whether `replace` should also require a human-readable justification/receipt before it is exposed outside advanced workflows.
+- Verify filesystem durability requirements: this step uses atomic rename but does not yet call `fsync`; P1.10 remains open for interruption and durability tests.
+- Confirm how collision errors should be emitted as per-source batch rows rather than terminating a later shared batch runner.
+
+### What should be done in the future
+
+- Complete P1.10 with interruption/temp-file tests and any required sync semantics.
+- Complete P1.11–P1.15 so collision decisions, warnings, and partial outcomes appear in structured conversion results and receipts.
+- Migrate Pi and Claude Code after the shared batch runner exists.
+
+### Code review instructions
+
+- Start with `pkg/minitrace/archive.go` and inspect the collision branch before the temporary-file branch.
+- Read `pkg/minitrace/archive_test.go` for default rejection and explicit replacement.
+- Read `cmd/go-minitrace/cmds/convert/codex.go` for the public `--collision` setting.
+- Validate with:
+
+  ```bash
+  go test ./pkg/minitrace ./cmd/go-minitrace/cmds/convert -count=1
+  ```
+
+### Technical details
+
+Publication policy:
+
+```text
+no destination                         -> write
+existing + same non-empty fingerprint  -> unchanged/idempotent
+existing + different/missing fingerprint + error   -> reject, retain bytes
+existing + different/missing fingerprint + replace -> temporary write + rename
+```
+
+## Step 11: Preserve replay warnings and durably publish individual archives
+
+I completed the remaining narrow identity and individual-publication tasks before introducing a shared batch runner. Codex source inspection now retains a structured, record-indexed warning whenever a later `session_meta` uses a different ID than the first native header. The converted session keeps this warning in framework metadata, making the lineage anomaly inspectable without letting it alter archive identity.
+
+The archive publisher now synchronizes the temporary file before rename and synchronizes the containing directory after rename. The test suite verifies that a successful publication leaves no `.minitrace-*.tmp` file behind. This protects individual writes; it does not claim multi-file batch atomicity.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Continue."
+
+**Assistant interpretation:** Continue Phase 1 after collision rejection by completing replay-warning precedence and individual archive durability work.
+
+**Inferred user intent:** Close the remaining foundational identity/publication gaps before moving into batch orchestration.
+
+**Commit (code):** Pending commit for P1.5 and P1.10.
+
+### What I did
+
+- Added `adapters.ConversionWarning` with a stable code, message, and record index.
+- Made Codex source inspection examine all `session_meta` records after locking the first ID.
+- Added warning code `codex-replayed-session-meta` for later differing IDs.
+- Stored warnings under `operational_context.framework_config.conversion_warnings` on converted Codex archives.
+- Extended the replay fixture test to assert warning count, code, and record index.
+- Added `tempFile.Sync()` before archive rename and directory sync after rename.
+- Added a test assertion that successful archive publication leaves no temporary staging file.
+
+### Why
+
+- Ignoring replayed metadata prevents corruption but hides source-shape evidence needed to audit adapter behavior.
+- A temporary-file rename without syncing leaves a durability gap during sudden interruption; syncing both file and directory establishes the expected single-file persistence boundary.
+
+### What worked
+
+- Codex tests confirm later parent metadata is retained as a warning while child identity and parent lineage remain correct.
+- Archive tests pass with the new sync path and confirm no temp-file residue after normal publication.
+
+### What didn't work
+
+- N/A. There is no multi-file failure injection test yet; P1.13 must address staging and rollback behavior rather than extrapolating from the single-file test.
+
+### What I learned
+
+- Structured warnings can be preserved in framework metadata without changing the general archive schema again.
+- `os.Rename` is only one part of the durability boundary; the source file and parent directory each need sync calls for the intended persistence semantics.
+
+### What was tricky to build
+
+The source inspector originally stopped after the first native header, which was correct for identity but insufficient for warning evidence. I removed that early exit while retaining first-header identity ownership. The loop now collects later mismatch evidence without allowing it to modify the selected native ID.
+
+### What warrants a second pair of eyes
+
+- Confirm `framework_config.conversion_warnings` is the preferred archive location versus a first-class schema field for cross-adapter warnings.
+- Verify directory syncing behavior on every supported platform and decide whether unsupported filesystems need a documented fallback.
+- Review batch staging separately; individual atomic publication must not be represented as batch atomicity.
+
+### What should be done in the future
+
+- Build P1.11 conversion result/warning types and surface warnings in command rows/receipts.
+- Build P1.12–P1.14 shared preflight, staging, and partial semantics.
+
+### Code review instructions
+
+- Read `inspectSourceRecords` in `pkg/adapters/codex/convert.go` for first-header and later-warning separation.
+- Inspect `applySourceIdentity` for warning serialization.
+- Inspect `WriteSessionWithCollisionPolicy` and `syncDirectory` in `pkg/minitrace/archive.go`.
+- Run:
+
+  ```bash
+  go test ./pkg/adapters/codex ./pkg/minitrace -count=1
+  ```
+
+### Technical details
+
+Warning representation:
+
+```json
+{
+  "conversion_warnings": [
+    {
+      "code": "codex-replayed-session-meta",
+      "record_index": 3,
+      "message": "later session_meta ID differs from the source header and was retained as replay metadata"
+    }
+  ]
+}
+```
+
+## Step 12: Establish deterministic source-list and conversion-result foundations
+
+I began the shared batch-runner work by making explicit source selection deterministic. `--source-session` and `--source-list` inputs are now normalized to absolute paths, deduplicated, and sorted before adapter location/conversion begins. This removes invocation-order variance before P1.12 adds source inspection, fingerprints, collision preflight, and staging.
+
+I also added adapter-neutral conversion result/status types. They are not yet wired through the Codex command because batch publication and receipts need a single migration rather than a temporary second result format.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, continue"
+
+**Assistant interpretation:** Continue Phase 1 toward shared batch preflight and structured outcomes after finishing replay warnings and single-archive durability.
+
+**Inferred user intent:** Move the remaining conversion workflow toward deterministic, receipt-ready batch behavior.
+
+**Commit (code):** Pending commit for the deterministic source preflight and conversion-result foundation.
+
+### What I did
+
+- Updated `collectSourceSessions` to normalize paths to absolute cleaned paths, deduplicate them, and sort them lexically.
+- Updated and extended source-list tests to prove duplicate removal and deterministic ordering.
+- Added `adapters.ConversionStatus` values: created, unchanged, replaced, failed, and skipped.
+- Added `adapters.ConversionResult`, combining source identity, optional converted session, status, structured warnings, and a diagnostic string.
+
+### Why
+
+- Batch result order must not depend on the order users repeat flags or arrange source-list lines.
+- A shared result type is necessary before command rows, staging outcomes, partial behavior, and receipts can agree on source status names.
+
+### What worked
+
+- Existing source-list behavior still accepts comments and blank lines.
+- Converter and adapter package tests pass with deterministic source selection.
+
+### What didn't work
+
+- This is intentionally only the foundation for P1.11/P1.12. It does not yet inspect/fingerprint all sources during preflight, detect conflicting native IDs before publication, or expose `ConversionResult` from the command.
+
+### What I learned
+
+- Source-list normalization belongs before `LocateSession`, so all adapters receive canonical paths without duplicating list parsing logic.
+- Conversion status needs to be adapter-neutral because collision/idempotence is a publisher result while parse failures are adapter results.
+
+### What was tricky to build
+
+The current `collectSourceSessions` helper has no framework information and should not fingerprint files itself; hashing belongs in the source-inspection/preflight layer where errors and identities can become structured per-source outcomes. The change therefore stops at deterministic path selection rather than mixing generic list parsing with Codex semantics.
+
+### What warrants a second pair of eyes
+
+- Confirm sorting absolute paths is the correct stable ordering for all supported platforms.
+- Review whether later preflight should preserve an explicit caller ordinal alongside sorted processing for diagnostics.
+- Review the conversion-result error field before receipts make it externally stable.
+
+### What should be done in the future
+
+- Wire `ConversionResult` into Codex after adding a shared preflight/publisher function.
+- Add preflight inspection/fingerprint/native-ID conflict detection and staged publication.
+
+### Code review instructions
+
+- Review `cmd/go-minitrace/cmds/convert/sources.go` and its tests.
+- Review `pkg/adapters/conversion.go` as a contract-only type addition.
+- Validate with:
+
+  ```bash
+  go test ./cmd/go-minitrace/cmds/convert ./pkg/adapters -count=1
+  ```
+
+### Technical details
+
+Current deterministic flow:
+
+```text
+source-session flags + source-list lines
+  -> trim/comment filtering
+  -> absolute cleaned paths
+  -> deduplicated set
+  -> lexical sort
+  -> adapter LocateSession
+```
+
+## Step 13: Preflight all Codex sources before writing any archive
+
+I wired Codex source inspection into conversion preflight. Before the command converts or writes anything, it now fingerprints every selected source, attaches its inspected identity to the locator, rejects a missing native ID, rejects one native ID backed by differing raw bytes, and collapses byte-identical duplicate sources.
+
+This changes the earlier mixed-batch behavior for strict conversion: an invalid or conflicting later source fails preflight before the earlier valid source is published. It is not yet staged batch publication or `--allow-partial`; those remain distinct P1 tasks.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue from deterministic source-list foundations into preflighted strict conversion behavior.
+
+**Inferred user intent:** Prevent source conflicts from being discovered after output has already changed.
+
+**Commit (code):** Pending commit for P1.12 strict Codex preflight.
+
+### What I did
+
+- Added `preflightCodexLocators` before Codex collision policy and conversion loops.
+- Inspected every source with `codex.InspectSource` and attached the result to `SessionLocator.Identity`.
+- Reused preflighted identity in `ConvertLocator` instead of hashing/parsing identity a second time.
+- Rejected missing native IDs and differing fingerprints for the same native ID before output creation.
+- Collapsed duplicate files with same native ID and byte-identical fingerprint.
+- Replaced the former partial-publication characterization test with a strict-preflight test that asserts no archive, manifest, or rows exist after an invalid later input.
+- Added direct preflight tests for conflicting sources and identical duplicates.
+
+### Why
+
+- Collision safety at `WriteSession` is too late for a batch: earlier archives can already be written before a later bad source is encountered.
+- Preflight supplies the source identity evidence later receipts and staged publication need, while immediately eliminating the observed invalid-source partial publication case.
+
+### What worked
+
+- Conflicting same-ID files fail before the command emits any processor rows or writes output.
+- Identical duplicate files reduce to one deterministic candidate.
+- Codex conversion reuses the preflight identity rather than rehashing it.
+
+### What didn't work
+
+- Preflight failures currently return one command error rather than per-source structured failure rows/results; P1.11/P1.14 must add that contract.
+- The command still writes successful sources one by one after preflight, so a conversion error after preflight is not yet batch-atomic. P1.13 staging remains necessary.
+
+### What I learned
+
+- Input path ordering from `collectSourceSessions` and native-ID deduplication are separate: two paths can be distinct but represent one byte-identical native source.
+- The appropriate strict boundary is before `ConvertLocator`, because malformed/unknown sources must not leave a valid sibling archive behind.
+
+### What was tricky to build
+
+The previous P0 test deliberately documented partial output after a later bad source. Once preflight was introduced, that behavior correctly became obsolete. I changed the assertion to the replacement contract—no output before preflight failure—rather than retaining a legacy test that would encourage unsafe behavior.
+
+### What warrants a second pair of eyes
+
+- Confirm whether byte-identical sources at different paths should emit a skipped/duplicate result in future receipts instead of disappearing silently from the processing list.
+- Review error taxonomy for missing native IDs versus parsing failures versus native-ID conflicts.
+- Confirm Pi and Claude Code can implement the same preflight interface without forcing Codex-specific assumptions.
+
+### What should be done in the future
+
+- Implement staged post-preflight conversion/publication and explicit partial policy.
+- Surface `ConversionResult` rows and conversion receipts for every requested input, including collapsed duplicates and preflight failures.
+
+### Code review instructions
+
+- Read `preflightCodexLocators` in `cmd/go-minitrace/cmds/convert/codex.go`.
+- Review the three preflight tests in `codex_phase0_test.go`.
+- Verify `ConvertLocator` only reuses an identity supplied by its locator.
+- Run:
+
+  ```bash
+  go test ./cmd/go-minitrace/cmds/convert ./pkg/adapters/codex -count=1
+  ```
+
+### Technical details
+
+Strict preflight flow:
+
+```text
+normalized/sorted explicit paths
+  -> InspectSource for every path
+  -> native ID + raw SHA-256 conflict/dedup check
+  -> attach identity to locators
+  -> only then ConvertLocator / WriteSession
+```
+
+## Step 14: Stage primary JSONL batches and add native archive validation
+
+I replaced per-session publication in the Codex, Pi, and Claude Code command paths with a shared staged publisher. Claude parent/subagent backlinks are now applied in memory before staging, and Codex receipts capture failed preflight, conversion, and publication runs instead of existing only for successful runs.
+
+I also implemented the Phase 2 native validator: archive-root discovery, selectable checks, identity and period checks, root/period manifest reconciliation, orphan detection, source fingerprint verification, receipt validation, non-zero error behavior, atomic manifest writes, and manifest rebuilding. The skill workflow now points to `go-minitrace validate --archive` rather than the legacy manifest audit script.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Work on the next steps. \n\n - [ ] P1.13: staged post-preflight conversion/publication. Current behavior can still partially publish if conversion fails after preflight.                                                               \n - [ ] P1.14: explicit --allow-partial semantics and structured per-source failures/results.                                                                                                                \n - [ ] P1.15 completion: write failure/incomplete conversion receipts, not only successful-run receipts.                                                                                                    \n - [ ] P1.16–P1.17: migrate Codex fully to shared batch runner, then Pi and Claude Code.                                                                                                                    \n - [ ] P1.18: update command/adaptor docs and complete Phase 1 gate.                                                                                                                                        \n - [ ] Phase 2: native archive/manifests/receipt validation.                                                                                                                                                \n - [ ] Phase 3: query run receipts, truncation semantics, and upstream Glazed empty JSON []\n fix.                                                                                                          \n - [ ] Phase 4–6: enriched discovery/strict profile, documentation consolidation, and evidence-bearing tool statuses."
+
+**Assistant interpretation:** Continue implementing the remaining GMT-013 phases, beginning with safe batch publication and native validation.
+
+**Inferred user intent:** Move from research and partial foundations to enforceable, tested CLI safety and reproducibility contracts without repeated confirmation pauses.
+
+**Commit (code):** `c991b9731e41cf8d95e68ec90569e6f4382bfef9` — "Stage transcript batches before publication"
+
+**Additional commits:** `0fae4675f7e7a2f46837b7c421a5a695507b8327`, `3242bd7561d0529e82ab071c12c658b710f3264b`, `1450ebcaeff919584941d3ebae3a41cfcd80afc8`, `cc0c234a66ed0fa2bc5f14854927abe59d28d9ad`, `b3017a90dbd1d436b69d74c359b346e0e2a5071c`.
+
+### What I did
+
+- Added `minitrace.PublishSessionBatch` with all-collision precheck, staging, deterministic publication order, replacement backups, and in-process rollback.
+- Migrated Codex, Pi, and Claude Code primary/subagent archives to staged publication.
+- Applied Claude parent/subagent backlinks before staging instead of rewriting published files.
+- Added Codex `--allow-partial`, structured failed rows, publication statuses, receipt summaries, and incomplete failure receipts.
+- Added native archive, manifest, source-fingerprint, and receipt checks plus CLI check selection and non-zero error behavior.
+- Made manifest writes atomic and added `--rebuild-manifests`.
+- Replaced obsolete conversion/validation documentation and updated the transcript-analysis skill workflow.
+
+### Why
+
+- Strict conversion cannot be safe while earlier entries publish before later conversions or collision checks finish.
+- Archive evidence is not reproducible unless filenames, payload IDs, periods, manifests, source hashes, and run receipts can be checked by the CLI itself.
+
+### What worked
+
+- Collision failures are detected before the first batch archive publishes.
+- Created, unchanged, and replaced publication statuses are deterministic and covered by tests.
+- Claude backlink mutation no longer occurs as an unsafe post-publication rewrite.
+- Archive validation emits stable finding codes and can gate automation with a non-zero result.
+- Full tests, race tests for changed packages, and lint passed.
+
+### What didn't work
+
+- The first Claude migration commit attempt failed lint because `emitFailedSessionRow` became unused: `cmd/go-minitrace/cmds/convert/pi.go:152:6: func emitFailedSessionRow is unused`. I removed the obsolete helper, reran targeted tests and `make lint`, then committed.
+- A staged multi-file rename is rollback-safe for ordinary returned errors but cannot provide filesystem-wide atomicity across a process crash. This limitation is documented rather than hidden.
+
+### What I learned
+
+- Claude backlinks must be treated as derived conversion output and finalized before collision comparison/publication.
+- Manifest rebuilding is naturally implemented by the existing archive rescan, but publication must use temporary files plus rename to avoid truncated manifests.
+- Receipt validation needs reconciliation rules, not only JSON syntax checks.
+
+### What was tricky to build
+
+The publisher spans multiple period directories, so no single rename can commit the whole batch. The implementation stages all payloads, prechecks every collision, publishes in sorted destination order, backs up replacements, and reverses completed renames when an operation returns an error. It explicitly does not claim recovery from power loss or process termination mid-sequence.
+
+Claude Code also used to publish parent archives, publish subagents, reopen parent JSON, and rewrite backlinks. The migration instead converts all primaries and subagents, resolves and sorts child IDs, mutates parents in memory, and passes the final objects into one staged batch.
+
+### What warrants a second pair of eyes
+
+- Review crash semantics and whether a future journal/recovery marker is warranted for interrupted multi-directory commits.
+- Review Codex partial-mode accounting for skipped duplicate inputs and explicit collision outcomes before checking P1.14/P1.15 complete.
+- Verify whether newly discovered Claude subagents should force replacement of a fingerprint-identical parent whose derived backlinks differ.
+
+### What should be done in the future
+
+- Finish complete P1.14/P1.15 terminal-result accounting and receipt metadata, then close the Phase 1 gate.
+- Continue with Phase 3 query receipts, truncation semantics, and exact empty JSON output.
+
+### Code review instructions
+
+- Start with `pkg/minitrace/batch.go`, then review the Codex, Pi, and Claude Code command migrations.
+- Review `pkg/validate/archive.go` and CLI tests in `cmd/go-minitrace/cmds/validate/validate_test.go`.
+- Validate with:
+
+  ```bash
+  go test ./... -count=1
+  go test -race ./pkg/minitrace ./pkg/validate ./cmd/go-minitrace/cmds/convert -count=1
+  make lint
+  docmgr doctor --ticket GMT-013 --stale-after 30
+  ```
+
+### Technical details
+
+The publisher guarantees conversion completion, collision precheck, and staged bytes before publication. It provides in-process rollback for returned rename errors. It does not claim a global atomic transaction across period directories. Archive validation findings are sorted by path/code and use stable severity values suitable for JSON automation.

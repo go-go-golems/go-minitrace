@@ -28,16 +28,36 @@ type SessionIndexEntry struct {
 	FilePath       string
 }
 
+type CollisionPolicy string
+
+const (
+	// CollisionError rejects distinct content for an existing archive ID.
+	CollisionError CollisionPolicy = "error"
+	// CollisionReplace permits a deliberate destructive replacement.
+	CollisionReplace CollisionPolicy = "replace"
+)
+
+// WriteSession publishes one archive with the safe default collision policy.
 func WriteSession(session *Session, outputDir string) (*SessionIndexEntry, error) {
+	return WriteSessionWithCollisionPolicy(session, outputDir, CollisionError)
+}
+
+// WriteSessionWithCollisionPolicy writes one archive. Matching non-empty
+// source fingerprints are idempotent; all other existing destinations require
+// an explicit replacement policy so independent sources cannot silently share
+// one archive ID.
+func WriteSessionWithCollisionPolicy(session *Session, outputDir string, policy CollisionPolicy) (*SessionIndexEntry, error) {
 	if session == nil {
 		return nil, errors.New("session is required")
+	}
+	if policy != CollisionError && policy != CollisionReplace {
+		return nil, errors.Errorf("unsupported collision policy %q", policy)
 	}
 
 	period := "unknown"
 	if session.Timing.StartedAt != nil && len(*session.Timing.StartedAt) >= 7 {
 		period = SanitizePeriod((*session.Timing.StartedAt)[:7])
 	}
-
 	if session.Provenance.SourcePath != nil {
 		normalized := NormalizePath(*session.Provenance.SourcePath)
 		session.Provenance.SourcePath = &normalized
@@ -47,46 +67,95 @@ func WriteSession(session *Session, outputDir string) (*SessionIndexEntry, error
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, errors.Wrap(err, "creating session output directory")
 	}
+	filePath := filepath.Join(dir, SanitizeID(session.ID)+".minitrace.json")
 
-	fileName := SanitizeID(session.ID) + ".minitrace.json"
-	filePath := filepath.Join(dir, fileName)
+	if existing, info, err := readExistingSession(filePath); err == nil {
+		if sameSourceFingerprint(existing, session) {
+			return sessionIndexEntry(existing, period, filePath, info.Size()), nil
+		}
+		if policy != CollisionReplace {
+			return nil, errors.Errorf("archive collision for session %q at %s; use explicit replacement only after verifying source provenance", session.ID, filePath)
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+
 	payload, err := json.MarshalIndent(session, "", "  ")
 	if err != nil {
 		return nil, errors.Wrap(err, "marshaling session")
 	}
 	payload = append(payload, '\n')
-	if err := os.WriteFile(filePath, payload, 0o644); err != nil {
-		return nil, errors.Wrap(err, "writing session file")
+	tempFile, err := os.CreateTemp(dir, ".minitrace-*.tmp")
+	if err != nil {
+		return nil, errors.Wrap(err, "creating temporary session file")
 	}
-
+	tempPath := tempFile.Name()
+	defer func() { _ = os.Remove(tempPath) }()
+	if _, err := tempFile.Write(payload); err != nil {
+		_ = tempFile.Close()
+		return nil, errors.Wrap(err, "writing temporary session file")
+	}
+	if err := tempFile.Sync(); err != nil {
+		_ = tempFile.Close()
+		return nil, errors.Wrap(err, "syncing temporary session file")
+	}
+	if err := tempFile.Close(); err != nil {
+		return nil, errors.Wrap(err, "closing temporary session file")
+	}
+	if err := os.Rename(tempPath, filePath); err != nil {
+		return nil, errors.Wrap(err, "publishing session file")
+	}
+	if err := syncDirectory(dir); err != nil {
+		return nil, err
+	}
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "stating written session file")
 	}
+	return sessionIndexEntry(session, period, filePath, info.Size()), nil
+}
 
+func syncDirectory(dir string) error {
+	directory, err := os.Open(dir)
+	if err != nil {
+		return errors.Wrap(err, "opening archive directory for sync")
+	}
+	defer func() { _ = directory.Close() }()
+	if err := directory.Sync(); err != nil {
+		return errors.Wrap(err, "syncing archive directory")
+	}
+	return nil
+}
+
+func readExistingSession(path string) (*Session, os.FileInfo, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "reading existing session archive")
+	}
+	var session Session
+	if err := json.Unmarshal(payload, &session); err != nil {
+		return nil, nil, errors.Wrap(err, "decoding existing session archive")
+	}
+	return &session, info, nil
+}
+
+func sameSourceFingerprint(existing, candidate *Session) bool {
+	if existing == nil || candidate == nil || existing.Provenance.SourceFingerprint == nil || candidate.Provenance.SourceFingerprint == nil {
+		return false
+	}
+	return *existing.Provenance.SourceFingerprint != "" && *existing.Provenance.SourceFingerprint == *candidate.Provenance.SourceFingerprint
+}
+
+func sessionIndexEntry(session *Session, period, filePath string, fileSizeBytes int64) *SessionIndexEntry {
 	quality := ""
 	if session.Quality != nil {
 		quality = *session.Quality
 	}
-
-	return &SessionIndexEntry{
-		ID:             session.ID,
-		Period:         period,
-		Profile:        session.Profile,
-		Title:          session.Title,
-		Classification: session.Classification,
-		Quality:        quality,
-		StartedAt:      session.Timing.StartedAt,
-		Duration:       session.Timing.DurationSeconds,
-		Model:          session.Environment.Model,
-		AgentFramework: session.Environment.AgentFramework,
-		TurnCount:      session.Metrics.TurnCount,
-		ToolCallCount:  session.Metrics.ToolCallCount,
-		FileSizeBytes:  info.Size(),
-		SourceFormat:   session.Provenance.SourceFormat,
-		Flags:          session.Flags,
-		FilePath:       filePath,
-	}, nil
+	return &SessionIndexEntry{ID: session.ID, Period: period, Profile: session.Profile, Title: session.Title, Classification: session.Classification, Quality: quality, StartedAt: session.Timing.StartedAt, Duration: session.Timing.DurationSeconds, Model: session.Environment.Model, AgentFramework: session.Environment.AgentFramework, TurnCount: session.Metrics.TurnCount, ToolCallCount: session.Metrics.ToolCallCount, FileSizeBytes: fileSizeBytes, SourceFormat: session.Provenance.SourceFormat, Flags: session.Flags, FilePath: filePath}
 }
 
 // WriteManifests writes the root and per-period manifests describing the
@@ -241,7 +310,7 @@ func WriteManifests(sessionIndex []*SessionIndexEntry, outputDir string) error {
 			return errors.Wrap(err, "marshaling period manifest")
 		}
 		payload = append(payload, '\n')
-		if err := os.WriteFile(filepath.Join(dir, "manifest.json"), payload, 0o644); err != nil {
+		if err := atomicWriteFile(filepath.Join(dir, "manifest.json"), payload); err != nil {
 			return errors.Wrap(err, "writing period manifest")
 		}
 
@@ -257,10 +326,34 @@ func WriteManifests(sessionIndex []*SessionIndexEntry, outputDir string) error {
 		return errors.Wrap(err, "marshaling root manifest")
 	}
 	rootPayload = append(rootPayload, '\n')
-	if err := os.WriteFile(filepath.Join(outputDir, "manifest.json"), rootPayload, 0o644); err != nil {
+	if err := atomicWriteFile(filepath.Join(outputDir, "manifest.json"), rootPayload); err != nil {
 		return errors.Wrap(err, "writing root manifest")
 	}
 	return nil
+}
+
+func atomicWriteFile(path string, payload []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(dir, ".manifest-*.tmp")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	if err := temporary.Close(); err != nil {
+		_ = os.Remove(temporaryPath)
+		return err
+	}
+	defer func() { _ = os.Remove(temporaryPath) }()
+	if err := writeSyncedFile(temporaryPath, payload); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return err
+	}
+	return syncDirectory(dir)
 }
 
 // manifestSessionFields is the slim projection of a session file holding only

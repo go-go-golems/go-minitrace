@@ -4,7 +4,33 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
+
+func TestApplySourceFingerprintMakesStagedRerunsIdempotent(t *testing.T) {
+	dir := t.TempDir()
+	source := filepath.Join(dir, "source.jsonl")
+	if err := os.WriteFile(source, []byte("source bytes\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	session := minitrace.BuildSessionSkeleton("session", "pi", "pi-v3", "test")
+	if err := applySourceFingerprint(&session, source); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(dir, "output")
+	first, err := minitrace.PublishSessionBatch([]*minitrace.Session{&session}, output, minitrace.CollisionError)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := minitrace.PublishSessionBatch([]*minitrace.Session{&session}, output, minitrace.CollisionError)
+	if err != nil {
+		t.Fatalf("unchanged rerun failed: %v", err)
+	}
+	if first[0].Status != minitrace.PublicationCreated || second[0].Status != minitrace.PublicationUnchanged {
+		t.Fatalf("unexpected statuses: %s then %s", first[0].Status, second[0].Status)
+	}
+}
 
 func TestCollectSourceSessionsMergesFlagsAndListFile(t *testing.T) {
 	dir := t.TempDir()
@@ -19,7 +45,7 @@ func TestCollectSourceSessionsMergesFlagsAndListFile(t *testing.T) {
 		t.Fatalf("writing list file: %v", err)
 	}
 
-	paths, err := collectSourceSessions([]string{"/tmp/explicit.jsonl", " "}, listPath)
+	paths, err := collectSourceSessions([]string{"/tmp/explicit.jsonl", "/tmp/session-a.jsonl", " "}, listPath)
 	if err != nil {
 		t.Fatalf("collectSourceSessions returned error: %v", err)
 	}
@@ -38,6 +64,17 @@ func TestCollectSourceSessionsMissingListFile(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "missing.txt")
 	if _, err := collectSourceSessions(nil, missing); err == nil {
 		t.Fatalf("expected error for missing source list file")
+	}
+}
+
+func TestCollectSourceSessionsSortsRelativePaths(t *testing.T) {
+	dir := t.TempDir()
+	paths, err := collectSourceSessions([]string{filepath.Join(dir, "b.jsonl"), filepath.Join(dir, "a.jsonl")}, "")
+	if err != nil {
+		t.Fatalf("collectSourceSessions returned error: %v", err)
+	}
+	if got, want := paths, []string{filepath.Join(dir, "a.jsonl"), filepath.Join(dir, "b.jsonl")}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("paths = %+v, want %+v", got, want)
 	}
 }
 

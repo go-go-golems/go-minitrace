@@ -136,12 +136,19 @@ func warnDeprecatedRuntimeSettings(runtimeSettings *MinitraceQueryRuntimeSetting
 // target and emits the resulting rows into a Glazed processor, preserving the
 // result column order.
 func RunQueryTargetIntoProcessor(ctx context.Context, target minitracedb.QueryTarget, sqlText string, gp middlewares.Processor) error {
+	_, err := RunQueryTargetIntoProcessorWithResult(ctx, target, sqlText, gp)
+	return err
+}
+
+// RunQueryTargetIntoProcessorWithResult preserves query metadata for receipts
+// before rows are flattened into the Glazed processor.
+func RunQueryTargetIntoProcessorWithResult(ctx context.Context, target minitracedb.QueryTarget, sqlText string, gp middlewares.Processor) (minitracedb.QueryResult, error) {
 	result, err := target.QueryResult(ctx, sqlText)
 	if err != nil {
-		return err
+		return minitracedb.QueryResult{}, err
 	}
 	if result.Error != "" {
-		return errors.New(result.Error)
+		return result, errors.New(result.Error)
 	}
 	for _, row := range result.Rows {
 		pairs := make([]types.MapRowPair, 0, len(result.Columns))
@@ -149,10 +156,10 @@ func RunQueryTargetIntoProcessor(ctx context.Context, target minitracedb.QueryTa
 			pairs = append(pairs, types.MRP(column, row[column]))
 		}
 		if err := gp.AddRow(ctx, types.NewRow(pairs...)); err != nil {
-			return err
+			return result, err
 		}
 	}
-	return nil
+	return result, nil
 }
 
 func collectCommandValues(vals *glazedvalues.Values, command *minitracecmd.MinitraceCommand) map[string]any {

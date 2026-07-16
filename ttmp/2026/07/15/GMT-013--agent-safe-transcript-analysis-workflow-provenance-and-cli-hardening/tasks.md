@@ -45,55 +45,55 @@
 
 **Phase dependency:** D.1–D.12 complete.
 
-- [ ] **P0.1 — Create the Phase 0 implementation branch and baseline record.**
+- [x] **P0.1 — Create the Phase 0 implementation branch and baseline record.**
   - Record `git rev-parse HEAD`, `go version`, relevant dependency versions, and clean working-tree state in the diary.
   - Run `go test ./... -count=1` before editing.
   - Done when: the baseline command output and any pre-existing failures are recorded verbatim.
-- [ ] **P0.2 — Inventory existing adapter and archive fixtures.**
+- [x] **P0.2 — Inventory existing adapter and archive fixtures.**
   - Inspect `pkg/adapters/codex/testdata/`, Codex conversion tests, archive tests, query integration tests, and CLI test helpers.
   - Produce a short fixture map in the diary; do not add a separate planning document.
   - Done when: each planned fixture has an identified destination and nearest reusable test helper.
-- [ ] **P0.3 — Minimize a Codex child-header/parent-replay source fixture.**
+- [x] **P0.3 — Minimize a Codex child-header/parent-replay source fixture.**
   - Preserve only structural records needed to reproduce: child `session_meta`, direct/nested parent identity, representative child event, later parent `session_meta`.
   - Replace private content, paths, models, and IDs with deterministic synthetic values while preserving record shape and ordering.
   - Files: `pkg/adapters/codex/testdata/`.
   - Done when: the fixture contains no private transcript text and the current adapter still reproduces the wrong parent archive ID.
-- [ ] **P0.4 — Add a failing Codex identity regression test.**
+- [x] **P0.4 — Add a failing Codex identity regression test.**
   - Assert child `Session.ID`, child `provenance.original_session_id`, and parent `coordination.predecessor_session`.
   - Also assert that later parent metadata does not become the archive identity.
   - Files: `pkg/adapters/codex/convert_test.go` or the nearest existing Codex test file.
   - Done when: the test fails for the expected current last-record-wins reason, not because the fixture is malformed.
-- [ ] **P0.5 — Add locator/header mismatch cases.**
+- [x] **P0.5 — Add locator/header mismatch cases.**
   - Cases: matching locator/header, empty locator, conflicting locator/header, malformed first header, later replay header.
   - Define expected warning/error behavior in test names even if implementation comes in Phase 1.
   - Done when: the desired precedence table is executable as table-driven tests.
-- [ ] **P0.6 — Add archive collision fixtures and failing tests.**
+- [x] **P0.6 — Add archive collision fixtures and failing tests.**
   - Cases: destination absent; same ID/same bytes; same ID/different bytes; same ID/different source path; legacy archive without fingerprint.
   - Assert destination bytes and manifests remain unchanged after a rejected collision.
   - Files: `pkg/minitrace/archive_test.go`.
   - Done when: at least one test demonstrates the current silent overwrite.
-- [ ] **P0.7 — Add partial-batch failure characterization.**
+- [x] **P0.7 — Add partial-batch failure characterization.**
   - Convert three synthetic sources where the second fails.
   - Record which files/manifests current code leaves behind.
   - Files: converter command tests or a new shared batch-runner test location selected during P0.2.
   - Done when: current partial publication is captured without yet changing behavior.
-- [ ] **P0.8 — Add zero-row SQL JSON integration coverage.**
+- [x] **P0.8 — Add zero-row SQL JSON integration coverage.**
   - Execute `query run` through the Cobra/Glazed command path with `--output json` and a zero-row query.
   - Assert exact desired bytes `[]\n`.
   - Done when: the test fails because current streaming output is empty, not because command construction failed.
-- [ ] **P0.9 — Add zero-row JS and non-query command coverage.**
+- [x] **P0.9 — Add zero-row JS and non-query command coverage.**
   - Cover a JS command returning an empty array and one row-producing command with no matches, such as discovery or validation.
   - Separate JSON-array semantics from explicit NDJSON semantics.
   - Done when: the formatter-level scope of the defect is demonstrated.
-- [ ] **P0.10 — Add query error and truncation contract tests.**
+- [x] **P0.10 — Add query error and truncation contract tests.**
   - Cases: invalid SQL, denied read, timeout, max rows reached, output processor failure.
   - Assert desired exit/non-exit and receipt behavior in test names; implementation follows in Phase 3.
   - Done when: successful-zero, failed, and incomplete/truncated outcomes are distinct test cases.
-- [ ] **P0.11 — Document Phase 0 findings in the diary.**
+- [x] **P0.11 — Document Phase 0 findings in the diary.**
   - Record exact failing test names, commands, and failure messages.
   - Relate every fixture/test file that materially shaped the contract.
   - Done when: another engineer can reproduce each failure from the diary.
-- [ ] **P0.12 — Phase 0 gate.**
+- [x] **P0.12 — Phase 0 gate.**
   - Run narrow suites for Codex, archive, query, and command integration.
   - Commit fixtures/tests without production fixes using a message such as `Test agent-safe transcript failure contracts`.
   - Done when: failures expected to remain red are explicitly isolated or marked according to repository policy, and the phase commit is recorded.
@@ -104,46 +104,46 @@
 
 **Phase dependency:** P0.1–P0.12 complete.
 
-- [ ] **P1.1 — Introduce the source identity data structure.**
+- [x] **P1.1 — Introduce the source identity data structure.**
   - Add fields for native session ID, parent session ID, path, format, role, identity basis, SHA-256, and size.
   - Files: `pkg/adapters/types.go` and focused tests.
   - Done when: the type has documented field semantics and no adapter-specific payload fields.
-- [ ] **P1.2 — Implement a shared source fingerprint helper.**
+- [x] **P1.2 — Implement a shared source fingerprint helper.**
   - Hash exact raw bytes with SHA-256; return size and normalized path.
   - Cover empty files, unreadable files, symlinks/path normalization, and deterministic hashes.
   - Done when: helper tests pass and adapters do not duplicate hashing logic.
-- [ ] **P1.3 — Implement Codex header identity inspection.**
+- [x] **P1.3 — Implement Codex header identity inspection.**
   - Parse the first valid native session header before full conversion.
   - Support direct `parent_thread_id` and nested `source.subagent.thread_spawn.parent_thread_id` without assuming `.source` is always an object.
   - Done when: source descriptors correctly classify parent, subagent, and unknown shapes.
-- [ ] **P1.4 — Lock Codex conversion identity to the inspected header.**
+- [x] **P1.4 — Lock Codex conversion identity to the inspected header.**
   - Prevent later replayed `session_meta` IDs from replacing the native child ID.
   - Populate child ID in `Session.ID` and `provenance.original_session_id`.
   - Populate parent ID in `coordination.predecessor_session` and documented framework metadata.
   - Done when: P0.4 identity regression passes.
-- [ ] **P1.5 — Define later-metadata merge precedence.**
+- [x] **P1.5 — Define later-metadata merge precedence.**
   - Enumerate which child/header fields are immutable and which later records may update.
   - Emit a structured warning for replay/mismatch records with record index.
   - Done when: precedence is covered by table-driven tests and documented in adapter reference draft notes.
-- [ ] **P1.6 — Extend archive provenance additively.**
+- [x] **P1.6 — Extend archive provenance additively.**
   - Add `source_fingerprint` and `identity_basis`; update normalized SQLite materialization only if these fields must be queryable in Phase 1.
   - Update schema docs/tests and JSON round-trip tests.
   - Done when: old archives still decode and new archives preserve evidence fields.
-- [ ] **P1.7 — Separate archive serialization from publication.**
+- [x] **P1.7 — Separate archive serialization from publication.**
   - Create a deterministic serialization helper and a publication API returning created/unchanged/replaced status.
   - Keep existing callers compiling while migrating them in focused commits; avoid silent behavior shims.
   - Done when: serialization can be tested without touching disk.
-- [ ] **P1.8 — Implement default collision detection.**
+- [x] **P1.8 — Implement default collision detection.**
   - Destination absent → create.
   - Matching source fingerprint → unchanged/idempotent.
   - Different fingerprint → collision error before write.
   - Legacy missing fingerprint → conservative error unless explicit replacement policy applies.
   - Done when: P0.6 cases pass and rejected writes preserve original bytes.
-- [ ] **P1.9 — Implement explicit replacement policy.**
+- [x] **P1.9 — Implement explicit replacement policy.**
   - Add `--collision error|replace` to converter settings.
   - Record previous and new hashes when replacement is explicit.
   - Done when: replacement is impossible without an explicit flag and is visible in result/receipt data.
-- [ ] **P1.10 — Make individual archive writes atomic.**
+- [x] **P1.10 — Make individual archive writes atomic.**
   - Write temp file in destination filesystem, sync as appropriate, and rename.
   - Clean temp files on failures.
   - Done when: interruption/error tests never leave a truncated destination.
@@ -151,11 +151,11 @@
   - Return session, source identity, and structured warnings from the shared conversion boundary.
   - Migrate Codex first; document migration path for Pi and Claude Code.
   - Done when: Codex command output and tests can report warnings without parsing error strings.
-- [ ] **P1.12 — Implement a shared batch preflight.**
+- [x] **P1.12 — Implement a shared batch preflight.**
   - Resolve, normalize, deduplicate, sort, inspect, and fingerprint all requested sources before publication.
   - Detect duplicate paths and conflicting native IDs during preflight.
   - Done when: a collision in input N is found before output 1 is published in strict mode.
-- [ ] **P1.13 — Implement staged batch publication.**
+- [x] **P1.13 — Implement staged batch publication.**
   - Stage converted archives and derived manifests under a run-specific directory.
   - Publish only after all strict-mode conversions and collision checks pass.
   - Document any remaining multi-file crash window instead of claiming unsupported global atomicity.
@@ -186,48 +186,48 @@
 
 **Phase dependency:** P1.1–P1.18 complete.
 
-- [ ] **P2.1 — Define validation finding codes and severities.**
+- [x] **P2.1 — Define validation finding codes and severities.**
   - Add stable code, severity, path, session ID, and details fields.
   - Preserve current human-readable columns while making JSON reliable.
   - Done when: finding serialization and ordering tests pass.
-- [ ] **P2.2 — Add selectable validation checks.**
+- [x] **P2.2 — Add selectable validation checks.**
   - Implement `--checks syntax,schema,archive` with explicit validation of unknown names.
   - Done when: existing syntax behavior remains available and archive checking is opt-in until documented rollout.
-- [ ] **P2.3 — Detect archive roots robustly.**
+- [x] **P2.3 — Detect archive roots robustly.**
   - Support a direct root containing `manifest.json` and `active/` and a parent containing multiple framework roots.
   - Avoid constructing `active/active` paths.
   - Done when: fixtures cover both layouts and the holdout's wrong-level invocation succeeds or reports a clear root error.
-- [ ] **P2.4 — Validate archive filenames and payload identities.**
+- [x] **P2.4 — Validate archive filenames and payload identities.**
   - Check sanitized filename against `Session.ID` and detect duplicate IDs across files.
   - Done when: mismatches and duplicates produce deterministic error findings.
-- [ ] **P2.5 — Validate period placement.**
+- [x] **P2.5 — Validate period placement.**
   - Compare `timing.started_at` month with `active/YYYY-MM`; handle `unknown` explicitly.
   - Done when: misplaced archives are reported without modifying them.
-- [ ] **P2.6 — Validate root and period manifests.**
+- [x] **P2.6 — Validate root and period manifests.**
   - Compare period list, counts, file names, IDs, selected metadata, and total statistics against actual archives.
   - Done when: stale counts, orphan entries, missing manifests, and wrong file paths each have dedicated finding codes.
-- [ ] **P2.7 — Detect orphan archives and orphan manifest entries.**
+- [x] **P2.7 — Detect orphan archives and orphan manifest entries.**
   - Report both directions and preserve enough path detail for repair.
   - Done when: a mixed fixture yields exactly the expected findings.
-- [ ] **P2.8 — Validate source identity consistency.**
+- [x] **P2.8 — Validate source identity consistency.**
   - Detect conflicting fingerprints for one session ID and suspicious reuse of one fingerprint under different IDs.
   - Treat legacy missing fingerprints as informational or warning according to documented policy.
   - Done when: identity findings match Phase 1 collision semantics.
-- [ ] **P2.9 — Validate conversion receipts.**
+- [x] **P2.9 — Validate conversion receipts.**
   - Check receipt schema/version, output paths, output hashes, summary counts, completeness, and archive existence.
   - Done when: a valid Phase 1 receipt passes and tampered/missing output cases fail predictably.
-- [ ] **P2.10 — Add non-zero exit behavior for error findings.**
+- [x] **P2.10 — Add non-zero exit behavior for error findings.**
   - Warnings remain inspectable without masking errors.
   - Add an explicit override only if a real workflow requires it.
   - Done when: machine tests assert rows plus process status.
-- [ ] **P2.11 — Make manifest writes atomic and add a rebuild path.**
+- [x] **P2.11 — Make manifest writes atomic and add a rebuild path.**
   - Reuse validated archive scanning; decide whether repair is a flag on `validate` or remains a separate future operation.
   - Do not silently repair during validation.
   - Done when: interrupted writes preserve the previous valid manifest.
-- [ ] **P2.12 — Retire skill dependence on `audit_manifests.sh`.**
+- [x] **P2.12 — Retire skill dependence on `audit_manifests.sh`.**
   - Update the skill to call native validation; retain the helper only if needed for older released binaries and label that scope.
   - Done when: the isolated holdout validation sequence uses no directory-shape-specific audit script.
-- [ ] **P2.13 — Phase 2 documentation and phase gate.**
+- [x] **P2.13 — Phase 2 documentation and phase gate.**
   - Update `validate.md`, `troubleshooting.md`, diary, tasks, and changelog.
   - Run validation package tests, CLI integration tests, full Go tests, lint, and real ticket-local archive checks.
   - Done when: one command validates single-root and multi-root analysis layouts with machine-readable findings.

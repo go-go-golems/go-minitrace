@@ -104,6 +104,44 @@ func TestWriteManifestsMergesSessionsFromEarlierInvocations(t *testing.T) {
 	}
 }
 
+func TestWriteSessionRejectsDifferentContentOnIDCollision(t *testing.T) {
+	outputDir := t.TempDir()
+	first := BuildSessionSkeleton("session-collision", "codex", "codex-format-v1", "go-minitrace/test")
+	first.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")
+	first.Title = ptr("first payload")
+	if _, err := WriteSession(&first, outputDir); err != nil {
+		t.Fatalf("writing first session: %v", err)
+	}
+
+	path := filepath.Join(outputDir, "active", "2026-01", "session-collision.minitrace.json")
+	firstBytes, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading first archive: %v", err)
+	}
+	staging, err := filepath.Glob(filepath.Join(outputDir, "active", "2026-01", ".minitrace-*.tmp"))
+	if err != nil {
+		t.Fatalf("glob temporary archives: %v", err)
+	}
+	if len(staging) != 0 {
+		t.Fatalf("temporary archive files remain after publication: %v", staging)
+	}
+
+	second := BuildSessionSkeleton("session-collision", "codex", "codex-format-v1", "go-minitrace/test")
+	second.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")
+	second.Title = ptr("different payload")
+	if _, err := WriteSession(&second, outputDir); err == nil {
+		t.Fatalf("expected collision error for distinct session content")
+	}
+
+	storedBytes, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading retained archive: %v", err)
+	}
+	if string(firstBytes) != string(storedBytes) {
+		t.Fatalf("collision changed existing archive bytes")
+	}
+}
+
 func TestWriteManifestsCurrentInvocationWinsOnIDCollision(t *testing.T) {
 	outputDir := t.TempDir()
 
@@ -116,7 +154,7 @@ func TestWriteManifestsCurrentInvocationWinsOnIDCollision(t *testing.T) {
 	session := BuildSessionSkeleton("session-x", "codex", "codex-format-v1", "go-minitrace/test")
 	session.Timing.StartedAt = ptr("2026-01-05T10:00:00Z")
 	session.Title = ptr("updated title")
-	entryNew, err := WriteSession(&session, outputDir)
+	entryNew, err := WriteSessionWithCollisionPolicy(&session, outputDir, CollisionReplace)
 	if err != nil {
 		t.Fatalf("WriteSession returned error: %v", err)
 	}

@@ -1,0 +1,4 @@
+{"timestamp":"2026-07-14T15:52:19Z","type":"session_meta","payload":{"id":"child-session-001","parent_thread_id":"parent-thread-001","cwd":"/redacted/project","source":{"subagent":{"thread_spawn":{"parent_thread_id":"parent-thread-001","depth":1,"agent_path":"/redacted/agent","agent_nickname":"Fixture"}}}}}
+{"timestamp":"2026-07-14T15:52:20Z","type":"event_msg","payload":{"type":"user_message","message":"Perform the scoped fixture task."}}
+{"timestamp":"2026-07-14T15:52:21Z","type":"event_msg","payload":{"type":"agent_message","message":"Fixture task completed."}}
+{"timestamp":"2026-07-14T15:53:00Z","type":"session_meta","payload":{"id":"parent-thread-001","cwd":"/redacted/project","source":"cli"}}

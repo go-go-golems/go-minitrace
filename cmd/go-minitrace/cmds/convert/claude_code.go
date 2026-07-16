@@ -2,9 +2,8 @@ package convert
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -107,136 +106,104 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		}
 	}
 
-	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(locators))
-	indexEntriesByID := map[string]*minitrace.SessionIndexEntry{}
-	parentSessionPaths := map[string]string{}
-	convertedCount := 0
-	failedCount := 0
+	type convertedPrimary struct {
+		locator adapters.SessionLocator
+		session *minitrace.Session
+	}
+	type convertedSubagent struct {
+		locator claudecode.SubagentLocator
+		session *minitrace.Session
+	}
+	primaries := make([]convertedPrimary, 0, len(locators))
+	primaryByID := map[string]*minitrace.Session{}
 	for _, locator := range locators {
 		session, err := claudecode.ConvertLocator(locator)
 		if err != nil {
-			failedCount++
-			if rowErr := emitFailedSessionRow(ctx, gp, "claude-code", locator.ID, "primary", locator.FormatHint, locator.SourcePath, settings_.DryRun, err); rowErr != nil {
-				return rowErr
-			}
-			continue
+			return errors.Wrapf(err, "converting Claude Code source %s before publication", locator.SourcePath)
 		}
-
-		var sessionPath string
-		if !settings_.DryRun {
-			entry, err := minitrace.WriteSession(session, settings_.OutputDir)
-			if err != nil {
-				return errors.Wrapf(err, "writing minitrace session %s", locator.ID)
-			}
-			indexEntries = append(indexEntries, entry)
-			indexEntriesByID[session.ID] = entry
-			parentSessionPaths[session.ID] = entry.FilePath
-			sessionPath = entry.FilePath
+		if err := applySourceFingerprint(session, locator.SourcePath); err != nil {
+			return errors.Wrapf(err, "fingerprinting Claude Code source %s", locator.SourcePath)
 		}
-
-		quality := ""
-		if session.Quality != nil {
-			quality = *session.Quality
-		}
-		row := types.NewRow(
-			types.MRP("framework", "claude-code"),
-			types.MRP("session_id", session.ID),
-			types.MRP("session_kind", "primary"),
-			types.MRP("source_format", locator.FormatHint),
-			types.MRP("source_path", locator.SourcePath),
-			types.MRP("turn_count", session.Metrics.TurnCount),
-			types.MRP("tool_call_count", session.Metrics.ToolCallCount),
-			types.MRP("quality", quality),
-			types.MRP("classification", session.Classification),
-			types.MRP("dry_run", settings_.DryRun),
-			types.MRP("session_path", sessionPath),
-		)
-		if err := gp.AddRow(ctx, row); err != nil {
-			return err
-		}
-		convertedCount++
+		primaries = append(primaries, convertedPrimary{locator: locator, session: session})
+		primaryByID[session.ID] = session
 	}
 
+	subagents := make([]convertedSubagent, 0, len(subagentLocators))
 	subagentIDsByParent := map[string][]string{}
 	for _, locator := range subagentLocators {
 		session, resolvedAgentID, err := claudecode.ConvertSubagentLocator(locator)
 		if err != nil {
-			failedCount++
-			if rowErr := emitFailedSessionRow(ctx, gp, "claude-code", locator.AgentID, "subagent", "jsonl-v2+subagent", locator.SourcePath, settings_.DryRun, err); rowErr != nil {
-				return rowErr
-			}
-			continue
+			return errors.Wrapf(err, "converting Claude Code subagent %s before publication", locator.SourcePath)
 		}
+		if err := applySourceFingerprint(session, locator.SourcePath); err != nil {
+			return errors.Wrapf(err, "fingerprinting Claude Code subagent %s", locator.SourcePath)
+		}
+		subagents = append(subagents, convertedSubagent{locator: locator, session: session})
 		subagentIDsByParent[locator.ParentSessionID] = append(subagentIDsByParent[locator.ParentSessionID], resolvedAgentID)
-
-		var sessionPath string
-		if !settings_.DryRun {
-			entry, err := minitrace.WriteSession(session, settings_.OutputDir)
-			if err != nil {
-				return errors.Wrapf(err, "writing Claude Code subagent %s", resolvedAgentID)
-			}
-			indexEntries = append(indexEntries, entry)
-			indexEntriesByID[session.ID] = entry
-			sessionPath = entry.FilePath
+	}
+	for parentSessionID, subagentIDs := range subagentIDsByParent {
+		if parent := primaryByID[parentSessionID]; parent != nil {
+			sort.Strings(subagentIDs)
+			claudecode.LinkParentSubagents(parent, subagentIDs)
 		}
+	}
 
+	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(primaries)+len(subagents))
+	publicationByID := map[string]minitrace.PublicationResult{}
+	if !settings_.DryRun {
+		sessions := make([]*minitrace.Session, 0, len(primaries)+len(subagents))
+		for _, source := range primaries {
+			sessions = append(sessions, source.session)
+		}
+		for _, source := range subagents {
+			sessions = append(sessions, source.session)
+		}
+		publications, err := minitrace.PublishSessionBatch(sessions, settings_.OutputDir, minitrace.CollisionError)
+		if err != nil {
+			return errors.Wrap(err, "publishing staged Claude Code batch")
+		}
+		for _, publication := range publications {
+			publicationByID[publication.SessionID] = publication
+			indexEntries = append(indexEntries, publication.Entry)
+		}
+	}
+
+	emitRow := func(session *minitrace.Session, kind, parentID, sourceFormat, sourcePath string) error {
 		quality := ""
 		if session.Quality != nil {
 			quality = *session.Quality
 		}
+		sessionPath := ""
+		status := "dry-run"
+		if publication, ok := publicationByID[session.ID]; ok {
+			sessionPath = publication.Entry.FilePath
+			status = string(publication.Status)
+		}
 		row := types.NewRow(
 			types.MRP("framework", "claude-code"),
 			types.MRP("session_id", session.ID),
-			types.MRP("session_kind", "subagent"),
-			types.MRP("parent_session_id", locator.ParentSessionID),
-			types.MRP("source_format", "jsonl-v2+subagent"),
-			types.MRP("source_path", locator.SourcePath),
+			types.MRP("session_kind", kind),
+			types.MRP("parent_session_id", parentID),
+			types.MRP("source_format", sourceFormat),
+			types.MRP("source_path", sourcePath),
 			types.MRP("turn_count", session.Metrics.TurnCount),
 			types.MRP("tool_call_count", session.Metrics.ToolCallCount),
 			types.MRP("quality", quality),
 			types.MRP("classification", session.Classification),
 			types.MRP("dry_run", settings_.DryRun),
 			types.MRP("session_path", sessionPath),
+			types.MRP("status", status),
 		)
-		if err := gp.AddRow(ctx, row); err != nil {
+		return gp.AddRow(ctx, row)
+	}
+	for _, source := range primaries {
+		if err := emitRow(source.session, "primary", "", source.locator.FormatHint, source.locator.SourcePath); err != nil {
 			return err
 		}
-		convertedCount++
 	}
-	if failedCount > 0 && convertedCount == 0 {
-		return errors.Errorf("all %d Claude Code sessions failed to convert", failedCount)
-	}
-
-	if !settings_.DryRun {
-		for parentSessionID, subagentIDs := range subagentIDsByParent {
-			parentPath, ok := parentSessionPaths[parentSessionID]
-			if !ok || parentPath == "" {
-				continue
-			}
-			data, err := os.ReadFile(parentPath)
-			if err != nil {
-				return errors.Wrapf(err, "reading parent Claude Code session %s for backlink", parentSessionID)
-			}
-			var parentSession minitrace.Session
-			if err := json.Unmarshal(data, &parentSession); err != nil {
-				return errors.Wrapf(err, "decoding parent Claude Code session %s for backlink", parentSessionID)
-			}
-			claudecode.LinkParentSubagents(&parentSession, subagentIDs)
-
-			payload, err := json.MarshalIndent(&parentSession, "", "  ")
-			if err != nil {
-				return errors.Wrapf(err, "encoding parent Claude Code session %s after backlink", parentSessionID)
-			}
-			payload = append(payload, '\n')
-			if err := os.WriteFile(parentPath, payload, 0o644); err != nil {
-				return errors.Wrapf(err, "rewriting parent Claude Code session %s after backlink", parentSessionID)
-			}
-			if entry, ok := indexEntriesByID[parentSessionID]; ok {
-				info, err := os.Stat(parentPath)
-				if err == nil {
-					entry.FileSizeBytes = info.Size()
-				}
-			}
+	for _, source := range subagents {
+		if err := emitRow(source.session, "subagent", source.locator.ParentSessionID, "jsonl-v2+subagent", source.locator.SourcePath); err != nil {
+			return err
 		}
 	}
 

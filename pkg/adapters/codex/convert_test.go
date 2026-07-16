@@ -1,8 +1,10 @@
 package codex
 
 import (
+	"path/filepath"
 	"testing"
 
+	"github.com/go-go-golems/go-minitrace/pkg/adapters"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
 
@@ -153,6 +155,119 @@ func TestConvertRecordsSessionJSONL(t *testing.T) {
 	}
 	if turnMetadata["reasoning_block_count"] != 2 {
 		t.Fatalf("expected reasoning block count 2, got %+v", turnMetadata)
+	}
+}
+
+func TestConvertLocatorRecordsSourceIdentityEvidence(t *testing.T) {
+	path := filepath.Join("testdata", "child-session-meta-then-parent-replay.jsonl")
+	identity, err := InspectSource(path)
+	if err != nil {
+		t.Fatalf("InspectSource returned error: %v", err)
+	}
+	if identity.NativeSessionID != "child-session-001" || identity.ParentSessionID != "parent-thread-001" {
+		t.Fatalf("unexpected source identity: %+v", identity)
+	}
+	if identity.Role != "subagent" || identity.IdentityBasis != "first-session-meta" {
+		t.Fatalf("unexpected identity role/basis: %+v", identity)
+	}
+	if identity.SHA256 == "" || identity.SizeBytes == 0 || identity.SourcePath == "" {
+		t.Fatalf("expected fingerprint evidence, got %+v", identity)
+	}
+	if len(identity.Warnings) != 1 || identity.Warnings[0].Code != "codex-replayed-session-meta" || identity.Warnings[0].RecordIndex != 3 {
+		t.Fatalf("unexpected replay warnings: %+v", identity.Warnings)
+	}
+
+	session, err := ConvertLocator(adapters.SessionLocator{ID: "locator-id", SourcePath: path, FormatHint: "session-jsonl-v1"})
+	if err != nil {
+		t.Fatalf("ConvertLocator returned error: %v", err)
+	}
+	if session.ID != "child-session-001" || session.Provenance.OriginalSessionID == nil || *session.Provenance.OriginalSessionID != "child-session-001" {
+		t.Fatalf("unexpected converted identity: %+v", session.Provenance)
+	}
+	if session.Provenance.SourceFingerprint == nil || *session.Provenance.SourceFingerprint != identity.SHA256 {
+		t.Fatalf("source fingerprint = %+v, want %q", session.Provenance.SourceFingerprint, identity.SHA256)
+	}
+	if session.Provenance.IdentityBasis == nil || *session.Provenance.IdentityBasis != "first-session-meta" {
+		t.Fatalf("identity basis = %+v", session.Provenance.IdentityBasis)
+	}
+	config, ok := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if !ok {
+		t.Fatalf("framework config = %#v, want map", session.OperationalContext.FrameworkConfig)
+	}
+	warnings, ok := config["conversion_warnings"].([]adapters.ConversionWarning)
+	if !ok || len(warnings) != 1 || warnings[0].RecordIndex != 3 {
+		t.Fatalf("conversion warnings = %#v", config["conversion_warnings"])
+	}
+}
+
+func TestConvertRecordsSessionJSONLPreservesChildIdentityWhenParentMetadataReplays(t *testing.T) {
+	records, err := parseJSONLFile(filepath.Join("testdata", "child-session-meta-then-parent-replay.jsonl"))
+	if err != nil {
+		t.Fatalf("parseJSONLFile returned error: %v", err)
+	}
+
+	session, err := ConvertRecords(records, "locator-child-session-001", "/tmp/child-session.jsonl", "session-jsonl-v1")
+	if err != nil {
+		t.Fatalf("ConvertRecords returned error: %v", err)
+	}
+
+	if session.ID != "child-session-001" {
+		t.Fatalf("session ID = %q, want child-session-001; replayed parent metadata must not replace child identity", session.ID)
+	}
+	if session.Provenance.OriginalSessionID == nil || *session.Provenance.OriginalSessionID != "child-session-001" {
+		t.Fatalf("original session ID = %+v, want child-session-001", session.Provenance.OriginalSessionID)
+	}
+	if session.Coordination.PredecessorSession == nil || *session.Coordination.PredecessorSession != "parent-thread-001" {
+		t.Fatalf("predecessor session = %+v, want parent-thread-001", session.Coordination.PredecessorSession)
+	}
+}
+
+func TestConvertRecordsSessionJSONLIdentityPrecedence(t *testing.T) {
+	tests := []struct {
+		name       string
+		fallbackID string
+		records    []map[string]any
+		wantID     string
+	}{
+		{
+			name:       "fallback when no native header supplies an ID",
+			fallbackID: "locator-id",
+			records: []map[string]any{{
+				"type":    "session_meta",
+				"payload": map[string]any{"cwd": "/redacted/project"},
+			}},
+			wantID: "locator-id",
+		},
+		{
+			name:       "first native header wins over locator",
+			fallbackID: "locator-id",
+			records: []map[string]any{{
+				"type":    "session_meta",
+				"payload": map[string]any{"id": "native-id"},
+			}},
+			wantID: "native-id",
+		},
+		{
+			name:       "first native header wins over later replay",
+			fallbackID: "locator-id",
+			records: []map[string]any{
+				{"type": "session_meta", "payload": map[string]any{"id": "child-id", "parent_thread_id": "parent-id"}},
+				{"type": "session_meta", "payload": map[string]any{"id": "parent-id"}},
+			},
+			wantID: "child-id",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			session, err := ConvertRecords(tc.records, tc.fallbackID, "/tmp/session.jsonl", "session-jsonl-v1")
+			if err != nil {
+				t.Fatalf("ConvertRecords returned error: %v", err)
+			}
+			if session.ID != tc.wantID {
+				t.Fatalf("session ID = %q, want %q", session.ID, tc.wantID)
+			}
+		})
 	}
 }
 
