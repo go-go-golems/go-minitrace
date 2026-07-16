@@ -109,13 +109,25 @@ func (c *ConvertPiCommand) RunIntoGlazeProcessor(ctx context.Context, vals *valu
 	}
 
 	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(converted))
-	for _, source := range converted {
-		entry, err := emitConvertedSession(ctx, gp, source.session, source.locator.SourcePath, source.locator.FormatHint, settings_.OutputDir, settings_.DryRun)
-		if err != nil {
-			return err
+	publicationByID := map[string]minitrace.PublicationResult{}
+	if !settings_.DryRun {
+		sessions := make([]*minitrace.Session, 0, len(converted))
+		for _, source := range converted {
+			sessions = append(sessions, source.session)
 		}
-		if entry != nil {
-			indexEntries = append(indexEntries, entry)
+		publications, err := minitrace.PublishSessionBatch(sessions, settings_.OutputDir, minitrace.CollisionError)
+		if err != nil {
+			return errors.Wrap(err, "publishing staged Pi batch")
+		}
+		for _, publication := range publications {
+			publicationByID[publication.SessionID] = publication
+			indexEntries = append(indexEntries, publication.Entry)
+		}
+	}
+	for _, source := range converted {
+		publication := publicationByID[source.session.ID]
+		if err := emitConvertedSession(ctx, gp, source.session, source.locator.SourcePath, source.locator.FormatHint, publication, settings_.DryRun); err != nil {
+			return err
 		}
 	}
 
@@ -153,16 +165,12 @@ func emitFailedSessionRow(ctx context.Context, gp middlewares.Processor, framewo
 	return gp.AddRow(ctx, row)
 }
 
-func emitConvertedSession(ctx context.Context, gp middlewares.Processor, session *minitrace.Session, sourcePath, sourceFormat, outputDir string, dryRun bool) (*minitrace.SessionIndexEntry, error) {
-	var entry *minitrace.SessionIndexEntry
-	var err error
+func emitConvertedSession(ctx context.Context, gp middlewares.Processor, session *minitrace.Session, sourcePath, sourceFormat string, publication minitrace.PublicationResult, dryRun bool) error {
 	sessionPath := ""
-	if !dryRun {
-		entry, err = minitrace.WriteSession(session, outputDir)
-		if err != nil {
-			return nil, errors.Wrapf(err, "writing Pi session %s", session.ID)
-		}
-		sessionPath = entry.FilePath
+	status := "dry-run"
+	if publication.Entry != nil {
+		sessionPath = publication.Entry.FilePath
+		status = string(publication.Status)
 	}
 
 	quality := ""
@@ -180,12 +188,9 @@ func emitConvertedSession(ctx context.Context, gp middlewares.Processor, session
 		types.MRP("classification", session.Classification),
 		types.MRP("dry_run", dryRun),
 		types.MRP("session_path", sessionPath),
+		types.MRP("status", status),
 	)
-	if err := gp.AddRow(ctx, row); err != nil {
-		return nil, err
-	}
-
-	return entry, nil
+	return gp.AddRow(ctx, row)
 }
 
 func NewPiCommand() (*cobra.Command, error) {
