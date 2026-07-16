@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -22,6 +23,69 @@ type archiveInventory struct {
 	Files        []archiveInventoryFile `json:"files"`
 	Unmatched    []string               `json:"unmatched_globs"`
 	InventorySHA string                 `json:"inventory_sha256"`
+}
+
+type queryProvenance struct {
+	Kind       string `json:"kind"`
+	Path       string `json:"path,omitempty"`
+	Preset     string `json:"preset,omitempty"`
+	SHA256     string `json:"sha256"`
+	InlineText string `json:"inline_text,omitempty"`
+}
+
+type queryRunRecord struct {
+	Schema       string           `json:"schema"`
+	StartedAt    string           `json:"started_at"`
+	FinishedAt   string           `json:"finished_at"`
+	Status       string           `json:"status"`
+	ErrorCode    string           `json:"error_code,omitempty"`
+	Error        string           `json:"error,omitempty"`
+	Query        queryProvenance  `json:"query"`
+	Inventory    archiveInventory `json:"archive_inventory"`
+	MaxRows      int              `json:"max_rows"`
+	MaxCellChars int              `json:"max_cell_chars"`
+	TimeoutMS    int              `json:"timeout_ms"`
+	Columns      []string         `json:"columns"`
+	RowCount     int              `json:"row_count"`
+	Truncated    bool             `json:"truncated"`
+}
+
+func hashText(text string) string {
+	sum := sha256.Sum256([]byte(text))
+	return hex.EncodeToString(sum[:])
+}
+
+func writeQueryRunRecord(path string, record queryRunRecord) error {
+	if path == "" {
+		return nil
+	}
+	record.FinishedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	payload, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return err
+	}
+	payload = append(payload, '\n')
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".query-run-*.tmp")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	defer func() { _ = os.Remove(temporaryPath) }()
+	if _, err := temporary.Write(payload); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporaryPath, path)
 }
 
 func resolveArchiveInventory(globs []string) (archiveInventory, error) {

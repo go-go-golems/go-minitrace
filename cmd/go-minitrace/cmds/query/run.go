@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,13 +27,16 @@ type RunQueryCommand struct {
 }
 
 type RunQuerySettings struct {
-	ArchiveGlob  []string `glazed:"archive-glob"`
-	Preset       string   `glazed:"preset"`
-	SQL          string   `glazed:"sql"`
-	SQLFile      string   `glazed:"sql-file"`
-	MaxRows      int      `glazed:"max-rows"`
-	MaxCellChars int      `glazed:"max-cell-chars"`
-	TimeoutMS    int      `glazed:"timeout-ms"`
+	ArchiveGlob    []string `glazed:"archive-glob"`
+	Preset         string   `glazed:"preset"`
+	SQL            string   `glazed:"sql"`
+	SQLFile        string   `glazed:"sql-file"`
+	MaxRows        int      `glazed:"max-rows"`
+	MaxCellChars   int      `glazed:"max-cell-chars"`
+	TimeoutMS      int      `glazed:"timeout-ms"`
+	RunRecord      string   `glazed:"run-record"`
+	Strict         bool     `glazed:"strict"`
+	AllowTruncated bool     `glazed:"allow-truncated"`
 }
 
 func NewRunQueryGlazeCommand() (*RunQueryCommand, error) {
@@ -71,6 +75,9 @@ Examples:
 			fields.New("max-rows", fields.TypeInteger, fields.WithDefault(1000), fields.WithHelp("Maximum number of rows to return")),
 			fields.New("max-cell-chars", fields.TypeInteger, fields.WithDefault(4000), fields.WithHelp("Maximum number of characters per result cell")),
 			fields.New("timeout-ms", fields.TypeInteger, fields.WithDefault(5000), fields.WithHelp("Query timeout in milliseconds")),
+			fields.New("run-record", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Write an atomic query run receipt")),
+			fields.New("strict", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Require reproducible query inputs and complete results")),
+			fields.New("allow-truncated", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Permit truncated results in strict mode")),
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -106,10 +113,22 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 		return errors.New("preset, sql, and sql-file are mutually exclusive")
 	}
 
+	if settings_.Strict && strings.TrimSpace(settings_.SQL) != "" && settings_.RunRecord == "" {
+		return errors.New("strict inline SQL requires --run-record so the exact text is captured")
+	}
 	sqlText, err := resolveRunSQL(settings_)
 	if err != nil {
 		return err
 	}
+	inventory, err := resolveArchiveInventory(settings_.ArchiveGlob)
+	if err != nil {
+		return err
+	}
+	queryInfo, err := resolveQueryProvenance(settings_, sqlText)
+	if err != nil {
+		return err
+	}
+	record := queryRunRecord{Schema: "go-minitrace-query-run-v1", StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Status: "running", Query: queryInfo, Inventory: inventory, MaxRows: settings_.MaxRows, MaxCellChars: settings_.MaxCellChars, TimeoutMS: settings_.TimeoutMS, Columns: []string{}}
 
 	target, err := minitracejs.NewArchiveQueryTarget(ctx, settings_.ArchiveGlob, minitracedb.QueryOptions{
 		MaxRows:      settings_.MaxRows,
@@ -117,11 +136,48 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 		Timeout:      time.Duration(settings_.TimeoutMS) * time.Millisecond,
 	})
 	if err != nil {
+		record.Status, record.ErrorCode, record.Error = "failed", "archive-load", err.Error()
+		_ = writeQueryRunRecord(settings_.RunRecord, record)
 		return err
 	}
 	defer func() { _ = target.Close() }()
 
-	return RunQueryTargetIntoProcessor(ctx, target, sqlText, gp)
+	result, runErr := RunQueryTargetIntoProcessorWithResult(ctx, target, sqlText, gp)
+	record.Columns, record.RowCount, record.Truncated = result.Columns, result.Count, result.Truncated
+	if runErr != nil {
+		record.Status, record.ErrorCode, record.Error = "failed", "query-execution", runErr.Error()
+		_ = writeQueryRunRecord(settings_.RunRecord, record)
+		return runErr
+	}
+	if result.Truncated && settings_.Strict && !settings_.AllowTruncated {
+		err := errors.New("query result was truncated; use --allow-truncated to accept incomplete evidence")
+		record.Status, record.ErrorCode, record.Error = "failed", "truncated", err.Error()
+		_ = writeQueryRunRecord(settings_.RunRecord, record)
+		return err
+	}
+	record.Status = "success"
+	return writeQueryRunRecord(settings_.RunRecord, record)
+}
+
+func resolveQueryProvenance(settings_ *RunQuerySettings, sqlText string) (queryProvenance, error) {
+	ret := queryProvenance{SHA256: hashText(sqlText)}
+	if settings_.Preset != "" {
+		ret.Kind, ret.Preset = "preset", settings_.Preset
+		return ret, nil
+	}
+	if settings_.SQLFile != "" {
+		absolute, err := filepath.Abs(settings_.SQLFile)
+		if err != nil {
+			return ret, err
+		}
+		ret.Kind, ret.Path = "file", filepath.Clean(absolute)
+		return ret, nil
+	}
+	ret.Kind = "inline"
+	if settings_.RunRecord != "" {
+		ret.InlineText = sqlText
+	}
+	return ret, nil
 }
 
 func resolveRunSQL(settings_ *RunQuerySettings) (string, error) {

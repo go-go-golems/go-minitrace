@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,6 +31,25 @@ func TestResolveArchiveInventoryIsIndependentOfGlobOrder(t *testing.T) {
 	}
 	if len(left.Files) != 2 || len(left.Unmatched) != 1 || left.Unmatched[0] != unmatched {
 		t.Fatalf("unexpected inventory: %+v", left)
+	}
+}
+
+func TestQueryRunRecordRoundTrip(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "runs", "query.json")
+	record := queryRunRecord{Schema: "go-minitrace-query-run-v1", Status: "success", Query: queryProvenance{Kind: "file", SHA256: hashText("select 1")}, Columns: []string{"value"}, RowCount: 1}
+	if err := writeQueryRunRecord(path, record); err != nil {
+		t.Fatal(err)
+	}
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded queryRunRecord
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Schema != record.Schema || decoded.Query.SHA256 != record.Query.SHA256 || decoded.FinishedAt == "" {
+		t.Fatalf("unexpected receipt: %+v", decoded)
 	}
 }
 
