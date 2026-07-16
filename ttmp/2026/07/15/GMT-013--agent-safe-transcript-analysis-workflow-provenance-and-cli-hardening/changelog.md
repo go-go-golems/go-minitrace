@@ -147,3 +147,12 @@ P2 receipt reconciliation follow-up: failed Codex receipts now populate summary.
 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Failure receipt summary reconciliation
 
+
+## 2026-07-16
+
+Pinned Go 1.26.5, verified go-minitrace tests/lint, verified Glazed formatter tests/lint and successful GoReleaser snapshot, and opened go-minitrace PR #25
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/go.mod — Go 1.26.5 and pinned Glazed formatter fix
+
