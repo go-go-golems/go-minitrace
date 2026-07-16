@@ -138,3 +138,12 @@ P2.1-P2.13: native archive/manifests/source/receipt validation, non-zero error f
 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/validate/archive.go — Phase 2 validation implementation
 
+
+## 2026-07-16
+
+P2 receipt reconciliation follow-up: failed Codex receipts now populate summary.failed consistently with failure entries (commit 189a240)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Failure receipt summary reconciliation
+
