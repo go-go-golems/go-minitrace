@@ -111,7 +111,9 @@ func ValidateArchive(path string, checks []string) ([]Finding, error) {
 		}
 		period := filepath.Base(filepath.Dir(filePath))
 		if previousPath, duplicate := archives[session.ID]; duplicate {
-			findings = append(findings, finding("duplicate-archive-id", filePath, session.ID, "also present at "+previousPath))
+			if enabled[CheckArchive] {
+				findings = append(findings, finding("duplicate-archive-id", filePath, session.ID, "also present at "+previousPath))
+			}
 		} else {
 			archives[session.ID] = filePath
 			periodByID[session.ID] = period

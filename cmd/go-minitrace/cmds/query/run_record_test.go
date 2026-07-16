@@ -53,6 +53,30 @@ func TestQueryRunRecordRoundTrip(t *testing.T) {
 	}
 }
 
+func TestInventoryVerificationPreservesUnmatchedGlobs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "one.minitrace.json")
+	if err := os.WriteFile(path, []byte("one"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	original, err := resolveArchiveInventory([]string{path, filepath.Join(dir, "missing-*.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	verified, err := resolveArchiveInventory([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	verified.Unmatched = append([]string(nil), original.Unmatched...)
+	verified.InventorySHA, err = computeInventoryHash(verified.Files, verified.Unmatched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if verified.InventorySHA != original.InventorySHA {
+		t.Fatalf("preserved unmatched glob changed inventory hash: %s != %s", verified.InventorySHA, original.InventorySHA)
+	}
+}
+
 func TestResolveArchiveInventoryDeduplicatesFiles(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "one.minitrace.json")

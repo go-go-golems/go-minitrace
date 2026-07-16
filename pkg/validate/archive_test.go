@@ -101,6 +101,30 @@ func TestValidateArchiveFindsDuplicateIDs(t *testing.T) {
 	t.Fatalf("missing duplicate finding: %+v", findings)
 }
 
+func TestValidateArchiveDuplicateFindingHonorsCheckSelection(t *testing.T) {
+	root, _, entry := createArchiveFixture(t)
+	payload, err := os.ReadFile(entry.FilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateDir := filepath.Join(root, "active", "2025-01")
+	if err := os.MkdirAll(duplicateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(duplicateDir, filepath.Base(entry.FilePath)), payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	findings, err := ValidateArchive(root, []string{CheckSource})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, finding := range findings {
+		if finding.Code == "duplicate-archive-id" {
+			t.Fatalf("archive finding leaked into source-only check: %+v", findings)
+		}
+	}
+}
+
 func TestValidateArchiveChecksManifestFilePath(t *testing.T) {
 	root, _, _ := createArchiveFixture(t)
 	manifestPath := filepath.Join(root, "active", "2026-07", "manifest.json")

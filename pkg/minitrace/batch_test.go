@@ -31,6 +31,24 @@ func TestPublishSessionBatchRejectsAllCollisionsBeforePublishing(t *testing.T) {
 	}
 }
 
+func TestPublishSessionBatchReplacesChangedDerivedMetadataForSameSource(t *testing.T) {
+	outputDir := t.TempDir()
+	original := batchTestSession("parent", "same-source", "2026-01-01T00:00:00Z")
+	if _, err := PublishSessionBatch([]*Session{original}, outputDir, CollisionError); err != nil {
+		t.Fatal(err)
+	}
+	updated := batchTestSession("parent", "same-source", "2026-01-01T00:00:00Z")
+	title := "parent with newly discovered subagent"
+	updated.Title = &title
+	results, err := PublishSessionBatch([]*Session{updated}, outputDir, CollisionError)
+	if err != nil {
+		t.Fatalf("safe same-source replacement failed: %v", err)
+	}
+	if len(results) != 1 || results[0].Status != PublicationReplaced {
+		t.Fatalf("unexpected publication result: %+v", results)
+	}
+}
+
 func TestPublishSessionBatchReportsCreatedUnchangedAndReplaced(t *testing.T) {
 	outputDir := t.TempDir()
 	unchanged := batchTestSession("unchanged", "same", "2026-01-01T00:00:00Z")

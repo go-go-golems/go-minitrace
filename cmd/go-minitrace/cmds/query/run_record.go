@@ -119,14 +119,28 @@ func resolveArchiveInventory(globs []string) (archiveInventory, error) {
 		}
 	}
 	sort.Slice(inventory.Files, func(i, j int) bool { return inventory.Files[i].Path < inventory.Files[j].Path })
-	canonical, err := json.Marshal(struct {
-		Files     []archiveInventoryFile `json:"files"`
-		Unmatched []string               `json:"unmatched_globs"`
-	}{inventory.Files, inventory.Unmatched})
+	inventorySHA, err := computeInventoryHash(inventory.Files, inventory.Unmatched)
 	if err != nil {
 		return inventory, err
 	}
-	sum := sha256.Sum256(canonical)
-	inventory.InventorySHA = hex.EncodeToString(sum[:])
+	inventory.InventorySHA = inventorySHA
 	return inventory, nil
+}
+
+func computeInventoryHash(files []archiveInventoryFile, unmatched []string) (string, error) {
+	if files == nil {
+		files = []archiveInventoryFile{}
+	}
+	if unmatched == nil {
+		unmatched = []string{}
+	}
+	canonical, err := json.Marshal(struct {
+		Files     []archiveInventoryFile `json:"files"`
+		Unmatched []string               `json:"unmatched_globs"`
+	}{files, unmatched})
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(canonical)
+	return hex.EncodeToString(sum[:]), nil
 }

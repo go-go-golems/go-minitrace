@@ -146,9 +146,15 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 	}
 	defer func() { _ = target.Close() }()
 	verifiedInventory, verifyErr := resolveArchiveInventory(resolvedArchivePaths)
+	if verifyErr == nil {
+		// Exact-path verification cannot rediscover unmatched input patterns;
+		// preserve them because they are part of the receipt inventory hash.
+		verifiedInventory.Unmatched = append([]string(nil), inventory.Unmatched...)
+		verifiedInventory.InventorySHA, verifyErr = computeInventoryHash(verifiedInventory.Files, verifiedInventory.Unmatched)
+	}
 	if verifyErr != nil || verifiedInventory.InventorySHA != inventory.InventorySHA {
 		if verifyErr == nil {
-			verifyErr = errors.New("archive inventory changed while opening query target")
+			verifyErr = errors.Errorf("archive inventory changed while opening query target: before=%s after=%s", inventory.InventorySHA, verifiedInventory.InventorySHA)
 		}
 		record.Status, record.ErrorCode, record.Error = "failed", "archive-changed", verifyErr.Error()
 		_ = writeQueryRunRecord(settings_.RunRecord, record)

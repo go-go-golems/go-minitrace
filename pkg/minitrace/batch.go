@@ -68,7 +68,7 @@ func PublishSessionBatch(sessions []*Session, outputDir string, policy Collision
 		relative := filepath.Join("active", period, SanitizeID(session.ID)+".minitrace.json")
 		destination := filepath.Join(outputDir, relative)
 		if previous, ok := destinations[destination]; ok {
-			if !sameSourceFingerprint(previous, session) {
+			if !sameSourceFingerprint(previous, session) || !sameSessionContent(previous, session) {
 				return nil, errors.Errorf("batch contains conflicting sessions for destination %s", destination)
 			}
 			continue
@@ -78,11 +78,16 @@ func PublishSessionBatch(sessions []*Session, outputDir string, policy Collision
 		item := stagedSession{session: session, period: period, destination: destination, status: PublicationCreated}
 		if existing, _, readErr := readExistingSession(destination); readErr == nil {
 			if sameSourceFingerprint(existing, session) {
-				item.status = PublicationUnchanged
-				planned = append(planned, item)
-				continue
-			}
-			if policy != CollisionReplace {
+				if sameSessionContent(existing, session) {
+					item.status = PublicationUnchanged
+					planned = append(planned, item)
+					continue
+				}
+				// The same source bytes may produce changed derived metadata, such
+				// as newly discovered Claude subagent backlinks. This is a safe
+				// replacement because source ownership is unchanged.
+				item.status = PublicationReplaced
+			} else if policy != CollisionReplace {
 				return nil, errors.Errorf("archive collision for session %q at %s; use explicit replacement only after verifying source provenance", session.ID, destination)
 			}
 			item.status = PublicationReplaced
@@ -159,6 +164,12 @@ func PublishSessionBatch(sessions []*Session, outputDir string, policy Collision
 		})
 	}
 	return results, nil
+}
+
+func sameSessionContent(left, right *Session) bool {
+	leftPayload, leftErr := json.Marshal(left)
+	rightPayload, rightErr := json.Marshal(right)
+	return leftErr == nil && rightErr == nil && string(leftPayload) == string(rightPayload)
 }
 
 func sessionPeriod(session *Session) string {
