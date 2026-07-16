@@ -24,8 +24,9 @@ type conversionRunRecord struct {
 }
 
 type conversionRunOutput struct {
-	SessionID string `json:"session_id"`
-	Path      string `json:"path"`
+	SessionID string                      `json:"session_id"`
+	Path      string                      `json:"path"`
+	Status    minitrace.PublicationStatus `json:"status"`
 }
 
 func writeConversionRunRecord(path string, record conversionRunRecord) error {

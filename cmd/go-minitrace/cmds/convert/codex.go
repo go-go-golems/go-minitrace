@@ -129,18 +129,31 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 	}
 
 	indexEntries := make([]*minitrace.SessionIndexEntry, 0, len(converted))
+	publicationByID := map[string]minitrace.PublicationResult{}
+	if !settings_.DryRun {
+		sessions := make([]*minitrace.Session, 0, len(converted))
+		for _, source := range converted {
+			sessions = append(sessions, source.session)
+		}
+		publications, err := minitrace.PublishSessionBatch(sessions, settings_.OutputDir, collisionPolicy)
+		if err != nil {
+			return errors.Wrap(err, "publishing staged Codex batch")
+		}
+		for _, publication := range publications {
+			publicationByID[publication.SessionID] = publication
+			indexEntries = append(indexEntries, publication.Entry)
+			runRecord.Outputs = append(runRecord.Outputs, conversionRunOutput{SessionID: publication.SessionID, Path: publication.Entry.FilePath, Status: publication.Status})
+		}
+	}
+
 	for _, source := range converted {
 		locator := source.locator
 		session := source.session
-		var sessionPath string
-		if !settings_.DryRun {
-			entry, err := minitrace.WriteSessionWithCollisionPolicy(session, settings_.OutputDir, collisionPolicy)
-			if err != nil {
-				return errors.Wrapf(err, "writing minitrace session %s", locator.ID)
-			}
-			indexEntries = append(indexEntries, entry)
-			runRecord.Outputs = append(runRecord.Outputs, conversionRunOutput{SessionID: session.ID, Path: entry.FilePath})
-			sessionPath = entry.FilePath
+		sessionPath := ""
+		publicationStatus := "dry-run"
+		if publication, ok := publicationByID[session.ID]; ok {
+			sessionPath = publication.Entry.FilePath
+			publicationStatus = string(publication.Status)
 		}
 
 		quality := ""
@@ -173,6 +186,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 			types.MRP("classification", session.Classification),
 			types.MRP("dry_run", settings_.DryRun),
 			types.MRP("session_path", sessionPath),
+			types.MRP("status", publicationStatus),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
