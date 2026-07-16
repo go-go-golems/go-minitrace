@@ -155,7 +155,7 @@
   - Resolve, normalize, deduplicate, sort, inspect, and fingerprint all requested sources before publication.
   - Detect duplicate paths and conflicting native IDs during preflight.
   - Done when: a collision in input N is found before output 1 is published in strict mode.
-- [ ] **P1.13 — Implement staged batch publication.**
+- [x] **P1.13 — Implement staged batch publication.**
   - Stage converted archives and derived manifests under a run-specific directory.
   - Publish only after all strict-mode conversions and collision checks pass.
   - Document any remaining multi-file crash window instead of claiming unsupported global atomicity.
@@ -186,48 +186,48 @@
 
 **Phase dependency:** P1.1–P1.18 complete.
 
-- [ ] **P2.1 — Define validation finding codes and severities.**
+- [x] **P2.1 — Define validation finding codes and severities.**
   - Add stable code, severity, path, session ID, and details fields.
   - Preserve current human-readable columns while making JSON reliable.
   - Done when: finding serialization and ordering tests pass.
-- [ ] **P2.2 — Add selectable validation checks.**
+- [x] **P2.2 — Add selectable validation checks.**
   - Implement `--checks syntax,schema,archive` with explicit validation of unknown names.
   - Done when: existing syntax behavior remains available and archive checking is opt-in until documented rollout.
-- [ ] **P2.3 — Detect archive roots robustly.**
+- [x] **P2.3 — Detect archive roots robustly.**
   - Support a direct root containing `manifest.json` and `active/` and a parent containing multiple framework roots.
   - Avoid constructing `active/active` paths.
   - Done when: fixtures cover both layouts and the holdout's wrong-level invocation succeeds or reports a clear root error.
-- [ ] **P2.4 — Validate archive filenames and payload identities.**
+- [x] **P2.4 — Validate archive filenames and payload identities.**
   - Check sanitized filename against `Session.ID` and detect duplicate IDs across files.
   - Done when: mismatches and duplicates produce deterministic error findings.
-- [ ] **P2.5 — Validate period placement.**
+- [x] **P2.5 — Validate period placement.**
   - Compare `timing.started_at` month with `active/YYYY-MM`; handle `unknown` explicitly.
   - Done when: misplaced archives are reported without modifying them.
-- [ ] **P2.6 — Validate root and period manifests.**
+- [x] **P2.6 — Validate root and period manifests.**
   - Compare period list, counts, file names, IDs, selected metadata, and total statistics against actual archives.
   - Done when: stale counts, orphan entries, missing manifests, and wrong file paths each have dedicated finding codes.
-- [ ] **P2.7 — Detect orphan archives and orphan manifest entries.**
+- [x] **P2.7 — Detect orphan archives and orphan manifest entries.**
   - Report both directions and preserve enough path detail for repair.
   - Done when: a mixed fixture yields exactly the expected findings.
-- [ ] **P2.8 — Validate source identity consistency.**
+- [x] **P2.8 — Validate source identity consistency.**
   - Detect conflicting fingerprints for one session ID and suspicious reuse of one fingerprint under different IDs.
   - Treat legacy missing fingerprints as informational or warning according to documented policy.
   - Done when: identity findings match Phase 1 collision semantics.
-- [ ] **P2.9 — Validate conversion receipts.**
+- [x] **P2.9 — Validate conversion receipts.**
   - Check receipt schema/version, output paths, output hashes, summary counts, completeness, and archive existence.
   - Done when: a valid Phase 1 receipt passes and tampered/missing output cases fail predictably.
-- [ ] **P2.10 — Add non-zero exit behavior for error findings.**
+- [x] **P2.10 — Add non-zero exit behavior for error findings.**
   - Warnings remain inspectable without masking errors.
   - Add an explicit override only if a real workflow requires it.
   - Done when: machine tests assert rows plus process status.
-- [ ] **P2.11 — Make manifest writes atomic and add a rebuild path.**
+- [x] **P2.11 — Make manifest writes atomic and add a rebuild path.**
   - Reuse validated archive scanning; decide whether repair is a flag on `validate` or remains a separate future operation.
   - Do not silently repair during validation.
   - Done when: interrupted writes preserve the previous valid manifest.
-- [ ] **P2.12 — Retire skill dependence on `audit_manifests.sh`.**
+- [x] **P2.12 — Retire skill dependence on `audit_manifests.sh`.**
   - Update the skill to call native validation; retain the helper only if needed for older released binaries and label that scope.
   - Done when: the isolated holdout validation sequence uses no directory-shape-specific audit script.
-- [ ] **P2.13 — Phase 2 documentation and phase gate.**
+- [x] **P2.13 — Phase 2 documentation and phase gate.**
   - Update `validate.md`, `troubleshooting.md`, diary, tasks, and changelog.
   - Run validation package tests, CLI integration tests, full Go tests, lint, and real ticket-local archive checks.
   - Done when: one command validates single-root and multi-root analysis layouts with machine-readable findings.

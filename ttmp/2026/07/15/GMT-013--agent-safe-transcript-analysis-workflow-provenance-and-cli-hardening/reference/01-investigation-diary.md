@@ -19,10 +19,13 @@ RelatedFiles:
       Note: Isolated holdout setup, bounded-source methodology, and acceptance context
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/researchctl/ttmp/2026/07/15/RESEARCHCTL-012--cross-purpose-immutable-research-laboratory-for-researchctl/experiments/01-goja-pr95-review-hardening-skill-holdout/04-evaluation.md
       Note: Exact holdout findings and evaluation score
+    - Path: repo://cmd/go-minitrace/cmds/convert/claude_code.go
+      Note: In-memory backlinking and staged Claude publication
     - Path: repo://cmd/go-minitrace/cmds/convert/codex.go
       Note: |-
         P1 public collision policy flag
         Strict all-input Codex preflight and duplicate/conflict detection
+        Codex staged publication, partial mode, and failure receipts
     - Path: repo://cmd/go-minitrace/cmds/convert/codex_phase0_test.go
       Note: |-
         P0 partial-batch publication characterization
@@ -31,6 +34,8 @@ RelatedFiles:
       Note: Deterministic explicit source path normalization, deduplication, and ordering
     - Path: repo://cmd/go-minitrace/cmds/query/output_phase0_test.go
       Note: P0 zero-row JSON formatter and empty-JS-result characterization
+    - Path: repo://cmd/go-minitrace/cmds/validate/validate.go
+      Note: Archive validation CLI and rebuild gate
     - Path: repo://pkg/adapters/codex/convert.go
       Note: |-
         Source evidence for corrected Codex identity diagnosis
@@ -58,8 +63,12 @@ RelatedFiles:
       Note: |-
         P0 collision overwrite characterization
         P1 default-reject and explicit-replace archive collision coverage
+    - Path: repo://pkg/minitrace/batch.go
+      Note: Shared staged batch publication and rollback semantics
     - Path: repo://pkg/minitrace/schema.go
       Note: P1 additive source fingerprint and identity basis archive fields
+    - Path: repo://pkg/validate/archive.go
+      Note: Native archive, manifest, source, and receipt validation
     - Path: repo://ttmp/2026/07/15/GMT-013--agent-safe-transcript-analysis-workflow-provenance-and-cli-hardening/tasks.md
       Note: Stable D, P0-P6, and R task IDs with per-task evidence and phase gates
 ExternalSources: []
@@ -68,6 +77,7 @@ LastUpdated: 2026-07-15T18:30:00-04:00
 WhatFor: Preserve why GMT-013 recommends identity locking, collision-safe publication, receipts, valid structured output, archive validation, and a consolidated help tree.
 WhenToUse: Read before resuming GMT-013 implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1470,3 +1480,89 @@ normalized/sorted explicit paths
   -> attach identity to locators
   -> only then ConvertLocator / WriteSession
 ```
+
+## Step 14: Stage primary JSONL batches and add native archive validation
+
+I replaced per-session publication in the Codex, Pi, and Claude Code command paths with a shared staged publisher. Claude parent/subagent backlinks are now applied in memory before staging, and Codex receipts capture failed preflight, conversion, and publication runs instead of existing only for successful runs.
+
+I also implemented the Phase 2 native validator: archive-root discovery, selectable checks, identity and period checks, root/period manifest reconciliation, orphan detection, source fingerprint verification, receipt validation, non-zero error behavior, atomic manifest writes, and manifest rebuilding. The skill workflow now points to `go-minitrace validate --archive` rather than the legacy manifest audit script.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Work on the next steps. \n\n - [ ] P1.13: staged post-preflight conversion/publication. Current behavior can still partially publish if conversion fails after preflight.                                                               \n - [ ] P1.14: explicit --allow-partial semantics and structured per-source failures/results.                                                                                                                \n - [ ] P1.15 completion: write failure/incomplete conversion receipts, not only successful-run receipts.                                                                                                    \n - [ ] P1.16–P1.17: migrate Codex fully to shared batch runner, then Pi and Claude Code.                                                                                                                    \n - [ ] P1.18: update command/adaptor docs and complete Phase 1 gate.                                                                                                                                        \n - [ ] Phase 2: native archive/manifests/receipt validation.                                                                                                                                                \n - [ ] Phase 3: query run receipts, truncation semantics, and upstream Glazed empty JSON []\n fix.                                                                                                          \n - [ ] Phase 4–6: enriched discovery/strict profile, documentation consolidation, and evidence-bearing tool statuses."
+
+**Assistant interpretation:** Continue implementing the remaining GMT-013 phases, beginning with safe batch publication and native validation.
+
+**Inferred user intent:** Move from research and partial foundations to enforceable, tested CLI safety and reproducibility contracts without repeated confirmation pauses.
+
+**Commit (code):** `c991b9731e41cf8d95e68ec90569e6f4382bfef9` — "Stage transcript batches before publication"
+
+**Additional commits:** `0fae4675f7e7a2f46837b7c421a5a695507b8327`, `3242bd7561d0529e82ab071c12c658b710f3264b`, `1450ebcaeff919584941d3ebae3a41cfcd80afc8`, `cc0c234a66ed0fa2bc5f14854927abe59d28d9ad`, `b3017a90dbd1d436b69d74c359b346e0e2a5071c`.
+
+### What I did
+
+- Added `minitrace.PublishSessionBatch` with all-collision precheck, staging, deterministic publication order, replacement backups, and in-process rollback.
+- Migrated Codex, Pi, and Claude Code primary/subagent archives to staged publication.
+- Applied Claude parent/subagent backlinks before staging instead of rewriting published files.
+- Added Codex `--allow-partial`, structured failed rows, publication statuses, receipt summaries, and incomplete failure receipts.
+- Added native archive, manifest, source-fingerprint, and receipt checks plus CLI check selection and non-zero error behavior.
+- Made manifest writes atomic and added `--rebuild-manifests`.
+- Replaced obsolete conversion/validation documentation and updated the transcript-analysis skill workflow.
+
+### Why
+
+- Strict conversion cannot be safe while earlier entries publish before later conversions or collision checks finish.
+- Archive evidence is not reproducible unless filenames, payload IDs, periods, manifests, source hashes, and run receipts can be checked by the CLI itself.
+
+### What worked
+
+- Collision failures are detected before the first batch archive publishes.
+- Created, unchanged, and replaced publication statuses are deterministic and covered by tests.
+- Claude backlink mutation no longer occurs as an unsafe post-publication rewrite.
+- Archive validation emits stable finding codes and can gate automation with a non-zero result.
+- Full tests, race tests for changed packages, and lint passed.
+
+### What didn't work
+
+- The first Claude migration commit attempt failed lint because `emitFailedSessionRow` became unused: `cmd/go-minitrace/cmds/convert/pi.go:152:6: func emitFailedSessionRow is unused`. I removed the obsolete helper, reran targeted tests and `make lint`, then committed.
+- A staged multi-file rename is rollback-safe for ordinary returned errors but cannot provide filesystem-wide atomicity across a process crash. This limitation is documented rather than hidden.
+
+### What I learned
+
+- Claude backlinks must be treated as derived conversion output and finalized before collision comparison/publication.
+- Manifest rebuilding is naturally implemented by the existing archive rescan, but publication must use temporary files plus rename to avoid truncated manifests.
+- Receipt validation needs reconciliation rules, not only JSON syntax checks.
+
+### What was tricky to build
+
+The publisher spans multiple period directories, so no single rename can commit the whole batch. The implementation stages all payloads, prechecks every collision, publishes in sorted destination order, backs up replacements, and reverses completed renames when an operation returns an error. It explicitly does not claim recovery from power loss or process termination mid-sequence.
+
+Claude Code also used to publish parent archives, publish subagents, reopen parent JSON, and rewrite backlinks. The migration instead converts all primaries and subagents, resolves and sorts child IDs, mutates parents in memory, and passes the final objects into one staged batch.
+
+### What warrants a second pair of eyes
+
+- Review crash semantics and whether a future journal/recovery marker is warranted for interrupted multi-directory commits.
+- Review Codex partial-mode accounting for skipped duplicate inputs and explicit collision outcomes before checking P1.14/P1.15 complete.
+- Verify whether newly discovered Claude subagents should force replacement of a fingerprint-identical parent whose derived backlinks differ.
+
+### What should be done in the future
+
+- Finish complete P1.14/P1.15 terminal-result accounting and receipt metadata, then close the Phase 1 gate.
+- Continue with Phase 3 query receipts, truncation semantics, and exact empty JSON output.
+
+### Code review instructions
+
+- Start with `pkg/minitrace/batch.go`, then review the Codex, Pi, and Claude Code command migrations.
+- Review `pkg/validate/archive.go` and CLI tests in `cmd/go-minitrace/cmds/validate/validate_test.go`.
+- Validate with:
+
+  ```bash
+  go test ./... -count=1
+  go test -race ./pkg/minitrace ./pkg/validate ./cmd/go-minitrace/cmds/convert -count=1
+  make lint
+  docmgr doctor --ticket GMT-013 --stale-after 30
+  ```
+
+### Technical details
+
+The publisher guarantees conversion completion, collision precheck, and staged bytes before publication. It provides in-process rollback for returned rename errors. It does not claim a global atomic transaction across period directories. Archive validation findings are sorted by path/code and use stable severity values suitable for JSON automation.

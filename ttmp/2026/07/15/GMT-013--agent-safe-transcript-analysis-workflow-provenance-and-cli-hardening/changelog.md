@@ -120,3 +120,21 @@ P1.15 progress: Codex --run-record writes atomic conversion provenance JSON with
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/codex.go — Codex run-record flag and successful-run integration
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert/run_record.go — Conversion receipt v1 serialization
 
+
+## 2026-07-16
+
+P1.13/P1 migration progress: staged collision-prechecked publication for Codex, Pi, and Claude Code, including in-memory Claude backlinks and incomplete Codex receipts (commits c991b97, 0fae467, 3242bd7, 1450ebc)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/batch.go — Staged publisher
+
+
+## 2026-07-16
+
+P2.1-P2.13: native archive/manifests/source/receipt validation, non-zero error findings, atomic manifest rebuild, docs, tests, and skill migration (commits cc0c234, b3017a9)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/validate/archive.go — Phase 2 validation implementation
+
