@@ -113,6 +113,39 @@ func TestConvertCodexEmitsPreflightProvenance(t *testing.T) {
 	}
 }
 
+func TestConvertCodexWritesIncompleteReceiptOnPreflightFailure(t *testing.T) {
+	dir := t.TempDir()
+	invalid := filepath.Join(dir, "invalid.jsonl")
+	if err := os.WriteFile(invalid, []byte(`{"type":"unrecognized","payload":{}}`+"\n"), 0o644); err != nil {
+		t.Fatalf("writing invalid source: %v", err)
+	}
+	command, err := NewConvertCodexGlazeCommand()
+	if err != nil {
+		t.Fatalf("NewConvertCodexGlazeCommand returned error: %v", err)
+	}
+	receiptPath := filepath.Join(dir, "receipt.json")
+	values, err := runner.ParseCommandValues(command, runner.WithValuesForSections(map[string]map[string]any{
+		schema.DefaultSlug: {"source-session": []string{invalid}, "output-dir": filepath.Join(dir, "output"), "run-record": receiptPath},
+	}))
+	if err != nil {
+		t.Fatalf("ParseCommandValues returned error: %v", err)
+	}
+	if err := command.RunIntoGlazeProcessor(context.Background(), values, &phase0CaptureProcessor{}); err == nil {
+		t.Fatal("expected preflight failure")
+	}
+	payload, err := os.ReadFile(receiptPath)
+	if err != nil {
+		t.Fatalf("reading failure receipt: %v", err)
+	}
+	var record conversionRunRecord
+	if err := json.Unmarshal(payload, &record); err != nil {
+		t.Fatalf("decoding failure receipt: %v", err)
+	}
+	if record.Complete || len(record.Failures) != 1 || record.Failures[0].Stage != "preflight" || record.FinishedAt == "" {
+		t.Fatalf("unexpected failure receipt: %+v", record)
+	}
+}
+
 func TestConvertCodexPreflightRejectsInvalidSourceBeforePublication(t *testing.T) {
 	dir := t.TempDir()
 	valid := filepath.Join(dir, "valid.jsonl")

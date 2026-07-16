@@ -20,6 +20,8 @@ type conversionRunRecord struct {
 	CollisionPolicy minitrace.CollisionPolicy `json:"collision_policy"`
 	Inputs          []adapters.SourceIdentity `json:"inputs"`
 	Outputs         []conversionRunOutput     `json:"outputs"`
+	Failures        []conversionRunFailure    `json:"failures"`
+	Summary         conversionRunSummary      `json:"summary"`
 	Complete        bool                      `json:"complete"`
 }
 
@@ -27,6 +29,19 @@ type conversionRunOutput struct {
 	SessionID string                      `json:"session_id"`
 	Path      string                      `json:"path"`
 	Status    minitrace.PublicationStatus `json:"status"`
+}
+
+type conversionRunFailure struct {
+	SourcePath string `json:"source_path,omitempty"`
+	SessionID  string `json:"session_id,omitempty"`
+	Stage      string `json:"stage"`
+	Error      string `json:"error"`
+}
+
+type conversionRunSummary struct {
+	Requested int `json:"requested"`
+	Published int `json:"published"`
+	Failed    int `json:"failed"`
 }
 
 func writeConversionRunRecord(path string, record conversionRunRecord) error {
@@ -60,12 +75,26 @@ func writeConversionRunRecord(path string, record conversionRunRecord) error {
 	return nil
 }
 
-func newConversionRunRecord(adapter, outputDir string, policy minitrace.CollisionPolicy, locators []adapters.SessionLocator) conversionRunRecord {
+func conversionRunInputs(locators []adapters.SessionLocator) []adapters.SourceIdentity {
 	inputs := make([]adapters.SourceIdentity, 0, len(locators))
 	for _, locator := range locators {
 		if locator.Identity != nil {
 			inputs = append(inputs, *locator.Identity)
 		}
 	}
-	return conversionRunRecord{Schema: "go-minitrace-conversion-run-v1", Adapter: adapter, StartedAt: minitrace.FormatTimestamp(time.Now().UTC()), OutputDir: outputDir, CollisionPolicy: policy, Inputs: inputs, Outputs: []conversionRunOutput{}}
+	return inputs
+}
+
+func newConversionRunRecord(adapter, outputDir string, policy minitrace.CollisionPolicy, locators []adapters.SessionLocator) conversionRunRecord {
+	return conversionRunRecord{
+		Schema:          "go-minitrace-conversion-run-v1",
+		Adapter:         adapter,
+		StartedAt:       minitrace.FormatTimestamp(time.Now().UTC()),
+		OutputDir:       outputDir,
+		CollisionPolicy: policy,
+		Inputs:          conversionRunInputs(locators),
+		Outputs:         []conversionRunOutput{},
+		Failures:        []conversionRunFailure{},
+		Summary:         conversionRunSummary{Requested: len(locators)},
+	}
 }
