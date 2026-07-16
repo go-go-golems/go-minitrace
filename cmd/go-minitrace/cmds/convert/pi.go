@@ -147,24 +147,6 @@ func (c *ConvertPiCommand) RunIntoGlazeProcessor(ctx context.Context, vals *valu
 	return nil
 }
 
-// emitFailedSessionRow records a per-session conversion failure as a
-// diagnostics row so a single broken session does not abort the whole run.
-func emitFailedSessionRow(ctx context.Context, gp middlewares.Processor, framework, sessionID, sessionKind, sourceFormat, sourcePath string, dryRun bool, convertErr error) error {
-	row := types.NewRow(
-		types.MRP("framework", framework),
-		types.MRP("session_id", sessionID),
-	)
-	if sessionKind != "" {
-		row.Set("session_kind", sessionKind)
-	}
-	row.Set("source_format", sourceFormat)
-	row.Set("source_path", sourcePath)
-	row.Set("status", "failed")
-	row.Set("error", convertErr.Error())
-	row.Set("dry_run", dryRun)
-	return gp.AddRow(ctx, row)
-}
-
 func emitConvertedSession(ctx context.Context, gp middlewares.Processor, session *minitrace.Session, sourcePath, sourceFormat string, publication minitrace.PublicationResult, dryRun bool) error {
 	sessionPath := ""
 	status := "dry-run"
