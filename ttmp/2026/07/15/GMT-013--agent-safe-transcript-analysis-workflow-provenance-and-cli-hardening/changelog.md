@@ -156,3 +156,12 @@ Pinned Go 1.26.5, verified go-minitrace tests/lint, verified Glazed formatter te
 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/go.mod — Go 1.26.5 and pinned Glazed formatter fix
 
+
+## 2026-07-16
+
+PR #25 review follow-up: restored Pi/Claude idempotent reruns with source fingerprints, bound query execution to resolved inventories, detected duplicate archive IDs, validated manifest file paths, and cleared GoSec G122/G302 findings (commit 0a867e7)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/validate/archive.go — Review and GoSec fixes
+
