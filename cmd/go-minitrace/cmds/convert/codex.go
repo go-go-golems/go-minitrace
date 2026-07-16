@@ -115,6 +115,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 	locators, err = preflightCodexLocators(locators)
 	if err != nil {
 		runRecord.Failures = append(runRecord.Failures, conversionRunFailure{Stage: "preflight", Error: err.Error()})
+		runRecord.Summary.Failed = len(runRecord.Failures)
 		runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
 		if receiptErr := writeConversionRunRecord(settings_.RunRecord, runRecord); receiptErr != nil {
 			return errors.Wrapf(err, "also failed to write conversion receipt: %v", receiptErr)
@@ -136,6 +137,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 			failed = append(failed, failure)
 			runRecord.Failures = append(runRecord.Failures, failure)
 			if !settings_.AllowPartial {
+				runRecord.Summary.Failed = len(runRecord.Failures)
 				runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
 				if receiptErr := writeConversionRunRecord(settings_.RunRecord, runRecord); receiptErr != nil {
 					return errors.Wrapf(convertErr, "also failed to write conversion receipt: %v", receiptErr)
@@ -157,6 +159,7 @@ func (c *ConvertCodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *v
 		publications, err := minitrace.PublishSessionBatch(sessions, settings_.OutputDir, collisionPolicy)
 		if err != nil {
 			runRecord.Failures = append(runRecord.Failures, conversionRunFailure{Stage: "publish", Error: err.Error()})
+			runRecord.Summary.Failed = len(runRecord.Failures)
 			runRecord.FinishedAt = minitrace.FormatTimestamp(time.Now().UTC())
 			if receiptErr := writeConversionRunRecord(settings_.RunRecord, runRecord); receiptErr != nil {
 				return errors.Wrapf(err, "also failed to write conversion receipt: %v", receiptErr)

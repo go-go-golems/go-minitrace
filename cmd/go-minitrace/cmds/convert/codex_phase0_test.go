@@ -144,6 +144,9 @@ func TestConvertCodexWritesIncompleteReceiptOnPreflightFailure(t *testing.T) {
 	if record.Complete || len(record.Failures) != 1 || record.Failures[0].Stage != "preflight" || record.FinishedAt == "" {
 		t.Fatalf("unexpected failure receipt: %+v", record)
 	}
+	if record.Summary.Requested != 1 || record.Summary.Published != 0 || record.Summary.Failed != 1 {
+		t.Fatalf("failure receipt summary does not reconcile: %+v", record.Summary)
+	}
 }
 
 func TestConvertCodexPreflightRejectsInvalidSourceBeforePublication(t *testing.T) {
