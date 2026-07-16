@@ -165,3 +165,12 @@ PR #25 review follow-up: restored Pi/Claude idempotent reruns with source finger
 
 - /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/validate/archive.go — Review and GoSec fixes
 
+
+## 2026-07-16
+
+PR #25 second review follow-up: republish same-source derived metadata changes, preserve unmatched globs during inventory verification, and honor validation check selection for duplicate IDs (commit 422741b)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-minitrace/pkg/minitrace/batch.go — Derived metadata republishing semantics
+
