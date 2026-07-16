@@ -121,6 +121,9 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		if err != nil {
 			return errors.Wrapf(err, "converting Claude Code source %s before publication", locator.SourcePath)
 		}
+		if err := applySourceFingerprint(session, locator.SourcePath); err != nil {
+			return errors.Wrapf(err, "fingerprinting Claude Code source %s", locator.SourcePath)
+		}
 		primaries = append(primaries, convertedPrimary{locator: locator, session: session})
 		primaryByID[session.ID] = session
 	}
@@ -131,6 +134,9 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 		session, resolvedAgentID, err := claudecode.ConvertSubagentLocator(locator)
 		if err != nil {
 			return errors.Wrapf(err, "converting Claude Code subagent %s before publication", locator.SourcePath)
+		}
+		if err := applySourceFingerprint(session, locator.SourcePath); err != nil {
+			return errors.Wrapf(err, "fingerprinting Claude Code subagent %s", locator.SourcePath)
 		}
 		subagents = append(subagents, convertedSubagent{locator: locator, session: session})
 		subagentIDsByParent[locator.ParentSessionID] = append(subagentIDsByParent[locator.ParentSessionID], resolvedAgentID)

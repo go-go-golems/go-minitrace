@@ -105,6 +105,9 @@ func (c *ConvertPiCommand) RunIntoGlazeProcessor(ctx context.Context, vals *valu
 		if err != nil {
 			return errors.Wrapf(err, "converting Pi source %s before publication", locator.SourcePath)
 		}
+		if err := applySourceFingerprint(session, locator.SourcePath); err != nil {
+			return errors.Wrapf(err, "fingerprinting Pi source %s", locator.SourcePath)
+		}
 		converted = append(converted, convertedSource{locator: locator, session: session})
 	}
 

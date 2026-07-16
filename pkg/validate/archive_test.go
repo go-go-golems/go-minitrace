@@ -76,6 +76,60 @@ func TestValidateArchiveFindsFilenamePeriodAndOrphanErrors(t *testing.T) {
 	}
 }
 
+func TestValidateArchiveFindsDuplicateIDs(t *testing.T) {
+	root, _, entry := createArchiveFixture(t)
+	payload, err := os.ReadFile(entry.FilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateDir := filepath.Join(root, "active", "2025-01")
+	if err := os.MkdirAll(duplicateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(duplicateDir, filepath.Base(entry.FilePath)), payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	findings, err := ValidateArchive(root, []string{CheckArchive})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, finding := range findings {
+		if finding.Code == "duplicate-archive-id" {
+			return
+		}
+	}
+	t.Fatalf("missing duplicate finding: %+v", findings)
+}
+
+func TestValidateArchiveChecksManifestFilePath(t *testing.T) {
+	root, _, _ := createArchiveFixture(t)
+	manifestPath := filepath.Join(root, "active", "2026-07", "manifest.json")
+	payload, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(payload, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	sessions := manifest["sessions"].([]any)
+	sessions[0].(map[string]any)["file_path"] = "missing.minitrace.json"
+	payload, _ = json.Marshal(manifest)
+	if err := os.WriteFile(manifestPath, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	findings, err := ValidateArchive(root, []string{CheckManifest})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, finding := range findings {
+		if finding.Code == "manifest-path-mismatch" {
+			return
+		}
+	}
+	t.Fatalf("missing manifest path finding: %+v", findings)
+}
+
 func TestValidateArchiveChecksConversionReceipts(t *testing.T) {
 	root, _, _ := createArchiveFixture(t)
 	receipt := filepath.Join(root, "runs", "bad.json")

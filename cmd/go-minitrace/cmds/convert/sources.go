@@ -6,8 +6,20 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-go-golems/go-minitrace/pkg/adapters"
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/pkg/errors"
 )
+
+func applySourceFingerprint(session *minitrace.Session, sourcePath string) error {
+	fingerprint, _, normalizedPath, err := adapters.FingerprintSource(sourcePath)
+	if err != nil {
+		return err
+	}
+	session.Provenance.SourcePath = &normalizedPath
+	session.Provenance.SourceFingerprint = &fingerprint
+	return nil
+}
 
 // collectSourceSessions merges explicit --source-session paths with the
 // contents of an optional --source-list file. The list file contains one

@@ -79,6 +79,11 @@ func ValidateArchive(path string, checks []string) ([]Finding, error) {
 		return nil, err
 	}
 	enabled := enabledChecks(checks)
+	archiveRoot, err := os.OpenRoot(root)
+	if err != nil {
+		return nil, errors.Wrap(err, "opening archive root")
+	}
+	defer func() { _ = archiveRoot.Close() }()
 	findings := make([]Finding, 0)
 	archives := map[string]string{}
 	periodByID := map[string]string{}
@@ -90,7 +95,11 @@ func ValidateArchive(path string, checks []string) ([]Finding, error) {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".minitrace.json") {
 			return nil
 		}
-		payload, readErr := os.ReadFile(filePath)
+		relativePath, relativeErr := filepath.Rel(root, filePath)
+		if relativeErr != nil {
+			return relativeErr
+		}
+		payload, readErr := archiveRoot.ReadFile(relativePath)
 		if readErr != nil {
 			findings = append(findings, finding("archive-read-error", filePath, "", readErr.Error()))
 			return nil
@@ -100,9 +109,13 @@ func ValidateArchive(path string, checks []string) ([]Finding, error) {
 			findings = append(findings, finding("archive-json-invalid", filePath, "", decodeErr.Error()))
 			return nil
 		}
-		archives[session.ID] = filePath
 		period := filepath.Base(filepath.Dir(filePath))
-		periodByID[session.ID] = period
+		if previousPath, duplicate := archives[session.ID]; duplicate {
+			findings = append(findings, finding("duplicate-archive-id", filePath, session.ID, "also present at "+previousPath))
+		} else {
+			archives[session.ID] = filePath
+			periodByID[session.ID] = period
+		}
 		if enabled[CheckArchive] {
 			expectedName := minitrace.SanitizeID(session.ID) + ".minitrace.json"
 			if entry.Name() != expectedName {
@@ -139,7 +152,7 @@ func ValidateArchive(path string, checks []string) ([]Finding, error) {
 		findings = append(findings, validateManifests(root, archives, periodByID)...)
 	}
 	if enabled[CheckReceipt] {
-		findings = append(findings, validateReceipts(root)...)
+		findings = append(findings, validateReceipts(root, archiveRoot)...)
 	}
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].Path == findings[j].Path {
@@ -205,6 +218,10 @@ func validateManifests(root string, archives, periodByID map[string]string) []Fi
 				findings = append(findings, finding("orphan-manifest-entry", manifestPath, session.ID, "manifest entry has no archive"))
 				continue
 			}
+			expectedFileName := filepath.Base(archivePath)
+			if filepath.Base(session.Path) != session.Path || session.Path != expectedFileName {
+				findings = append(findings, finding("manifest-path-mismatch", manifestPath, session.ID, "expected file_path "+expectedFileName))
+			}
 			if periodByID[session.ID] != period.Period {
 				findings = append(findings, finding("manifest-period-mismatch", manifestPath, session.ID, "archive is in a different period"))
 			}
@@ -244,13 +261,17 @@ type conversionReceiptDocument struct {
 	} `json:"summary"`
 }
 
-func validateReceipts(root string) []Finding {
+func validateReceipts(root string, archiveRoot *os.Root) []Finding {
 	findings := []Finding{}
 	_ = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil || entry.IsDir() || filepath.Ext(path) != ".json" || strings.HasSuffix(path, ".minitrace.json") || entry.Name() == "manifest.json" {
 			return nil
 		}
-		payload, err := os.ReadFile(path)
+		relativePath, relativeErr := filepath.Rel(root, path)
+		if relativeErr != nil {
+			return nil
+		}
+		payload, err := archiveRoot.ReadFile(relativePath)
 		if err != nil {
 			return nil
 		}

@@ -130,7 +130,11 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 	}
 	record := queryRunRecord{Schema: "go-minitrace-query-run-v1", StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Status: "running", Query: queryInfo, Inventory: inventory, MaxRows: settings_.MaxRows, MaxCellChars: settings_.MaxCellChars, TimeoutMS: settings_.TimeoutMS, Columns: []string{}}
 
-	target, err := minitracejs.NewArchiveQueryTarget(ctx, settings_.ArchiveGlob, minitracedb.QueryOptions{
+	resolvedArchivePaths := make([]string, 0, len(inventory.Files))
+	for _, file := range inventory.Files {
+		resolvedArchivePaths = append(resolvedArchivePaths, file.Path)
+	}
+	target, err := minitracejs.NewArchiveQueryTarget(ctx, resolvedArchivePaths, minitracedb.QueryOptions{
 		MaxRows:      settings_.MaxRows,
 		MaxCellChars: settings_.MaxCellChars,
 		Timeout:      time.Duration(settings_.TimeoutMS) * time.Millisecond,
@@ -141,6 +145,15 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 		return err
 	}
 	defer func() { _ = target.Close() }()
+	verifiedInventory, verifyErr := resolveArchiveInventory(resolvedArchivePaths)
+	if verifyErr != nil || verifiedInventory.InventorySHA != inventory.InventorySHA {
+		if verifyErr == nil {
+			verifyErr = errors.New("archive inventory changed while opening query target")
+		}
+		record.Status, record.ErrorCode, record.Error = "failed", "archive-changed", verifyErr.Error()
+		_ = writeQueryRunRecord(settings_.RunRecord, record)
+		return verifyErr
+	}
 
 	result, runErr := RunQueryTargetIntoProcessorWithResult(ctx, target, sqlText, gp)
 	record.Columns, record.RowCount, record.Truncated = result.Columns, result.Count, result.Truncated
