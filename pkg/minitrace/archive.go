@@ -310,7 +310,7 @@ func WriteManifests(sessionIndex []*SessionIndexEntry, outputDir string) error {
 			return errors.Wrap(err, "marshaling period manifest")
 		}
 		payload = append(payload, '\n')
-		if err := os.WriteFile(filepath.Join(dir, "manifest.json"), payload, 0o644); err != nil {
+		if err := atomicWriteFile(filepath.Join(dir, "manifest.json"), payload); err != nil {
 			return errors.Wrap(err, "writing period manifest")
 		}
 
@@ -326,10 +326,34 @@ func WriteManifests(sessionIndex []*SessionIndexEntry, outputDir string) error {
 		return errors.Wrap(err, "marshaling root manifest")
 	}
 	rootPayload = append(rootPayload, '\n')
-	if err := os.WriteFile(filepath.Join(outputDir, "manifest.json"), rootPayload, 0o644); err != nil {
+	if err := atomicWriteFile(filepath.Join(outputDir, "manifest.json"), rootPayload); err != nil {
 		return errors.Wrap(err, "writing root manifest")
 	}
 	return nil
+}
+
+func atomicWriteFile(path string, payload []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(dir, ".manifest-*.tmp")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	if err := temporary.Close(); err != nil {
+		_ = os.Remove(temporaryPath)
+		return err
+	}
+	defer func() { _ = os.Remove(temporaryPath) }()
+	if err := writeSyncedFile(temporaryPath, payload); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return err
+	}
+	return syncDirectory(dir)
 }
 
 // manifestSessionFields is the slim projection of a session file holding only
