@@ -364,6 +364,8 @@ Useful? React with 👍 / 👎."
 
 **Inferred user intent:** Preserve trustworthy discovery results by making unsupported native timing explicit rather than silently misleading operators.
 
+**Commit (code):** `b81371344bd25c0f135481ef06e2720141566497` — "Report unsupported Codex exec activity filters"
+
 ### What I did
 - Inspected `pkg/adapters/codex/discover.go` and the exec fixtures in `pkg/adapters/codex/discover_test.go` and `pkg/adapters/codex/convert_test.go`.
 - Confirmed that the supported exec fixture has `thread.started` and `item.completed` records with no top-level timestamp, payload timestamp, or other normalized event-time field.
@@ -396,3 +398,4 @@ Useful? React with 👍 / 👎."
 
 ### Technical details
 - Review scope: Codex `exec-jsonl-v1` only; persisted Codex session JSONL continues to use native timestamps.
+- Retry result: the first commit hook attempt failed only with `Error: parallel golangci-lint is running`; after waiting ten seconds, the retry passed the complete test and lint hooks and created `b813713`.
