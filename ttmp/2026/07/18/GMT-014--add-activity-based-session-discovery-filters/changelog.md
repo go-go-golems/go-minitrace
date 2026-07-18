@@ -32,3 +32,12 @@ Step 3: implemented exact opt-in --active-since discovery for Pi, Codex, and Cla
 - /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/cmd/go-minitrace/cmds/discover/filters.go — Public filter semantics
 - /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/pkg/adapters/activity.go — Exact streaming timestamp scanner
 
+
+## 2026-07-18
+
+Step 4: validated the completed implementation, recorded commits 9300e49 and 2f7dc2d, and confirmed reMarkable delivery
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/ttmp/2026/07/18/GMT-014--add-activity-based-session-discovery-filters/reference/01-diary.md — Final validation and delivery record
+

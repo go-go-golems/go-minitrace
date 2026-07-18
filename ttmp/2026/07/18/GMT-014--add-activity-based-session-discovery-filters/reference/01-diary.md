@@ -172,6 +172,8 @@ The implementation deliberately leaves ordinary discovery header-only. A user re
 
 **Inferred user intent:** Make “active today” recovery queries correct for sessions that began before the requested time window.
 
+**Commit (code):** `2f7dc2de0b790c68173dec121bc89315309c4da0` — "Add activity-based session discovery"
+
 ### What I did
 - Added `LastActivityAt` to `pkg/adapters/types.go`.
 - Added `pkg/adapters/activity.go`, a constant-memory JSONL scanner that decodes records one at a time, skips malformed records, and returns the maximum valid timestamp.
@@ -226,3 +228,53 @@ The implementation deliberately leaves ordinary discovery header-only. A user re
 - New CLI field: `--active-since <RFC3339|YYYY-MM-DD>`.
 - New output column: `last_activity_at`.
 - Code validation command: `go test ./... -count=1 && go build ./...`.
+
+## Step 4: Validate the complete handoff
+
+The implementation was committed only after the repository pre-commit hook reran the full Go test suite and lint stack. This final checkpoint updates the ticket status artifacts after the code commit, leaving the worktree and ticket ready for review.
+
+The main residual limitation is deliberate: exact activity scanning is available for Pi, Codex, and Claude Code JSONL sources, while Copilot and Claude Code legacy directory sources retain their existing discovery behavior rather than receiving an inaccurate approximation.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Finish the implementation with detailed operational records and appropriately scoped commits.
+
+**Inferred user intent:** Ensure a reviewer can reproduce validation and understand remaining scope limits.
+
+### What I did
+- Committed documentation baseline `9300e49e6ec1e48a309f857acb509a6dafe09619` — "Docs: design activity-based discovery".
+- Committed implementation `2f7dc2de0b790c68173dec121bc89315309c4da0` — "Add activity-based session discovery".
+- Confirmed the pre-commit hook passed `go test ./...`, `golangci-lint run -v`, and Glazed CLI linting.
+- Prepared this final ticket validation checkpoint.
+
+### Why
+- Separate documentation and code commits keep review history focused while preserving the requested chronological diary.
+
+### What worked
+- Both commits completed successfully.
+- The implementation commit hook reported `0 issues` from `golangci-lint` and successful Go tests.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The repository hook is stronger than the manually run focused tests because it includes full-package tests, Go vet with `glazed-lint`, and static analysis.
+
+### What was tricky to build
+- Keeping ticket bookkeeping current after each commit requires a final documentation-only checkpoint: the diary cannot truthfully record a commit hash until the commit exists. This entry records that ordering explicitly.
+
+### What warrants a second pair of eyes
+- Confirm the public support matrix in CLI help/README is sufficient to prevent users from assuming `--active-since` exists for Copilot.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review commit `9300e49` for the design baseline and `2f7dc2d` for implementation.
+- Run `go test ./... -count=1` from the worktree and inspect `go-minitrace discover pi --help`.
+
+### Technical details
+- Worktree branch: `task/add-activity-since-minitrace`.
+- Ticket: `GMT-014`.
