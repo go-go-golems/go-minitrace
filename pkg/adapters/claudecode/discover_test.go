@@ -43,6 +43,24 @@ func TestDiscoverExtractsCwdAndStartedAtSkippingSnapshotRecord(t *testing.T) {
 	}
 }
 
+func TestLastActivityAtIgnoresSnapshots(t *testing.T) {
+	path := filepath.Join(t.TempDir(), testSessionID+".jsonl")
+	content := `{"type":"user","timestamp":"2026-04-01T08:00:00Z"}
+{"type":"file-history-snapshot","timestamp":"2026-04-03T08:00:00Z"}
+{"type":"assistant","timestamp":"2026-04-02T08:00:00Z"}
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("writing fixture: %v", err)
+	}
+	latest, err := LastActivityAt(path)
+	if err != nil {
+		t.Fatalf("LastActivityAt returned error: %v", err)
+	}
+	if latest != "2026-04-02T08:00:00Z" {
+		t.Fatalf("expected snapshot to be ignored, got %q", latest)
+	}
+}
+
 func TestDiscoverLeavesHeaderEmptyWhenNoCwdInHead(t *testing.T) {
 	root := t.TempDir()
 	content := `{"type":"file-history-snapshot","messageId":"snap-1","snapshot":{}}

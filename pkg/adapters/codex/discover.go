@@ -71,6 +71,17 @@ func locatorForFile(path string) adapters.SessionLocator {
 // timestamp from the leading session_meta record of a Codex session JSONL
 // file. It reads at most a bounded prefix of the file; exec JSONL streams
 // carry no session_meta record and yield empty values.
+// LastActivityAt returns the latest valid timestamp emitted by a Codex JSONL
+// transcript. Some session metadata records retain the timestamp in payload.
+func LastActivityAt(path string) (string, error) {
+	return adapters.ScanJSONLLastTimestamp(path, func(record map[string]any) []string {
+		timestamp, _ := record["timestamp"].(string)
+		payload, _ := record["payload"].(map[string]any)
+		payloadTimestamp, _ := payload["timestamp"].(string)
+		return []string{timestamp, payloadTimestamp}
+	})
+}
+
 func readSessionHeader(path string) (string, string) {
 	var cwd, startedAt string
 	_ = adapters.ScanJSONLHead(path, adapters.HeadMaxLines, adapters.HeadMaxBytes, func(record map[string]any) bool {

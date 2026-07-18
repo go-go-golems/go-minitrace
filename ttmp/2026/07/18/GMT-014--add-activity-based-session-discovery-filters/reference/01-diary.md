@@ -14,8 +14,20 @@ Owners: []
 RelatedFiles:
     - Path: repo://AGENT.md
       Note: Project implementation and validation conventions
+    - Path: repo://cmd/go-minitrace/cmds/discover/activity.go
+      Note: Command-level activity scanner wiring
     - Path: repo://cmd/go-minitrace/cmds/discover/filters.go
-      Note: Existing start-time filter motivating the activity-time design
+      Note: |-
+        Existing start-time filter motivating the activity-time design
+        Combined start-time and activity-time filtering
+    - Path: repo://pkg/adapters/activity.go
+      Note: Shared exact JSONL latest-timestamp scanner
+    - Path: repo://pkg/adapters/claudecode/discover.go
+      Note: Claude Code activity timestamp extraction
+    - Path: repo://pkg/adapters/codex/discover.go
+      Note: Codex activity timestamp extraction
+    - Path: repo://pkg/adapters/pi/discover.go
+      Note: Pi activity timestamp extraction
     - Path: repo://pkg/adapters/types.go
       Note: Current SessionLocator metadata boundary
 ExternalSources: []
@@ -24,6 +36,7 @@ LastUpdated: 2026-07-18T18:23:21.302372664-04:00
 WhatFor: Record the design, implementation, validation, and delivery of --active-since discovery.
 WhenToUse: Use when reviewing or continuing GMT-014.
 ---
+
 
 
 # Diary
@@ -144,3 +157,72 @@ I validated the new ticket with `docmgr doctor`, performed the mandatory reMarka
 ### Technical details
 - Upload destination: `/ai/2026/07/18/GMT-014/GMT-014 Activity-Based Discovery Design.pdf`.
 - Design input files: `index.md`, `design-doc/01-activity-based-session-discovery-design-and-implementation-guide.md`, and `reference/01-diary.md`.
+
+## Step 3: Implement exact activity-time discovery
+
+This step adds an opt-in `--active-since` filter to Pi, Codex, and Claude Code discovery without redefining `--since`. The command now streams each surviving JSONL candidate when activity filtering is requested, records the latest valid adapter-specific timestamp, returns it as `last_activity_at`, and then applies the requested boundary.
+
+The implementation deliberately leaves ordinary discovery header-only. A user requesting `--active-since` pays for exact full-file timestamp scanning; a user requesting `--since` retains the original bounded, start-time-only inventory path.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Implement the documented activity-based discovery feature in the supplied worktree after ticket documentation and delivery are complete.
+
+**Inferred user intent:** Make “active today” recovery queries correct for sessions that began before the requested time window.
+
+### What I did
+- Added `LastActivityAt` to `pkg/adapters/types.go`.
+- Added `pkg/adapters/activity.go`, a constant-memory JSONL scanner that decodes records one at a time, skips malformed records, and returns the maximum valid timestamp.
+- Added adapter-local `LastActivityAt` extractors in Pi, Codex, and Claude Code discovery packages.
+- Added `--active-since` only to Pi, Codex, and Claude Code commands; Copilot remains unchanged because this ticket does not define an exact native event-time scanner for its session layout.
+- Added `last_activity_at` to activity-capable discovery output.
+- Applied cheap cwd/start filters before activity scans, then applied the activity filter after enriching the locator.
+- Updated `README.md` and the repository transcript-analysis skill to distinguish session-start and actual-activity discovery.
+- Added generic, adapter-specific, and filter tests.
+
+### Why
+- A separate opt-in flag preserves the public meaning of `--since`.
+- Adapter-local extraction avoids a generic recursive JSON search accidentally interpreting quoted timestamps as activity.
+- Streaming avoids allocating full transcript record slices just to discover one timestamp.
+
+### What worked
+- `go test ./... -count=1` passed.
+- `go build ./...` passed.
+- Real-source smoke test proved the regression is fixed:
+  - `go run ./cmd/go-minitrace discover pi --source-dir /home/manuel/.pi/agent/sessions --cwd-contains benchmark-cpu-inference --since 2026-07-18 --output json | jq length` returned `0`.
+  - Replacing `--since` with `--active-since` returned Pi session `019f66db-bc32-79cc-8ba9-da2b6286e24b`, with `started_at` on 2026-07-15 and `last_activity_at` on 2026-07-18.
+
+### What didn't work
+- The first focused test run failed because `cmd/go-minitrace/cmds/discover/copilot.go` still called `keepLocator` with the old three-argument signature: `not enough arguments in call to keepLocator`. The call was updated to pass `nil` for the unsupported activity filter, then the focused package suite passed.
+- A documentation search command put `--glob` after search paths, causing `rg: --glob: No such file or directory`. This did not affect source files or validation; the relevant README and skill locations were still identified and updated.
+
+### What I learned
+- The known RAG/Geppetto session continues to append activity, so its exact `last_activity_at` changes as the source updates. This confirms why live recovery queries must use event data rather than filename or start-date assumptions.
+- Claude Code legacy `dir-v1` locators cannot provide an exact JSONL activity timestamp under this design and are excluded when `--active-since` is requested.
+
+### What was tricky to build
+- The filter order matters for performance and semantics. Scanning all discovered files before applying `--cwd-contains` would make a narrowly scoped request unnecessarily expensive. The final command flow performs the old cheap filter with no activity boundary first, scans only remaining sources if requested, then calls the complete filter with `activeSince`.
+- Changing the shared `keepLocator` signature affected Copilot even though Copilot intentionally does not expose the new flag. The repair explicitly supplies `nil`, preserving its existing behavior.
+
+### What warrants a second pair of eyes
+- Confirm Pi message timestamp fallback is appropriate for all supported Pi v3 records.
+- Confirm Codex payload timestamp fallback should be considered activity for every supported Codex record type.
+- Confirm the intentional exclusion of Claude `dir-v1` sources under `--active-since` is acceptable, or define a separate exact timestamp source before expanding support.
+- Assess whether errors from unreadable candidate transcripts should abort an exact discovery command or be accumulated as per-source warnings; this implementation surfaces the error.
+
+### What should be done in the future
+- Consider a validated last-activity cache keyed by path, size, and mtime only if repeated exact scans become costly in practice.
+- Add integration tests that execute the Glazed command surface against temporary Pi, Codex, and Claude source roots.
+
+### Code review instructions
+- Start in `cmd/go-minitrace/cmds/discover/filters.go`, then inspect the Pi command wiring as the reference implementation.
+- Review `pkg/adapters/activity.go` for scanner limits and malformed-line policy.
+- Compare the three adapter extractors to their converter timestamp rules.
+- Validate with `go test ./... -count=1`, `go build ./...`, and the two real-source commands above.
+
+### Technical details
+- New CLI field: `--active-since <RFC3339|YYYY-MM-DD>`.
+- New output column: `last_activity_at`.
+- Code validation command: `go test ./... -count=1 && go build ./...`.

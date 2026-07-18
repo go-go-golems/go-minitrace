@@ -22,3 +22,13 @@ Step 2: added the intern-oriented activity-discovery design, API contract, diagr
 
 - /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/ttmp/2026/07/18/GMT-014--add-activity-based-session-discovery-filters/design-doc/01-activity-based-session-discovery-design-and-implementation-guide.md — Primary design deliverable
 
+
+## 2026-07-18
+
+Step 3: implemented exact opt-in --active-since discovery for Pi, Codex, and Claude Code with timestamp extraction, output metadata, tests, and operator docs
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/cmd/go-minitrace/cmds/discover/filters.go — Public filter semantics
+- /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/pkg/adapters/activity.go — Exact streaming timestamp scanner
+

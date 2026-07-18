@@ -121,6 +121,19 @@ func locatorForJSONLFile(sid, path string) adapters.SessionLocator {
 // from the leading records of a Claude Code JSONL transcript. The first
 // record is often a file-history-snapshot without cwd, so the scan keeps
 // going until a record carrying cwd shows up, bounded by a line and byte cap.
+// LastActivityAt returns the latest valid timestamp from a Claude Code JSONL
+// v2 transcript. Snapshot and progress records are ignored to match conversion.
+func LastActivityAt(path string) (string, error) {
+	return adapters.ScanJSONLLastTimestamp(path, func(record map[string]any) []string {
+		recordType, _ := record["type"].(string)
+		if _, discard := discardTypes[recordType]; discard || recordType == "progress" {
+			return nil
+		}
+		timestamp, _ := record["timestamp"].(string)
+		return []string{timestamp}
+	})
+}
+
 func readSessionHeader(path string) (string, string) {
 	var cwd, startedAt string
 	_ = adapters.ScanJSONLHead(path, adapters.HeadMaxLines, adapters.HeadMaxBytes, func(record map[string]any) bool {

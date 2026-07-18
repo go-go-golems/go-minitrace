@@ -24,6 +24,7 @@ type ClaudeCodeSettings struct {
 	SourceDir   string `glazed:"source-dir"`
 	CwdContains string `glazed:"cwd-contains"`
 	Since       string `glazed:"since"`
+	ActiveSince string `glazed:"active-since"`
 }
 
 func NewClaudeCodeGlazeCommand() (*ClaudeCodeCommand, error) {
@@ -52,14 +53,14 @@ Examples:
   go-minitrace discover claude-code --source-dir /tmp/claude-projects --output json
 `),
 		cmds.WithFlags(
-			append([]*fields.Definition{
+			append(append([]*fields.Definition{
 				fields.New(
 					"source-dir",
 					fields.TypeString,
 					fields.WithDefault("~/.claude/projects"),
 					fields.WithHelp("Claude Code projects directory"),
 				),
-			}, filterFlags()...)...,
+			}, filterFlags()...), activityFilterFlags()...)...,
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -79,13 +80,25 @@ func (c *ClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, vals *val
 	if err != nil {
 		return err
 	}
+	activeSince, err := parseSince(settings_.ActiveSince)
+	if err != nil {
+		return err
+	}
 
 	locators, err := claudecode.Discover(settings_.SourceDir)
 	if err != nil {
 		return err
 	}
 	for _, locator := range locators {
-		if !keepLocator(locator, settings_.CwdContains, since) {
+		if !keepLocator(locator, settings_.CwdContains, since, nil) {
+			continue
+		}
+		if activeSince != nil && locator.FormatHint == "jsonl-v2" {
+			if err := populateLastActivity(&locator, claudecode.LastActivityAt); err != nil {
+				return err
+			}
+		}
+		if !keepLocator(locator, settings_.CwdContains, since, activeSince) {
 			continue
 		}
 		row := types.NewRow(
@@ -94,6 +107,7 @@ func (c *ClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, vals *val
 			types.MRP("source_path", locator.SourcePath),
 			types.MRP("cwd", locator.Cwd),
 			types.MRP("started_at", locator.StartedAt),
+			types.MRP("last_activity_at", locator.LastActivityAt),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
