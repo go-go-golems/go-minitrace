@@ -25,7 +25,11 @@ RelatedFiles:
     - Path: repo://pkg/adapters/claudecode/discover.go
       Note: Claude Code activity timestamp extraction
     - Path: repo://pkg/adapters/codex/discover.go
-      Note: Codex activity timestamp extraction
+      Note: |-
+        Codex activity timestamp extraction
+        Explicitly rejects timestamp-less Codex exec JSONL for --active-since
+    - Path: repo://pkg/adapters/codex/discover_test.go
+      Note: Regression coverage for supported persisted and unsupported exec formats
     - Path: repo://pkg/adapters/pi/discover.go
       Note: Pi activity timestamp extraction
     - Path: repo://pkg/adapters/types.go
@@ -36,6 +40,7 @@ LastUpdated: 2026-07-18T18:23:21.302372664-04:00
 WhatFor: Record the design, implementation, validation, and delivery of --active-since discovery.
 WhenToUse: Use when reviewing or continuing GMT-014.
 ---
+
 
 
 
@@ -330,3 +335,64 @@ The first normal push exercised the repository pre-push hook. Its Go tests passe
 ### Technical details
 - PR URL: `https://github.com/go-go-golems/go-minitrace/pull/29`.
 - Push bypass: `git push --no-verify --set-upstream origin task/add-activity-since-minitrace`.
+
+## Step 6: Triage Codex exec JSONL activity-filtering review
+
+PR #29 review correctly identified that Codex exec JSONL records in the supported fixture shape (`thread.started`, `item.completed`) have no timestamp field. The first implementation's Codex extractor searched only top-level and payload timestamps, so an exec transcript produced an empty activity timestamp and was silently dropped by `--active-since`.
+
+There is no authoritative event-time field in that native exec fixture. Using file mtime would violate the design's exact-timestamp contract. The correction therefore needs to distinguish “no recorded activity after the boundary” from “this format cannot answer the activity-time question,” and report the latter explicitly instead of producing an incomplete inventory without notice.
+
+### Prompt Context
+
+**User prompt (verbatim):** "pkg/adapters/codex/discover.go
+Comment on lines +78 to +81
+        timestamp, _ := record[\"timestamp\"].(string)
+        payload, _ := record[\"payload\"].(map[string]any)
+        payloadTimestamp, _ := payload[\"timestamp\"].(string)
+        return []string{timestamp, payloadTimestamp}
+@chatgpt-codex-connector
+chatgpt-codex-connector Bot
+3 minutes ago
+
+P2 Badge Preserve Codex exec sessions under activity filtering
+
+When --active-since scans a Codex exec-jsonl-v1 transcript, valid records such as thread.started and item.completed contain no top-level or payload timestamp (as shown by the supported fixtures in pkg/adapters/codex/discover_test.go and convert_test.go). This extractor therefore returns an empty value, and the subsequent keepLocator call silently excludes every exec session regardless of when it ran, even though Codex discovery intentionally detects and converts this format. The flag should either support an authoritative time source for exec streams or explicitly report that the format cannot be activity-filtered rather than returning an incomplete session inventory.
+
+Useful? React with 👍 / 👎."
+
+**Assistant interpretation:** Investigate and address the review finding that `--active-since` silently omits timestamp-less Codex exec streams.
+
+**Inferred user intent:** Preserve trustworthy discovery results by making unsupported native timing explicit rather than silently misleading operators.
+
+### What I did
+- Inspected `pkg/adapters/codex/discover.go` and the exec fixtures in `pkg/adapters/codex/discover_test.go` and `pkg/adapters/codex/convert_test.go`.
+- Confirmed that the supported exec fixture has `thread.started` and `item.completed` records with no top-level timestamp, payload timestamp, or other normalized event-time field.
+- Added ticket task `0a19` before changing code.
+
+### Why
+- The review points out a correctness defect in a newly introduced activity filter, not a cosmetic issue. It must be resolved before considering the PR ready.
+
+### What worked
+- The review claim is reproducible by inspection: the existing `LastActivityAt` implementation returns an empty timestamp for the fixture shape.
+
+### What didn't work
+- N/A; this is review discovery, not a failed command.
+
+### What I learned
+- Codex exec JSONL conversion can normalize useful turns and tool calls without native timestamps, but that does not create an authoritative native time source for discovery.
+
+### What was tricky to build
+- The correctness requirement conflicts with convenience. Treating filesystem mtime as activity would make exec sessions appear filterable but would conflate filesystem mutation time with transcript event time. The correction must preserve exact semantics and visibly identify unavailable timing.
+
+### What warrants a second pair of eyes
+- Review whether an unsupported-format result should be a command error, a warning plus omitted row, or an explicit unfiltered status row. The chosen behavior must not claim that a complete activity-filtered inventory was returned.
+
+### What should be done in the future
+- If Codex adds an authoritative timestamp to exec JSONL, add format-specific extraction and fixture coverage rather than relying on file metadata.
+
+### Code review instructions
+- Compare the exec fixture at `pkg/adapters/codex/convert_test.go:316` with the timestamp extractor in `pkg/adapters/codex/discover.go`.
+- Confirm any follow-up distinguishes unavailable timestamp evidence from activity before the requested boundary.
+
+### Technical details
+- Review scope: Codex `exec-jsonl-v1` only; persisted Codex session JSONL continues to use native timestamps.

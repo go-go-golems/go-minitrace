@@ -54,7 +54,7 @@ Use `go-minitrace query run` for quick ad hoc analysis, and `go-minitrace query 
 
 - `--cwd-contains <substring>` — case-sensitive match on the session working directory
 - `--since <RFC3339 or YYYY-MM-DD>` — sessions started at or after this time
-- `--active-since <RFC3339 or YYYY-MM-DD>` — Pi, Codex, and Claude Code sessions with a latest native activity timestamp at or after this time; this scans candidate JSONL transcripts and can be much slower than `--since`
+- `--active-since <RFC3339 or YYYY-MM-DD>` — Pi, persisted Codex session JSONL, and Claude Code JSONL sessions with a latest native activity timestamp at or after this time; this scans candidate JSONL transcripts and can be much slower than `--since`. Codex exec JSONL has no authoritative native timestamps, so the command reports it as unsupported rather than silently omitting it.
 
 Rows include `id`, `format_hint`, `source_path`, `cwd`, `started_at`, and `last_activity_at` when activity scanning was requested:
 

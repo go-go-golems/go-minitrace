@@ -65,7 +65,7 @@ The two filters are conjunctive:
 ### 1.2 In scope
 
 - Pi JSONL v3 discovery.
-- Codex persisted and exec JSONL discovery.
+- Codex persisted session JSONL discovery; timestamp-less Codex exec JSONL is explicitly reported as unsupported for activity filtering.
 - Claude Code JSONL v2 discovery.
 - Shared CLI parsing and filtering behavior.
 - Discovery output containing `last_activity_at`.
@@ -191,7 +191,7 @@ Use records that the existing converter treats as timing-bearing. The implementa
 | Framework | Candidate extraction | Evidence |
 | --- | --- | --- |
 | Pi | record `timestamp`; for `type: message`, fall back to `message.timestamp` | `pkg/adapters/pi/convert.go` collects exactly those candidates into `allTimestamps`. |
-| Codex | top-level record `timestamp`; for session header compatibility, payload timestamp fallback when top-level is absent | `pkg/adapters/codex/discover.go` already uses this fallback for the start timestamp; converters parse timing per format. |
+| Codex persisted session JSONL | top-level record `timestamp`; for session header compatibility, payload timestamp fallback when top-level is absent | `pkg/adapters/codex/discover.go` already uses this fallback for the start timestamp; converters parse timing per format. Codex exec JSONL records have no authoritative native timestamp and return an explicit unsupported error. |
 | Claude Code v2 | top-level record `timestamp`, ignoring the same discarded snapshot/progress records used by conversion | `pkg/adapters/claudecode/convert.go` filters `file-history-snapshot`, `last-prompt`, and `progress` before collecting timestamps. |
 
 For missing, malformed, or unsupported source data, return an empty activity timestamp and let `--active-since` exclude the source. Do not fabricate a timestamp from mtime.
@@ -283,7 +283,7 @@ The actual command may choose to scan every CWD-matching source for straightforw
 ### Phase 2: Framework extractors
 
 1. Implement Pi extraction with message timestamp fallback.
-2. Implement Codex extraction with top-level/payload fallback.
+2. Implement persisted Codex extraction with top-level/payload fallback and explicitly reject timestamp-less exec JSONL.
 3. Implement Claude Code JSONL v2 extraction with converter-consistent ignored record types.
 4. Define legacy Claude directory behavior as “no activity timestamp” until a native timing source exists.
 

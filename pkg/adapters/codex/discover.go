@@ -71,9 +71,14 @@ func locatorForFile(path string) adapters.SessionLocator {
 // timestamp from the leading session_meta record of a Codex session JSONL
 // file. It reads at most a bounded prefix of the file; exec JSONL streams
 // carry no session_meta record and yield empty values.
-// LastActivityAt returns the latest valid timestamp emitted by a Codex JSONL
-// transcript. Some session metadata records retain the timestamp in payload.
+// LastActivityAt returns the latest valid timestamp emitted by a persisted
+// Codex session JSONL transcript. Codex exec JSONL has no authoritative native
+// timestamp field, so it is explicitly rejected instead of silently omitted
+// by --active-since.
 func LastActivityAt(path string) (string, error) {
+	if detectFormat(path) == "exec-jsonl-v1" {
+		return "", errors.Errorf("Codex exec JSONL source %s has no authoritative activity timestamp; --active-since is unsupported for this format", path)
+	}
 	return adapters.ScanJSONLLastTimestamp(path, func(record map[string]any) []string {
 		timestamp, _ := record["timestamp"].(string)
 		payload, _ := record["payload"].(map[string]any)

@@ -50,3 +50,12 @@ Step 5: pushed the review branch and opened PR #29; documented the unrelated pre
 
 - /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/ttmp/2026/07/18/GMT-014--add-activity-based-session-discovery-filters/reference/01-diary.md — PR publication and hook evidence
 
+
+## 2026-07-18
+
+Step 6: fixed PR #29 review finding by explicitly rejecting timestamp-less Codex exec JSONL under --active-since
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/pkg/adapters/codex/discover.go — Avoids silently incomplete Codex activity inventory
+

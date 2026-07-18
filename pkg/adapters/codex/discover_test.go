@@ -56,6 +56,23 @@ func TestLastActivityAtUsesPayloadTimestampFallback(t *testing.T) {
 	}
 }
 
+func TestLastActivityAtRejectsTimestampLessExecJSONL(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "exec.jsonl")
+	content := `{"type":"thread.started","thread_id":"thread-1"}
+{"type":"item.completed","item":{"type":"agent_message","text":"done"}}
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("writing fixture: %v", err)
+	}
+	_, err := LastActivityAt(path)
+	if err == nil {
+		t.Fatalf("expected timestamp-less exec JSONL to be rejected")
+	}
+	if !strings.Contains(err.Error(), "--active-since is unsupported") {
+		t.Fatalf("expected actionable activity-filter error, got %v", err)
+	}
+}
+
 func TestDiscoverLeavesHeaderEmptyForExecJSONL(t *testing.T) {
 	root := t.TempDir()
 	content := `{"type":"thread.started","thread_id":"thread-1"}

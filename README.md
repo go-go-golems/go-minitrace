@@ -36,8 +36,8 @@ go build ./...
 # See sessions created since a date (narrow by project)
 go-minitrace discover pi --cwd-contains my-repo --since 2026-06-01
 
-# Find long-lived Pi, Codex, or Claude Code sessions with activity since a date
-# (this scans candidate transcripts and is more expensive than --since)
+# Find long-lived Pi, persisted Codex, or Claude Code JSONL sessions with activity since a date
+# (this scans candidate transcripts and is more expensive than --since; Codex exec JSONL has no native timestamps)
 go-minitrace discover pi --cwd-contains my-repo --active-since 2026-06-01
 
 # Convert sessions into queryable archives
