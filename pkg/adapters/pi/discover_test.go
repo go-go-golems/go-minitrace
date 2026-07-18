@@ -35,6 +35,23 @@ func TestDiscoverExtractsCwdAndStartedAtFromSessionRecord(t *testing.T) {
 	}
 }
 
+func TestLastActivityAtUsesNestedMessageTimestamp(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "session.jsonl")
+	content := `{"type":"session","timestamp":"2026-04-01T08:00:00Z"}
+{"type":"message","message":{"timestamp":"2026-04-02T08:00:00Z"}}
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("writing fixture: %v", err)
+	}
+	latest, err := LastActivityAt(path)
+	if err != nil {
+		t.Fatalf("LastActivityAt returned error: %v", err)
+	}
+	if latest != "2026-04-02T08:00:00Z" {
+		t.Fatalf("expected nested message timestamp, got %q", latest)
+	}
+}
+
 func TestLocateSessionMissingPath(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "does-not-exist.jsonl")
 	_, err := LocateSession(missing)

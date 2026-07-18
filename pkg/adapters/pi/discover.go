@@ -68,6 +68,20 @@ func locatorForFile(path string) adapters.SessionLocator {
 // readSessionHeader cheaply extracts the working directory and start
 // timestamp from the leading "session" record of a Pi session JSONL file,
 // reading at most a bounded prefix of the file.
+// LastActivityAt returns the latest valid timestamp emitted by a Pi session.
+// Message records may keep their timestamp inside the nested message payload.
+func LastActivityAt(path string) (string, error) {
+	return adapters.ScanJSONLLastTimestamp(path, func(record map[string]any) []string {
+		timestamp, _ := record["timestamp"].(string)
+		if timestamp != "" || record["type"] != "message" {
+			return []string{timestamp}
+		}
+		message, _ := record["message"].(map[string]any)
+		messageTimestamp, _ := message["timestamp"].(string)
+		return []string{messageTimestamp}
+	})
+}
+
 func readSessionHeader(path string) (string, string) {
 	var cwd, startedAt string
 	_ = adapters.ScanJSONLHead(path, adapters.HeadMaxLines, adapters.HeadMaxBytes, func(record map[string]any) bool {

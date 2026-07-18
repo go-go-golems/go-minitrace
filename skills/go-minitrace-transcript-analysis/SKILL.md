@@ -11,7 +11,7 @@ Use this skill when the user wants to inspect prior coding-agent sessions, compa
 
 Keep the workflow evidence-first:
 
-1. Discover candidate native sessions (filter by repo and time window with `--cwd-contains` / `--since`).
+1. Discover candidate native sessions (filter by repo with `--cwd-contains`, by start time with `--since`, or by recorded activity time with `--active-since`).
 2. Convert only the subset you need (`--source-session` / `--source-list`).
 3. Query the resulting `.minitrace.json` files with `go-minitrace query run` (normalized SQLite).
 4. Summarize findings with explicit caveats.
@@ -54,11 +54,16 @@ Use `go-minitrace query run` for quick ad hoc analysis, and `go-minitrace query 
 
 - `--cwd-contains <substring>` — case-sensitive match on the session working directory
 - `--since <RFC3339 or YYYY-MM-DD>` — sessions started at or after this time
+- `--active-since <RFC3339 or YYYY-MM-DD>` — Pi, persisted Codex session JSONL, and Claude Code JSONL sessions with a latest native activity timestamp at or after this time; this scans candidate JSONL transcripts and can be much slower than `--since`. Codex exec JSONL has no authoritative native timestamps, so the command reports it as unsupported rather than silently omitting it.
 
-Rows include `id`, `format_hint`, `source_path`, `cwd`, and `started_at`:
+Rows include `id`, `format_hint`, `source_path`, `cwd`, `started_at`, and `last_activity_at` when activity scanning was requested:
 
 ```bash
+# Sessions created in the requested period
 go-minitrace discover codex --cwd-contains my-repo --since 2026-06-01 --output json
+
+# Sessions that actually recorded work in the requested period, even if older
+go-minitrace discover pi --cwd-contains my-repo --active-since 2026-06-01 --output json
 go-minitrace discover pi --cwd-contains my-repo --output json | jq length
 ```
 

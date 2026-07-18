@@ -36,16 +36,16 @@ func TestParseSinceAcceptsRFC3339AndDate(t *testing.T) {
 
 func TestKeepLocatorCwdContains(t *testing.T) {
 	locator := adapters.SessionLocator{Cwd: "/home/manuel/workspaces/project"}
-	if !keepLocator(locator, "workspaces", nil) {
+	if !keepLocator(locator, "workspaces", nil, nil) {
 		t.Fatalf("expected matching substring to keep locator")
 	}
-	if keepLocator(locator, "Workspaces", nil) {
+	if keepLocator(locator, "Workspaces", nil, nil) {
 		t.Fatalf("expected case-sensitive mismatch to drop locator")
 	}
-	if keepLocator(adapters.SessionLocator{Cwd: ""}, "workspaces", nil) {
+	if keepLocator(adapters.SessionLocator{Cwd: ""}, "workspaces", nil, nil) {
 		t.Fatalf("expected empty cwd to drop locator when filter is set")
 	}
-	if !keepLocator(adapters.SessionLocator{Cwd: ""}, "", nil) {
+	if !keepLocator(adapters.SessionLocator{Cwd: ""}, "", nil, nil) {
 		t.Fatalf("expected no filter to keep locator")
 	}
 }
@@ -61,19 +61,46 @@ func TestKeepLocatorSince(t *testing.T) {
 	boundary := adapters.SessionLocator{StartedAt: "2026-04-01T00:00:00Z"}
 	empty := adapters.SessionLocator{}
 
-	if !keepLocator(newer, "", since) {
+	if !keepLocator(newer, "", since, nil) {
 		t.Fatalf("expected newer session to be kept")
 	}
-	if keepLocator(older, "", since) {
+	if keepLocator(older, "", since, nil) {
 		t.Fatalf("expected older session to be dropped")
 	}
-	if !keepLocator(boundary, "", since) {
+	if !keepLocator(boundary, "", since, nil) {
 		t.Fatalf("expected session at boundary to be kept (>= semantics)")
 	}
-	if keepLocator(empty, "", since) {
+	if keepLocator(empty, "", since, nil) {
 		t.Fatalf("expected session without started_at to be dropped when --since is set")
 	}
-	if !keepLocator(empty, "", nil) {
+	if !keepLocator(empty, "", nil, nil) {
 		t.Fatalf("expected session without started_at to be kept when --since is unset")
+	}
+}
+
+func TestKeepLocatorActiveSince(t *testing.T) {
+	activeSince, err := parseSince("2026-04-01")
+	if err != nil {
+		t.Fatalf("parseSince returned error: %v", err)
+	}
+
+	oldStartNewActivity := adapters.SessionLocator{
+		StartedAt:      "2026-03-30T10:00:00Z",
+		LastActivityAt: "2026-04-02T10:00:00Z",
+	}
+	oldActivity := adapters.SessionLocator{LastActivityAt: "2026-03-31T23:59:59Z"}
+	missingActivity := adapters.SessionLocator{}
+
+	if !keepLocator(oldStartNewActivity, "", nil, activeSince) {
+		t.Fatalf("expected later activity to include an older session")
+	}
+	if keepLocator(oldActivity, "", nil, activeSince) {
+		t.Fatalf("expected older activity to be excluded")
+	}
+	if keepLocator(missingActivity, "", nil, activeSince) {
+		t.Fatalf("expected missing activity timestamp to be excluded")
+	}
+	if keepLocator(oldStartNewActivity, "", activeSince, activeSince) {
+		t.Fatalf("expected --since and --active-since to be conjunctive")
 	}
 }

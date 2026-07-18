@@ -24,6 +24,7 @@ type CodexSettings struct {
 	SourceDir   string `glazed:"source-dir"`
 	CwdContains string `glazed:"cwd-contains"`
 	Since       string `glazed:"since"`
+	ActiveSince string `glazed:"active-since"`
 }
 
 func NewCodexGlazeCommand() (*CodexCommand, error) {
@@ -51,14 +52,14 @@ Examples:
   go-minitrace discover codex --source-dir /tmp/codex --output yaml
 `),
 		cmds.WithFlags(
-			append([]*fields.Definition{
+			append(append([]*fields.Definition{
 				fields.New(
 					"source-dir",
 					fields.TypeString,
 					fields.WithDefault("~/.codex"),
 					fields.WithHelp("Codex home directory"),
 				),
-			}, filterFlags()...)...,
+			}, filterFlags()...), activityFilterFlags()...)...,
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -78,13 +79,25 @@ func (c *CodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.V
 	if err != nil {
 		return err
 	}
+	activeSince, err := parseSince(settings_.ActiveSince)
+	if err != nil {
+		return err
+	}
 
 	locators, err := codex.Discover(settings_.SourceDir)
 	if err != nil {
 		return err
 	}
 	for _, locator := range locators {
-		if !keepLocator(locator, settings_.CwdContains, since) {
+		if !keepLocator(locator, settings_.CwdContains, since, nil) {
+			continue
+		}
+		if activeSince != nil {
+			if err := populateLastActivity(&locator, codex.LastActivityAt); err != nil {
+				return err
+			}
+		}
+		if !keepLocator(locator, settings_.CwdContains, since, activeSince) {
 			continue
 		}
 		row := types.NewRow(
@@ -93,6 +106,7 @@ func (c *CodexCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.V
 			types.MRP("source_path", locator.SourcePath),
 			types.MRP("cwd", locator.Cwd),
 			types.MRP("started_at", locator.StartedAt),
+			types.MRP("last_activity_at", locator.LastActivityAt),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err

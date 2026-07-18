@@ -85,7 +85,7 @@ func (c *CopilotCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 		return err
 	}
 	for _, locator := range locators {
-		if !keepLocator(locator, settings_.CwdContains, since) {
+		if !keepLocator(locator, settings_.CwdContains, since, nil) {
 			continue
 		}
 		sessionDir := filepath.Dir(locator.SourcePath)
