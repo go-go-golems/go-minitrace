@@ -41,3 +41,12 @@ Step 4: validated the completed implementation, recorded commits 9300e49 and 2f7
 
 - /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/ttmp/2026/07/18/GMT-014--add-activity-based-session-discovery-filters/reference/01-diary.md — Final validation and delivery record
 
+
+## 2026-07-18
+
+Step 5: pushed the review branch and opened PR #29; documented the unrelated pre-push frontend embed failure
+
+### Related Files
+
+- /home/manuel/workspaces/2026-07-18/add-activity-since-minitrace/go-minitrace/ttmp/2026/07/18/GMT-014--add-activity-based-session-discovery-filters/reference/01-diary.md — PR publication and hook evidence
+
