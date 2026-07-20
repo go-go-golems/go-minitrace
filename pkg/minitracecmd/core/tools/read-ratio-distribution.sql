@@ -1,6 +1,12 @@
 /* sqleton
 name: read-ratio-distribution
 short: Inspect read-before-write behavior across sessions
+long: |
+  Ordered by read_ratio ascending so the least-reading sessions surface first.
+  Sessions with no metrics row (for example a session with zero tool calls)
+  have a NULL read_ratio; those are sorted last rather than first, so the top
+  of the list is the genuinely low-reading sessions rather than sessions that
+  simply have no ratio to report.
 flags:
   - name: framework
     type: stringList
@@ -23,5 +29,5 @@ WHERE 1=1
 {{ if .framework -}}
 AND s.agent_framework IN ({{ .framework | sqlStringIn }})
 {{ end -}}
-ORDER BY read_ratio ASC
+ORDER BY (m.read_ratio IS NULL), m.read_ratio ASC
 LIMIT {{ .limit }};

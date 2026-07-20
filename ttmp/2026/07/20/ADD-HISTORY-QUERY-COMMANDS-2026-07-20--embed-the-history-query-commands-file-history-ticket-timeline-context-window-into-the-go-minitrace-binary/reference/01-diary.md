@@ -265,3 +265,39 @@ The practical difference matters for deletion: `rm -rf ~/.claude/skills/.../quer
 ### Verification
 
 `go test ./...` passes (including the four new catalog assertions), `golangci-lint run ./...` reports 0 issues. `make install`'d and ran both verbs against the tinyidp archives **with no `--query-repository` flag** — `overview session-activity` returns sessions ordered by last activity, `files file-activity` returns per-(session, file) rows with operation counts. SKILL.md synced to the live skill.
+
+## Step 8: Audit and fix bugs in the pre-existing embedded verbs
+
+### Prompt Context
+
+**User prompt (verbatim):** "any verbs you think are worth removing / updating ?" then "(of all the embedded verbs)" then "Fix them all here."
+
+### The audit
+
+Read all 20 embedded commands and exercised the suspect ones against the tinyidp archive (all three frameworks present). Four are genuinely broken — they return wrong output on real data — and three looked redundant. The redundancy read turned out to be wrong on inspection; see below.
+
+### Four real bugs, all fixed
+
+1. **`files file-operations` was silently single-framework.** Its default filter is `tool_name IN ('write','edit','read')` — an exact, case-sensitive match. Tool names are not normalized across adapters: claude-code records `Write`/`Edit`/`Read`, pi records `write`/`edit`/`read`, codex records `exec`. Run against a mixed archive, the verb returned 500 rows, 100% pi; every claude-code and codex file operation was invisible with no error. Fixed by filtering on `operation_type` (normalized, uppercase `NEW`/`MODIFY`/`READ` everywhere) instead, mapping the flag's write/edit/read vocabulary onto it via a CASE so the flag contract is unchanged. After: rows include claude-code `Read`/`Write`/`Edit` and codex `exec_command`. Codex still under-reports because it classifies most exec work as `OTHER` — an adapter gap, now documented in the verb's `long:` help rather than silently hidden.
+
+2. **`tools tool-failures --tool-filter` had the same case trap.** Default (unfiltered) was fine — it shows all failures. But `--tool-filter bash` matched only pi's lowercase `bash`, dropping claude-code's `Bash`. Fixed with `LOWER(tc.tool_name)` and a help note that names differ by framework (codex's shell tool is `exec`, not a casing variant). After: `--tool-filter bash` returns 70 rows (69 `bash` + 1 `Bash`) where it previously returned 69.
+
+3. **The nightly verbs attributed multi-day sessions to their start date only.** All five filtered `date(s.started_at) = date(:day)`. Five of eight sessions in the corpus span more than one calendar day (one spans 8.7). A session started on the 9th but active through the 18th was in *no* day's review but the 9th's, and inflated the 9th. Fixed per verb by intent:
+   - session-listing verbs (session-inventory, followup-candidates, workspace-summary, annotation-summary) now use an active-window overlap: `date(started_at) <= day AND date(COALESCE(ended_at, started_at)) >= day`.
+   - tool-breakdown counts tool_calls, so it now filters `date(tc.timestamp) = day` — the precise "operations performed on the day" rather than "all operations of sessions that began on the day".
+   Verified: `session-inventory --day 2026-07-15` now returns the 07-09→07-18 session (old code: 0 rows, nothing started the 15th); `tool-breakdown --day 2026-07-15` attributes 1150 calls to the 15th (old code: 0). workspace-summary keeps whole-session metric sums by necessity (it aggregates session-level totals); that granularity limit is now stated in its help.
+
+4. **`tools read-ratio-distribution` ranked NULLs as "least reading".** `ORDER BY read_ratio ASC` with a `LEFT JOIN metrics` sorts SQLite NULLs first, so the top row — meant to be the lowest read ratio — was actually a 0-tool session with no metrics row. Fixed with `ORDER BY (m.read_ratio IS NULL), m.read_ratio ASC`. After: top row is read_ratio 0 with 6144 tools (real), NULL/0-tool session sorts last.
+
+### The three "redundant" verbs: kept, not deleted
+
+The first-pass audit flagged `nightly session-inventory` (vs `overview session-list`), `nightly tool-breakdown` (vs `tools tool-operation-breakdown`), and the `codex-framework-summary` alias as deletion candidates. Checking their consumers before deleting anything showed they are not accidental duplicates:
+
+- The entire `nightly` group is a documented workflow with its own shipped doc page (`pkg/doc/nightly-review-playbook.md`), a dedicated ticket (`NIGHTLY-TRANSCRIPT-REVIEW-001`), and JSON output contracts (`report/session-inventory.json`, `report/tool-breakdown.json`, ...). They are the day-scoped variants of the general overview/tools verbs, by design.
+- `codex-framework-summary` is the embedded alias *example* — referenced by `pkg/doc/structured-query-commands.md`, `web/src/mocks/handlers.ts`, and `compiler_test.go`. It demonstrates the alias mechanism; its redundancy as a shortcut is the point.
+
+Deleting any of them would break shipped docs, a web mock, and output contracts consumers depend on. The right call was to leave the surface intact and fix the bugs. Recorded here because the earlier "candidates for deletion" framing was made before reading the docs and was wrong; the correction matters more than the original guess.
+
+### Verification
+
+`go test ./...` passes, `golangci-lint run ./...` reports 0 issues, `make install`'d and confirmed all four fixes against the tinyidp archive. No skill-mirror sync needed — these are SQL commands embedded in the binary, never part of the distributed skill.

@@ -5,10 +5,13 @@ long: |
   Identify unusually long or tool-heavy sessions. This is the handoff query for
   multi-window work: it gives the next pass a smaller set of sessions to inspect
   or annotate in detail.
+
+  The day filter matches any session whose active window includes the day, not
+  only sessions that started that day (see session-inventory).
 flags:
   - name: day
     type: date
-    help: Filter sessions to one calendar day based on started_at
+    help: Include sessions active on this calendar day (started on/before, ended on/after)
   - name: min_tools
     type: int
     default: 100
@@ -49,7 +52,8 @@ FROM sessions s
 LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND date(s.started_at) = date({{ .day | sqlDate }})
+  AND date(s.started_at) <= date({{ .day | sqlDate }})
+  AND date(COALESCE(s.ended_at, s.started_at)) >= date({{ .day | sqlDate }})
 {{ end -}}
 AND (
   s.tool_call_count >= {{ .min_tools }}
