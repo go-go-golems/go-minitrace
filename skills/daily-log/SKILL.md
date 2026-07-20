@@ -72,23 +72,39 @@ go-minitrace discover claude-code \
   --output json > ./claude-code-discovery.json
 ```
 
-Each candidate record has `cwd`, `id`, `started_at`, `last_activity_at`, and `source_path`. Filter to sessions whose activity overlaps the target day. Sessions that started the *next* day are not part of the target day's work — exclude them before conversion.
+Each candidate record has `cwd`, `id`, `started_at`, `last_activity_at`, and `source_path`. `discover --active-since` is a lower bound only — it keeps every session active at or after the target day, including sessions from *later* days. Filter to sessions whose activity overlaps the target day itself: keep a session only when `started_at` falls on or before the target day **and** `last_activity_at` falls on or after it. A session that started the next day is not part of the target day's work; without the upper bound it would inflate the day's session, turn, and tool totals. The source-list step below applies exactly this filter.
 
 Claude Code sessions live under `~/.claude/projects`. The adapter prefers JSONL v2 transcripts and ignores subagent transcripts at the discovery layer.
 
 ### Stage 2: Convert to archives
 
-Create a self-contained investigation directory. Save the source list as an artifact so the conversion is reproducible.
+Create a self-contained investigation directory. Write **one source list per framework**, each built only from that framework's own discovery file, and convert each with its own adapter. Do not build a single merged list: feeding a Codex or Claude transcript to `convert pi` makes the Pi adapter publish it as an empty or misclassified Pi session, and a directory-form Claude session can fail the whole staged Pi batch. Each list also applies the target-day overlap filter from stage 1.
 
 ```bash
 INVEST_DIR="scripts/$(date +%Y/%m/%d)/daily-report-$(date -d "$TARGET_DAY" +%Y-%m-%d)"
 mkdir -p "$INVEST_DIR"/{archives,queries,results}
 
-# Write one path per line to a source list (all three frameworks)
-for f in pi-discovery.json codex-discovery.json claude-code-discovery.json; do
-  grep -o '"source_path": "[^"]*"' "$f" \
-    | sed 's/"source_path": "//;s/"$//'
-done | sort -u > "$INVEST_DIR/sources.txt"
+# One source list per framework, from that framework's own discovery file,
+# keeping only sessions that started on/before and were last active on/after
+# the target day.
+build_source_list() {  # <discovery.json> <out.txt>
+  python3 -c "
+import json
+target = '$TARGET_DAY'
+paths = []
+for s in json.load(open('$1')):
+    started = (s.get('started_at') or '')[:10]
+    last = (s.get('last_activity_at') or '')[:10]
+    if started and started > target: continue     # started after the day
+    if last and last < target: continue           # ended before the day
+    if s.get('source_path'): paths.append(s['source_path'])
+for p in sorted(set(paths)): print(p)
+" > "$2"
+}
+
+build_source_list "$INVEST_DIR/results/pi-discovery.json"          "$INVEST_DIR/pi-sources.txt"
+build_source_list "$INVEST_DIR/results/codex-discovery.json"       "$INVEST_DIR/codex-sources.txt"
+build_source_list "$INVEST_DIR/results/claude-code-discovery.json" "$INVEST_DIR/claude-code-sources.txt"
 
 go-minitrace convert pi \
   --source-list "$INVEST_DIR/pi-sources.txt" \
@@ -104,6 +120,8 @@ go-minitrace convert claude-code \
 ```
 
 If a source list causes preflight failures (`missing native session ID`), pass the relevant sessions explicitly with repeatable `--source-session` flags. Let preflight failures surface bad inputs; do not suppress them.
+
+`scripts/generate_daily_log.sh <TARGET_DAY> [INVEST_DIR]` performs stages 1–3 with exactly this logic.
 
 Never modify native session files. Conversion copies a normalized representation into the investigation directory.
 

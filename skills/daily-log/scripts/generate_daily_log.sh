@@ -77,90 +77,78 @@ echo "Codex candidates:       $CODEX_COUNT"
 echo "Claude Code candidates: $CLAUDE_COUNT"
 echo ""
 
-# ---- Build source lists ----
-# Extract source_path values from discovery JSON, one per line.
-python3 -c "
-import json, sys
+# ---- Build per-framework source lists ----
+# Two rules are enforced here, both of which the earlier single mixed list got
+# wrong:
+#
+#   1. Each adapter converts only its own framework's sessions. Feeding a Codex
+#      or Claude transcript to `convert pi` makes the Pi adapter publish it as
+#      an empty or misclassified Pi session, and a directory-form Claude session
+#      can fail the whole staged batch. So we write one list per framework, each
+#      from its own discovery file, and convert each with its own adapter.
+#
+#   2. Sessions that started after the target day are dropped. `discover
+#      --active-since` is a lower bound only ("active at or after"); with no
+#      upper bound, a report generated days later would pull in every session
+#      from the intervening days and inflate the totals and timelines for the
+#      reported day.
+build_source_list() {
+  local discovery="$1" out="$2"
+  python3 -c "
+import json
+target = '$TARGET_DAY'
 paths = []
-for f in ['$INVEST_DIR/results/pi-discovery.json', '$INVEST_DIR/results/codex-discovery.json', '$INVEST_DIR/results/claude-code-discovery.json']:
-    try:
-        for s in json.load(open(f)):
-            p = s.get('source_path')
-            if p:
-                paths.append(p)
-    except Exception:
-        pass
+try:
+    for s in json.load(open('$discovery')):
+        started = (s.get('started_at') or '')[:10]
+        last = (s.get('last_activity_at') or '')[:10]
+        if started and started > target:   # started after the reported day
+            continue
+        if last and last < target:         # last active before the reported day
+            continue
+        p = s.get('source_path')
+        if p:
+            paths.append(p)
+except Exception:
+    pass
 for p in sorted(set(paths)):
     print(p)
-" > "$INVEST_DIR/sources.txt"
+" > "$out"
+}
 
-SOURCE_COUNT=$(wc -l < "$INVEST_DIR/sources.txt")
-echo "Source list: $SOURCE_COUNT sessions -> $INVEST_DIR/sources.txt"
+build_source_list "$INVEST_DIR/results/pi-discovery.json"          "$INVEST_DIR/pi-sources.txt"
+build_source_list "$INVEST_DIR/results/codex-discovery.json"       "$INVEST_DIR/codex-sources.txt"
+build_source_list "$INVEST_DIR/results/claude-code-discovery.json" "$INVEST_DIR/claude-code-sources.txt"
+
+echo "Source lists (own-framework only, sessions active on $TARGET_DAY):"
+echo "  pi:          $(wc -l < "$INVEST_DIR/pi-sources.txt")          -> $INVEST_DIR/pi-sources.txt"
+echo "  codex:       $(wc -l < "$INVEST_DIR/codex-sources.txt")       -> $INVEST_DIR/codex-sources.txt"
+echo "  claude-code: $(wc -l < "$INVEST_DIR/claude-code-sources.txt") -> $INVEST_DIR/claude-code-sources.txt"
 echo ""
 
 # ---- Stage 2: Convert ----
 echo "=== Stage 2: Convert to archives ==="
 
-# Convert Pi sessions.
-go-minitrace convert pi \
-  --source-list "$INVEST_DIR/sources.txt" \
-  --output-dir "$INVEST_DIR/archives/pi" 2>&1 | tail -5 || {
-    echo "WARNING: pi convert via source-list had issues" >&2
-  }
-
-# Convert Codex sessions explicitly (more reliable than a mixed list).
-CODEX_SOURCES=$(python3 -c "
-import json
-try:
-    for s in json.load(open('$INVEST_DIR/results/codex-discovery.json')):
-        p = s.get('source_path')
-        if p:
-            print(p)
-except Exception:
-    pass
-")
-
-if [[ -n "$CODEX_SOURCES" ]]; then
-  CODEX_ARGS=()
-  while IFS= read -r src; do
-    [[ -z "$src" ]] && continue
-    CODEX_ARGS+=(--source-session "$src")
-  done <<< "$CODEX_SOURCES"
-  if [[ ${#CODEX_ARGS[@]} -gt 0 ]]; then
-    go-minitrace convert codex \
-      "${CODEX_ARGS[@]}" \
-      --output-dir "$INVEST_DIR/archives/codex" 2>&1 | tail -5 || {
-        echo "WARNING: codex convert failed" >&2
-      }
+# Convert each framework from its own source list. On preflight failures
+# (for example "missing native session ID"), pass the offending sessions
+# explicitly with repeatable --source-session flags rather than suppressing
+# the error — a failure means a bad input, not a reason to skip the day.
+convert_framework() {
+  local fw="$1" list="$2"
+  if [[ ! -s "$list" ]]; then
+    echo "  $fw: no sessions active on $TARGET_DAY, skipping"
+    return
   fi
-fi
+  go-minitrace convert "$fw" \
+    --source-list "$list" \
+    --output-dir "$INVEST_DIR/archives/$fw" 2>&1 | tail -5 || {
+      echo "WARNING: $fw convert had issues; retry failing sessions with --source-session" >&2
+    }
+}
 
-# Convert Claude Code sessions explicitly.
-CLAUDE_SOURCES=$(python3 -c "
-import json
-try:
-    for s in json.load(open('$INVEST_DIR/results/claude-code-discovery.json')):
-        p = s.get('source_path')
-        if p:
-            print(p)
-except Exception:
-    pass
-")
-
-if [[ -n "$CLAUDE_SOURCES" ]]; then
-  CLAUDE_ARGS=()
-  while IFS= read -r src; do
-    [[ -z "$src" ]] && continue
-    CLAUDE_ARGS+=(--source-session "$src")
-  done <<< "$CLAUDE_SOURCES"
-  if [[ ${#CLAUDE_ARGS[@]} -gt 0 ]]; then
-    go-minitrace convert claude-code \
-      "${CLAUDE_ARGS[@]}" \
-      --output-dir "$INVEST_DIR/archives/claude-code" 2>&1 | tail -5 || {
-        echo "WARNING: claude-code convert failed" >&2
-      }
-  fi
-fi
+convert_framework pi          "$INVEST_DIR/pi-sources.txt"
+convert_framework codex       "$INVEST_DIR/codex-sources.txt"
+convert_framework claude-code "$INVEST_DIR/claude-code-sources.txt"
 
 echo ""
 GLOB="$INVEST_DIR/archives/*/active/*/*.minitrace.json"
