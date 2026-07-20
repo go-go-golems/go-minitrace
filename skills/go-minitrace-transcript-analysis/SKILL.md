@@ -27,21 +27,30 @@ The legacy DuckDB backend (`go-minitrace query duckdb`) is removed. Use `go-mini
 - Read `references/attribution.md` when determining which session implemented repository work, authored commits, or created files.
 - Read `references/js-query-authoring.md` only when the analysis should become a reusable JavaScript query command. Most investigations need saved SQL, not a JS command repository.
 
-## Built-in query commands: `history <verb>`
+## Built-in query commands
 
-Three typed verbs for the recurring "join transcript evidence to something outside the transcript" question shape. As of `go-minitrace` commit `311102e` (go-minitrace repo, branch `task/add-skill-commands`) they ship **embedded in the binary itself** (`pkg/minitracecmd/core/history/`) — no `--query-repository` flag, no separately-distributed skill files. Run them directly:
+Typed verbs for the recurring "join transcript evidence to something outside the transcript" question shape. They ship **embedded in the binary itself** (`pkg/minitracecmd/core/`) — no `--query-repository` flag, no separately-distributed skill files. This skill ships no query commands of its own. Run them directly:
 
 ```bash
-go-minitrace query commands history <verb> --archive-glob '<archives>/active/*/*.minitrace.json' --output json ...
+go-minitrace query commands <group> <verb> --archive-glob '<archives>/active/*/*.minitrace.json' --output json ...
 ```
 
-If `go-minitrace query commands history --help` shows nothing, the installed binary predates this change — rebuild from a checkout containing commit `311102e`+ (`make install` in the go-minitrace repo), or fall back to `--query-repository <path-to-a-checkout-of-pkg/minitracecmd/core>`.
+If `go-minitrace query commands history --help` shows nothing, the installed binary predates this change — rebuild from a checkout containing commit `311102e`+ (`make install` in the go-minitrace repo).
 
-- **`history file-history --path <fragment>`** — when was a file created/edited/read, in which session/turn, at what timestamp; per-file summary plus full timeline. `arguments_json` fallback only fires when `file_path` is empty (avoids matching prose that merely mentions the path).
+### `history <verb>`
+
+- **`history file-history --path <fragment>`** — when was a file created/edited/read, in which session/turn, at what timestamp; per-file summary plus full timeline. Extracts every *structurally* file-path-shaped candidate from a tool call — the `file_path` column, each `*** Update/Add/Delete File:` header in a Codex patch, JSON `file_path`/`path` keys, shell redirect targets — and keeps those matching the fragment. Two consequences worth knowing: a multi-file Codex patch correctly attributes to every file it touches (`tool_calls.file_path` only records the first), and prose that merely mentions a path is not counted as a touch. Paths are home-normalized before grouping, so `~/x` and `/home/you/x` collapse into one summary row.
 - **`history ticket-timeline --ticket <fragment>`** — when was a docmgr ticket created (`docmgr ticket create`), and when were its `tasks.md`/`changelog.md`/diary files touched. Reports evidence (a command ran, a file was touched), not verified success — cross-check against the ticket's own git history for certainty.
 - **`history context-window --session <id> --turn <n>`** — for a given turn, reconstructs every file, tool call, and skill signal since the last compaction boundary. Combines a textual continuation-summary marker with a cache-read-collapse heuristic (`--boundary-method auto|summary-only|cache-collapse-only` — note kebab-case on the CLI even though the JS field is `boundaryMethod`); has no reliable signal on Codex archives (no comparable cache accounting — prefer `summary-only` there).
 
 Chain `ticket-timeline` → `context-window` to answer "when was this ticket created, and what was the agent's context at that moment" in two calls: take the `ticket-timeline` creation event's `session_id`/`turn_index` and feed them straight into `context-window`.
+
+### Activity verbs
+
+- **`overview session-activity`** — sessions ordered by last interaction, where that is the latest of any turn *or* any tool call. Filters: `--framework`, `--cwd-contains`, `--since`, `--limit`.
+- **`files file-activity`** — touched files by most recent write or tool activity, one row per (session, file) with an operation count. Filters add `--path-contains` and `--write-only` (default true: NEW and MODIFY only). Narrowing with `--since`/`--path-contains` narrows `operations` too — it counts operations in the requested window, not the file's lifetime.
+
+These two previously lived in this skill as one `overview/session-activity.js`; they are now one verb per file, so the paths are flat (`overview session-activity`, `files file-activity`) rather than doubled.
 
 Design rationale and the original validation log (including one false-positive bug found and fixed) live in ticket `GOGO-MINITRACE-HISTORY-VERBS-2026-07-20` (claw-stuff), `design-doc/01` and `reference/01-diary.md`. The embedding work itself (moving from external `--query-repository` into `pkg/minitracecmd/core/`) is documented in ticket `ADD-HISTORY-QUERY-COMMANDS-2026-07-20` (go-minitrace repo, `ttmp/2026/07/20/`).
 

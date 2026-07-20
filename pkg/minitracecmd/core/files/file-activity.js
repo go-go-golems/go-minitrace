@@ -1,5 +1,13 @@
+// files file-activity — list touched files by their most recent write or tool
+// activity, one row per (session, file) with an operation count.
+//
+// Split out of the skill's combined overview/session-activity.js so that this
+// file declares a single verb (the embedded catalog collapses a single-verb
+// file's path). Filed under files/ rather than overview/ to sit alongside the
+// other file-oriented commands, file-operations.sql and file-timeline.sql.
+
 __section__("filters", {
-  title: "Activity filters",
+  title: "File activity filters",
   fields: {
     framework: {
       type: "stringList",
@@ -20,7 +28,7 @@ __section__("filters", {
     write_only: {
       type: "bool",
       default: true,
-      help: "For file activity, include only NEW and MODIFY operations",
+      help: "Include only NEW and MODIFY operations",
     },
     limit: {
       type: "int",
@@ -29,73 +37,6 @@ __section__("filters", {
     },
   },
 });
-
-function sessionActivity(filters) {
-  const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
-  try {
-    const framework = filters.framework?.length
-      ? `AND s.agent_framework IN (${mt.sql.stringIn(filters.framework)})`
-      : "";
-    const cwd = filters.cwd_contains
-      ? `AND s.working_directory LIKE ${mt.sql.like(`%${filters.cwd_contains}%`)}`
-      : "";
-    const since = filters.since
-      ? `AND last_activity_at >= ${mt.sql.string(filters.since)}`
-      : "";
-
-    // Last activity is the max timestamp over turns AND tool_calls, computed
-    // by unioning the two timestamp streams and aggregating once per session.
-    //
-    // The previous form joined both tables to `sessions` and took
-    // MAX(COALESCE(t.timestamp, tc.timestamp)). That was wrong twice over.
-    // COALESCE is per-row and returns its first non-null argument, so once a
-    // session had any turns at all every joined row carried a turn timestamp
-    // and the tool_call timestamps were never considered — a session whose
-    // last tool call ran after its last turn reported the stale turn time.
-    // Joining both tables also built a turns x tool_calls cross product per
-    // session: 500 turns and 800 tool calls meant 400,000 rows scanned to
-    // compute a single maximum.
-    return db.query(`
-      WITH stamps AS (
-        SELECT session_id, timestamp FROM turns
-        UNION ALL
-        SELECT session_id, timestamp FROM tool_calls
-      )
-      , last_seen AS (
-        SELECT session_id, MAX(timestamp) AS last_activity_at
-        FROM stamps
-        WHERE timestamp IS NOT NULL AND timestamp <> ''
-        GROUP BY session_id
-      )
-      , activity AS (
-        SELECT
-          s.session_id,
-          s.agent_framework AS framework,
-          s.model,
-          s.title,
-          s.working_directory,
-          s.started_at,
-          s.ended_at,
-          s.turn_count,
-          s.tool_call_count,
-          l.last_activity_at
-        FROM sessions s
-        LEFT JOIN last_seen l USING (session_id)
-      )
-      SELECT *
-      FROM activity s
-      WHERE 1=1
-        ${framework}
-        ${cwd}
-        ${since}
-      ORDER BY last_activity_at DESC
-      LIMIT ${filters.limit ?? 100}
-    `);
-  } finally {
-    db.close();
-  }
-}
 
 function fileActivity(filters) {
   const mt = require("minitrace");
@@ -117,6 +58,9 @@ function fileActivity(filters) {
       ? "AND tc.operation_type IN ('NEW', 'MODIFY')"
       : "";
 
+    // `operations` counts rows surviving the ranked WHERE, so narrowing with
+    // --since or --path-contains narrows the count too: it reports operations
+    // within the requested window, not the file's lifetime total.
     return db.query(`
       WITH calls AS (
         SELECT
@@ -165,12 +109,6 @@ function fileActivity(filters) {
     db.close();
   }
 }
-
-__verb__("sessionActivity", {
-  name: "session-activity",
-  short: "List sessions by last interaction time",
-  fields: { filters: { bind: "filters" } },
-});
 
 __verb__("fileActivity", {
   name: "file-activity",

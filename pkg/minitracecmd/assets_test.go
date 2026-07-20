@@ -68,4 +68,20 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 	if catalog.ByPath["history/context-window"] == nil {
 		t.Fatalf("embedded catalog missing history/context-window path")
 	}
+	if catalog.ByName["session-activity"] == nil {
+		t.Fatalf("embedded catalog missing overview/session-activity command")
+	}
+	if catalog.ByName["file-activity"] == nil {
+		t.Fatalf("embedded catalog missing files/file-activity command")
+	}
+	// Both verbs used to live in one skill file, which would have registered
+	// them at the doubled paths overview/session-activity/session-activity and
+	// overview/session-activity/file-activity. They are split one verb per file
+	// so the catalog collapses each to a flat path like every other command.
+	if catalog.ByPath["overview/session-activity"] == nil {
+		t.Fatalf("embedded catalog missing overview/session-activity path")
+	}
+	if catalog.ByPath["files/file-activity"] == nil {
+		t.Fatalf("embedded catalog missing files/file-activity path")
+	}
 }

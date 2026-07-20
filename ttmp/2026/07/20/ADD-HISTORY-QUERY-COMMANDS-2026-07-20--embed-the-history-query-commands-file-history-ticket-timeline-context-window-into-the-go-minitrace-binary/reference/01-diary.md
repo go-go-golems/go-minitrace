@@ -230,3 +230,38 @@ Audited the other four scripts in `scripts/` for the same pattern; only these tw
 ### Verification of the whole tree
 
 `go build ./...`, `go test ./...` (all pass), `golangci-lint run ./...` (0 issues), `make install` and re-ran the verbs against real archives.
+
+## Step 7: Embed the remaining skill verbs
+
+### Prompt Context
+
+**User prompt (verbatim):** "which verbs are we adding, are we adding all the scripts / verbs from the skill into the binary, btw?" then "embed all the verbs from the skill."
+
+### What the audit found
+
+Steps 1-6 embedded exactly three verbs (`history/file-history`, `history/ticket-timeline`, `history/context-window`), joining 15 pre-existing embedded commands. One query-command file was still external: `skills/.../query-commands/overview/session-activity.js`, carrying **two** verbs (`session-activity`, `file-activity`). There was no principled reason for it to stay outside while the history verbs moved in — it is the same kind of artifact and needed the same `--query-repository` flag to run.
+
+### What I did
+
+Split the one two-verb file into two one-verb files rather than copying it across as-is. Every other command in `pkg/minitracecmd/core/` declares a single verb per file, which lets the catalog collapse the path (`overview/session-list`, not `overview/session-list/session-list`). Copying the combined file verbatim would have registered the awkward `overview/session-activity/session-activity` and `overview/session-activity/file-activity`.
+
+- `pkg/minitracecmd/core/overview/session-activity.js` — `session-activity`, with the `path_contains` and `write_only` fields dropped from its section since it never used them.
+- `pkg/minitracecmd/core/files/file-activity.js` — `file-activity`, filed under `files/` alongside `file-operations.sql` and `file-timeline.sql` rather than under `overview/`. A file-oriented verb sitting in `overview` was the anomaly; the CLI path was changing regardless of which group it landed in, so this was the moment to fix it. Flagged to the user in case they want it back under `overview`.
+
+Removed `skills/.../query-commands/` entirely — the skill now ships no query commands, only prose and shell scripts.
+
+Added four `assets_test.go` assertions (ByName and ByPath for both verbs), with a comment recording *why* the flat paths are the expected ones, so a future edit that recombines the files fails the test with an explanation rather than a bare nil check.
+
+### A stale claim in SKILL.md, caught while editing
+
+SKILL.md line 40 still described `file-history` as: "`arguments_json` fallback only fires when `file_path` is empty (avoids matching prose that merely mentions the path)." That is exactly the behavior the Step 6 P1 fix **removed** — the gate was the bug. Rewrote the entry to describe the structural-candidate extraction and both of its consequences (multi-file patches attribute correctly; prose still is not counted). Documentation describing a fixed bug as if it were current design is worse than no documentation, since it would send a future reader looking for a gate that no longer exists.
+
+### Correction: the skill mirrors are symlinks, not hardlinks
+
+Earlier steps in this ticket recorded the three live skill mirrors as hardlinked files sharing inodes, with the note that `rm` would have to be repeated per mirror. That is wrong. `~/.claude/skills` and `~/.pi/agent/skills` are **symlinks to `~/.codex/skills`** — there is one real directory and two pointers to it. The identical inodes observed earlier are explained by this just as well as by hardlinks.
+
+The practical difference matters for deletion: `rm -rf ~/.claude/skills/.../query-commands` removed it from all three views at once, because there is only one directory. The earlier "repeat the rm per mirror" guidance would have been harmless but was based on a wrong model. Verified with `ls -ld` on all three paths.
+
+### Verification
+
+`go test ./...` passes (including the four new catalog assertions), `golangci-lint run ./...` reports 0 issues. `make install`'d and ran both verbs against the tinyidp archives **with no `--query-repository` flag** — `overview session-activity` returns sessions ordered by last activity, `files file-activity` returns per-(session, file) rows with operation counts. SKILL.md synced to the live skill.
