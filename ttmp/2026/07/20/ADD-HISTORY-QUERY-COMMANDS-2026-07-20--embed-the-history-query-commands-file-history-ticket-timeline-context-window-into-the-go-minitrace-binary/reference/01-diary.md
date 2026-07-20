@@ -179,3 +179,54 @@ Disclosing the `--no-verify` push in the PR body itself (not just this diary) ma
 ### Technical details
 
 PR: https://github.com/go-go-golems/go-minitrace/pull/30. Branch: `task/add-skill-commands`, pushed to `wesen/go-minitrace`. Commits: `311102e`, `4e9dbe8`, `a4d99fc`.
+
+## Step 6: Address the PR #30 code review comments
+
+### Prompt Context
+
+**User prompt (verbatim):** "https://github.com/go-go-golems/go-minitrace/pull/30 <- then address the code review comments in here." — followed by a handoff mid-task: "Continue, we are the big brother taking over as the work so far has been done by our little brother. Address the code review issue, assess their work and what can be salvaged, what needs to be improved, etc..."
+
+Three automated review comments: one P1 on `file-history.js` (multi-file Codex patches lose every file after the first), two P2s (`session-activity.js` last-activity computation, and SIGPIPE exit 141 in the two `discover_*_by_cwd.sh` scripts).
+
+### Assessment of the in-progress P1 work inherited from the earlier session
+
+The core approach was right and was kept: replace the "only consult `arguments_json` when `file_path` is empty" gate with `extractCandidatePaths(row)`, which harvests **structurally** file-path-shaped candidates — the `file_path` column, every `*** Update/Add/Delete File:` patch header, every JSON `file_path`/`path` key, and shell redirect targets — then keeps only the candidates that actually match the search fragment. This fixes the reviewer's bug without regressing to a blanket substring search over the payload, which is what the original design existed to avoid (a `Write` call whose free-text `content` argument merely *mentions* a path is not a touch of that path). `canonicalizePath` and the per-row dedup were also sound.
+
+Four defects were found in the handed-over state and fixed:
+
+1. **`effectiveCommands(row)` was reading a column that was no longer selected.** An earlier edit dropped `tc.command` from the SQL SELECT after mistakenly judging it unused, so `row.command` was `undefined` on every row and the claude-code/pi branch of `effectiveCommands` was dead code. Restored `substr(COALESCE(tc.command,''),1,2000) AS command`.
+2. **The WHERE clause never matched on `tc.command`.** Candidates could be extracted from `command`, but rows were only fetched when `file_path` or `arguments_json` matched — so a Bash heredoc whose target path appears only in `command` was never retrieved in the first place. Added `OR COALESCE(tc.command,'') LIKE ...`.
+3. **The payload window was smaller than the review comment's own failure mode.** `arguments_json` was truncated to 8000 chars by `substr`, and the runtime `CellChars(4000)` limit cut it to 4000 before the JS ever saw it. A multi-file patch longer than that loses its later files to truncation — the exact bug being fixed, reintroduced by a different mechanism. Raised to `substr(...,1,64000)` with `CellChars(100000)` so the cell limit can never be the binding constraint.
+4. **Summary grouping still split one file into several groups.** Dedup by canonical path was applied per row, but the group key was the *raw* path, so `~/x` recorded by one tool call and `/home/manuel/x` recorded by another produced two summary rows for one file. Group key is now `canonicalizePath(t.file_path)`.
+
+`extractRedirectTargets` was also tightened to skip `&`-prefixed (`2>&1`, `>&2`) and `(`-prefixed (process substitution) targets, which name file descriptors and subprocesses rather than files.
+
+### Verification
+
+`file-history --path "01-diary.md"` against the claw-stuff self-referential archive: 22 timeline rows / 4 summary groups, **0 duplicate `(session_id, turn_index)` pairs**, `match_source` split 15 `file_path` / 7 `arguments_json-extracted-path`. The 7 extracted paths are the Bash heredoc diary appends recovered by redirect-target extraction — the capability that had been silently lost. The summary group count dropping from the pre-fix 10 to 4 is the canonical-grouping fix working: 4 distinct real files, previously split across 10 path spellings.
+
+### P2: `session-activity.js` last-activity
+
+`MAX(COALESCE(t.timestamp, tc.timestamp))` over `sessions LEFT JOIN turns LEFT JOIN tool_calls` is wrong twice. `COALESCE` is per-row and returns its first non-null argument, so once a session has any turns at all, every joined row carries a turn timestamp and tool-call timestamps are never considered — a session whose last tool call ran after its last turn reports a stale time. Joining both tables also builds a `turns x tool_calls` cross product per session.
+
+Replaced with a `UNION ALL` of the two timestamp streams, aggregated once per session, then `LEFT JOIN`ed to `sessions`. This is also portable: it avoids scalar two-argument `MAX(a,b)`, which SQLite has but DuckDB spells `greatest`.
+
+Honest note on verification: **the wrong-answer symptom does not reproduce on the tinyidp corpus.** Checked every session with a direct correlated-subquery comparison of `MAX(turns.timestamp)` against `MAX(tool_calls.timestamp)` — the turn timestamp is later in all 8 sessions, which is the expected shape when a session ends with an assistant reply. The fix is correct by construction rather than confirmed against a failing case. The performance half *is* measurable: 1.76s (old) vs 0.35s (new) on these 8 sessions, ~5x, driven by session `019f47f7` alone at 1639 turns x 6144 tool calls ≈ 10M cross-product rows to compute one maximum.
+
+### P2: SIGPIPE in the discover scripts
+
+`... | while read; do ...; done | head -n "${LIMIT}"` under `set -o pipefail`: `head` exits once it has LIMIT lines, the still-writing loop takes SIGPIPE, and the pipeline reports 141 — a failure status for a normal truncation.
+
+Reproduced the failure directly (`seq 1 10000 | while read ...; done | head -n 3` → status 141) and confirmed the replacement returns 0. The limit is now a counter with `break` inside the loop, and input arrives by process substitution (`done < <(find ... | sort -r)`) rather than a pipe, so `pipefail` never inspects `find`/`sort`'s status when the loop stops reading early; it also keeps `count` in the current shell instead of a subshell. Applied to both `discover_codex_by_cwd.sh` and `discover_pi_by_cwd.sh`. Ran the real codex script end to end against `~/.codex/sessions` with `limit=2` on a cwd that genuinely has matches — exit 0, correct truncation.
+
+Audited the other four scripts in `scripts/` for the same pattern; only these two had a `done | head`.
+
+### Skill mirror sync
+
+`session-activity.js` and both scripts also live in the three hardlinked live-skill mirrors (`~/.claude`, `~/.codex`, `~/.pi/agent`), which share one inode per file but are *separate* inodes from the repo copy. Synced with `cat repo-file > ~/.claude/.../file` — truncate-in-place preserves the inode, so one write propagates to all three. Verified afterwards that the inodes are still shared and that all three mirrors are byte-identical to the repo copy.
+
+`file-history.js` needs no mirror sync: it now ships inside the binary and was removed from the live skill in Step 3.
+
+### Verification of the whole tree
+
+`go build ./...`, `go test ./...` (all pass), `golangci-lint run ./...` (0 issues), `make install` and re-ran the verbs against real archives.

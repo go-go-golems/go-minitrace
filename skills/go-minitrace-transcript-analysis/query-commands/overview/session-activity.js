@@ -44,8 +44,31 @@ function sessionActivity(filters) {
       ? `AND last_activity_at >= ${mt.sql.string(filters.since)}`
       : "";
 
+    // Last activity is the max timestamp over turns AND tool_calls, computed
+    // by unioning the two timestamp streams and aggregating once per session.
+    //
+    // The previous form joined both tables to `sessions` and took
+    // MAX(COALESCE(t.timestamp, tc.timestamp)). That was wrong twice over.
+    // COALESCE is per-row and returns its first non-null argument, so once a
+    // session had any turns at all every joined row carried a turn timestamp
+    // and the tool_call timestamps were never considered — a session whose
+    // last tool call ran after its last turn reported the stale turn time.
+    // Joining both tables also built a turns x tool_calls cross product per
+    // session: 500 turns and 800 tool calls meant 400,000 rows scanned to
+    // compute a single maximum.
     return db.query(`
-      WITH activity AS (
+      WITH stamps AS (
+        SELECT session_id, timestamp FROM turns
+        UNION ALL
+        SELECT session_id, timestamp FROM tool_calls
+      )
+      , last_seen AS (
+        SELECT session_id, MAX(timestamp) AS last_activity_at
+        FROM stamps
+        WHERE timestamp IS NOT NULL AND timestamp <> ''
+        GROUP BY session_id
+      )
+      , activity AS (
         SELECT
           s.session_id,
           s.agent_framework AS framework,
@@ -56,13 +79,9 @@ function sessionActivity(filters) {
           s.ended_at,
           s.turn_count,
           s.tool_call_count,
-          MAX(COALESCE(t.timestamp, tc.timestamp)) AS last_activity_at
+          l.last_activity_at
         FROM sessions s
-        LEFT JOIN turns t USING (session_id)
-        LEFT JOIN tool_calls tc USING (session_id)
-        GROUP BY s.session_id, s.agent_framework, s.model, s.title,
-                 s.working_directory, s.started_at, s.ended_at,
-                 s.turn_count, s.tool_call_count
+        LEFT JOIN last_seen l USING (session_id)
       )
       SELECT *
       FROM activity s
