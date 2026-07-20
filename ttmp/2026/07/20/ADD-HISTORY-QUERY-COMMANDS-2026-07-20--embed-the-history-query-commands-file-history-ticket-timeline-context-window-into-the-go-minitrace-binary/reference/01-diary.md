@@ -135,3 +135,23 @@ Whether removing the skill-local copies is the right call for portability: anyon
 ### Technical details
 
 Removed: `{~/.claude,~/.codex,~/.pi/agent}/skills/go-minitrace-transcript-analysis/query-commands/history/{file-history,ticket-timeline,context-window}.js` (9 files, 3 mirrors × 3 verbs, all same 3 inodes). Edited: `~/.claude/skills/go-minitrace-transcript-analysis/SKILL.md` (propagates to codex/pi), `go-minitrace` repo's `skills/go-minitrace-transcript-analysis/SKILL.md` (repo-local, committed alongside the code change).
+
+## Step 4: Replace the repo-bundled skill wholesale, prepare for PR
+
+### Prompt Context
+
+**User prompt (verbatim):** "copy the skill into go-minitrace as well under skills/ , then open a PR"
+
+Supersedes Step 3's "small addition, not a full rewrite" decision — the user wants the full current skill in the repo, not a patched-up old baseline.
+
+### What I did
+
+`rm -rf skills/go-minitrace-transcript-analysis` then `cp -r` the entire live skill tree (`~/.claude/skills/go-minitrace-transcript-analysis/`) in. Net diff: `SKILL.md` and `references/queries.md` modified, five new files added (`references/attribution.md`, `references/js-query-authoring.md`, `query-commands/overview/session-activity.js`, four `scripts/*.sh`), `scripts/query_minitrace.sh` unchanged (byte-identical in both copies).
+
+### Why
+
+The old repo-bundled copy was a stale baseline predating this entire campaign (confirmed by diff in Step 1); patching one line was already a compromise made under an assumption of narrower scope. The user's explicit instruction removes that ambiguity — ship the current, maintained skill.
+
+### What warrants a second pair of eyes
+
+This is a full replace, not a merge — nothing in the old repo copy was checked for content not present in the live skill before deletion (the diff in Step 1 suggested the old copy was a strict subset, but that comparison was against an earlier state of the live skill, not re-verified line-by-line here). The PR diff itself is the review surface for this.

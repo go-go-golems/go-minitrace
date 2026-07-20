@@ -16,3 +16,12 @@ Embedded file-history, ticket-timeline, and context-window as built-in go-minitr
 - pkg/minitracecmd/core/history/file-history.js — embedded file-history verb
 - pkg/minitracecmd/core/history/ticket-timeline.js — embedded ticket-timeline verb
 
+
+## 2026-07-20
+
+Replaced the repo-bundled skills/go-minitrace-transcript-analysis/ wholesale with the current, maintained skill (was a stale pre-campaign baseline).
+
+### Related Files
+
+- skills/go-minitrace-transcript-analysis/ — full skill replacement
+
