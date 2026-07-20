@@ -5,10 +5,16 @@ long: |
   List the sessions that belong in a nightly transcript review. The command is
   intentionally reusable because daily review work often needs to be resumed in
   later windows with the same filters.
+
+  The day filter matches any session whose active window includes the day
+  (started on or before it and ended on or after it), not only sessions that
+  started that day. A session started on the 9th but still running on the 18th
+  belongs in both days' reviews; a start-date-only filter dropped it from every
+  day but the first.
 flags:
   - name: day
     type: date
-    help: Filter sessions to one calendar day based on started_at
+    help: Include sessions active on this calendar day (started on/before, ended on/after)
   - name: framework
     type: stringList
     help: Optional agent-framework filter
@@ -37,7 +43,8 @@ FROM sessions s
 LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND date(s.started_at) = date({{ .day | sqlDate }})
+  AND date(s.started_at) <= date({{ .day | sqlDate }})
+  AND date(COALESCE(s.ended_at, s.started_at)) >= date({{ .day | sqlDate }})
 {{ end -}}
 {{ if .framework -}}
   AND s.agent_framework IN ({{ .framework | sqlStringIn }})

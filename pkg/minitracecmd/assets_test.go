@@ -50,4 +50,38 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 	if catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"] == nil {
 		t.Fatalf("embedded catalog missing codex-framework-summary alias")
 	}
+	if catalog.ByName["file-history"] == nil {
+		t.Fatalf("embedded catalog missing history/file-history command")
+	}
+	if catalog.ByName["ticket-timeline"] == nil {
+		t.Fatalf("embedded catalog missing history/ticket-timeline command")
+	}
+	if catalog.ByName["context-window"] == nil {
+		t.Fatalf("embedded catalog missing history/context-window command")
+	}
+	if catalog.ByPath["history/file-history"] == nil {
+		t.Fatalf("embedded catalog missing history/file-history path")
+	}
+	if catalog.ByPath["history/ticket-timeline"] == nil {
+		t.Fatalf("embedded catalog missing history/ticket-timeline path")
+	}
+	if catalog.ByPath["history/context-window"] == nil {
+		t.Fatalf("embedded catalog missing history/context-window path")
+	}
+	if catalog.ByName["session-activity"] == nil {
+		t.Fatalf("embedded catalog missing overview/session-activity command")
+	}
+	if catalog.ByName["file-activity"] == nil {
+		t.Fatalf("embedded catalog missing files/file-activity command")
+	}
+	// Both verbs used to live in one skill file, which would have registered
+	// them at the doubled paths overview/session-activity/session-activity and
+	// overview/session-activity/file-activity. They are split one verb per file
+	// so the catalog collapses each to a flat path like every other command.
+	if catalog.ByPath["overview/session-activity"] == nil {
+		t.Fatalf("embedded catalog missing overview/session-activity path")
+	}
+	if catalog.ByPath["files/file-activity"] == nil {
+		t.Fatalf("embedded catalog missing files/file-activity path")
+	}
 }

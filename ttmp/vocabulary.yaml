@@ -47,6 +47,14 @@ topics:
       description: design topic
     - slug: architecture
       description: Software architecture, subsystem boundaries, and implementation design
+    - slug: embedded-catalog
+      description: go-minitrace's go:embed-backed built-in query command catalog (pkg/minitracecmd/core)
+    - slug: js
+      description: JavaScript query command handlers (goja runtime)
+    - slug: query-commands
+      description: go-minitrace structured query-command repositories (SQL/JS)
+    - slug: skills
+      description: Claude/Codex/Pi agent skills
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes

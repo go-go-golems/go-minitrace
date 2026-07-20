@@ -5,10 +5,16 @@ long: |
   Group the prior day's transcripts by working directory so the nightly review
   can be written as a sequence of workspace stories instead of a single flat
   list.
+
+  The day filter matches any session whose active window includes the day, not
+  only sessions that started that day. Note the aggregated metrics (hours,
+  tools, turns) are whole-session totals: a multi-day session active on the day
+  contributes its entire duration and tool count, not just the portion that
+  fell on that day. This is a session-granularity summary, not a per-day slice.
 flags:
   - name: day
     type: date
-    help: Filter sessions to one calendar day based on started_at
+    help: Include sessions active on this calendar day (started on/before, ended on/after)
   - name: framework
     type: stringList
     help: Optional agent-framework filter
@@ -26,7 +32,8 @@ FROM sessions s
 LEFT JOIN metrics m ON m.session_id = s.session_id
 WHERE 1=1
 {{ if .day -}}
-  AND date(s.started_at) = date({{ .day | sqlDate }})
+  AND date(s.started_at) <= date({{ .day | sqlDate }})
+  AND date(COALESCE(s.ended_at, s.started_at)) >= date({{ .day | sqlDate }})
 {{ end -}}
 {{ if .framework -}}
   AND s.agent_framework IN ({{ .framework | sqlStringIn }})
