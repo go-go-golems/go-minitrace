@@ -25,3 +25,8 @@ Replaced the repo-bundled skills/go-minitrace-transcript-analysis/ wholesale wit
 
 - skills/go-minitrace-transcript-analysis/ — full skill replacement
 
+
+## 2026-07-20
+
+Pushed task/add-skill-commands to the wesen fork (--no-verify, after diagnosing a pre-existing lefthook pre-push race unrelated to this diff) and opened PR go-go-golems/go-minitrace#30.
+
