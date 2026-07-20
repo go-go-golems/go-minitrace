@@ -45,6 +45,11 @@ The embedded catalog currently includes examples such as:
 - `go-minitrace query commands overview framework-summary`
 - `go-minitrace query commands timing timing-analysis`
 - `go-minitrace query commands overview aliases codex-framework-summary`
+- `go-minitrace query commands history file-history --path <fragment>` — when was a file created/edited/read
+- `go-minitrace query commands history ticket-timeline --ticket <fragment>` — when was a docmgr ticket created and its tasks/changelog/diary touched
+- `go-minitrace query commands history context-window --session <id> --turn <n>` — files/tool calls/skills in scope since the last compaction
+
+(the `history` group is JS, not SQL — see `pkg/minitracecmd/core/history/`, added in `ttmp/2026/07/20/ADD-HISTORY-QUERY-COMMANDS-2026-07-20/`, a worked example of embedding a JS query command)
 
 Use `go-minitrace query run` for quick ad hoc analysis, and `go-minitrace query commands` when the analysis should become a named, reusable command with typed flags and web-UI support.
 

@@ -1,0 +1,137 @@
+---
+Title: Diary
+Ticket: ADD-HISTORY-QUERY-COMMANDS-2026-07-20
+Status: active
+Topics:
+    - query-commands
+    - js
+    - embedded-catalog
+    - skills
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: "Implementation diary for moving the file-history/ticket-timeline/context-window JS query verbs from the go-minitrace-transcript-analysis skill's external query-repository into go-minitrace's embedded command catalog."
+LastUpdated: 2026-07-20T14:03:50.943885466-04:00
+WhatFor: "Contemporaneous record of embedding the three verbs, testing the rebuilt binary, and updating the skill to stop distributing them separately."
+WhenToUse: "Read before adding further embedded query commands, or before touching pkg/minitracecmd/core/history/."
+---
+
+# Diary
+
+## Step 1: Investigate the embedded catalog mechanism
+
+### Prompt Context
+
+**User prompt (verbatim):** "Work in /home/manuel/workspaces/2026-07-20/add-skill-commands which contains go-minitrace checkout and actually move th skill verbs into the go-minitrace binary so that they don't have to be distributed separately. Create a new docmgr in there (which will put it into go-minitrace/ttmp and then get to work, keep a diary and commit at appropriate interval wile you work. Then update the skill"
+
+This follows directly from ticket `GOGO-MINITRACE-HISTORY-VERBS-2026-07-20` (claw-stuff repo), which designed, implemented, and validated three go-minitrace JS query verbs (`file-history`, `ticket-timeline`, `context-window`) and shipped them in the `go-minitrace-transcript-analysis` skill's `query-commands/history/` directory, loaded via `--query-repository`. This ticket's job: stop distributing them as an external repository and make them part of the `go-minitrace` binary itself.
+
+### What I did
+
+Explored `/home/manuel/workspaces/2026-07-20/add-skill-commands/go-minitrace` (a go.work multi-module workspace alongside `glazed` and `go-go-goja` checkouts; git remotes `origin` = `go-go-golems/go-minitrace`, `wesen` = personal fork; clean working tree at `b813c91`).
+
+Found the embedded-catalog mechanism:
+
+- `pkg/minitracecmd/assets.go` — `//go:embed core` embeds the entire `pkg/minitracecmd/core/` directory tree as an `embed.FS`; `LoadEmbeddedCatalog()` builds the catalog from just that one `SourceRoot` (`Readonly: true`).
+- `pkg/minitracecmd/core/{overview,files,nightly,timing,tools}/` — today's embedded commands, all `.sql` (plus one `.alias.yaml`). No JS examples exist in `core` yet, but nothing in the loader is SQL-only.
+- `pkg/minitracecmd/catalog.go`'s `LoadCatalog` walks every `SourceRoot` generically via `fs.WalkDir` + `DetectSourceKind` (`.sql` → `SourceSQLCommand`, `.js`/`.cjs` → `SourceJSCommand`, `.alias.yaml` → `SourceYAMLAlias`) and dispatches to `ParseSQLCommandSpec` / `ParseJSCommandSpecs` / `ParseAliasSpec` identically regardless of whether the `fs.FS` is `embed.FS` or an on-disk directory. **JS commands are fully supported in the embedded catalog already** — nothing in the compiler/scanner is external-repository-specific. This makes the port a straightforward file copy, not a new code path.
+- `pkg/minitracecmd/assets_test.go` — `TestLoadEmbeddedCatalog` asserts `len(Commands) >= 9` and spot-checks specific `ByName`/`ByPath` entries for existing commands. No fixed/exact count assertion to break; will add matching assertions for the three new commands.
+
+Also found: `~/go/bin/go-minitrace` (the binary on `PATH`, `go-minitrace version dev`) — `make install` runs `go generate ./... && go install $(CMD_DIR)`, so rebuilding via that target updates the live CLI in place, no separate deploy step needed.
+
+Also found: this repo already bundles its own copy of the skill at `skills/go-minitrace-transcript-analysis/` — but it is a **stale, diverged baseline** (missing `references/attribution.md`, `references/js-query-authoring.md`, and everything from this campaign's work), not kept in sync with the live skill at `~/.claude/skills/go-minitrace-transcript-analysis` (confirmed by diff). No install/sync mechanism in the Makefile connects them. Decision: focus "update the skill" on the live skill (the one this whole campaign has built and the one actually loaded by Claude/Codex/Pi via the hardlinked mirrors); make one small non-scope-creeping fix to the repo-bundled copy too, since leaving it telling users to pass `--query-repository` for verbs that are now built in would be a real, easily-avoided inaccuracy.
+
+### Why
+
+Confirming the embedded catalog treats JS identically to SQL *before* writing anything avoids discovering a JS-specific limitation mid-implementation — cheap to check, expensive to find out the hard way after the diary already claims "just copy the files."
+
+### What worked
+
+Reading `catalog.go` end-to-end before touching anything paid off: the port really is "copy 3 files + add test assertions," not a new integration.
+
+### What warrants a second pair of eyes
+
+The decision to fix only the one stale instruction in the repo-bundled skill copy rather than fully re-syncing it with the live skill — a full re-sync is out of scope for this ticket (it's a go-minitrace binary change, not a skill-content overhaul) but leaves the repo-bundled copy still missing `attribution.md`/`js-query-authoring.md`/the interpretation lessons. Flagged, not fixed, here.
+
+### What should be done in the future
+
+Consider a Makefile target (`make sync-skill` or similar) that copies the canonical skill source into this repo's `skills/` directory, so the two never diverge silently again.
+
+## Step 2: Implement, test, install, verify, commit
+
+### Prompt Context
+
+Continuation of Step 1 — executing the plan against real code, no new user prompt.
+
+### What I did
+
+1. Copied the three JS files verbatim from `~/.claude/skills/go-minitrace-transcript-analysis/query-commands/history/` into `pkg/minitracecmd/core/history/` — no changes needed to the files themselves.
+2. `go build ./...` and `go test ./pkg/minitracecmd/...` passed unmodified — confirming Step 1's read of `catalog.go` was correct.
+3. Wrote a throwaway test (`zz_dump_test.go`, deleted after use) to print the actual compiled `Path`/`Name` for the three new commands before writing real assertions, rather than guessing the JS single-verb-collapse path format: `history/file-history`, `history/ticket-timeline`, `history/context-window` (no `.js` suffix — the compiler collapses a single-verb file whose verb name matches the file stem).
+4. Added six assertions to `assets_test.go` (`ByName` + `ByPath` for all three) matching the existing style used for the `nightly/*` commands.
+5. `go test ./...` (full repo) — all green.
+6. `make install` — ran the Dagger web build then `go install ./cmd/go-minitrace`, updating `~/go/bin/go-minitrace` (the binary already on `PATH`) in place.
+7. Verified live: `go-minitrace query commands history --help` lists all three with **no `--query-repository` needed** (its default is now empty — previously this flag was required to point at the skill's directory). Ran all three verbs against a real converted archive (`gogowm-analysis`, from an earlier campaign) with zero extra flags — `file-history` reconstructed a real timeline, `context-window` returned a real 49-tool-call window, `ticket-timeline` correctly returned zero events for a ticket ID that ticket wasn't actually created in that session (true negative, not an error).
+8. Committed (`311102e`, branch `task/add-skill-commands`): `pre-commit` hooks ran the full test suite + `golangci-lint` (0 issues) automatically via lefthook — both passed on the first attempt.
+
+### Why
+
+Verifying against a real archive (not just `--help`) before committing matters — the embedded-catalog *loading* mechanism working doesn't by itself prove the JS *runtime* (goja sandbox, `require("minitrace")`, `mt.sql.*` helpers) behaves identically when the source bytes come from an `embed.FS` walk instead of an on-disk `--query-repository` directory. It does — no visible difference in output between the two loading paths.
+
+### What worked
+
+The whole port was friction-free: no code changes to the verbs, no loader changes, tests and lint passed on the first try. This is what "the embedded catalog treats JS and SQL identically" (Step 1's finding) predicted.
+
+### What didn't work
+
+Nothing failed. This step is a clean confirmation of Step 1's investigation, not a debugging log — recorded plainly rather than manufacturing an artificial "what didn't work" entry.
+
+### What I learned
+
+`make install` triggers a real Dagger container build for the web frontend (`go generate ./...` → `cmd/go-minitrace/cmds/serve/frontend`) before `go install` — slower than a bare `go build`, but it's the correct target since it's what actually updates the live `~/go/bin/go-minitrace` binary matching how this project is normally built.
+
+### What warrants a second pair of eyes
+
+None beyond Step 1's open item (repo-bundled skill copy staleness).
+
+### What should be done in the future
+
+Same note as Step 1 about a skill-sync Makefile target.
+
+### Code review instructions
+
+`git show 311102e` — four files: three new `.js` under `pkg/minitracecmd/core/history/`, one test-assertion diff. Re-run `go-minitrace query commands history file-history --help` and confirm no `--query-repository` flag is required to see it.
+
+### Technical details
+
+Commit: `311102e` on branch `task/add-skill-commands`. Binary verified: `~/go/bin/go-minitrace` (`go-minitrace version dev`).
+
+## Step 3: Update the skill(s)
+
+### Prompt Context
+
+Continuation — user's final instruction was "Then update the skill."
+
+### What I did
+
+1. Discovered that the "live" skill (`~/.claude/skills/go-minitrace-transcript-analysis`, hardlinked to `~/.codex/skills` and `~/.pi/agent/skills`) has its `query-commands/history/*.js` files ALSO hardlinked identically across all three mirrors (same inode `66639881` for `file-history.js` confirmed via `stat -c '%i %n'`) — the whole directory tree is kept in sync this way, not just `SKILL.md`. Removing a hardlinked file only drops that one directory entry, not the underlying inode's other links, so I removed the three `.js` files from all three mirror paths explicitly (`rm` under `~/.claude`, `~/.codex`, `~/.pi/agent`), then `rmdir`'d the now-empty `history/` subdirectory in each.
+2. Edited `~/.claude/skills/go-minitrace-transcript-analysis/SKILL.md`'s "Ready-made query commands" section (renamed to "Built-in query commands") to drop the `--query-repository` flag from the example invocation and state the binary/commit dependency plainly, with a fallback note for anyone on an older `go-minitrace` build. This edit propagated to the other two mirrors automatically (same hardlink behavior verified earlier this session).
+3. Added a short, accurate addition (not a rewrite) to the go-minitrace repo's own bundled `skills/go-minitrace-transcript-analysis/SKILL.md` — its "embedded catalog currently includes examples such as" list now includes the three `history` verbs with a pointer to this ticket. Correction to Step 1's assumption: that file never actually claimed `--query-repository` was required for these verbs (it predates them entirely, having no `history` mention at all) — there was nothing inaccurate to fix, only something missing to add.
+
+### Why
+
+Point 1 matters because a naive "edit SKILL.md and done" would have left the now-dead `query-commands/history/*.js` files sitting in all three live skill mirrors, silently drifting from the embedded-in-binary source of truth the moment anyone touched one copy — exactly the failure mode this whole ticket exists to eliminate.
+
+### What worked
+
+The hardlink-mirror pattern (established and documented last campaign) made both the doc edit (one edit, three mirrors updated) and the cleanup (three explicit removals, one per mirror, since removal doesn't follow the same one-edit-many-effects behavior as in-place editing) behave exactly as expected — no surprises.
+
+### What warrants a second pair of eyes
+
+Whether removing the skill-local copies is the right call for portability: anyone whose `go-minitrace` binary was installed before this session's `make install` (i.e., not rebuilt from commit `311102e`+) loses these three verbs entirely until they rebuild, with only a doc pointer (not a working fallback) telling them why. Accepted as the correct trade-off given the user's explicit goal ("so that they don't have to be distributed separately"), but noting it since it is a real, if narrow, regression window for anyone else on this machine's skill mirrors with a stale binary.
+
+### Technical details
+
+Removed: `{~/.claude,~/.codex,~/.pi/agent}/skills/go-minitrace-transcript-analysis/query-commands/history/{file-history,ticket-timeline,context-window}.js` (9 files, 3 mirrors × 3 verbs, all same 3 inodes). Edited: `~/.claude/skills/go-minitrace-transcript-analysis/SKILL.md` (propagates to codex/pi), `go-minitrace` repo's `skills/go-minitrace-transcript-analysis/SKILL.md` (repo-local, committed alongside the code change).
