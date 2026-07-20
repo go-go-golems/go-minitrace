@@ -50,4 +50,22 @@ func TestLoadEmbeddedCatalog(t *testing.T) {
 	if catalog.ByPath["overview/aliases/codex-framework-summary.alias.yaml"] == nil {
 		t.Fatalf("embedded catalog missing codex-framework-summary alias")
 	}
+	if catalog.ByName["file-history"] == nil {
+		t.Fatalf("embedded catalog missing history/file-history command")
+	}
+	if catalog.ByName["ticket-timeline"] == nil {
+		t.Fatalf("embedded catalog missing history/ticket-timeline command")
+	}
+	if catalog.ByName["context-window"] == nil {
+		t.Fatalf("embedded catalog missing history/context-window command")
+	}
+	if catalog.ByPath["history/file-history"] == nil {
+		t.Fatalf("embedded catalog missing history/file-history path")
+	}
+	if catalog.ByPath["history/ticket-timeline"] == nil {
+		t.Fatalf("embedded catalog missing history/ticket-timeline path")
+	}
+	if catalog.ByPath["history/context-window"] == nil {
+		t.Fatalf("embedded catalog missing history/context-window path")
+	}
 }
