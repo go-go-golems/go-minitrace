@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync/atomic"
-
-	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 func OpenSQLiteMemory(ctx context.Context, prefix string) (*sql.DB, error) {
@@ -76,6 +74,12 @@ func OpenSQLiteReadOnly(ctx context.Context, path string) (*sql.DB, error) {
 	return db, nil
 }
 
+// attachment is one auxiliary database ATTACHed on every pooled connection.
+type attachment struct {
+	schema string
+	path   string
+}
+
 var attachDriverSeq atomic.Int64
 
 // OpenSQLiteReadOnlyAttached opens the SQLite database at path read-only and
@@ -93,10 +97,6 @@ func OpenSQLiteReadOnlyAttached(ctx context.Context, path string, attachments ma
 	if path == "" {
 		return nil, fmt.Errorf("sqlite path is required")
 	}
-	type attachment struct {
-		schema string
-		path   string
-	}
 	attachList := make([]attachment, 0, len(attachments))
 	for schema, dbPath := range attachments {
 		schema = strings.TrimSpace(schema)
@@ -108,21 +108,9 @@ func OpenSQLiteReadOnlyAttached(ctx context.Context, path string, attachments ma
 	}
 
 	driverName := fmt.Sprintf("sqlite3_minitrace_attach_%d", attachDriverSeq.Add(1))
-	sql.Register(driverName, &sqlite3.SQLiteDriver{
-		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-			for _, att := range attachList {
-				stmt := fmt.Sprintf(
-					"ATTACH DATABASE '%s' AS \"%s\"",
-					strings.ReplaceAll(att.path, "'", "''"),
-					strings.ReplaceAll(att.schema, `"`, `""`),
-				)
-				if _, err := conn.Exec(stmt, nil); err != nil {
-					return fmt.Errorf("attach %s as %s: %w", att.path, att.schema, err)
-				}
-			}
-			return nil
-		},
-	})
+	if err := registerAttachDriver(driverName, attachList); err != nil {
+		return nil, err
+	}
 
 	dsn := "file:" + filepath.ToSlash(path) + "?mode=ro"
 	db, err := sql.Open(driverName, dsn)

@@ -7,8 +7,6 @@ import (
 	"math/big"
 	"strings"
 	"time"
-
-	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 type QueryOptions struct {
@@ -376,42 +374,6 @@ func stripSQLLiteralsAndComments(sqlText string) string {
 	return b.String()
 }
 
-func setSQLiteAuthorizer(conn *sql.Conn, callback func(int, string, string, string) int) error {
-	if conn == nil {
-		return fmt.Errorf("sql connection is nil")
-	}
-	return conn.Raw(func(driverConn any) error {
-		sqliteConn, ok := driverConn.(*sqlite3.SQLiteConn)
-		if !ok {
-			return fmt.Errorf("unexpected sqlite driver connection type %T", driverConn)
-		}
-		sqliteConn.RegisterAuthorizer(callback)
-		return nil
-	})
-}
-
-func ensureReadonlyPreparedQuery(conn *sql.Conn, sqlText string) error {
-	return conn.Raw(func(driverConn any) error {
-		sqliteConn, ok := driverConn.(*sqlite3.SQLiteConn)
-		if !ok {
-			return fmt.Errorf("unexpected sqlite driver connection type %T", driverConn)
-		}
-		stmtDriver, err := sqliteConn.Prepare(sqlText)
-		if err != nil {
-			return err
-		}
-		defer func() { _ = stmtDriver.Close() }()
-		stmt, ok := stmtDriver.(*sqlite3.SQLiteStmt)
-		if !ok {
-			return fmt.Errorf("unexpected sqlite statement type %T", stmtDriver)
-		}
-		if !stmt.Readonly() {
-			return fmt.Errorf("only read-only SELECT queries are allowed")
-		}
-		return nil
-	})
-}
-
 type queryAuthorizationState struct {
 	deniedOp        int
 	deniedSchema    string
@@ -448,38 +410,13 @@ func (s *queryAuthorizationState) err() error {
 	if display == "" {
 		display = s.deniedObject
 	}
-	if s.deniedOp == sqlite3.SQLITE_READ {
+	if isDeniedReadOp(s.deniedOp) {
 		if strings.HasPrefix(s.deniedObject, "sqlite_") {
 			return fmt.Errorf("query references disallowed table/view %q; use db.schema() or db.tables() from JS to introspect the schema", display)
 		}
 		return fmt.Errorf("query references disallowed table/view %q", display)
 	}
 	return fmt.Errorf("query uses disallowed SQLite operation %d on %q", s.deniedOp, display)
-}
-
-func newReadOnlyAuthorizer(allowedReads map[string]struct{}, state *queryAuthorizationState) func(int, string, string, string) int {
-	return func(op int, object, _, database string) int {
-		switch op {
-		case sqlite3.SQLITE_SELECT, sqlite3.SQLITE_FUNCTION:
-			return sqlite3.SQLITE_OK
-		case sqlite3.SQLITE_READ:
-			if len(allowedReads) == 0 {
-				return sqlite3.SQLITE_OK
-			}
-			key := readKey(database, object)
-			if _, ok := allowedReads[key]; ok {
-				return sqlite3.SQLITE_OK
-			}
-			state.deny(op, database, object)
-			return sqlite3.SQLITE_DENY
-		case sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE, sqlite3.SQLITE_PRAGMA, sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_TRANSACTION, sqlite3.SQLITE_CREATE_INDEX, sqlite3.SQLITE_CREATE_TABLE, sqlite3.SQLITE_CREATE_TEMP_INDEX, sqlite3.SQLITE_CREATE_TEMP_TABLE, sqlite3.SQLITE_CREATE_TEMP_TRIGGER, sqlite3.SQLITE_CREATE_TEMP_VIEW, sqlite3.SQLITE_CREATE_TRIGGER, sqlite3.SQLITE_CREATE_VIEW, sqlite3.SQLITE_CREATE_VTABLE, sqlite3.SQLITE_DROP_INDEX, sqlite3.SQLITE_DROP_TABLE, sqlite3.SQLITE_DROP_TEMP_INDEX, sqlite3.SQLITE_DROP_TEMP_TABLE, sqlite3.SQLITE_DROP_TEMP_TRIGGER, sqlite3.SQLITE_DROP_TEMP_VIEW, sqlite3.SQLITE_DROP_TRIGGER, sqlite3.SQLITE_DROP_VIEW, sqlite3.SQLITE_DROP_VTABLE, sqlite3.SQLITE_ALTER_TABLE, sqlite3.SQLITE_REINDEX, sqlite3.SQLITE_ANALYZE, sqlite3.SQLITE_SAVEPOINT:
-			state.deny(op, database, object)
-			return sqlite3.SQLITE_DENY
-		default:
-			state.deny(op, database, object)
-			return sqlite3.SQLITE_DENY
-		}
-	}
 }
 
 func flattenArgs(args []any) []any {
