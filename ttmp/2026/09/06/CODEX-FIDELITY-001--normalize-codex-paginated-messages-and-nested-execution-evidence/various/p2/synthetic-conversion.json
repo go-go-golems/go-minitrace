@@ -1,0 +1,34 @@
+{
+  "schema": "go-minitrace-conversion-run-v1",
+  "adapter": "codex",
+  "started_at": "2026-09-06T20:32:28Z",
+  "finished_at": "2026-09-06T20:32:28Z",
+  "output_dir": "/tmp/codex-fidelity-001-synthetic-p2",
+  "collision_policy": "error",
+  "inputs": [
+    {
+      "native_session_id": "fidelity-synthetic",
+      "source_path": "/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/pkg/adapters/codex/testdata/paginated-fidelity.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/workspace/initial",
+      "role": "unknown",
+      "identity_basis": "first-session-meta",
+      "sha256": "8703486b5b146ea567d2d4fefd612fb363c02d11daaf73f794e181e2f5e1aa6b",
+      "size_bytes": 6922
+    }
+  ],
+  "outputs": [
+    {
+      "session_id": "fidelity-synthetic",
+      "path": "/tmp/codex-fidelity-001-synthetic-p2/active/2026-09/fidelity-synthetic.minitrace.json",
+      "status": "created"
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "requested": 1,
+    "published": 1,
+    "failed": 0
+  },
+  "complete": true
+}

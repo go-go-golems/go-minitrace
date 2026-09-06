@@ -10,12 +10,20 @@ Owners: []
 RelatedFiles:
     - Path: repo://Makefile
       Note: Local validation contract
+    - Path: repo://pkg/adapters/codex/convert.go
+      Note: Parser integration and removal of guessed associations
+    - Path: repo://pkg/adapters/codex/messages.go
+      Note: Message reconciliation and explicit linkage in 22b1f4e
+    - Path: repo://pkg/adapters/codex/messages_test.go
+      Note: Message identity and linkage regressions
     - Path: repo://pkg/adapters/codex/testdata/paginated-fidelity.jsonl
       Note: Synthetic contract regression source
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/design-doc/02-implementation-contracts-and-phased-acceptance.md
       Note: Implementation decisions
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/04-check-synthetic-baseline.py
       Note: Independent CLI acceptance oracle
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/05-audit-message-coverage.py
+      Note: Independent native-line coverage audit
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p1/synthetic-before.json
       Note: Eight expected before-state fidelity failures
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/slips/00-overall-plan.log
@@ -28,6 +36,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -147,3 +156,68 @@ Ran the unchanged adapter against the fixture and saved an independent JSON asse
 ### Technical details
 - The fixture has six distinct structured execution IDs; one is pending and one is cancelled, with the failed completion deliberately repeated.
 - No production parser changes in P1. Full build/lint/UI verification is required after implementation, not claimed by this package-only baseline.
+- P1 fixture/oracle commit: `0f67556` — `test(codex): add synthetic paginated fidelity acceptance baseline`.
+- P1 completion printed at 20:25:30Z (`02-p1-done.log`); P2 start printed at 20:25:34Z (`03-p2-start.log`). Both receipts confirm real printing.
+
+## Step 3: Reconcile messages and remove speculative linkage
+
+Implemented a message reconciliation pass keyed by native IDs, with the narrowly defined adjacent complementary-representation rule for different-ID mirrors. Message emission still runs in source order within the existing parser so reasoning and usage handling remain in their supported positions. Every emitted message retains all native source-line references; tool linkage is explicit-message-only, otherwise null with native turn context.
+
+The synthetic message checks and Codex package/race tests pass. An independent private-source coverage audit accounts for every supported native message record exactly once and reports no invalid links. Inspection of the first legacy-control result exposed different native block concatenation; corrected comparison to use exact concatenated native text rather than inserting display newlines into the identity comparison. Public display boundaries remain readable, and a new regression rejects whitespace-normalized false mirrors.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Implement P2 with identity-preserving message recovery and honest tool associations, then validate synthetic and private sources before printing phase completion.
+
+**Inferred user intent:** Restore trustworthy conversational context without fabricating the message that issued a tool.
+
+### What I did
+- Added `pkg/adapters/codex/messages.go` and `messages_test.go`; integrated reconciliation into persisted-session parsing.
+- Removed legacy and persisted fallback association to index zero or later final answers; removed the now-unused pending-ID sorting helper.
+- Added identity/mirror/repetition/missing-ID/conflict/block/legacy/no-message/explicit-link regressions.
+- Added `scripts/05-audit-message-coverage.py`, which independently inventories supported native message lines and checks exactly-once provenance and reciprocal non-null links.
+- Ran focused and race tests and fresh synthetic/private conversions; saved content-free results in `various/p2/`.
+
+### Why
+- The same native turn contains multiple messages; next-message assignment is not proof of tool emission.
+- Source-line coverage is an independent check against silent message loss even when total native and normalized counts differ due to mirrors.
+
+### What worked
+- Synthetic turns: 5; both genuine `continue` requests retained; orphan links: 0.
+- Three private paginated sources now produce 252, 305, and 99 turns; controls produce 630, 701, and 193. All six cover every supported native message source line exactly once with no invalid associations.
+- `go test ./pkg/adapters/codex -count=1` and `go test ./pkg/adapters/codex -race -count=1` pass (race rerun still needed after final edits).
+
+### What didn't work
+- First private-control inspection showed 917 rather than 630 turns in one control: legacy event messages concatenate text blocks without separators while the response display joined blocks with newlines. Fixed comparison at the typed-block boundary, without stripping arbitrary whitespace; rerun gives 630 and preserves all 1203 native message references.
+- `make lint` exited 2: `pkg/adapters/codex/messages.go:199:2: QF1003: could use tagged switch on message.role (staticcheck)`, followed by `make: *** [Makefile:31: lint] Error 1`. Next action is the suggested tagged switch and a fresh lint run; no bypass or suppression.
+- The full synthetic oracle still exits 1 on five execution/output checks assigned to P3. No completion of the overall ticket is claimed.
+
+### What I learned
+- Provenance coverage alone does not prove deduplication quality: inspect representation counts and content boundary behavior too.
+- Legacy-mode sources contain response-only context/instruction messages; restoring them legitimately increases turns above the old event-only baseline.
+
+### What was tricky to build
+- Different-ID user mirrors need adjacent source records, the same nonempty native turn, complementary representations, and exact native text. Same-representation repeated content must survive. Canonical display text and native concatenation identity are distinct so block separators do not hide valid mirrors.
+- Tool calls can appear before their explicitly referenced message. Link in a final pass using native identity, with reciprocal `tool_calls_in_turn`, rather than temporal guessing.
+
+### What warrants a second pair of eyes
+- Native ID conflicts remain diagnosed with source references and canonical response preference; verify no broad text-based deduplication slips into this rule.
+- Removing speculative legacy linkage is an intentional correctness change and must be documented in P5.
+
+### What should be done in the future
+- Fix the single lint finding, run full tests and lint, review and commit P2, then print its completion and P3 start.
+
+### Code review instructions
+- Start with `collectCodexMessages`, `decodeCodexMessage`, and `linkCodexMessageCalls`, then the parser diff and `messages_test.go`.
+- Run `go test ./pkg/adapters/codex -count=1`, `make lint`, and the saved private source coverage script against a fresh conversion.
+
+### Technical details
+- First private iteration: `/tmp/codex-fidelity-001-private-p2/`; corrected iteration: `/tmp/codex-fidelity-001-private-p2-reconciled/`.
+- Native message-line coverage totals: 488, 1203, 602, 1341, 194, 371; no missing, invented, or duplicate source references.
+- Five oracle checks remaining: typed output decoding, one failed execution, repeated distinct executions, null missing outcome, early output preservation.
+
+### Completion checkpoint
+
+Replaced the flagged if/else with a tagged switch; `make lint` now reports zero issues and glazed-lint passes. `make test` passes the full repository, and the final Codex race rerun passes. Reviewed and committed P2 code as `22b1f4e` — `fix(codex): restore native messages and preserve uncertain tool linkage`; pre-commit lint and full tests also passed without bypasses. P2's message/linkage requirements are verified; execution/output work remains for P3.

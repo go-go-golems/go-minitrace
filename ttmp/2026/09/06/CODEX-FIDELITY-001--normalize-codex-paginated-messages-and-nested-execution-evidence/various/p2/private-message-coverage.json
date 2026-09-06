@@ -1,0 +1,68 @@
+[
+  {
+    "session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+    "normalized_turns": 252,
+    "native_message_records": 488,
+    "represented_message_records": 488,
+    "missing_source_lines": [],
+    "invented_source_lines": [],
+    "duplicate_source_lines": 0,
+    "invalid_links": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+    "normalized_turns": 630,
+    "native_message_records": 1203,
+    "represented_message_records": 1203,
+    "missing_source_lines": [],
+    "invented_source_lines": [],
+    "duplicate_source_lines": 0,
+    "invalid_links": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+    "normalized_turns": 305,
+    "native_message_records": 602,
+    "represented_message_records": 602,
+    "missing_source_lines": [],
+    "invented_source_lines": [],
+    "duplicate_source_lines": 0,
+    "invalid_links": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+    "normalized_turns": 701,
+    "native_message_records": 1341,
+    "represented_message_records": 1341,
+    "missing_source_lines": [],
+    "invented_source_lines": [],
+    "duplicate_source_lines": 0,
+    "invalid_links": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+    "normalized_turns": 99,
+    "native_message_records": 194,
+    "represented_message_records": 194,
+    "missing_source_lines": [],
+    "invented_source_lines": [],
+    "duplicate_source_lines": 0,
+    "invalid_links": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+    "normalized_turns": 193,
+    "native_message_records": 371,
+    "represented_message_records": 371,
+    "missing_source_lines": [],
+    "invented_source_lines": [],
+    "duplicate_source_lines": 0,
+    "invalid_links": [],
+    "passed": true
+  }
+]

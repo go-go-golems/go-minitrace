@@ -1,0 +1,24 @@
+Building glazed-lint from pinned tool module...
+Installing github.com/go-go-golems/glazed/cmd/tools/glazed-lint@v1.3.5
+golangci-lint run -v
+level=info msg="golangci-lint has version 2.4.0 built with go1.26.1 from (unknown, modified: ?, mod sum: \"h1:qz6O6vr7kVzXJqyvHjHSz5fA3D+PM8v96QU5gxZCNWM=\") on (unknown)"
+level=info msg="[config_reader] Config search paths: [./ /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace /home/manuel/workspaces/2026-09-06/update-codex-adapter /home/manuel/workspaces/2026-09-06 /home/manuel/workspaces /home/manuel /home /]"
+level=info msg="[config_reader] Used config file .golangci.yml"
+level=info msg="[config_reader] Module name \"github.com/go-go-golems/go-minitrace\""
+level=info msg="maxprocs: Leaving GOMAXPROCS=8: CPU quota undefined"
+level=info msg="[goenv] Read go env for 28.824852ms: map[string]string{\"GOCACHE\":\"/home/manuel/.cache/go-build\", \"GOROOT\":\"/home/manuel/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64\"}"
+level=info msg="[lintersdb] Active 9 linters: [errcheck exhaustive gofmt govet ineffassign nonamedreturns predeclared staticcheck unused]"
+level=info msg="[loader] Go packages loading at mode 8767 (types_sizes|compiled_files|files|name|deps|exports_file|imports) took 2.182705556s"
+level=info msg="[runner/filename_unadjuster] Pre-built 0 adjustments in 68.971751ms"
+level=info msg="[linters_context/goanalysis] analyzers took 1m20.852746689s with top 10 stages: buildir: 10.21865096s, S1038: 2.490999604s, QF1004: 2.132360137s, gofmt: 1.991752002s, unused: 1.369639884s, QF1010: 1.314201655s, QF1005: 1.278702727s, S1028: 1.257228812s, S1024: 1.184824386s, SA6006: 1.173337679s"
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"ttmp/.*\\\\\\\\.go\""
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"test_.*\\\\\\\\.go\""
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"web/node_modules/\""
+level=info msg="[runner/exclusion_rules] Skipped 0 issues by rules: [Text: \"SA1019: cli.CreateProcessorLegacy\", Linters: \"staticcheck\"]"
+level=info msg="[runner] processing took 10.73638ms with stages: exclusion_paths: 10.707109ms, exclusion_rules: 24.3µs, max_same_issues: 1.558µs, max_per_file_from_linter: 462ns, path_absoluter: 375ns, nolint_filter: 318ns, max_from_linter: 305ns, path_prettifier: 203ns, diff: 196ns, filename_unadjuster: 192ns, fixer: 189ns, path_relativity: 188ns, source_code: 178ns, sort_results: 175ns, generated_file_filter: 150ns, cgo: 115ns, invalid_issue: 102ns, path_shortener: 99ns, uniq_by_line: 93ns, severity-rules: 73ns"
+level=info msg="[runner] linters took 4.876091565s with stages: goanalysis_metalinter: 4.865239932s"
+0 issues.
+level=info msg="File cache stats: 0 entries of total size 0B"
+level=info msg="Memory: 71 samples, avg is 209.7MB, max is 364.6MB"
+level=info msg="Execution took 7.168465401s"
+GOWORK=off go vet -vettool=/tmp/glazed-lint -glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/ ./cmd/... ./pkg/...
