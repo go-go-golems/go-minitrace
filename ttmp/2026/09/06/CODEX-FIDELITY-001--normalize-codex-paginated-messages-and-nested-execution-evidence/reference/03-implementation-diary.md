@@ -12,10 +12,16 @@ RelatedFiles:
       Note: Local validation contract
     - Path: repo://pkg/adapters/codex/convert.go
       Note: Parser integration and removal of guessed associations
+    - Path: repo://pkg/adapters/codex/executions.go
+      Note: Authoritative lifecycle reconciliation in 6e656e7
+    - Path: repo://pkg/adapters/codex/fidelity.go
+      Note: Bounded visible fidelity diagnostics
     - Path: repo://pkg/adapters/codex/messages.go
       Note: Message reconciliation and explicit linkage in 22b1f4e
     - Path: repo://pkg/adapters/codex/messages_test.go
       Note: Message identity and linkage regressions
+    - Path: repo://pkg/adapters/codex/outputs.go
+      Note: Typed result decoding and independent block outcomes
     - Path: repo://pkg/adapters/codex/testdata/paginated-fidelity.jsonl
       Note: Synthetic contract regression source
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/design-doc/02-implementation-contracts-and-phased-acceptance.md
@@ -28,6 +34,8 @@ RelatedFiles:
       Note: Emit five-state synthetic protojson
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/07-check-proto-outcomes.mjs
       Note: Actual TypeScript decoder roundtrip
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/08-audit-execution-coverage.py
+      Note: Independent native execution acceptance audit
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p1/synthetic-before.json
       Note: Eight expected before-state fidelity failures
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p3/outcome-states.png
@@ -42,6 +50,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -301,4 +310,124 @@ Installed the matching Chromium/headless-shell 1217 using `pnpm exec playwright 
 
 Visually inspected `various/p3/outcome-states.png`: only succeeded has a green check, only failed has a red border/error icon, and unknown/pending/cancelled are neutral labeled chips. Saved the accessibility snapshot. Browser console reported only the Storybook favicon.ico 404, not an application error. Shut down the temporary Storybook server and tmux session after inspection.
 
-Commits: `ba54414` — `fix(web): repair story framework imports and sticky focus expansion`; `80d7bd5` — `feat(schema): preserve nullable tool outcomes through SQL API and UI`. Pre-commit lint/full tests passed. This is a P3 schema milestone, not P3 completion; no phase-completion slip has been printed.
+Commits: `ba54414` — `fix(web): repair story framework imports and sticky focus expansion`; `80d7bd5` — `feat(schema): preserve nullable tool outcomes through SQL API and UI`. Pre-commit lint/full tests passed. This is a P3 schema milestone, not P3 completion; no phase-completion slip has been printed. Evidence/diary commit: `a40ea81`.
+
+## Step 5: Decode typed outputs without inventing wrapper success
+
+Continued P3 by moving output decoding into its own module, preserving text blocks and independent child outcomes before truncation. Missing results now stay pending with null success; an output without authoritative outcome remains unknown. Printed child results never determine the JavaScript wrapper's own success. Added output-before-call storage and native output-line references.
+
+### Prompt Context
+
+**User prompt (verbatim):** (implementation request: see Step 1)
+
+**Additional user prompt (verbatim):** "do you parse the argument to exec_cmomand to surface the actual stuff executed as well? What is exec_command for and why is it nested tool calling ?\n\n[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Explain the wrapper/subprocess distinction and expose executed commands from authoritative native events rather than scanning JavaScript arguments as execution proof.
+
+**Inferred user intent:** Understand and query the real activity behind nested Codex tool orchestration.
+
+### What I did
+- Added `pkg/adapters/codex/outputs.go` and output regressions; removed old stringify-first parsing from convert.go.
+- Recognize observed output/metadata, chunk, fulfilled-child, and renderer envelopes; preserve arbitrary JSON-looking stdout unchanged.
+- Decode text/image/unsupported blocks without copying image base64, retain per-block exit/duration evidence, and truncate only decoded display text after metadata extraction.
+- Store early outputs until the call arrives in both persisted and legacy parsers; set recoverable source-path/line references.
+- Set newly constructed Codex response calls to pending/null instead of default success.
+
+### Why
+- Executed command records and wrapper text are different evidence. One or many printed child exit codes cannot establish the wrapper's own outcome.
+- `fmt.Sprint` destroys typed output boundaries, and parsing arbitrary JSON into a permissive struct previously discarded real stdout.
+
+### What worked
+- New tests cover expected native shapes, malformed metadata, ambiguous multiple child outcomes, missing output, early output, and metadata beyond the display truncation limit; validation is underway.
+
+### What didn't work
+- First `go test ./pkg/adapters/codex -count=1` failed at compile time: `pkg/adapters/codex/convert.go:10:2: "strconv" imported and not used`. Output parsing moved that dependency into outputs.go; remove the obsolete import and rerun.
+- While locating the existing deduplicator, a guessed `pkg/minitrace/dedup.go` read failed with ENOENT; symbol search found `DeduplicateToolCalls` in util.go. It deduplicates by ID, not command text.
+
+### What I learned
+- Output envelopes themselves must be validated by shape. Otherwise normal JSON stdout can be mistaken for a successful or empty tool response.
+
+### What was tricky to build
+- A direct tool with multiple result envelopes has ambiguous ownership too; keep its outcome null rather than choose the first child's code. Per-block evidence remains independently inspectable.
+
+### What warrants a second pair of eyes
+- Envelope recognition boundaries, whitespace preservation, output provenance, and full-hash/truncation semantics.
+- Native CommandExecution reconciliation is still pending; do not interpret this output milestone as complete nested execution recovery.
+
+### What should be done in the future
+- Remove obsolete import, pass regression/full tests and lint, then implement native execution lifecycle normalization with conflict and identity tests.
+
+### Code review instructions
+- Read outputs.go and outputs_test.go, then the small pending-output integration changes in convert.go.
+- Run the focused Codex tests and the independent synthetic CLI oracle in a fresh output directory.
+
+### Technical details
+- New output references identify the source output record (`<native-path>#L<n>`), not the invocation line.
+- P3 remains active; the phase-start receipt already exists and is not reprinted for this substep.
+
+### Validation checkpoint
+
+Removed the obsolete import. Focused Codex tests, `make lint`, and `go test ./...` now pass. The independent synthetic oracle advances from five failures to only the two native execution assertions; missing outcomes, typed outputs, and early results now pass. Output implementation remains uncommitted while the closely related execution integration is added.
+
+## Step 6: Surface authoritative native command executions
+
+Added native CommandExecution lifecycle reconciliation without examining JavaScript bodies. Native IDs preserve repeated genuine commands as separate executions while repeated notifications enrich one record. Execution records surface shell scripts, original argv, decoded cwd, output streams, duration, exit status, source references, and explicit-or-unknown parent association. Conflicting command/cwd/turn/exit evidence is diagnosed and does not become confident success.
+
+The first focused test run passes, and a fresh CLI conversion now passes all nine assertions in the independent synthetic oracle. This does not finish P3: private-source verification, additional conflict/unsupported-shape hardening, and full validation remain.
+
+### Prompt Context
+
+**User prompt (verbatim):** (implementation request: see Step 1; nested execution clarification: see Step 5)
+
+**Assistant interpretation:** Surface what actually ran as independently queryable operations, not inferred JavaScript intent.
+
+**Inferred user intent:** Query commands, locations, output, and failures accurately despite nested orchestration.
+
+### What I did
+- Added `executions.go` and `executions_test.go` and integrated the native collector before final tool linkage.
+- Reconcile started/completed events by native execution identity, including duplicate completion and start-after-completion replay.
+- Preserve distinct identical-command executions, parse local file-URI cwd, expose shell script or quoted non-shell argv display, and retain typed execution source references.
+- Merge execution evidence into an existing direct exec_command only when native call_id explicitly identifies it; otherwise keep separate records with uncertain parentage.
+- Add tests for fixture lifecycle states, conflicts, explicit direct linkage, duration across events, quoted argv, and stdout that must not be interpreted as a transport envelope.
+
+### Why
+- Structured native events supply stronger execution evidence than static JavaScript parsing and include operations from parallel wrappers.
+- Separate records make child failures visible without falsely downgrading or upgrading wrapper transport outcomes.
+
+### What worked
+- `go test ./pkg/adapters/codex -count=1` passes.
+- `scripts/04-check-synthetic-baseline.py` exits 0 against `/tmp/codex-fidelity-001-synthetic-execution/`; all nine assertions pass, including one failed execution and two distinct identical commands.
+- The fixture yields six native execution records, not seven completion/start duplicates, with unknown, pending, and cancelled outcomes intact.
+
+### What didn't work
+- No new command/test failure in this checkpoint. Further validation is explicitly pending, not assumed from the synthetic oracle.
+
+### What I learned
+- Explicit native call identity lets a direct invocation be enriched without counting its mirrored execution twice. Shared native-turn identity alone is not enough to choose a wrapper parent.
+
+### What was tricky to build
+- Output parsing must not run on authoritative stdout: stdout can itself look like a result envelope. The native execution builder stores stdout directly and takes exit code only from the native outcome field.
+- Completion replay must not downgrade a finished operation back to pending, while conflicting terminal evidence must remain uncertain and retain source references.
+
+### What warrants a second pair of eyes
+- Direct-call versus execution outcome conflict handling, missing-ID namespace collisions, unsupported status/shape diagnostics, and source-level acceptance still need additional review before P3 completion.
+
+### What should be done in the future
+- Harden remaining edge cases, audit all local native executions against independent inventory, run full tests/lint/race checks, commit code/evidence, and only then print P3 completion.
+
+### Code review instructions
+- Start with collectCodexExecutions, merge, toolCall, and appendCodexExecutions; inspect tests and fresh CLI oracle output in various/p3.
+
+### Technical details
+- Synthesized IDs are namespaced `codex-execution:<native-id>`; original native IDs and source lines remain in framework metadata.
+- Record kinds currently live in framework metadata; P4 will project counting and structural file evidence through analytical consumers.
+
+### Validation and commit checkpoint
+
+Added bounded source-level fidelity diagnostics (complete counts, at most 100 examples and 129 count keys), visible warning events, and cleaning flags for unsupported native items/orphan outputs. Added direct-response/authoritative-execution exit conflict handling and deterministic namespace-collision avoidance. Native execution sources now retain thread IDs, timestamps, ordinals, and lifecycle timestamps.
+
+Full tests, lint, and Codex race tests pass. An independent native execution audit against six fresh private archives accounts for all 886/1104/306 completed executions in the affected sources, including 77/60/18 failures; there are no missing/invented/duplicate native execution IDs or argv/output/outcome mismatches. Native source SHA-256 fingerprints still match all six original baseline fingerprints. Message coverage remains complete; SQL reports zero malformed map outputs and zero orphan links in every source.
+
+Committed code as `6e656e7` — `feat(codex): normalize native executions and decode typed tool outputs`; pre-commit full tests and lint passed after the final provenance changes. Saved private audit results in various/p3 and the read-only audit script as scripts/08. Full private archives remain in `/tmp/codex-fidelity-001-private-p3/`, outside Git.
+
+Remaining P3 review items before its completion print: legacy exec_command_end/exec-stream outcome consistency, adversarial direct-link/duplicate-output edge cases, and final diagnostics/provenance verification. P4 still owns normalized file targets and record-kind/counting projections; no completion of those requirements is implied by the successful execution audit.

@@ -1,0 +1,30 @@
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	0.127s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	0.047s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	0.033s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	2.273s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	1.526s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	(cached)
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	0.039s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	(cached)
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.204s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	0.196s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	0.224s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	0.557s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	(cached)
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts	[no test files]

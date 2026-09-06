@@ -25,3 +25,9 @@ Committed baseline and explicit implementation contracts in `443cfbd`. Printed o
 ## 2026-09-06 — Implementation P2
 
 Restored persisted message variants with native identity reconciliation and exact complementary mirror matching; removed speculative tool-to-message associations in `22b1f4e`. Full tests, lint, and Codex race tests pass. Six private sources have complete native-message line coverage and no orphan links; three paginated sources now yield 252/305/99 turns. Printed P2 start and completion; evidence and lint triage recorded in reference/03 and various/p2.
+
+## 2026-09-06 — Implementation P3 milestones
+
+Printed P3 start. Nullable outcomes now survive Go schema, SQLite, protobuf, TypeScript, and neutral UI rendering (`80d7bd5`); repaired existing frontend validation blockers in `ba54414`. SQL/API tests, Go-to-TypeScript roundtrip, 22 browser story tests, and inspected outcome screenshots are recorded in `a40ea81`.
+
+Native CommandExecution lifecycle reconciliation and typed output decoding landed in `6e656e7`. The synthetic oracle passes all nine assertions. Independent private-source audit recovers 2,296 native executions and 155 failures with matching argv/output/outcomes and unchanged source hashes. All sources have zero malformed map outputs and zero orphan links. Full tests, lint, and race checks pass. P3 remains active for legacy/adversarial hardening; file evidence/counter consumers and final documentation/acceptance remain open.

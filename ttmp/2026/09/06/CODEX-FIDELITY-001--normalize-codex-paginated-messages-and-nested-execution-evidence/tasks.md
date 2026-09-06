@@ -9,8 +9,8 @@
 - [x] Add synthetic paginated-message, nested-exec, and typed-output regression fixtures.
 - [x] Restore messages with identity-based deduplication and valid tool-turn associations.
 - [x] Decide outcome representation and schema/consumer changes for unknown success.
-- [ ] Normalize authoritative CommandExecution lifecycle events without duplicate counts.
-- [ ] Decode structured output blocks before metadata extraction and truncation.
+- [x] Normalize authoritative CommandExecution lifecycle events without duplicate counts.
+- [x] Decode structured output blocks before metadata extraction and truncation.
 - [ ] Preserve explicit execution provenance and uncertain parent associations.
 - [ ] Expose all structural file targets with attempted-versus-confirmed semantics.
 - [ ] Update materialization, metrics, presets, and file-history consumers.
