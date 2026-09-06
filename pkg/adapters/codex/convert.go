@@ -531,15 +531,8 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				if turnID := stringValue(payload["turn_id"]); turnID != "" {
 					currentTurnID = turnID
 				}
-				if index, ok := pendingFunctionCalls[callID]; ok {
-					toolCalls[index].FrameworkMetadata = mergeMetadataMap(toolCalls[index].FrameworkMetadata, codexToolExecutionMetadata(payload))
-					if toolCalls[index].Output.ExitCode == nil {
-						if exitCodeValue, ok := payload["exit_code"]; ok {
-							parsedExitCode := minitrace.SafeInt(exitCodeValue, 1)
-							toolCalls[index].Output.ExitCode = &parsedExitCode
-						}
-					}
-				}
+				// Reconcile terminal evidence after all response calls/results exist.
+				// Native end notifications may arrive before the invocation.
 			}
 		case "response_item":
 			payloadType := stringValue(payload["type"])
@@ -581,6 +574,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	}
 
 	flushCodexThinkingToLastAssistant(turns, currentThinking)
+	reconcileCodexLegacyEnds(records, toolCalls)
 	toolCalls = appendCodexExecutions(records, toolCalls)
 	linkCodexMessageCalls(turns, toolCalls)
 
@@ -735,12 +729,9 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 				output := stringValue(item["aggregated_output"])
 				var success bool
 				var exitCode *int
-				if exitCodeValue, ok := item["exit_code"]; ok {
-					parsedExitCode := minitrace.SafeInt(exitCodeValue, 1)
+				if parsedExitCode, valid := codexInteger(item["exit_code"]); valid {
 					exitCode = &parsedExitCode
 					success = parsedExitCode == 0
-				} else {
-					success = stringValue(item["status"]) == "completed"
 				}
 				// Copy the loop variable so each tool call keeps the turn index
 				// it was emitted at instead of aliasing one shared int.
@@ -768,6 +759,13 @@ func parseExecJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.Too
 					nil,
 				)
 				toolCall.Output.ExitCode = exitCode
+				if exitCode == nil {
+					toolCall.Output.Success = nil
+					toolCall.Output.Status = minitrace.ToolOutcomeUnknown
+					if status := stringValue(item["status"]); status == "cancelled" || status == "canceled" {
+						toolCall.Output.Status = minitrace.ToolOutcomeCancelled
+					}
+				}
 				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexToolExecutionMetadata(item))
 				toolCalls = append(toolCalls, toolCall)
 			case "agent_message":
