@@ -38,8 +38,12 @@ RelatedFiles:
       Note: Bounded non-evaluating literal redirect grammar
     - Path: repo://pkg/adapters/codex/testdata/paginated-fidelity.jsonl
       Note: Synthetic contract regression source
+    - Path: repo://pkg/minitrace/activity_counts.go
+      Note: Separates invocations executions and file evidence
     - Path: repo://pkg/minitrace/file_evidence.go
       Note: Typed structural evidence and explicit empty semantics
+    - Path: repo://pkg/minitracecmd/core/history/file-history.js
+      Note: Codex structural history and null-safe context
     - Path: repo://pkg/minitracedb/file_evidence_test.go
       Note: Multi-target SQL outcomes regression f0a5377
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/design-doc/02-implementation-contracts-and-phased-acceptance.md
@@ -56,6 +60,8 @@ RelatedFiles:
       Note: Independent native execution acceptance audit
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/09-audit-file-changes.py
       Note: Independent 472-event 995-target native acceptance
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/10-check-history-consumers.py
+      Note: Repeatable end-to-end history and counter acceptance
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p1/synthetic-before.json
       Note: Eight expected before-state fidelity failures
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p3/outcome-states.png
@@ -70,6 +76,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -681,3 +688,59 @@ A fresh private conversion independently matches all 472 native FileChange event
 ### Technical details
 - Direct patch/redirect/path-argument evidence is attempted with null success. Native completed FileChange targets are confirmed/true. Contradictory native change outcomes remain unknown.
 - FileChange records use codex-file-change:<native-id>, distinct from execution records; target rows do not create additional tool records.
+
+## Step 11: Separate activity counters and switch file history to structural evidence
+
+Added explicit counts for ordinary records, orchestration, executions, native file changes, model invocations, target rows and confirmed targets. SQLite sessions and metrics derive them from actual records, including older archives with no serialized counters. Orchestration no longer inflates operation counts.
+
+Codex file-history now joins normalized file targets and does not inspect wrapper JavaScript/arguments. File presets use the same evidence ledger. End-to-end synthetic checks prove both redirect targets are visible as attempts, the false-branch target is absent, and neither emitter nor prior file existence is invented.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Complete analytical projections without confusing model requests, executions, targets, or confirmed effects.
+
+**Inferred user intent:** Query trustworthy activity and file history across supported adapters.
+
+**Commit (code):** `add1bb4` — separate activity counts and consume structural file evidence.
+
+### What I did
+- Added ActivityCounts and shared CountToolActivity; ordinary/orchestration/execution/file-change counts partition normalized records, while explicitly enriched direct executions also count as model invocations.
+- Projected counters into sessions and metrics tables from actual tool records.
+- Updated session-list, operation-breakdown, file-timeline and file-operations presets.
+- Replaced Codex file-history regex inference with a files-table join, retaining non-Codex extraction behavior.
+- Exposed evidence metadata and attempted/confirmed summary counts; Codex prior-existence inference is null.
+- Added a unit test for counter separation and scripts/10-check-history-consumers.py for repeatable checkout-CLI acceptance.
+
+### Why
+- Tool-record totals are not model-invocation or executed-process totals, and target operation names alone are not proof of effects.
+
+### What worked
+- Focused core/database/command tests pass; commit hooks passed full tests and lint.
+- End-to-end script passed: first and second targets each appear once, false-branch target never appears, file success stays null, confirmed-target count is zero.
+- Synthetic SQL counters partition nine records into one ordinary, two orchestration and six execution records; model invocations=3, file targets=2.
+
+### What didn't work
+- Inspecting the first CLI result exposed a pre-existing JS coercion bug: null turn_index selected user turn zero as preceding instruction. Added an explicit null guard and reran successfully.
+- That result also labeled a redirect target as created-before-visible-history from MODIFY alone. Removed this inference for structural Codex evidence and verified null instead.
+
+### What I learned
+- A valid SQL null association can still become a false association in a JavaScript consumer unless null handling is explicit.
+
+### What was tricky to build
+- Preserve scalar/argument inference for non-Codex adapters while ensuring old Codex archives are not silently treated as structural evidence; old Codex archives must be reconverted for file-history.
+
+### What warrants a second pair of eyes
+- Target-row counts intentionally count evidence occurrences, not unique paths. Model counts include one-to-one enriched direct invocations without counting every native child as a model call.
+- API/UI counter/target projection and broad non-Codex history smoke tests remain for the next P4 work.
+
+### What should be done in the future
+- Finish API/UI and remaining consumers, then run P4 acceptance and print its completion.
+
+### Code review instructions
+- Review CountToolActivity, activityValues, the file-history SQL/conditional extraction, and scripts/10. Run the script against /tmp/codex-fidelity-001-p4-history/active/*/*.minitrace.json (quote the glob).
+
+### Technical details
+- Snapshot artifacts under various/p4 retain history-first, history-false-branch, activity-counts and history-consumer-acceptance JSON.
+- created_before_visible_history is explicitly unknown for Codex structural history; attempted_targets and confirmed_effects expose what is actually supported.

@@ -51,3 +51,8 @@ P3 accepted against fresh private/synthetic audits; P3 completion and P4 start p
 
 P4 extraction milestone 24bea46: structural patch/redirect attempts and native FileChange effects; bounded shell grammar rejects unsafe inference. Independent audit matches 472 events and 995 targets; execution audit, full tests, lint and race checks pass. Counters/history/API integration remains active.
 
+
+## 2026-09-06
+
+P4 analytical milestone add1bb4: record-kind/model/file-evidence counters, structural Codex file-history and file presets. Fixed null-turn context and unsupported preexistence inference. Full tests/lint and end-to-end history assertions pass; API/UI remains in progress.
+

@@ -1,0 +1,44 @@
+[
+{
+  "query_path": "first.txt",
+  "summary": [
+    {
+      "attempted_targets": 1,
+      "confirmed_effects": 0,
+      "created_before_visible_history": null,
+      "creates": 0,
+      "file_path": "/workspace/actual/first.txt",
+      "first_op": "MODIFY",
+      "first_seen": "2026-09-01T10:00:05Z",
+      "first_session": "fidelity-synthetic",
+      "last_seen": "2026-09-01T10:00:05Z",
+      "modifies": 1,
+      "other": 0,
+      "reads": 0,
+      "sessions": [
+        "fidelity-synthetic"
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "evidence_cwd": "/workspace/actual",
+      "evidence_kind": "shell_redirect",
+      "evidence_status": "attempted",
+      "file_path": "/workspace/actual/first.txt",
+      "framework": "codex",
+      "match_source": "structural_file_target",
+      "op": "MODIFY",
+      "preceding_instruction": null,
+      "raw_operation_type": "MODIFY",
+      "session_id": "fidelity-synthetic",
+      "source_reference": "/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/pkg/adapters/codex/testdata/paginated-fidelity.jsonl#L9",
+      "success": null,
+      "timestamp": "2026-09-01T10:00:05Z",
+      "tool_name": "exec_command",
+      "turn_index": null,
+      "working_directory": "/workspace/initial"
+    }
+  ]
+}
+]
