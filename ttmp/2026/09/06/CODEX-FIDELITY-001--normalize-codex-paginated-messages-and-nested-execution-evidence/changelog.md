@@ -18,3 +18,6 @@ After user upgraded BasicTeX, verified TeX Live 2026 and dependencies, rendered 
 
 Validated three local Codex 0.153.3 paginated sources against checkout-built conversion: zero turns, missing execution fields, malformed outputs, and orphan links; saved baseline scripts and evidence with three legacy controls.
 
+## 2026-09-06 — Implementation P1
+
+Committed baseline and explicit implementation contracts in `443cfbd`. Printed overall plan and P1 start; added synthetic paginated/execution/output fixture and independent CLI oracle. Existing Codex tests pass; eight desired fidelity assertions fail on the unchanged converter, recorded as the reproducible before-state.
