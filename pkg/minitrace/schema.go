@@ -261,6 +261,7 @@ type TaxonomyMappings struct {
 }
 
 type Metrics struct {
+	ActivityCounts
 	TurnCount                int      `json:"turn_count"`
 	ToolCallCount            int      `json:"tool_call_count"`
 	ReadCount                int      `json:"read_count"`

@@ -42,14 +42,14 @@ func Schema() SchemaDescriptor {
 
 func Tables() []TableDescriptor {
 	return []TableDescriptor{
-		sessionsTable(),
+		withActivityColumns(sessionsTable()),
 		turnsTable(),
 		toolCallsTable(),
 		turnToolCallsTable(),
 		filesTable(),
 		annotationsTable(),
 		handoversTable(),
-		metricsTable(),
+		withActivityColumns(metricsTable()),
 		attachmentsTable(),
 		eventsTable(),
 	}

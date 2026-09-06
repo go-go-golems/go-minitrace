@@ -143,6 +143,8 @@ func insertSession(ctx context.Context, tx *sql.Tx, session *minitrace.Session, 
 		outcomeSuccess(session.Outcome), outcomePartial(session.Outcome), outcomeFailureCodes(session.Outcome), outcomeNotes(session.Outcome),
 		session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, mustJSON(session),
 	}
+	columns = append(columns, activityColumnNames...)
+	args = append(args, activityValues(session)...)
 	if err := insertRow(ctx, tx, "sessions", columns, args...); err != nil {
 		return fmt.Errorf("insert session %s: %w", session.ID, err)
 	}
@@ -331,6 +333,8 @@ func insertMetrics(ctx context.Context, tx *sql.Tx, session *minitrace.Session) 
 		nullableIntPointer(session.Metrics.TotalReasoningTokens), nullableIntPointer(session.Metrics.TotalToolTokens), nullableFloat(session.Metrics.SessionCost), session.Metrics.SubagentCount, session.Metrics.SubagentToolCalls, nullableIntPointer(session.Metrics.ModelSwitches), nullableIntPointer(session.Metrics.UniqueModels),
 		nullableIntPointer(session.Metrics.MedianResponseTokens), nullableIntPointer(session.Metrics.MaxResponseTokens), mustJSON(session.Metrics),
 	}
+	columns = append(columns, activityColumnNames...)
+	args = append(args, activityValues(session)...)
 	if err := insertRow(ctx, tx, "metrics", columns, args...); err != nil {
 		return fmt.Errorf("insert metrics %s: %w", session.ID, err)
 	}

@@ -86,12 +86,16 @@ func ComputeToolCallContext(toolCalls []ToolCall) {
 func ComputeMetrics(turns []Turn, toolCalls []ToolCall, timing Timing, subagentCount int, tokenTotals *TokenTotals) Metrics {
 	operationCounts := map[string]int{}
 	for _, toolCall := range toolCalls {
+		if toolCall.EffectiveRecordKind() == RecordKindOrchestration {
+			continue
+		}
 		operationCounts[toolCall.OperationType]++
 	}
 
 	toolCallCount := len(toolCalls)
 	readCount := operationCounts["READ"]
 	metrics := Metrics{
+		ActivityCounts:       CountToolActivity(toolCalls),
 		TurnCount:            len(turns),
 		ToolCallCount:        toolCallCount,
 		ReadCount:            readCount,

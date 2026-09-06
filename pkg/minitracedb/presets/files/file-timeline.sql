@@ -1,20 +1,20 @@
--- file-timeline: Chronological operations on files matching a path pattern
--- Result content is classified into short labels for quick scanning
+-- file-timeline: Structural file targets, not commands or opaque source mentions.
+-- Old Codex archives need reconversion; scalar-only non-Codex reports remain.
 SELECT
   tc.emitting_turn_index AS turn,
   tc.tool_name AS tool,
-  tc.operation_type AS operation,
-  COALESCE(tc.file_path, substr(tc.command, 1, 120)) AS target,
-  tc.success,
-  CASE
-    WHEN tc.result LIKE '%File not found%' THEN 'FILE_NOT_FOUND'
-    WHEN tc.result LIKE '%Successfully%' THEN 'OK'
-    WHEN tc.result LIKE '%No such file%' THEN 'NO_SUCH_FILE'
-    WHEN tc.error IS NOT NULL AND tc.error != '' THEN 'ERROR'
-    ELSE substr(tc.result, 1, 80)
-  END AS result_summary,
-  substr(tc.error, 1, 200) AS error,
+  f.operation_type AS operation,
+  f.path AS target,
+  f.success,
+  f.evidence_kind,
+  f.evidence_status,
+  f.cwd,
+  f.source_reference,
+  tc.record_kind,
   tc.timestamp
-FROM tool_calls tc
-WHERE COALESCE(tc.file_path, tc.command, '') LIKE '%'
-ORDER BY tc.emitting_turn_index;
+FROM files f
+JOIN tool_calls tc ON tc.session_id=f.session_id AND tc.tool_call_id=f.tool_call_id
+JOIN sessions s ON s.session_id=f.session_id
+WHERE f.path LIKE '%'
+  AND (COALESCE(s.agent_framework,'')!='codex' OR f.evidence_kind!='legacy_scalar')
+ORDER BY tc.timestamp, tc.tool_call_id, f.target_ordinal;
