@@ -138,6 +138,7 @@ type Usage struct {
 }
 
 type ToolCall struct {
+	RecordKind        string          `json:"record_kind,omitempty"`
 	ID                string          `json:"id"`
 	EmittingTurnIndex *int            `json:"emitting_turn_index"`
 	Timestamp         *string         `json:"timestamp"`
@@ -151,10 +152,11 @@ type ToolCall struct {
 }
 
 type ToolCallInput struct {
-	FilePath      *string `json:"file_path"`
-	Command       *string `json:"command"`
-	Justification *string `json:"justification"`
-	Arguments     any     `json:"arguments"`
+	FileTargets   []FileTarget `json:"file_targets"`
+	FilePath      *string      `json:"file_path"`
+	Command       *string      `json:"command"`
+	Justification *string      `json:"justification"`
+	Arguments     any          `json:"arguments"`
 }
 
 type ToolCallOutput struct {
