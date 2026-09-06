@@ -56,3 +56,8 @@ P4 extraction milestone 24bea46: structural patch/redirect attempts and native F
 
 P4 analytical milestone add1bb4: record-kind/model/file-evidence counters, structural Codex file-history and file presets. Fixed null-turn context and unsupported preexistence inference. Full tests/lint and end-to-end history assertions pass; API/UI remains in progress.
 
+
+## 2026-09-06
+
+P4 API/UI milestone ccb63de: typed targets, record kinds, counters and visible independent target outcomes. Go/TS roundtrip and 23 browser tests pass; screenshot inspected. Remaining execution-provenance/consumer audit precedes P4 acceptance.
+

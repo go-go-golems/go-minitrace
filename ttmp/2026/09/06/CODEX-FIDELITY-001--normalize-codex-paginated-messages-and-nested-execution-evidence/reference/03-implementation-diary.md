@@ -10,6 +10,8 @@ Owners: []
 RelatedFiles:
     - Path: repo://Makefile
       Note: Local validation contract
+    - Path: repo://cmd/go-minitrace/cmds/serve/file_evidence_test.go
+      Note: API protobuf target presence and counter tests
     - Path: repo://pkg/adapters/codex/convert.go
       Note: Parser integration and removal of guessed associations
     - Path: repo://pkg/adapters/codex/execution_identity_test.go
@@ -70,12 +72,15 @@ RelatedFiles:
       Note: Printed overall phase checklist
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/slips/01-p1-start.log
       Note: Printed P1 start confirmation
+    - Path: repo://web/src/api/activityMetrics.ts
+      Note: Typed API activity counter decoding
 ExternalSources: []
 Summary: Chronological implementation decisions, commits, validation, and phase printing receipts.
 LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -744,3 +749,56 @@ Codex file-history now joins normalized file targets and does not inspect wrappe
 ### Technical details
 - Snapshot artifacts under various/p4 retain history-first, history-false-branch, activity-counts and history-consumer-acceptance JSON.
 - created_before_visible_history is explicitly unknown for Codex structural history; attempted_targets and confirmed_effects expose what is actually supported.
+
+## Step 12: Carry typed targets and counters through protobuf and UI
+
+Added protobuf file targets, record kinds and activity counters, mapped them through both API response layers and actual TypeScript decoding, and displayed target evidence in expanded tool rows. Session summaries distinguish records, invocations, executions and confirmed targets.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Preserve P4 evidence across API/UI boundaries, not only SQLite.
+
+**Inferred user intent:** Inspect the same faithful outcomes and targets in the browser.
+
+**Commit (code):** `ccb63de` — expose structural file evidence and activity counts in API and UI.
+
+### What I did
+- Extended proto schemas, ran buf generate, updated Go/TypeScript mappings and displayed multi-target evidence.
+- Derived detail counters from actual records so older serialized metrics cannot falsely report zero.
+- Added API/proto regression tests and StructuralFileAttempts browser story.
+- Extended scripts/06 and /07 to exercise actual Go protojson-to-TypeScript target/counter decoding alongside all five outcome states.
+
+### Why
+- A successful process must not turn nullable target outcomes into successful writes in the UI.
+
+### What worked
+- Go serve tests and commit-hook full tests/lint pass.
+- pnpm build and lint pass (0 lint errors, 13 existing warnings; existing bundle-size warning).
+- 23 focused Storybook browser tests pass.
+- Go-to-actual-TypeScript roundtrip passes target nullability, provenance, kinds, counters and five outcome states.
+- Inspected various/p4/structural-file-attempts.png: both targets show attempted/unknown despite the process success icon; cwd and source lines are visible.
+
+### What didn't work
+- Initial serve build: handlers_sessions_v2.go:98:20: undefined: minitrace. Added the missing import and reran successfully.
+- Browser MCP navigation failed: Browser is already in use for /home/manuel/.cache/ms-playwright/mcp-chrome-profile. Used a separately launched isolated Playwright browser, not profile deletion or killing another session.
+
+### What I learned
+- Node's native TypeScript runner needs the explicit .ts extension for the new activityMetrics import; project compiler settings support it.
+
+### What was tricky to build
+- Two identical summary-adapter blocks needed the same spread insertion; applied a counted replacement asserting exactly two matches instead of ambiguous exact-edit calls.
+
+### What warrants a second pair of eyes
+- Finish auditing API execution framework provenance and output truncation-reference fields, plus remaining analytical/legacy consumers before P4 acceptance. This milestone exposes file-target source references but does not yet cover every execution provenance field.
+
+### What should be done in the future
+- Complete remaining consumer/provenance checks, then P4 acceptance and P5 full validation/documentation.
+
+### Code review instructions
+- Review file_evidence_test.go, protoToolCallInput, activityMetrics.ts and StructuralFileAttempts; rerun scripts/06 | scripts/07 and focused Storybook tests.
+
+### Technical details
+- Storybook ran in tmux codex-fidelity-p4-storybook on port 16006. Stopped with lsof-who -p 16006 -k and tmux cleanup; isolated browser closed normally.
+- Validation logs and screenshot/text evidence are retained under various/p4.

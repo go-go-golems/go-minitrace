@@ -25,11 +25,11 @@ func main() {
 			exitCode := int32(-1)
 			wire.ExitCode = &exitCode
 		}
-		calls = append(calls, &apiv1.ToolCall{Id: string(status), ToolName: "exec_command", Output: wire})
+		calls = append(calls, &apiv1.ToolCall{Id: string(status), RecordKind: "execution", ToolName: "exec_command", Output: wire, Input: &apiv1.ToolCallInput{FileTargets: []*apiv1.FileTarget{{Path: "/test/attempt.txt", OperationType: "MODIFY", EvidenceKind: "shell_redirect", Status: "attempted", SourceReference: "native#L3", Resolved: true}}}})
 	}
-	response := &apiv1.GetSessionBlocksResponse{Blocks: []*apiv1.SessionBlock{{
+	response := &apiv1.GetSessionDetailResponse{Session: &apiv1.SessionDetail{Metrics: &apiv1.SessionMetrics{ToolCallCount: 5, ExecutionRecordCount: 5, FileTouchCount: 5}, Blocks: []*apiv1.SessionBlock{{
 		Turns: []*apiv1.Turn{{Role: "assistant", ToolCallsInTurn: calls}},
-	}}}
+	}}}}
 	data, err := protojson.Marshal(response)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -1,0 +1,20 @@
+exec_command
+printf x > first; printf y > second
+Annotate
+0.3s
+Record kind: execution
+
+File target evidence
+
+/workspace/first — MODIFY; attempted; shell_redirect
+Outcome: unknown; cwd: /workspace
+Source: synthetic.jsonl#L9
+/workspace/second — MODIFY; attempted; shell_redirect
+Outcome: unknown; cwd: /workspace
+Source: synthetic.jsonl#L9
+TOOL CALL ID
+call_zm3xq5b6wj
+TOOL
+printf x > first; printf y > second
+OUTPUT
+/home/manuel/workspaces/wesen-os
