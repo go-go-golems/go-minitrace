@@ -512,8 +512,15 @@ func protoToolCallInput(input ToolCallInput) (*apiv1.ToolCallInput, error) {
 }
 
 func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
+	var exitCode *int32
+	if output.ExitCode != nil {
+		code := int32(*output.ExitCode)
+		exitCode = &code
+	}
 	return &apiv1.ToolCallOutput{
 		Success:    output.Success,
+		Status:     output.Status,
+		ExitCode:   exitCode,
 		Result:     output.Result,
 		Error:      output.Error,
 		DurationMs: clampIntToUint32(output.DurationMs),

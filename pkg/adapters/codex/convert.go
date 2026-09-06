@@ -963,7 +963,7 @@ func applyCodexFunctionOutput(toolCall *minitrace.ToolCall, rawOutput string) {
 	toolCall.Output.DurationMS = durationMS
 	toolCall.Output.ExitCode = exitCode
 	if exitCode != nil {
-		toolCall.Output.Success = *exitCode == 0
+		toolCall.Output.SetSuccess(*exitCode == 0)
 		if *exitCode != 0 {
 			errorText := result
 			if len(errorText) > 1024 {

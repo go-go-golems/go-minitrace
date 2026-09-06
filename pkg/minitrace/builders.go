@@ -121,6 +121,13 @@ func BuildToolCall(
 		normalizedPath = &normalized
 	}
 
+	output := ToolCallOutput{
+		Result: truncatedResult, Error: errorText, DurationMS: durationMS,
+		Truncated: fullBytes != nil, FullBytes: fullBytes, FullHash: fullHash,
+		Redacted: redacted, ContentOrigin: contentOrigin,
+	}
+	output.SetSuccess(success)
+
 	return ToolCall{
 		ID:                toolCallID,
 		EmittingTurnIndex: turnIndex,
@@ -133,19 +140,7 @@ func BuildToolCall(
 			Justification: nil,
 			Arguments:     arguments,
 		},
-		Output: ToolCallOutput{
-			Success:       success,
-			Result:        truncatedResult,
-			Error:         errorText,
-			ExitCode:      nil,
-			DurationMS:    durationMS,
-			Truncated:     fullBytes != nil,
-			FullBytes:     fullBytes,
-			FullHash:      fullHash,
-			FullReference: nil,
-			Redacted:      redacted,
-			ContentOrigin: contentOrigin,
-		},
+		Output: output,
 		Context: ToolCallContext{
 			PositionInSession: nil,
 			ToolsBefore:       []string{},

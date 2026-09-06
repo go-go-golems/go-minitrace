@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const SchemaVersion = "normalized-sqlite-v3"
+const SchemaVersion = "normalized-sqlite-v4"
 
 // SessionsBaseCompatView is a compatibility VIEW that reconstructs the legacy
 // DuckDB `sessions_base` shape (5 scalar columns plus JSON blob columns) from
@@ -326,6 +326,7 @@ func toolCallsTable() TableDescriptor {
 			{Name: "justification", Type: "TEXT", Nullable: true},
 			{Name: "arguments_json", Type: "TEXT", Nullable: true},
 			{Name: "success", Type: "INTEGER", Nullable: true},
+			{Name: "outcome_status", Type: "TEXT", Nullable: true},
 			{Name: "result", Type: "TEXT", Nullable: true},
 			{Name: "error", Type: "TEXT", Nullable: true},
 			{Name: "exit_code", Type: "INTEGER", Nullable: true},
@@ -358,6 +359,7 @@ func toolCallsTable() TableDescriptor {
 	justification TEXT,
 	arguments_json TEXT,
 	success INTEGER,
+	outcome_status TEXT,
 	result TEXT,
 	error TEXT,
 	exit_code INTEGER,

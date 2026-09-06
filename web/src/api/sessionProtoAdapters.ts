@@ -254,7 +254,9 @@ function adaptToolCall(toolCall: PbToolCall): ToolCall {
       file_path: toolCall.input?.filePath ?? null,
     },
     output: {
-      success: toolCall.output?.success ?? false,
+      success: toolCall.output?.success ?? null,
+      status: toolCall.output?.status,
+      exit_code: toolCall.output?.exitCode ?? null,
       result: toolCall.output?.result ?? null,
       error: toolCall.output?.error ?? null,
       duration_ms: toolCall.output?.durationMs ?? 0,

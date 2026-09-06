@@ -153,7 +153,9 @@ type ToolCallInput struct {
 }
 
 type ToolCallOutput struct {
-	Success    bool    `json:"success"`
+	Success    *bool   `json:"success"`
+	Status     string  `json:"status"`
+	ExitCode   *int    `json:"exit_code"`
 	Result     *string `json:"result"`
 	Error      *string `json:"error"`
 	DurationMs int     `json:"duration_ms"`
@@ -288,6 +290,8 @@ func normalizeToolCall(toolCall minitrace.ToolCall) ToolCallResponse {
 		},
 		Output: ToolCallOutput{
 			Success:    toolCall.Output.Success,
+			Status:     string(toolCall.Output.OutcomeStatus()),
+			ExitCode:   toolCall.Output.ExitCode,
 			Result:     toolCall.Output.Result,
 			Error:      toolCall.Output.Error,
 			DurationMs: intValue(toolCall.Output.DurationMS),

@@ -159,9 +159,9 @@ export declare const ToolCallInputSchema: GenMessage<ToolCallInput>;
  */
 export declare type ToolCallOutput = Message<"go_go_golems.minitrace.api.v1.ToolCallOutput"> & {
   /**
-   * @generated from field: bool success = 1;
+   * @generated from field: optional bool success = 1;
    */
-  success: boolean;
+  success?: boolean | undefined;
 
   /**
    * @generated from field: optional string result = 2;
@@ -182,6 +182,16 @@ export declare type ToolCallOutput = Message<"go_go_golems.minitrace.api.v1.Tool
    * @generated from field: bool truncated = 5;
    */
   truncated: boolean;
+
+  /**
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional int32 exit_code = 7;
+   */
+  exitCode?: number | undefined;
 };
 
 /**

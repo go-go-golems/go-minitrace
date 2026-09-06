@@ -578,7 +578,7 @@ func (s *conversionState) flushIncompleteTools() {
 	for _, id := range ids {
 		pending := s.pendingTools[id]
 		toolCall := s.buildToolCall(pending, EventEnvelope{Type: "tool.incomplete", ID: id, Data: map[string]any{}}, false)
-		toolCall.Output.Success = false
+		toolCall.Output.SetSuccess(false)
 		msg := "tool execution start had no matching completion"
 		toolCall.Output.Error = &msg
 		s.appendToolCall(toolCall, pending.TurnID, pending.TurnKey)

@@ -158,17 +158,18 @@ type ToolCallInput struct {
 }
 
 type ToolCallOutput struct {
-	Success       bool    `json:"success"`
-	Result        *string `json:"result"`
-	Error         *string `json:"error"`
-	ExitCode      *int    `json:"exit_code"`
-	DurationMS    *int    `json:"duration_ms"`
-	Truncated     bool    `json:"truncated"`
-	FullBytes     *int    `json:"full_bytes"`
-	FullHash      *string `json:"full_hash"`
-	FullReference *string `json:"full_reference"`
-	Redacted      *bool   `json:"redacted"`
-	ContentOrigin *string `json:"content_origin"`
+	Success       *bool             `json:"success"`
+	Status        ToolOutcomeStatus `json:"status"`
+	Result        *string           `json:"result"`
+	Error         *string           `json:"error"`
+	ExitCode      *int              `json:"exit_code"`
+	DurationMS    *int              `json:"duration_ms"`
+	Truncated     bool              `json:"truncated"`
+	FullBytes     *int              `json:"full_bytes"`
+	FullHash      *string           `json:"full_hash"`
+	FullReference *string           `json:"full_reference"`
+	Redacted      *bool             `json:"redacted"`
+	ContentOrigin *string           `json:"content_origin"`
 }
 
 type ToolCallContext struct {

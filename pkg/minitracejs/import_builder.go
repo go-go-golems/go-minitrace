@@ -97,7 +97,8 @@ type PreviewToolCall struct {
 	OperationType      string `json:"operationType"`
 	FilePath           string `json:"filePath,omitempty"`
 	Command            string `json:"command,omitempty"`
-	Success            bool   `json:"success"`
+	Success            *bool  `json:"success"`
+	OutcomeStatus      string `json:"outcomeStatus"`
 	HasResult          bool   `json:"hasResult"`
 	HasError           bool   `json:"hasError"`
 	Truncated          bool   `json:"truncated"`
@@ -366,6 +367,7 @@ func PreviewLoadedSessionWithOptions(loaded *minitracedb.LoadedSession, options 
 				FilePath:           filePathForPrivacy(stringPtr(toolCall.Input.FilePath), privacy),
 				Command:            commandForPrivacy(stringPtr(toolCall.Input.Command), privacy),
 				Success:            toolCall.Output.Success,
+				OutcomeStatus:      string(toolCall.Output.OutcomeStatus()),
 				HasResult:          strings.TrimSpace(stringPtr(toolCall.Output.Result)) != "",
 				HasError:           strings.TrimSpace(stringPtr(toolCall.Output.Error)) != "",
 				Truncated:          toolCall.Output.Truncated,

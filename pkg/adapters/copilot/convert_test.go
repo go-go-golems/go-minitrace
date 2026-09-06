@@ -60,7 +60,7 @@ func TestConvertParsedMapsTurnsToolsPermissionsAndShutdown(t *testing.T) {
 	if tool.Input.Command == nil || *tool.Input.Command != "cat README.md" {
 		t.Fatalf("expected command, got %+v", tool.Input.Command)
 	}
-	if tool.Output.Result == nil || *tool.Output.Result != "# Example" || !tool.Output.Success {
+	if tool.Output.Result == nil || *tool.Output.Result != "# Example" || !tool.Output.Succeeded() {
 		t.Fatalf("unexpected tool output: %+v", tool.Output)
 	}
 	if tool.EmittingTurnIndex == nil || *tool.EmittingTurnIndex != 1 {

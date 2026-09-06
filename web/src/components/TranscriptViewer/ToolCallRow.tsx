@@ -311,9 +311,9 @@ function ToolCallRowImpl({
         borderLeft: "2px solid",
         borderColor: focused
           ? "warning.main"
-          : tc.output.success
-            ? "divider"
-            : "error.main",
+          : tc.output.success === false
+            ? "error.main"
+            : "divider",
         bgcolor: focused ? "rgba(245,166,35,0.08)" : "transparent",
         borderRadius: 1,
         ml: 2,
@@ -402,10 +402,17 @@ function ToolCallRowImpl({
         <Typography variant="caption" sx={{ fontFamily: "monospace", opacity: 0.6, minWidth: 50, textAlign: "right" }}>
           {(tc.output.duration_ms / 1000).toFixed(1)}s
         </Typography>
-        {tc.output.success ? (
-          <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "success.main" }} />
+        {tc.output.success === true ? (
+          <CheckCircleOutlineIcon titleAccess="succeeded" sx={{ fontSize: 14, color: "success.main" }} />
+        ) : tc.output.success === false ? (
+          <ErrorOutlineIcon titleAccess="failed" sx={{ fontSize: 14, color: "error.main" }} />
         ) : (
-          <ErrorOutlineIcon sx={{ fontSize: 14, color: "error.main" }} />
+          <Chip
+            label={tc.output.status === "pending" || tc.output.status === "cancelled" ? tc.output.status : "unknown"}
+            size="small"
+            variant="outlined"
+            sx={{ height: 20, fontSize: "0.65rem", color: "text.secondary" }}
+          />
         )}
       </Box>
 

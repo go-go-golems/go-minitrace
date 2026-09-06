@@ -59,7 +59,9 @@ export interface ToolCall {
     file_path?: string | null;
   };
   output: {
-    success: boolean;
+    success: boolean | null;
+    status?: string;
+    exit_code?: number | null;
     result: string | null;
     error: string | null;
     duration_ms: number;

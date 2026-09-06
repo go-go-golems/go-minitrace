@@ -308,11 +308,13 @@ func (x *ToolCallInput) GetFilePath() string {
 
 type ToolCallOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Success       *bool                  `protobuf:"varint,1,opt,name=success,proto3,oneof" json:"success,omitempty"`
 	Result        *string                `protobuf:"bytes,2,opt,name=result,proto3,oneof" json:"result,omitempty"`
 	Error         *string                `protobuf:"bytes,3,opt,name=error,proto3,oneof" json:"error,omitempty"`
 	DurationMs    uint32                 `protobuf:"varint,4,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
 	Truncated     bool                   `protobuf:"varint,5,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	ExitCode      *int32                 `protobuf:"varint,7,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -348,8 +350,8 @@ func (*ToolCallOutput) Descriptor() ([]byte, []int) {
 }
 
 func (x *ToolCallOutput) GetSuccess() bool {
-	if x != nil {
-		return x.Success
+	if x != nil && x.Success != nil {
+		return *x.Success
 	}
 	return false
 }
@@ -380,6 +382,20 @@ func (x *ToolCallOutput) GetTruncated() bool {
 		return x.Truncated
 	}
 	return false
+}
+
+func (x *ToolCallOutput) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ToolCallOutput) GetExitCode() int32 {
+	if x != nil && x.ExitCode != nil {
+		return *x.ExitCode
+	}
+	return 0
 }
 
 type ToolCall struct {
@@ -1450,16 +1466,22 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"\n" +
 	"\b_commandB\f\n" +
 	"\n" +
-	"_file_path\"\xb6\x01\n" +
-	"\x0eToolCallOutput\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1b\n" +
-	"\x06result\x18\x02 \x01(\tH\x00R\x06result\x88\x01\x01\x12\x19\n" +
-	"\x05error\x18\x03 \x01(\tH\x01R\x05error\x88\x01\x01\x12\x1f\n" +
+	"_file_path\"\x8f\x02\n" +
+	"\x0eToolCallOutput\x12\x1d\n" +
+	"\asuccess\x18\x01 \x01(\bH\x00R\asuccess\x88\x01\x01\x12\x1b\n" +
+	"\x06result\x18\x02 \x01(\tH\x01R\x06result\x88\x01\x01\x12\x19\n" +
+	"\x05error\x18\x03 \x01(\tH\x02R\x05error\x88\x01\x01\x12\x1f\n" +
 	"\vduration_ms\x18\x04 \x01(\rR\n" +
 	"durationMs\x12\x1c\n" +
-	"\ttruncated\x18\x05 \x01(\bR\ttruncatedB\t\n" +
+	"\ttruncated\x18\x05 \x01(\bR\ttruncated\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12 \n" +
+	"\texit_code\x18\a \x01(\x05H\x03R\bexitCode\x88\x01\x01B\n" +
+	"\n" +
+	"\b_successB\t\n" +
 	"\a_resultB\b\n" +
-	"\x06_error\"\xcd\x02\n" +
+	"\x06_errorB\f\n" +
+	"\n" +
+	"_exit_code\"\xcd\x02\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttool_name\x18\x02 \x01(\tR\btoolName\x12\x1c\n" +
