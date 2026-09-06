@@ -802,3 +802,13 @@ Added protobuf file targets, record kinds and activity counters, mapped them thr
 ### Technical details
 - Storybook ran in tmux codex-fidelity-p4-storybook on port 16006. Stopped with lsof-who -p 16006 -k and tmux cleanup; isolated browser closed normally.
 - Validation logs and screenshot/text evidence are retained under various/p4.
+
+### Second budget-limited handoff
+
+The additional 1,000,000-token allocation is exhausted (reported usage 1,113,179; 36 minutes). The goal remains incomplete. Code through `ccb63de` and evidence through `a70b40c` are committed; no new code was changed during the final inspection.
+
+Next concrete repair: ToolCall API responses still omit execution framework_metadata and output FullReference/FullBytes/FullHash. Carry these through Go responses, protobuf, TypeScript and relevant UI, then test real archive-to-API conversion. Existing protoStruct returns nil on structpb.NewStruct error; avoid silently dropping newly exposed provenance, and account for typed Go slices/pointers versus JSON-loaded values.
+
+Remaining P4: finish provenance/consumer auditing, broad non-Codex history regressions and final extraction edge-case review (including native FileChange conflicting content with unchanged path/status), then full P4 acceptance and its completion print. P5 remains: adapter docs and transcript-analysis skill caveats, full make all/build/generation/logcopter checks, frontend checks, help/doctor, fresh six-source SQL/identity/receipt/private audits, requirement-by-requirement completion audit and P5 start/done prints. P3 completion and P4 start are already physically printed with receipts and must not be repeated unnecessarily.
+
+Stop substantive work until renewed budget/authorization. No completion marking is justified by the passing intermediate audits.
