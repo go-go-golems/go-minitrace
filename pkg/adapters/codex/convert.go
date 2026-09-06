@@ -196,6 +196,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	if metadata.SessionID != "" {
 		sessionID = metadata.SessionID
 	}
+	finalizeCodexFileEvidence(toolCalls, sourcePath)
 	for index := range toolCalls {
 		if ref := toolCalls[index].Output.FullReference; ref != nil && sourcePath != "" {
 			if line, ok := strings.CutPrefix(*ref, "line:"); ok {
@@ -578,6 +579,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	flushCodexThinkingToLastAssistant(turns, currentThinking)
 	reconcileCodexLegacyEnds(records, toolCalls)
 	toolCalls = appendCodexExecutions(records, toolCalls)
+	toolCalls = appendCodexFileChanges(records, toolCalls)
 	linkCodexMessageCalls(turns, toolCalls)
 
 	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata

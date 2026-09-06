@@ -12,6 +12,7 @@ import (
 )
 
 type codexExecution struct {
+	missingID    bool
 	id           string
 	turnID       string
 	threadID     string
@@ -59,11 +60,12 @@ func collectCodexExecutions(records []map[string]any) []*codexExecution {
 		if missingID {
 			id = fmt.Sprintf("anonymous-line-%d", index+1)
 		}
-		execution := byID[id]
+		identityKey := fmt.Sprintf("%t:%s", missingID, id)
+		execution := byID[identityKey]
 		if execution == nil {
-			execution = &codexExecution{id: id, turnID: codexNativeTurnID(payload, currentTurn), threadID: stringValue(payload["thread_id"]), firstLine: index + 1,
+			execution = &codexExecution{id: id, missingID: missingID, turnID: codexNativeTurnID(payload, currentTurn), threadID: stringValue(payload["thread_id"]), firstLine: index + 1,
 				timestamp: optionalString(stringValue(record["timestamp"]))}
-			byID[id] = execution
+			byID[identityKey] = execution
 			executions = append(executions, execution)
 			if missingID {
 				execution.diagnose("missing_execution_id")
@@ -208,6 +210,10 @@ func (execution *codexExecution) toolCall() minitrace.ToolCall {
 		"source_line": execution.firstLine, "execution_sources": execution.sources,
 		"argv": execution.argv, "native_cwd": execution.cwd, "turn_association": "unknown",
 		"parent_association": "unknown",
+	}
+	if execution.missingID {
+		delete(metadata, "native_execution_id")
+		metadata["execution_identity_kind"] = "source_line"
 	}
 	cwd := execution.cwd
 	if strings.HasPrefix(cwd, "file:") {

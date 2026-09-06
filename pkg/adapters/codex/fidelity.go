@@ -85,7 +85,7 @@ func codexFidelity(records []map[string]any, turns []minitrace.Turn, calls []min
 		}
 		item := mapValue(payload["item"])
 		switch stringValue(item["type"]) {
-		case "UserMessage", "AgentMessage", "Reasoning", "ContextCompaction", "CommandExecution":
+		case "UserMessage", "AgentMessage", "Reasoning", "ContextCompaction", "CommandExecution", "FileChange":
 			// Supported or deliberately non-execution contextual records.
 		default:
 			report.add("unsupported_item_type:"+stringValue(item["type"]), index+1, "")
