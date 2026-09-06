@@ -272,12 +272,33 @@ func (execution *codexExecution) toolCall() minitrace.ToolCall {
 
 func appendCodexExecutions(records []map[string]any, calls []minitrace.ToolCall) []minitrace.ToolCall {
 	byID := map[string]int{}
+	invocations := map[string]int{}
+	originalCallCount := len(calls)
 	for index, call := range calls {
 		byID[call.ID] = index
+		invocations[call.ID]++
 	}
-	for _, execution := range collectCodexExecutions(records) {
+	executions := collectCodexExecutions(records)
+	executionLinks := map[string]int{}
+	for _, execution := range executions {
+		if execution.callID != "" {
+			executionLinks[execution.callID]++
+		}
+	}
+	for index := range calls {
+		if executionLinks[calls[index].ID] > 1 {
+			metadata := mapValue(calls[index].FrameworkMetadata)
+			if metadata == nil {
+				metadata = map[string]any{}
+			}
+			codes, _ := metadata["fidelity_diagnostics"].([]string)
+			metadata["fidelity_diagnostics"] = append(codes, "multiple_executions_reference_invocation")
+			calls[index].FrameworkMetadata = metadata
+		}
+	}
+	for _, execution := range executions {
 		call := execution.toolCall()
-		if index, exists := byID[execution.callID]; execution.callID != "" && exists && calls[index].ToolName == "exec_command" {
+		if index, exists := byID[execution.callID]; execution.callID != "" && exists && index < originalCallCount && invocations[execution.callID] == 1 && executionLinks[execution.callID] == 1 && calls[index].ToolName == "exec_command" {
 			// This native execution explicitly identifies an already-recorded
 			// direct invocation. Enrich that record instead of double-counting it.
 			existing := &calls[index]
