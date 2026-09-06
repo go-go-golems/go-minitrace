@@ -17,7 +17,30 @@ type codexNativeOutput struct {
 func (output codexNativeOutput) apply(call *minitrace.ToolCall) {
 	applyCodexFunctionOutput(call, output.value)
 	call.Output.FullReference = ptr("line:" + strconv.Itoa(output.line))
-	call.FrameworkMetadata = mergeMetadataMap(call.FrameworkMetadata, map[string]any{"output_source_line": output.line})
+	metadata := mapValue(call.FrameworkMetadata)
+	metadata["output_source_line"] = output.line
+	sources, _ := metadata["output_sources"].([]map[string]any)
+	sources = append(sources, map[string]any{"source_line": output.line, "blocks": metadata["output_blocks"]})
+	metadata["output_sources"] = sources
+	conflict := metadata["output_outcome_conflict"] == true
+	if call.Output.ExitCode != nil {
+		if previous, exists := metadata["first_output_exit_code"].(int); exists {
+			conflict = conflict || previous != *call.Output.ExitCode
+		} else {
+			metadata["first_output_exit_code"] = *call.Output.ExitCode
+		}
+	}
+	if conflict {
+		call.Output.Success = nil
+		call.Output.ExitCode = nil
+		call.Output.Status = minitrace.ToolOutcomeUnknown
+		call.Output.Error = nil
+		if metadata["output_outcome_conflict"] != true {
+			diagnostics, _ := metadata["fidelity_diagnostics"].([]string)
+			metadata["fidelity_diagnostics"] = append(diagnostics, "conflicting_response_output_exit_codes")
+		}
+		metadata["output_outcome_conflict"] = true
+	}
 }
 
 // Output evidence is retained per block, not zipped to JS calls: parallel

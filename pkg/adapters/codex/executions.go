@@ -304,8 +304,10 @@ func appendCodexExecutions(records []map[string]any, calls []minitrace.ToolCall)
 			existing := &calls[index]
 			metadata := mapValue(existing.FrameworkMetadata)
 			sourceLine := metadata["source_line"]
-			if existing.Output.ExitCode != nil && call.Output.ExitCode != nil && *existing.Output.ExitCode != *call.Output.ExitCode {
-				mapValue(call.FrameworkMetadata)["response_exit_code"] = *existing.Output.ExitCode
+			if metadata["output_outcome_conflict"] == true || (existing.Output.ExitCode != nil && call.Output.ExitCode != nil && *existing.Output.ExitCode != *call.Output.ExitCode) {
+				if existing.Output.ExitCode != nil {
+					mapValue(call.FrameworkMetadata)["response_exit_code"] = *existing.Output.ExitCode
+				}
 				execution.diagnose("conflicting_response_execution_exit_code")
 				mapValue(call.FrameworkMetadata)["fidelity_diagnostics"] = execution.diagnostics
 				call.Output.Success = nil

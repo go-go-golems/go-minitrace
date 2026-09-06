@@ -410,7 +410,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	tokenTotals := &minitrace.TokenTotals{}
 	metadata := codexMetadata{}
 	messages := collectCodexMessages(records)
-	pendingOutputs := map[string]codexNativeOutput{}
+	pendingOutputs := map[string][]codexNativeOutput{}
 
 	pendingFunctionCalls := map[string]int{}
 	currentThinking := []string{}
@@ -557,8 +557,10 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexCallSourceMetadata(payload, recordIndex))
 				toolCalls = append(toolCalls, toolCall)
 				pendingFunctionCalls[callID] = len(toolCalls) - 1
-				if output, ok := pendingOutputs[callID]; ok {
-					output.apply(&toolCalls[len(toolCalls)-1])
+				if outputs, ok := pendingOutputs[callID]; ok {
+					for _, output := range outputs {
+						output.apply(&toolCalls[len(toolCalls)-1])
+					}
 					delete(pendingOutputs, callID)
 				}
 			case "function_call_output", "custom_tool_call_output":
@@ -567,7 +569,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				if index, ok := pendingFunctionCalls[callID]; ok {
 					output.apply(&toolCalls[index])
 				} else {
-					pendingOutputs[callID] = output
+					pendingOutputs[callID] = append(pendingOutputs[callID], output)
 				}
 			}
 		}
@@ -588,7 +590,7 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 	timestamps := []time.Time{}
 	tokenTotals := &minitrace.TokenTotals{}
 	metadata := codexMetadata{}
-	pendingOutputs := map[string]codexNativeOutput{}
+	pendingOutputs := map[string][]codexNativeOutput{}
 
 	pendingFunctionCalls := map[string]int{}
 	currentThinking := []string{}
@@ -654,8 +656,10 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 			toolCall := buildCodexResponseToolCall(callID, timestampPtr, "", normalizeLegacyCodexFunctionCall(record))
 			toolCalls = append(toolCalls, toolCall)
 			pendingFunctionCalls[callID] = len(toolCalls) - 1
-			if output, ok := pendingOutputs[callID]; ok {
-				output.apply(&toolCalls[len(toolCalls)-1])
+			if outputs, ok := pendingOutputs[callID]; ok {
+				for _, output := range outputs {
+					output.apply(&toolCalls[len(toolCalls)-1])
+				}
 				delete(pendingOutputs, callID)
 			}
 		case "function_call_output":
@@ -664,7 +668,7 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 			if index, ok := pendingFunctionCalls[callID]; ok {
 				output.apply(&toolCalls[index])
 			} else {
-				pendingOutputs[callID] = output
+				pendingOutputs[callID] = append(pendingOutputs[callID], output)
 			}
 		}
 	}

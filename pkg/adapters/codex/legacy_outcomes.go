@@ -25,6 +25,7 @@ func reconcileCodexLegacyEnds(records []map[string]any, calls []minitrace.ToolCa
 		sources, _ := metadata["execution_end_sources"].([]map[string]any)
 		metadata["execution_end_sources"] = append(sources, map[string]any{"source_line": line + 1, "exit_code": payload["exit_code"], "timestamp": record["timestamp"]})
 		call.FrameworkMetadata = metadata
+		conflicts[id] = conflicts[id] || metadata["output_outcome_conflict"] == true
 		code, valid := codexInteger(payload["exit_code"])
 		if !valid {
 			continue
