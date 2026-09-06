@@ -17,3 +17,4 @@
 - [ ] Test false-branch commands, quoted histories, duplicate events, failures, and missing outcomes.
 - [ ] Run package/full tests and private-source before/after SQL acceptance audit.
 - [ ] Update adapter documentation and transcript-analysis skill caveats.
+- [x] Validate local native Codex sources against checkout-built conversion before implementation. <!-- t:busa -->
