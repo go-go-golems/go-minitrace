@@ -402,15 +402,14 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	timestamps := []time.Time{}
 	tokenTotals := &minitrace.TokenTotals{}
 	metadata := codexMetadata{}
+	messages := collectCodexMessages(records)
 
 	pendingFunctionCalls := map[string]int{}
-	pendingTurnToolIDs := map[string]struct{}{}
 	currentThinking := []string{}
 	currentTurnID := ""
-	turnIndex := 0
 	toolCounter := 0
 
-	for _, record := range records {
+	for recordIndex, record := range records {
 		recordType := stringValue(record["type"])
 		timestamp := stringValue(record["timestamp"])
 		if parsed, ok := minitrace.ParseTimestamp(timestamp); ok {
@@ -420,6 +419,12 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 		payload := mapValue(record["payload"])
 		if payload == nil {
 			continue
+		}
+		if message := messages[recordIndex]; message != nil {
+			turns = append(turns, message.buildTurn(len(turns), metadata.Model, currentThinking))
+			if message.role == "assistant" {
+				currentThinking = nil
+			}
 		}
 
 		switch recordType {
@@ -472,35 +477,10 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 			case "task_started":
 				metadata.ContextWindow = firstNonZero(minitrace.SafeInt(payload["model_context_window"], 0), metadata.ContextWindow)
 				currentTurnID = firstNonEmpty(stringValue(payload["turn_id"]), currentTurnID)
-			case "user_message":
-				source := ptr("human")
-				turn := minitrace.BuildTurn(turnIndex, timestampPtr, "user", source, stringValue(payload["message"]))
-				turn.InputChannel = ptr("user_input")
-				turn.FrameworkMetadata = codexTurnMetadata(currentTurnID, nil, nil)
-				turns = append(turns, turn)
-				turnIndex++
 			case "agent_reasoning":
 				if text := stringValue(payload["text"]); text != "" {
 					currentThinking = append(currentThinking, text)
 				}
-			case "agent_message":
-				source := ptr("model")
-				turn := minitrace.BuildTurn(turnIndex, timestampPtr, "assistant", source, stringValue(payload["message"]))
-				thinkingMetadata := attachCodexThinking(&turn, currentThinking)
-				turn.Model = optionalString(metadata.Model)
-				turn.FrameworkMetadata = codexTurnMetadata(currentTurnID, payload, thinkingMetadata)
-				toolIDs := pendingTurnToolIDsSlice(pendingTurnToolIDs)
-				for _, toolID := range toolIDs {
-					if index, ok := pendingFunctionCalls[toolID]; ok {
-						turnIndexCopy := turnIndex
-						toolCalls[index].EmittingTurnIndex = &turnIndexCopy
-					}
-				}
-				turn.ToolCallsInTurn = toolIDs
-				turns = append(turns, turn)
-				turnIndex++
-				currentThinking = nil
-				pendingTurnToolIDs = map[string]struct{}{}
 			case "token_count":
 				if payload["rate_limits"] != nil {
 					metadata.LatestRateLimits = payload["rate_limits"]
@@ -572,10 +552,10 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 					callID = fmt.Sprintf("tc-codex-%04d", toolCounter)
 				}
 				toolCounter++
-				toolCall := buildCodexResponseToolCall(callID, timestampPtr, currentTurnID, payload)
+				toolCall := buildCodexResponseToolCall(callID, timestampPtr, codexNativeTurnID(payload, currentTurnID), payload)
+				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexCallSourceMetadata(payload, recordIndex))
 				toolCalls = append(toolCalls, toolCall)
 				pendingFunctionCalls[callID] = len(toolCalls) - 1
-				pendingTurnToolIDs[callID] = struct{}{}
 			case "function_call_output", "custom_tool_call_output":
 				callID := stringValue(payload["call_id"])
 				index, ok := pendingFunctionCalls[callID]
@@ -588,18 +568,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	}
 
 	flushCodexThinkingToLastAssistant(turns, currentThinking)
-
-	if len(pendingTurnToolIDs) > 0 {
-		lastTurnIndex := 0
-		if len(turns) > 0 {
-			lastTurnIndex = len(turns) - 1
-		}
-		for toolID := range pendingTurnToolIDs {
-			if index, ok := pendingFunctionCalls[toolID]; ok {
-				toolCalls[index].EmittingTurnIndex = &lastTurnIndex
-			}
-		}
-	}
+	linkCodexMessageCalls(turns, toolCalls)
 
 	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata
 }
@@ -613,7 +582,6 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 	metadata := codexMetadata{}
 
 	pendingFunctionCalls := map[string]int{}
-	pendingTurnToolIDs := map[string]struct{}{}
 	currentThinking := []string{}
 	turnIndex := 0
 	toolCounter := 0
@@ -665,18 +633,9 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 				thinkingMetadata = attachCodexThinking(&turn, currentThinking)
 				currentThinking = nil
 			}
-			toolIDs := pendingTurnToolIDsSlice(pendingTurnToolIDs)
-			for _, toolID := range toolIDs {
-				if index, ok := pendingFunctionCalls[toolID]; ok {
-					turnIndexCopy := turnIndex
-					toolCalls[index].EmittingTurnIndex = &turnIndexCopy
-				}
-			}
-			turn.ToolCallsInTurn = toolIDs
 			turn.FrameworkMetadata = codexTurnMetadata("", record, thinkingMetadata)
 			turns = append(turns, turn)
 			turnIndex++
-			pendingTurnToolIDs = map[string]struct{}{}
 		case "function_call":
 			callID := stringValue(record["call_id"])
 			if callID == "" {
@@ -686,7 +645,6 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 			toolCall := buildCodexResponseToolCall(callID, timestampPtr, "", normalizeLegacyCodexFunctionCall(record))
 			toolCalls = append(toolCalls, toolCall)
 			pendingFunctionCalls[callID] = len(toolCalls) - 1
-			pendingTurnToolIDs[callID] = struct{}{}
 		case "function_call_output":
 			callID := stringValue(record["call_id"])
 			index, ok := pendingFunctionCalls[callID]
@@ -698,17 +656,8 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 	}
 
 	flushCodexThinkingToLastAssistant(turns, currentThinking)
-
-	if len(pendingTurnToolIDs) > 0 {
-		lastTurnIndex := 0
-		if len(turns) > 0 {
-			lastTurnIndex = len(turns) - 1
-		}
-		for toolID := range pendingTurnToolIDs {
-			if index, ok := pendingFunctionCalls[toolID]; ok {
-				toolCalls[index].EmittingTurnIndex = &lastTurnIndex
-			}
-		}
+	for i := range toolCalls {
+		toolCalls[i].FrameworkMetadata = mergeMetadataMap(toolCalls[i].FrameworkMetadata, map[string]any{"turn_association": "unknown"})
 	}
 
 	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata
@@ -1542,15 +1491,6 @@ func extractSandboxPolicy(value any) string {
 		return ""
 	}
 	return firstNonEmpty(stringValue(sandbox["type"]), stringValue(sandbox["mode"]))
-}
-
-func pendingTurnToolIDsSlice(ids map[string]struct{}) []string {
-	ret := make([]string, 0, len(ids))
-	for id := range ids {
-		ret = append(ret, id)
-	}
-	sort.Strings(ret)
-	return ret
 }
 
 // countSubagents mirrors the claude-code adapter's subagent counting: each
