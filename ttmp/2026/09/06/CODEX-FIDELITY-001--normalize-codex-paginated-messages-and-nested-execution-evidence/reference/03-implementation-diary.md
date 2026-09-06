@@ -18,6 +18,10 @@ RelatedFiles:
       Note: Authoritative lifecycle reconciliation in 6e656e7
     - Path: repo://pkg/adapters/codex/fidelity.go
       Note: Bounded visible fidelity diagnostics
+    - Path: repo://pkg/adapters/codex/file_changes.go
+      Note: Authoritative file effects and lifecycle identity
+    - Path: repo://pkg/adapters/codex/files.go
+      Note: Structural targets and explicit cwd resolution
     - Path: repo://pkg/adapters/codex/legacy_outcomes.go
       Note: Arrival-order-independent terminal reconciliation in 9658081
     - Path: repo://pkg/adapters/codex/legacy_outcomes_test.go
@@ -30,6 +34,8 @@ RelatedFiles:
       Note: Early/repeated/conflicting output coverage 4e61b7b
     - Path: repo://pkg/adapters/codex/outputs.go
       Note: Typed result decoding and independent block outcomes
+    - Path: repo://pkg/adapters/codex/shell_targets.go
+      Note: Bounded non-evaluating literal redirect grammar
     - Path: repo://pkg/adapters/codex/testdata/paginated-fidelity.jsonl
       Note: Synthetic contract regression source
     - Path: repo://pkg/minitrace/file_evidence.go
@@ -48,6 +54,8 @@ RelatedFiles:
       Note: Actual TypeScript decoder roundtrip
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/08-audit-execution-coverage.py
       Note: Independent native execution acceptance audit
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/09-audit-file-changes.py
+      Note: Independent 472-event 995-target native acceptance
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p1/synthetic-before.json
       Note: Eight expected before-state fidelity failures
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p3/outcome-states.png
@@ -62,6 +70,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -614,3 +623,61 @@ Started P4 with a typed multi-target file evidence model and SQLite projection. 
 ### Technical details
 - files gains target_ordinal, evidence_kind, evidence_status, cwd, resolved, native_path and source_reference. tool_calls gains record_kind.
 - Tool-record count is unchanged; file targets do not become additional tool calls.
+
+## Step 10: Extract structural attempts and authoritative native file effects
+
+Implemented explicit patch-header targets, bounded literal shell redirects, and native FileChange lifecycle records. Replaced Codex's regex-derived scalar path with the first structural target; opaque JavaScript and message histories never establish file evidence. Native file changes retain distinct identities, source references, move source/destination effects, and uncertain parentage.
+
+A fresh private conversion independently matches all 472 native FileChange events and 995 targets, including five rename destinations, while the execution audit still passes. This verifies extraction, not the still-pending counter/history/API integration.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Implement P4 structural evidence against actual native shapes, with adversarial tests and independent audits.
+
+**Inferred user intent:** Trust file history without treating code mentions or shell success as proven writes.
+
+**Commit (code):** `24bea46` — extract structural file attempts and native file effects.
+
+### What I did
+- Added shell_targets.go: a size-bounded lexer and deliberately narrow straight-line shell grammar for literal <, > and >> redirections.
+- Added files.go: typed patch/direct-path/redirect targets, lexical cwd resolution only from explicit tool/execution cwd, and structural scalar convenience paths.
+- Added file_changes.go: native FileChange deduplication, source provenance, native completed effects, rename pairs, conflict preservation, and explicit file_change record kind.
+- Added tests for quotes, comments, escapes, heredocs, substitutions, conditional branches, cwd mutation, search operands, multi-file patches, repeated native changes and conflicts.
+- Hardened missing native identity namespaces for both executions and file changes; source-line synthetic IDs cannot collide with literal native IDs or masquerade as native identities.
+- Added scripts/09-audit-file-changes.py and saved count/identity-only private audit reports under various/p4; private archives remain under /tmp.
+
+### Why
+- Native FileChange evidence can confirm applied effects; a shell exit code cannot confirm individual redirections.
+- Native change maps include move_path; recording only original keys loses destinations.
+
+### What worked
+- Focused and race Codex tests pass. Commit hooks passed full tests and lint.
+- Independent audit: 472 native file events, 995 targets, no missing/invented/duplicate identities, target mismatches or provenance/outcome mismatches.
+- Independent execution audit remains passing on the same fresh P4 archives.
+
+### What didn't work
+- No test/build failure in this step. One discovery rg returned exit 1 because no codexCWD helper exists; inspected execution.toolCall's inline URI handling instead.
+
+### What I learned
+- All 990 source-map file paths in the local FileChange baseline are absolute; five moves create five additional target rows. None requires guessed session cwd.
+
+### What was tricky to build
+- Reject unsupported shell syntax before accepting any targets, so heredoc bodies, process substitutions and conditional branches cannot leak into the ledger. Quoted > characters remain ordinary text.
+- Conflicting native file notifications retain the union of targets as unconfirmed attempts, including after later replay of an earlier notification.
+
+### What warrants a second pair of eyes
+- The shell grammar is intentionally conservative: pipelines, descriptor duplication, expansions, compound control flow and cwd-changing/eval/source commands yield diagnostics rather than inferred paths. This is not a general shell interpreter.
+- Resolved means lexical absolute-path resolution, not filesystem/symlink canonicalization. Native paths remain available.
+- Native FileChange status completed is treated as applied file-effect evidence; failed/cancelled changes do not assert success/failure of each individual target.
+
+### What should be done in the future
+- Project record-kind/file-touch counters and update file-history, presets, API/UI and documentation; add final consumer acceptance before P4 completion.
+
+### Code review instructions
+- Start with files_test.go and missing_identity_test.go, then review shellWords/literalShellTargets, finalizeCodexFileEvidence and appendCodexFileChanges. Re-run scripts/09 against /tmp/codex-fidelity-001-p4-extraction.
+
+### Technical details
+- Direct patch/redirect/path-argument evidence is attempted with null success. Native completed FileChange targets are confirmed/true. Contradictory native change outcomes remain unknown.
+- FileChange records use codex-file-change:<native-id>, distinct from execution records; target rows do not create additional tool records.

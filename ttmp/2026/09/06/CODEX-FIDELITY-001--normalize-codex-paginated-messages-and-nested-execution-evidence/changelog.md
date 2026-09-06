@@ -46,3 +46,8 @@ Resumed with user-authorized additional 1M tokens. Hardened one-to-one native ex
 
 P3 accepted against fresh private/synthetic audits; P3 completion and P4 start physically printed with receipts. P4 schema milestone f0a5377 adds typed targets, independent file outcomes, and SQLite v5 evidence projections; extraction and consumers remain in progress.
 
+
+## 2026-09-06
+
+P4 extraction milestone 24bea46: structural patch/redirect attempts and native FileChange effects; bounded shell grammar rejects unsafe inference. Independent audit matches 472 events and 995 targets; execution audit, full tests, lint and race checks pass. Counters/history/API integration remains active.
+
