@@ -31,3 +31,8 @@ Restored persisted message variants with native identity reconciliation and exac
 Printed P3 start. Nullable outcomes now survive Go schema, SQLite, protobuf, TypeScript, and neutral UI rendering (`80d7bd5`); repaired existing frontend validation blockers in `ba54414`. SQL/API tests, Go-to-TypeScript roundtrip, 22 browser story tests, and inspected outcome screenshots are recorded in `a40ea81`.
 
 Native CommandExecution lifecycle reconciliation and typed output decoding landed in `6e656e7`. The synthetic oracle passes all nine assertions. Independent private-source audit recovers 2,296 native executions and 155 failures with matching argv/output/outcomes and unchanged source hashes. All sources have zero malformed map outputs and zero orphan links. Full tests, lint, and race checks pass. P3 remains active for legacy/adversarial hardening; file evidence/counter consumers and final documentation/acceptance remain open.
+
+## 2026-09-06
+
+P3 hardening: reconcile legacy terminal outcomes after results, preserve terminal conflicts, and keep exec-stream completion-only outcomes unknown (9658081). Full tests, lint, and Codex race tests pass.
+

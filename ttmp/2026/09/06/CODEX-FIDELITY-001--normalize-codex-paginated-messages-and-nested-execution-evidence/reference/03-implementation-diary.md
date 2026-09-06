@@ -16,6 +16,10 @@ RelatedFiles:
       Note: Authoritative lifecycle reconciliation in 6e656e7
     - Path: repo://pkg/adapters/codex/fidelity.go
       Note: Bounded visible fidelity diagnostics
+    - Path: repo://pkg/adapters/codex/legacy_outcomes.go
+      Note: Arrival-order-independent terminal reconciliation in 9658081
+    - Path: repo://pkg/adapters/codex/legacy_outcomes_test.go
+      Note: Ordering, conflict replay, and nullable exec-stream regression tests
     - Path: repo://pkg/adapters/codex/messages.go
       Note: Message reconciliation and explicit linkage in 22b1f4e
     - Path: repo://pkg/adapters/codex/messages_test.go
@@ -50,6 +54,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -433,3 +438,53 @@ Committed code as `6e656e7` — `feat(codex): normalize native executions and de
 Remaining P3 review items before its completion print: legacy exec_command_end/exec-stream outcome consistency, adversarial direct-link/duplicate-output edge cases, and final diagnostics/provenance verification. P4 still owns normalized file targets and record-kind/counting projections; no completion of those requirements is implied by the successful execution audit.
 
 Documentation checkpoint `63dcd2a` saved the execution audit. `docmgr doctor` found that the raw browser snapshot was named `.md` and therefore treated it as a managed document: `outcome-states-snapshot.md frontmatter delimiters '---' not found`. This is raw captured evidence, not an authored doc; rename it to `.txt` without changing its contents and rerun doctor. The shell sequence did not gate the audit commit on doctor's failure; the correction will be a separate traceable commit. Transient browser artifacts were moved intact out of the working tree to `/tmp/codex-fidelity-browser-artifacts.aakEqL/`.
+
+## Step 7: Reconcile legacy terminal outcomes after response results
+
+Legacy exec_command_end evidence previously set an exit code without updating nullable success/status, and early end notifications could disappear. Reconciliation now runs after all calls/results have been collected, preserving terminal source references and keeping conflicting terminal evidence unknown even after replay.
+
+The older exec JSONL parser also treated completion without an exit code as success and malformed codes as failure. Both now remain unknown; numeric exit codes retain their established meaning.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same implementation goal as Step 1; continuation requests continued work on the active objective)
+
+**Assistant interpretation:** Harden legacy formats before completing P3.
+
+**Inferred user intent:** New nullable outcomes must not leave older supported formats internally contradictory.
+
+### What I did
+- Added legacy_outcomes.go with a post-collection reconciliation pass.
+- Removed the arrival-order-dependent exit assignment from parseSessionJSONL.
+- Replaced permissive SafeInt/default-success inference for exec-stream completions with strict numeric evidence.
+- Added permutation, terminal conflict/replay, absent-code, invalid-code, and known-code tests.
+
+### Why
+- Completion is lifecycle information, not proof of success. A native numeric exit must update both binary and lifecycle fields consistently.
+
+### What worked
+- `go test ./pkg/adapters/codex -count=1` passes after the compile fix.
+- All three tested call/output/end orderings retain exit 7 as failure.
+- Conflicting end notifications remain unknown after a repeated earlier notification.
+
+### What didn't work
+- Initial `go test ./pkg/adapters/codex -count=1` failed: `pkg/adapters/codex/legacy_outcomes.go:25:25: cannot index metadata (variable of interface type any)` (also lines 26, 34, 35, 36). mergeMetadataMap returns any; explicitly converted its result with mapValue before indexing, then reran successfully.
+
+### What I learned
+- Updating ExitCode independently of Success/Status left a contradictory state even though each field looked plausible in isolation.
+
+### What was tricky to build
+- A later repeated notification must not erase earlier terminal conflict. A per-call conflict latch retains uncertainty through the full reconciliation pass.
+
+### What warrants a second pair of eyes
+- Legacy terminal records without matching calls remain unsupported; direct execution-link adversarial cases and duplicate response outputs still need P3 review.
+
+### What should be done in the future
+- Finish the remaining P3 provenance/diagnostic review before printing its completion; continue P4 file evidence and consumers afterward.
+
+### Code review instructions
+- Review reconcileCodexLegacyEnds and the exec-jsonl command_execution branch; run `go test ./pkg/adapters/codex -count=1` and full repository checks.
+
+### Technical details
+- execution_end_sources preserves source line, timestamp, and native exit values; response_or_previous_exit_code preserves conflicting prior evidence. No historical command is evaluated.
+- Committed as `9658081` — `fix(codex): reconcile legacy terminal outcomes independently of arrival order`. Pre-commit full tests and lint passed; `go test ./pkg/adapters/codex -race -count=1` also passed.
