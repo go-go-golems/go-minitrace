@@ -7,7 +7,6 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -197,6 +196,13 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	if metadata.SessionID != "" {
 		sessionID = metadata.SessionID
 	}
+	for index := range toolCalls {
+		if ref := toolCalls[index].Output.FullReference; ref != nil && sourcePath != "" {
+			if line, ok := strings.CutPrefix(*ref, "line:"); ok {
+				toolCalls[index].Output.FullReference = ptr(sourcePath + "#L" + line)
+			}
+		}
+	}
 
 	session := minitrace.BuildSessionSkeleton(sessionID, "codex", sourceFormatName(actualFormat), AdapterVersion)
 	session.Environment.PlatformType = ptr("agent")
@@ -255,6 +261,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath, formatHint 
 	if containsPII {
 		session.Classification = "confidential"
 	}
+	applyCodexFidelityReport(&session, codexFidelity(records, turns, toolCalls))
 
 	return &session, nil
 }
@@ -403,6 +410,7 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 	tokenTotals := &minitrace.TokenTotals{}
 	metadata := codexMetadata{}
 	messages := collectCodexMessages(records)
+	pendingOutputs := map[string]codexNativeOutput{}
 
 	pendingFunctionCalls := map[string]int{}
 	currentThinking := []string{}
@@ -556,18 +564,24 @@ func parseSessionJSONL(records []map[string]any) ([]minitrace.Turn, []minitrace.
 				toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexCallSourceMetadata(payload, recordIndex))
 				toolCalls = append(toolCalls, toolCall)
 				pendingFunctionCalls[callID] = len(toolCalls) - 1
+				if output, ok := pendingOutputs[callID]; ok {
+					output.apply(&toolCalls[len(toolCalls)-1])
+					delete(pendingOutputs, callID)
+				}
 			case "function_call_output", "custom_tool_call_output":
 				callID := stringValue(payload["call_id"])
-				index, ok := pendingFunctionCalls[callID]
-				if !ok {
-					continue
+				output := codexNativeOutput{value: payload["output"], line: recordIndex + 1}
+				if index, ok := pendingFunctionCalls[callID]; ok {
+					output.apply(&toolCalls[index])
+				} else {
+					pendingOutputs[callID] = output
 				}
-				applyCodexFunctionOutput(&toolCalls[index], stringValue(payload["output"]))
 			}
 		}
 	}
 
 	flushCodexThinkingToLastAssistant(turns, currentThinking)
+	toolCalls = appendCodexExecutions(records, toolCalls)
 	linkCodexMessageCalls(turns, toolCalls)
 
 	return turns, toolCalls, annotations, timestamps, tokenTotals, metadata
@@ -580,13 +594,14 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 	timestamps := []time.Time{}
 	tokenTotals := &minitrace.TokenTotals{}
 	metadata := codexMetadata{}
+	pendingOutputs := map[string]codexNativeOutput{}
 
 	pendingFunctionCalls := map[string]int{}
 	currentThinking := []string{}
 	turnIndex := 0
 	toolCounter := 0
 
-	for _, record := range records {
+	for recordIndex, record := range records {
 		timestamp := stringValue(record["timestamp"])
 		if parsed, ok := minitrace.ParseTimestamp(timestamp); ok {
 			timestamps = append(timestamps, parsed)
@@ -645,13 +660,18 @@ func parseLegacyRolloutJSONL(records []map[string]any) ([]minitrace.Turn, []mini
 			toolCall := buildCodexResponseToolCall(callID, timestampPtr, "", normalizeLegacyCodexFunctionCall(record))
 			toolCalls = append(toolCalls, toolCall)
 			pendingFunctionCalls[callID] = len(toolCalls) - 1
+			if output, ok := pendingOutputs[callID]; ok {
+				output.apply(&toolCalls[len(toolCalls)-1])
+				delete(pendingOutputs, callID)
+			}
 		case "function_call_output":
 			callID := stringValue(record["call_id"])
-			index, ok := pendingFunctionCalls[callID]
-			if !ok {
-				continue
+			output := codexNativeOutput{value: record["output"], line: recordIndex + 1}
+			if index, ok := pendingFunctionCalls[callID]; ok {
+				output.apply(&toolCalls[index])
+			} else {
+				pendingOutputs[callID] = output
 			}
-			applyCodexFunctionOutput(&toolCalls[index], stringValue(record["output"]))
 		}
 	}
 
@@ -908,6 +928,10 @@ func buildCodexResponseToolCall(callID string, timestamp *string, currentTurnID 
 	command := commandForFunction(funcName, args)
 	filePath := filePathForFunction(funcName, args, command)
 	metadata := codexFrameworkMetadata(funcName, args)
+	metadata["record_kind"] = "tool_call"
+	if funcName == "exec" {
+		metadata["record_kind"] = "orchestration"
+	}
 	if namespace := stringValue(payload["namespace"]); namespace != "" {
 		metadata["namespace"] = namespace
 	}
@@ -946,33 +970,9 @@ func buildCodexResponseToolCall(callID string, timestamp *string, currentTurnID 
 		toolCall.Input.Justification = &justification
 	}
 	toolCall.FrameworkMetadata = mergeMetadataMap(toolCall.FrameworkMetadata, codexTurnMetadata(currentTurnID, nil, nil))
+	toolCall.Output.Success = nil
+	toolCall.Output.Status = minitrace.ToolOutcomePending
 	return toolCall
-}
-
-func applyCodexFunctionOutput(toolCall *minitrace.ToolCall, rawOutput string) {
-	result, exitCode, durationMS := parseFunctionOutput(rawOutput)
-	metadataOutput := result
-	if strings.TrimSpace(metadataOutput) == "" {
-		metadataOutput = rawOutput
-	}
-	truncated, fullBytes, fullHash := minitrace.TruncateContent(result, minitrace.TruncateLimit)
-	toolCall.Output.Result = truncated
-	toolCall.Output.Truncated = fullBytes != nil
-	toolCall.Output.FullBytes = fullBytes
-	toolCall.Output.FullHash = fullHash
-	toolCall.Output.DurationMS = durationMS
-	toolCall.Output.ExitCode = exitCode
-	if exitCode != nil {
-		toolCall.Output.SetSuccess(*exitCode == 0)
-		if *exitCode != 0 {
-			errorText := result
-			if len(errorText) > 1024 {
-				errorText = errorText[:1024]
-			}
-			toolCall.Output.Error = &errorText
-		}
-	}
-	promoteCodexOutputMetadata(toolCall, metadataOutput)
 }
 
 func commandForFunction(functionName string, args map[string]any) string {
@@ -1204,67 +1204,6 @@ func classifyContentOrigin(functionName string) *string {
 	default:
 		return nil
 	}
-}
-
-func parseFunctionOutput(raw string) (string, *int, *int) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return "", nil, nil
-	}
-
-	var structured struct {
-		Output   string `json:"output"`
-		Metadata struct {
-			ExitCode        *int    `json:"exit_code"`
-			DurationSeconds float64 `json:"duration_seconds"`
-		} `json:"metadata"`
-	}
-	if strings.HasPrefix(raw, "{") && json.Unmarshal([]byte(raw), &structured) == nil {
-		var durationMS *int
-		if structured.Metadata.DurationSeconds > 0 {
-			value := int(structured.Metadata.DurationSeconds * 1000)
-			durationMS = &value
-		}
-		return structured.Output, structured.Metadata.ExitCode, durationMS
-	}
-
-	var exitCode *int
-	var durationMS *int
-	lines := strings.Split(raw, "\n")
-	outputStarted := false
-	outputLines := []string{}
-	for _, line := range lines {
-		switch {
-		case outputStarted:
-			outputLines = append(outputLines, line)
-		case strings.HasPrefix(line, "Output:"):
-			outputStarted = true
-			rest := strings.TrimSpace(strings.TrimPrefix(line, "Output:"))
-			if rest != "" {
-				outputLines = append(outputLines, rest)
-			}
-		case strings.HasPrefix(line, "Process exited with code "):
-			value := strings.TrimSpace(strings.TrimPrefix(line, "Process exited with code "))
-			if parsed, err := strconv.Atoi(value); err == nil {
-				exitCode = &parsed
-			}
-		case strings.HasPrefix(line, "Exit code: "):
-			value := strings.TrimSpace(strings.TrimPrefix(line, "Exit code: "))
-			if parsed, err := strconv.Atoi(value); err == nil {
-				exitCode = &parsed
-			}
-		case strings.HasPrefix(line, "Wall time: "):
-			value := strings.TrimSpace(strings.TrimPrefix(line, "Wall time: "))
-			if seconds, err := strconv.ParseFloat(strings.Fields(value)[0], 64); err == nil {
-				parsed := int(seconds * 1000)
-				durationMS = &parsed
-			}
-		}
-	}
-	if len(outputLines) > 0 {
-		return strings.Join(outputLines, "\n"), exitCode, durationMS
-	}
-	return raw, exitCode, durationMS
 }
 
 func providerHint(modelProvider string) *string {
