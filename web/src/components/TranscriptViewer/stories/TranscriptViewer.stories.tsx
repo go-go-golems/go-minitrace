@@ -2,14 +2,16 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import Box from "@mui/material/Box";
 import { TranscriptViewer } from "../TranscriptViewer";
-import { withTheme } from "../../../test-utils/storybook-decorators";
+import { MemoryRouter } from "react-router";
+import { withAll } from "../../../test-utils/storybook-decorators";
 import { mockSessionDetail } from "../../../mocks/data";
 
 const meta = {
   title: "Screens/TranscriptViewer",
   component: TranscriptViewer,
   decorators: [
-    withTheme,
+    withAll,
+    (Story) => <MemoryRouter><Story /></MemoryRouter>,
     (Story) => (
       <Box sx={{ height: "100vh", bgcolor: "background.default" }}>
         <Story />

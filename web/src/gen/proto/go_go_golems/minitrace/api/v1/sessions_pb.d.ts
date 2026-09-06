@@ -710,6 +710,11 @@ export declare type SessionDetail = Message<"go_go_golems.minitrace.api.v1.Sessi
    * @generated from field: repeated go_go_golems.minitrace.api.v1.SessionAttachment attachments = 12;
    */
   attachments: SessionAttachment[];
+
+  /**
+   * @generated from field: repeated go_go_golems.minitrace.api.v1.ToolCall unassociated_tool_calls = 13;
+   */
+  unassociatedToolCalls: ToolCall[];
 };
 
 /**

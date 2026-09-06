@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import Box from "@mui/material/Box";
 import { AnnotationModal } from "../AnnotationModal";
-import { withTheme } from "../../../test-utils/storybook-decorators";
+import { withAll } from "../../../test-utils/storybook-decorators";
 import type { AnnotationDraftTarget } from "../AnnotationComposer";
 
 const meta = {
   title: "TranscriptViewer/AnnotationModal",
   component: AnnotationModal,
   decorators: [
-    withTheme,
+    withAll,
     (Story) => (
       <Box sx={{ p: 2, bgcolor: "background.paper" }}>
         <Story />

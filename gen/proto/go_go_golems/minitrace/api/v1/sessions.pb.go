@@ -1243,21 +1243,22 @@ func (x *SessionBlock) GetArtifacts() *BlockArtifacts {
 }
 
 type SessionDetail struct {
-	state              protoimpl.MessageState     `protogen:"open.v1"`
-	Id                 string                     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title              string                     `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Summary            *string                    `protobuf:"bytes,3,opt,name=summary,proto3,oneof" json:"summary,omitempty"`
-	Classification     string                     `protobuf:"bytes,4,opt,name=classification,proto3" json:"classification,omitempty"`
-	Timing             *SessionTiming             `protobuf:"bytes,5,opt,name=timing,proto3" json:"timing,omitempty"`
-	Metrics            *SessionMetrics            `protobuf:"bytes,6,opt,name=metrics,proto3" json:"metrics,omitempty"`
-	Environment        *SessionEnvironment        `protobuf:"bytes,7,opt,name=environment,proto3" json:"environment,omitempty"`
-	OperationalContext *SessionOperationalContext `protobuf:"bytes,8,opt,name=operational_context,json=operationalContext,proto3" json:"operational_context,omitempty"`
-	Provenance         *SessionProvenance         `protobuf:"bytes,9,opt,name=provenance,proto3" json:"provenance,omitempty"`
-	Blocks             []*SessionBlock            `protobuf:"bytes,10,rep,name=blocks,proto3" json:"blocks,omitempty"`
-	Events             []*SessionEvent            `protobuf:"bytes,11,rep,name=events,proto3" json:"events,omitempty"`
-	Attachments        []*SessionAttachment       `protobuf:"bytes,12,rep,name=attachments,proto3" json:"attachments,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                 protoimpl.MessageState     `protogen:"open.v1"`
+	Id                    string                     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title                 string                     `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Summary               *string                    `protobuf:"bytes,3,opt,name=summary,proto3,oneof" json:"summary,omitempty"`
+	Classification        string                     `protobuf:"bytes,4,opt,name=classification,proto3" json:"classification,omitempty"`
+	Timing                *SessionTiming             `protobuf:"bytes,5,opt,name=timing,proto3" json:"timing,omitempty"`
+	Metrics               *SessionMetrics            `protobuf:"bytes,6,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	Environment           *SessionEnvironment        `protobuf:"bytes,7,opt,name=environment,proto3" json:"environment,omitempty"`
+	OperationalContext    *SessionOperationalContext `protobuf:"bytes,8,opt,name=operational_context,json=operationalContext,proto3" json:"operational_context,omitempty"`
+	Provenance            *SessionProvenance         `protobuf:"bytes,9,opt,name=provenance,proto3" json:"provenance,omitempty"`
+	Blocks                []*SessionBlock            `protobuf:"bytes,10,rep,name=blocks,proto3" json:"blocks,omitempty"`
+	Events                []*SessionEvent            `protobuf:"bytes,11,rep,name=events,proto3" json:"events,omitempty"`
+	Attachments           []*SessionAttachment       `protobuf:"bytes,12,rep,name=attachments,proto3" json:"attachments,omitempty"`
+	UnassociatedToolCalls []*ToolCall                `protobuf:"bytes,13,rep,name=unassociated_tool_calls,json=unassociatedToolCalls,proto3" json:"unassociated_tool_calls,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *SessionDetail) Reset() {
@@ -1370,6 +1371,13 @@ func (x *SessionDetail) GetEvents() []*SessionEvent {
 func (x *SessionDetail) GetAttachments() []*SessionAttachment {
 	if x != nil {
 		return x.Attachments
+	}
+	return nil
+}
+
+func (x *SessionDetail) GetUnassociatedToolCalls() []*ToolCall {
+	if x != nil {
+		return x.UnassociatedToolCalls
 	}
 	return nil
 }
@@ -1758,7 +1766,7 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"gapMinutes\x88\x01\x01\x129\n" +
 	"\x05turns\x18\b \x03(\v2#.go_go_golems.minitrace.api.v1.TurnR\x05turns\x12K\n" +
 	"\tartifacts\x18\t \x01(\v2-.go_go_golems.minitrace.api.v1.BlockArtifactsR\tartifactsB\x0e\n" +
-	"\f_gap_minutes\"\x87\x06\n" +
+	"\f_gap_minutes\"\xe8\x06\n" +
 	"\rSessionDetail\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1d\n" +
@@ -1774,7 +1782,8 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"\x06blocks\x18\n" +
 	" \x03(\v2+.go_go_golems.minitrace.api.v1.SessionBlockR\x06blocks\x12C\n" +
 	"\x06events\x18\v \x03(\v2+.go_go_golems.minitrace.api.v1.SessionEventR\x06events\x12R\n" +
-	"\vattachments\x18\f \x03(\v20.go_go_golems.minitrace.api.v1.SessionAttachmentR\vattachmentsB\n" +
+	"\vattachments\x18\f \x03(\v20.go_go_golems.minitrace.api.v1.SessionAttachmentR\vattachments\x12_\n" +
+	"\x17unassociated_tool_calls\x18\r \x03(\v2'.go_go_golems.minitrace.api.v1.ToolCallR\x15unassociatedToolCallsB\n" +
 	"\n" +
 	"\b_summary\"\x9d\x01\n" +
 	"\x14ListSessionsResponse\x12:\n" +
@@ -1862,19 +1871,20 @@ var file_proto_go_go_golems_minitrace_api_v1_sessions_proto_depIdxs = []int32{
 	10, // 28: go_go_golems.minitrace.api.v1.SessionDetail.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
 	7,  // 29: go_go_golems.minitrace.api.v1.SessionDetail.events:type_name -> go_go_golems.minitrace.api.v1.SessionEvent
 	8,  // 30: go_go_golems.minitrace.api.v1.SessionDetail.attachments:type_name -> go_go_golems.minitrace.api.v1.SessionAttachment
-	24, // 31: go_go_golems.minitrace.api.v1.ListSessionsResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	0,  // 32: go_go_golems.minitrace.api.v1.ListSessionsResponse.sessions:type_name -> go_go_golems.minitrace.api.v1.SessionSummary
-	24, // 33: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	1,  // 34: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionSummaryDetail
-	24, // 35: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	10, // 36: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
-	24, // 37: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	11, // 38: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionDetail
-	39, // [39:39] is the sub-list for method output_type
-	39, // [39:39] is the sub-list for method input_type
-	39, // [39:39] is the sub-list for extension type_name
-	39, // [39:39] is the sub-list for extension extendee
-	0,  // [0:39] is the sub-list for field type_name
+	5,  // 31: go_go_golems.minitrace.api.v1.SessionDetail.unassociated_tool_calls:type_name -> go_go_golems.minitrace.api.v1.ToolCall
+	24, // 32: go_go_golems.minitrace.api.v1.ListSessionsResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	0,  // 33: go_go_golems.minitrace.api.v1.ListSessionsResponse.sessions:type_name -> go_go_golems.minitrace.api.v1.SessionSummary
+	24, // 34: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	1,  // 35: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionSummaryDetail
+	24, // 36: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	10, // 37: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
+	24, // 38: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	11, // 39: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionDetail
+	40, // [40:40] is the sub-list for method output_type
+	40, // [40:40] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_proto_go_go_golems_minitrace_api_v1_sessions_proto_init() }

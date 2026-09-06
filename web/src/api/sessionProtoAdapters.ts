@@ -161,6 +161,7 @@ function adaptSessionDetail(detail?: PbSessionDetail): SessionDetail {
       converted_at: detail?.provenance?.convertedAt ?? "",
     },
     blocks: detail?.blocks.map(adaptSessionBlock) ?? [],
+    unassociated_tool_calls: detail?.unassociatedToolCalls.map(adaptToolCall) ?? [],
     events: detail?.events.map(adaptSessionEvent) ?? [],
     attachments: detail?.attachments.map(adaptSessionAttachment) ?? [],
   };

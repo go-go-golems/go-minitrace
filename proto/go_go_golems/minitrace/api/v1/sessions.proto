@@ -156,6 +156,7 @@ message SessionDetail {
   repeated SessionBlock blocks = 10;
   repeated SessionEvent events = 11;
   repeated SessionAttachment attachments = 12;
+  repeated ToolCall unassociated_tool_calls = 13;
 }
 
 message ListSessionsResponse {

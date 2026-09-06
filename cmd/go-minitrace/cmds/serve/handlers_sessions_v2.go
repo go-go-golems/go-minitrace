@@ -318,24 +318,33 @@ func protoSessionSummaryDetail(detail SessionSummaryDetailResponse) *apiv1.Sessi
 }
 
 func protoSessionDetail(detail SessionDetailResponse) (*apiv1.SessionDetail, error) {
+	unassociated := make([]*apiv1.ToolCall, 0, len(detail.UnassociatedToolCalls))
+	for _, call := range detail.UnassociatedToolCalls {
+		value, err := protoToolCall(call)
+		if err != nil {
+			return nil, err
+		}
+		unassociated = append(unassociated, value)
+	}
 	blocks, err := protoSessionBlocks(detail.Blocks)
 	if err != nil {
 		return nil, err
 	}
 
 	return &apiv1.SessionDetail{
-		Id:                 detail.ID,
-		Title:              detail.Title,
-		Summary:            detail.Summary,
-		Classification:     detail.Classification,
-		Timing:             protoSessionTiming(detail.Timing),
-		Metrics:            protoSessionMetrics(detail.Metrics),
-		Environment:        protoSessionEnvironment(detail.Environment),
-		OperationalContext: protoOperationalContext(detail.OperationalContext),
-		Provenance:         protoSessionProvenance(detail.Provenance),
-		Blocks:             blocks,
-		Events:             protoSessionEvents(detail.Events),
-		Attachments:        protoSessionAttachments(detail.Attachments),
+		UnassociatedToolCalls: unassociated,
+		Id:                    detail.ID,
+		Title:                 detail.Title,
+		Summary:               detail.Summary,
+		Classification:        detail.Classification,
+		Timing:                protoSessionTiming(detail.Timing),
+		Metrics:               protoSessionMetrics(detail.Metrics),
+		Environment:           protoSessionEnvironment(detail.Environment),
+		OperationalContext:    protoOperationalContext(detail.OperationalContext),
+		Provenance:            protoSessionProvenance(detail.Provenance),
+		Blocks:                blocks,
+		Events:                protoSessionEvents(detail.Events),
+		Attachments:           protoSessionAttachments(detail.Attachments),
 	}, nil
 }
 

@@ -196,6 +196,7 @@ export interface SessionSummaryDetail {
 
 /** Full session detail returned by /api/v2/sessions/:id */
 export interface SessionDetail extends SessionSummaryDetail {
+  unassociated_tool_calls?: ToolCall[];
   blocks: SessionBlock[];
 }
 

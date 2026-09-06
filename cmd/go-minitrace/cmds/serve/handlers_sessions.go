@@ -28,6 +28,7 @@ type SessionSummaryDetailResponse struct {
 }
 
 type SessionDetailResponse struct {
+	UnassociatedToolCalls []ToolCallResponse `json:"unassociated_tool_calls"`
 	SessionSummaryDetailResponse
 	Blocks []SessionBlock `json:"blocks"`
 }
@@ -196,7 +197,20 @@ func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDeta
 }
 
 func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
+	linked := map[string]bool{}
+	for _, turn := range session.Turns {
+		for _, id := range turn.ToolCallsInTurn {
+			linked[id] = true
+		}
+	}
+	unassociated := []ToolCallResponse{}
+	for _, call := range session.ToolCalls {
+		if !linked[call.ID] {
+			unassociated = append(unassociated, normalizeToolCall(call))
+		}
+	}
 	return SessionDetailResponse{
+		UnassociatedToolCalls:        unassociated,
 		SessionSummaryDetailResponse: normalizeSessionSummaryDetail(session),
 		Blocks:                       buildSessionBlocks(session),
 	}
