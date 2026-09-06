@@ -1,0 +1,48 @@
+Error: pandoc failed: Error producing PDF.
+! Package fontspec Error: The font "DejaVu Sans" cannot be found.
+
+For immediate help type H <return>.
+ ...                                              
+                                                  
+l.24   \setmonofont
+
+: exit status 43
+
+  # bundle - Bundle multiple markdown inputs into a single PDF (with ToC) and 
+  upload to reMarkable                                                        
+                                                                              
+  Bundle multiple markdown inputs into a single PDF with a clickable Table of 
+  Contents (ToC), then upload to a reMarkable device via rmapi.               
+                                                                              
+  Inputs:                                                                     
+                                                                              
+  • You may pass markdown files (*.md) and/or directories.                    
+  • Directories are recursively scanned for *.md files.                       
+                                                                              
+  Ordering:                                                                   
+                                                                              
+  • Files passed explicitly preserve the user-given order.                    
+  • Directory contents are ordered lexicographically by relative path (case-  
+  insensitive).                                                               
+                                                                              
+  Destination:                                                                
+                                                                              
+  • Default remote directory: /ai/YYYY/MM/DD/ (today's date)                  
+  • Override with --date (changes /ai/YYYY/MM/DD/) or --remote-dir (full      
+  override)                                                                   
+                                                                              
+  Safety:                                                                     
+                                                                              
+  • Existing documents are skipped unless --force is provided.                
+                                                                              
+  --------                                                                    
+                                                                              
+  **No examples found!**                                                      
+                                                                              
+  Showing a list of alternatives:                                             
+                                                                              
+  For more help, run: remarquee help bundle                                   
+                                                                              
+  Run remarquee help --ui to open the interactive help TUI.                   
+
+

@@ -1,0 +1,60 @@
+ERROR-CONVERT: 1 file(s) failed pandoc conversion: /Users/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/design-doc/01-intern-guide-to-codex-transcript-fidelity-and-execution-normalization.md: pandoc failed: Error producing PDF.
+! LaTeX Error: File `enumitem.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 
+! Emergency stop.
+<read *> 
+         
+l.47 \setlist
+
+: exit status 43
+Error: 1 file(s) failed pandoc conversion: /Users/manuel/code/wesen/go-go-golems/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/design-doc/01-intern-guide-to-codex-transcript-fidelity-and-execution-normalization.md: pandoc failed: Error producing PDF.
+! LaTeX Error: File `enumitem.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 
+! Emergency stop.
+<read *> 
+         
+l.47 \setlist
+
+: exit status 43
+
+  # md - Convert markdown to PDF (pandoc/xelatex) and upload to reMarkable    
+                                                                              
+  Convert markdown files to PDF (pandoc + xelatex, DejaVu fonts) and upload   
+  them to a reMarkable device via rmapi.                                      
+                                                                              
+  Inputs:                                                                     
+                                                                              
+  • You may pass markdown files (*.md) and/or directories.                    
+  • Directories are recursively scanned for *.md files.                       
+  • Directory structure is mirrored remotely by default. Use --flatten to     
+  upload all files to a single directory.                                     
+                                                                              
+  Destination:                                                                
+                                                                              
+  • Default remote directory: /ai/YYYY/MM/DD/ (today's date)                  
+  • Override with --date (changes /ai/YYYY/MM/DD/) or --remote-dir (full      
+  override)                                                                   
+                                                                              
+  Safety:                                                                     
+                                                                              
+  • Existing documents are skipped unless --force is provided.                
+                                                                              
+  --------                                                                    
+                                                                              
+  **No examples found!**                                                      
+                                                                              
+  Showing a list of alternatives:                                             
+                                                                              
+  For more help, run: remarquee help md                                       
+                                                                              
+  Run remarquee help --ui to open the interactive help TUI.                   
+
+
