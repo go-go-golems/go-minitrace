@@ -1,8 +1,9 @@
 package codex
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
-	"reflect"
 	"sort"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
@@ -91,15 +92,20 @@ func appendCodexFileChanges(records []map[string]any, calls []minitrace.ToolCall
 			}
 			targets = append(targets, target)
 		}
-		// Compare structural payloads without source references or outcome fields.
-		signature := make([]string, 0, len(targets))
-		for _, target := range targets {
-			signature = append(signature, target.Path+"\x00"+target.OperationType)
+		// Hash the complete change payload: equal paths can hide conflicting
+		// contents. Retain fingerprints, not duplicated private diffs.
+		encoded, err := json.Marshal(changes)
+		if err != nil {
+			addCodexFileDiagnostic(call, "invalid_file_change_payload")
+			metadata["file_change_conflict"] = true
 		}
-		if previous, ok := metadata["change_signature"].([]string); ok && !reflect.DeepEqual(previous, signature) {
+		signature := fmt.Sprintf("sha256:%x", sha256.Sum256(encoded))
+		if previous, ok := metadata["change_signature"].(string); ok && previous != signature {
 			metadata["file_change_conflict"] = true
 		}
 		metadata["change_signature"] = signature
+		allSources := metadata["file_change_sources"].([]map[string]any)
+		allSources[len(allSources)-1]["changes_hash"] = signature
 		call.Output.Success = nil
 		call.Output.Status = minitrace.ToolOutcomeUnknown
 		switch status {

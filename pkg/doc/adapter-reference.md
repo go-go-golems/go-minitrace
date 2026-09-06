@@ -158,6 +158,16 @@ Codex stores sessions as JSONL files under `~/.codex/sessions/` and optionally l
 
 Sessions in unrecognized formats fail strict conversion before publication. With explicit Codex `--allow-partial`, valid sessions publish and failures are recorded in output rows and the incomplete run receipt. Older rollout JSONL files that start with top-level session metadata plus `message`, `reasoning`, `function_call`, `function_call_output`, and `record_type: state` records are recognized as legacy rollout JSONL and converted.
 
+### Paginated fidelity, outcomes and file evidence
+
+Paginated UserMessage/AgentMessage items reconcile with response messages by native identity; repeated messages stay distinct. Native CommandExecution lifecycles preserve separate executions, argv/cwd, source lines and uncertain parentage. Emitting message indexes remain null without explicit linkage. Typed output blocks are decoded before metadata extraction/truncation; child exits never establish wrapper success. Completion without a numeric command exit remains unknown, not successful.
+
+Tool outcomes are nullable with explicit unknown/pending/cancelled/succeeded/failed status. Conflicting evidence remains unknown after replay. API responses preserve execution framework metadata and full-output references/bytes/hash.
+
+`input.file_targets` records all structural patch/redirect attempts and native FileChange effects. Each target has its own nullable outcome, evidence kind/status, cwd and source reference. Shell exit zero never confirms every target. The deliberately bounded shell grammar rejects expansions, control flow, pipelines, heredocs and cwd-changing constructs with diagnostics rather than guessing. No JavaScript or quoted history is scanned into writes. Relative paths use explicit execution/tool cwd only.
+
+`tool_call_count` counts normalized records, not model calls. Ordinary/orchestration/execution/file-change counters partition records; model invocations and target/confirmed-effect counts are separate. SQLite files/history consumers use structural Codex evidence; reconvert old Codex archives. Existing non-Codex scalar reports remain labeled legacy_scalar/reported. Inspect fidelity warnings before treating an archive as complete. See `pkg/adapters/codex/README.md` for exact grammar, evidence and counting contracts.
+
 ### Multi-agent metadata
 
 Codex multi-agent sessions carry native coordination fields, captured into `operational_context.framework_config`:

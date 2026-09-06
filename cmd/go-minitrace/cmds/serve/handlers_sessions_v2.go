@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -490,19 +491,24 @@ func protoToolCalls(toolCalls []ToolCallResponse) ([]*apiv1.ToolCall, error) {
 }
 
 func protoToolCall(toolCall ToolCallResponse) (*apiv1.ToolCall, error) {
+	metadata, err := strictProtoStruct(toolCall.FrameworkMetadata)
+	if err != nil {
+		return nil, fmt.Errorf("tool %s provenance: %w", toolCall.ID, err)
+	}
 	input, err := protoToolCallInput(toolCall.Input)
 	if err != nil {
 		return nil, err
 	}
 	return &apiv1.ToolCall{
-		Id:            toolCall.ID,
-		RecordKind:    toolCall.RecordKind,
-		ToolName:      toolCall.ToolName,
-		Timestamp:     toolCall.Timestamp,
-		OperationType: toolCall.OperationType,
-		Input:         input,
-		Output:        protoToolCallOutput(toolCall.Output),
-		Badges:        protoToolCallBadges(toolCall.Badges),
+		Id:                toolCall.ID,
+		FrameworkMetadata: metadata,
+		RecordKind:        toolCall.RecordKind,
+		ToolName:          toolCall.ToolName,
+		Timestamp:         toolCall.Timestamp,
+		OperationType:     toolCall.OperationType,
+		Input:             input,
+		Output:            protoToolCallOutput(toolCall.Output),
+		Badges:            protoToolCallBadges(toolCall.Badges),
 	}, nil
 }
 
@@ -515,7 +521,7 @@ func protoToolCallInput(input ToolCallInput) (*apiv1.ToolCallInput, error) {
 		ret.FileTargets = append(ret.FileTargets, &apiv1.FileTarget{Path: target.Path, NativePath: target.NativePath, OperationType: target.OperationType, EvidenceKind: target.EvidenceKind, Status: target.Status, Success: target.Success, Cwd: target.CWD, Resolved: target.Resolved, SourceReference: target.SourceReference})
 	}
 	if len(input.Arguments) > 0 {
-		arguments, err := structpb.NewStruct(input.Arguments)
+		arguments, err := strictProtoStruct(input.Arguments)
 		if err != nil {
 			return nil, err
 		}
@@ -524,20 +530,43 @@ func protoToolCallInput(input ToolCallInput) (*apiv1.ToolCallInput, error) {
 	return ret, nil
 }
 
+func strictProtoStruct(value map[string]any) (*structpb.Struct, error) {
+	if len(value) == 0 {
+		return nil, nil
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	var normalized map[string]any
+	if err := json.Unmarshal(data, &normalized); err != nil {
+		return nil, err
+	}
+	return structpb.NewStruct(normalized)
+}
+
 func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
+	var fullBytes *uint64
+	if output.FullBytes != nil && *output.FullBytes >= 0 {
+		value := uint64(*output.FullBytes)
+		fullBytes = &value
+	}
 	var exitCode *int32
 	if output.ExitCode != nil {
 		code := int32(*output.ExitCode)
 		exitCode = &code
 	}
 	return &apiv1.ToolCallOutput{
-		Success:    output.Success,
-		Status:     output.Status,
-		ExitCode:   exitCode,
-		Result:     output.Result,
-		Error:      output.Error,
-		DurationMs: clampIntToUint32(output.DurationMs),
-		Truncated:  output.Truncated,
+		Success:       output.Success,
+		Status:        output.Status,
+		ExitCode:      exitCode,
+		Result:        output.Result,
+		Error:         output.Error,
+		DurationMs:    clampIntToUint32(output.DurationMs),
+		Truncated:     output.Truncated,
+		FullReference: output.FullReference,
+		FullBytes:     fullBytes,
+		FullHash:      output.FullHash,
 	}
 }
 

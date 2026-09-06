@@ -138,14 +138,15 @@ type TurnResponse struct {
 }
 
 type ToolCallResponse struct {
-	RecordKind    string         `json:"record_kind"`
-	ID            string         `json:"id"`
-	ToolName      string         `json:"tool_name"`
-	Timestamp     string         `json:"timestamp"`
-	OperationType string         `json:"operation_type"`
-	Input         ToolCallInput  `json:"input"`
-	Output        ToolCallOutput `json:"output"`
-	Badges        []BadgeType    `json:"badges"`
+	FrameworkMetadata map[string]any `json:"framework_metadata,omitempty"`
+	RecordKind        string         `json:"record_kind"`
+	ID                string         `json:"id"`
+	ToolName          string         `json:"tool_name"`
+	Timestamp         string         `json:"timestamp"`
+	OperationType     string         `json:"operation_type"`
+	Input             ToolCallInput  `json:"input"`
+	Output            ToolCallOutput `json:"output"`
+	Badges            []BadgeType    `json:"badges"`
 }
 
 type ToolCallInput struct {
@@ -156,13 +157,16 @@ type ToolCallInput struct {
 }
 
 type ToolCallOutput struct {
-	Success    *bool   `json:"success"`
-	Status     string  `json:"status"`
-	ExitCode   *int    `json:"exit_code"`
-	Result     *string `json:"result"`
-	Error      *string `json:"error"`
-	DurationMs int     `json:"duration_ms"`
-	Truncated  bool    `json:"truncated"`
+	FullReference *string `json:"full_reference"`
+	FullBytes     *int    `json:"full_bytes"`
+	FullHash      *string `json:"full_hash"`
+	Success       *bool   `json:"success"`
+	Status        string  `json:"status"`
+	ExitCode      *int    `json:"exit_code"`
+	Result        *string `json:"result"`
+	Error         *string `json:"error"`
+	DurationMs    int     `json:"duration_ms"`
+	Truncated     bool    `json:"truncated"`
 }
 
 type BlockArtifacts struct {
@@ -283,11 +287,12 @@ func normalizeUsage(u *minitrace.Usage) *TurnUsageResponse {
 
 func normalizeToolCall(toolCall minitrace.ToolCall) ToolCallResponse {
 	return ToolCallResponse{
-		ID:            toolCall.ID,
-		RecordKind:    toolCall.EffectiveRecordKind(),
-		ToolName:      toolCall.ToolName,
-		Timestamp:     stringValue(toolCall.Timestamp),
-		OperationType: toolCall.OperationType,
+		FrameworkMetadata: normalizeArguments(toolCall.FrameworkMetadata),
+		ID:                toolCall.ID,
+		RecordKind:        toolCall.EffectiveRecordKind(),
+		ToolName:          toolCall.ToolName,
+		Timestamp:         stringValue(toolCall.Timestamp),
+		OperationType:     toolCall.OperationType,
 		Input: ToolCallInput{
 			Command:     stringValue(toolCall.Input.Command),
 			Arguments:   normalizeArguments(toolCall.Input.Arguments),
@@ -295,13 +300,16 @@ func normalizeToolCall(toolCall minitrace.ToolCall) ToolCallResponse {
 			FileTargets: toolCall.EffectiveFileTargets(),
 		},
 		Output: ToolCallOutput{
-			Success:    toolCall.Output.Success,
-			Status:     string(toolCall.Output.OutcomeStatus()),
-			ExitCode:   toolCall.Output.ExitCode,
-			Result:     toolCall.Output.Result,
-			Error:      toolCall.Output.Error,
-			DurationMs: intValue(toolCall.Output.DurationMS),
-			Truncated:  toolCall.Output.Truncated,
+			Success:       toolCall.Output.Success,
+			Status:        string(toolCall.Output.OutcomeStatus()),
+			ExitCode:      toolCall.Output.ExitCode,
+			Result:        toolCall.Output.Result,
+			Error:         toolCall.Output.Error,
+			DurationMs:    intValue(toolCall.Output.DurationMS),
+			Truncated:     toolCall.Output.Truncated,
+			FullReference: toolCall.Output.FullReference,
+			FullBytes:     toolCall.Output.FullBytes,
+			FullHash:      toolCall.Output.FullHash,
 		},
 		Badges: DetectBadges(toolCall),
 	}

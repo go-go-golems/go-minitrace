@@ -431,6 +431,9 @@ type ToolCallOutput struct {
 	Truncated     bool                   `protobuf:"varint,5,opt,name=truncated,proto3" json:"truncated,omitempty"`
 	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	ExitCode      *int32                 `protobuf:"varint,7,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
+	FullReference *string                `protobuf:"bytes,8,opt,name=full_reference,json=fullReference,proto3,oneof" json:"full_reference,omitempty"`
+	FullBytes     *uint64                `protobuf:"varint,9,opt,name=full_bytes,json=fullBytes,proto3,oneof" json:"full_bytes,omitempty"`
+	FullHash      *string                `protobuf:"bytes,10,opt,name=full_hash,json=fullHash,proto3,oneof" json:"full_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -514,18 +517,40 @@ func (x *ToolCallOutput) GetExitCode() int32 {
 	return 0
 }
 
+func (x *ToolCallOutput) GetFullReference() string {
+	if x != nil && x.FullReference != nil {
+		return *x.FullReference
+	}
+	return ""
+}
+
+func (x *ToolCallOutput) GetFullBytes() uint64 {
+	if x != nil && x.FullBytes != nil {
+		return *x.FullBytes
+	}
+	return 0
+}
+
+func (x *ToolCallOutput) GetFullHash() string {
+	if x != nil && x.FullHash != nil {
+		return *x.FullHash
+	}
+	return ""
+}
+
 type ToolCall struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ToolName      string                 `protobuf:"bytes,2,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	Timestamp     string                 `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	OperationType string                 `protobuf:"bytes,4,opt,name=operation_type,json=operationType,proto3" json:"operation_type,omitempty"`
-	Input         *ToolCallInput         `protobuf:"bytes,5,opt,name=input,proto3" json:"input,omitempty"`
-	Output        *ToolCallOutput        `protobuf:"bytes,6,opt,name=output,proto3" json:"output,omitempty"`
-	Badges        []ToolCallBadge        `protobuf:"varint,7,rep,packed,name=badges,proto3,enum=go_go_golems.minitrace.api.v1.ToolCallBadge" json:"badges,omitempty"`
-	RecordKind    string                 `protobuf:"bytes,8,opt,name=record_kind,json=recordKind,proto3" json:"record_kind,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ToolName          string                 `protobuf:"bytes,2,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	Timestamp         string                 `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	OperationType     string                 `protobuf:"bytes,4,opt,name=operation_type,json=operationType,proto3" json:"operation_type,omitempty"`
+	Input             *ToolCallInput         `protobuf:"bytes,5,opt,name=input,proto3" json:"input,omitempty"`
+	Output            *ToolCallOutput        `protobuf:"bytes,6,opt,name=output,proto3" json:"output,omitempty"`
+	Badges            []ToolCallBadge        `protobuf:"varint,7,rep,packed,name=badges,proto3,enum=go_go_golems.minitrace.api.v1.ToolCallBadge" json:"badges,omitempty"`
+	RecordKind        string                 `protobuf:"bytes,8,opt,name=record_kind,json=recordKind,proto3" json:"record_kind,omitempty"`
+	FrameworkMetadata *structpb.Struct       `protobuf:"bytes,9,opt,name=framework_metadata,json=frameworkMetadata,proto3" json:"framework_metadata,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -612,6 +637,13 @@ func (x *ToolCall) GetRecordKind() string {
 		return x.RecordKind
 	}
 	return ""
+}
+
+func (x *ToolCall) GetFrameworkMetadata() *structpb.Struct {
+	if x != nil {
+		return x.FrameworkMetadata
+	}
+	return nil
 }
 
 type TurnUsage struct {
@@ -1605,7 +1637,7 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"\n" +
 	"\b_commandB\f\n" +
 	"\n" +
-	"_file_path\"\x8f\x02\n" +
+	"_file_path\"\xb1\x03\n" +
 	"\x0eToolCallOutput\x12\x1d\n" +
 	"\asuccess\x18\x01 \x01(\bH\x00R\asuccess\x88\x01\x01\x12\x1b\n" +
 	"\x06result\x18\x02 \x01(\tH\x01R\x06result\x88\x01\x01\x12\x19\n" +
@@ -1614,13 +1646,22 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"durationMs\x12\x1c\n" +
 	"\ttruncated\x18\x05 \x01(\bR\ttruncated\x12\x16\n" +
 	"\x06status\x18\x06 \x01(\tR\x06status\x12 \n" +
-	"\texit_code\x18\a \x01(\x05H\x03R\bexitCode\x88\x01\x01B\n" +
+	"\texit_code\x18\a \x01(\x05H\x03R\bexitCode\x88\x01\x01\x12*\n" +
+	"\x0efull_reference\x18\b \x01(\tH\x04R\rfullReference\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"full_bytes\x18\t \x01(\x04H\x05R\tfullBytes\x88\x01\x01\x12 \n" +
+	"\tfull_hash\x18\n" +
+	" \x01(\tH\x06R\bfullHash\x88\x01\x01B\n" +
 	"\n" +
 	"\b_successB\t\n" +
 	"\a_resultB\b\n" +
 	"\x06_errorB\f\n" +
 	"\n" +
-	"_exit_code\"\xee\x02\n" +
+	"_exit_codeB\x11\n" +
+	"\x0f_full_referenceB\r\n" +
+	"\v_full_bytesB\f\n" +
+	"\n" +
+	"_full_hash\"\xb6\x03\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttool_name\x18\x02 \x01(\tR\btoolName\x12\x1c\n" +
@@ -1630,7 +1671,8 @@ const file_proto_go_go_golems_minitrace_api_v1_sessions_proto_rawDesc = "" +
 	"\x06output\x18\x06 \x01(\v2-.go_go_golems.minitrace.api.v1.ToolCallOutputR\x06output\x12D\n" +
 	"\x06badges\x18\a \x03(\x0e2,.go_go_golems.minitrace.api.v1.ToolCallBadgeR\x06badges\x12\x1f\n" +
 	"\vrecord_kind\x18\b \x01(\tR\n" +
-	"recordKind\"\x8c\x02\n" +
+	"recordKind\x12F\n" +
+	"\x12framework_metadata\x18\t \x01(\v2\x17.google.protobuf.StructR\x11frameworkMetadata\"\x8c\x02\n" +
 	"\tTurnUsage\x12&\n" +
 	"\finput_tokens\x18\x01 \x01(\rH\x00R\vinputTokens\x88\x01\x01\x12(\n" +
 	"\routput_tokens\x18\x02 \x01(\rH\x01R\foutputTokens\x88\x01\x01\x12/\n" +
@@ -1805,33 +1847,34 @@ var file_proto_go_go_golems_minitrace_api_v1_sessions_proto_depIdxs = []int32{
 	3,  // 13: go_go_golems.minitrace.api.v1.ToolCall.input:type_name -> go_go_golems.minitrace.api.v1.ToolCallInput
 	4,  // 14: go_go_golems.minitrace.api.v1.ToolCall.output:type_name -> go_go_golems.minitrace.api.v1.ToolCallOutput
 	22, // 15: go_go_golems.minitrace.api.v1.ToolCall.badges:type_name -> go_go_golems.minitrace.api.v1.ToolCallBadge
-	21, // 16: go_go_golems.minitrace.api.v1.SessionEvent.framework_metadata:type_name -> google.protobuf.Struct
-	21, // 17: go_go_golems.minitrace.api.v1.SessionAttachment.framework_metadata:type_name -> google.protobuf.Struct
-	5,  // 18: go_go_golems.minitrace.api.v1.Turn.tool_calls_in_turn:type_name -> go_go_golems.minitrace.api.v1.ToolCall
-	6,  // 19: go_go_golems.minitrace.api.v1.Turn.usage:type_name -> go_go_golems.minitrace.api.v1.TurnUsage
-	9,  // 20: go_go_golems.minitrace.api.v1.SessionBlock.turns:type_name -> go_go_golems.minitrace.api.v1.Turn
-	23, // 21: go_go_golems.minitrace.api.v1.SessionBlock.artifacts:type_name -> go_go_golems.minitrace.api.v1.BlockArtifacts
-	16, // 22: go_go_golems.minitrace.api.v1.SessionDetail.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
-	17, // 23: go_go_golems.minitrace.api.v1.SessionDetail.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
-	18, // 24: go_go_golems.minitrace.api.v1.SessionDetail.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
-	19, // 25: go_go_golems.minitrace.api.v1.SessionDetail.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
-	20, // 26: go_go_golems.minitrace.api.v1.SessionDetail.provenance:type_name -> go_go_golems.minitrace.api.v1.SessionProvenance
-	10, // 27: go_go_golems.minitrace.api.v1.SessionDetail.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
-	7,  // 28: go_go_golems.minitrace.api.v1.SessionDetail.events:type_name -> go_go_golems.minitrace.api.v1.SessionEvent
-	8,  // 29: go_go_golems.minitrace.api.v1.SessionDetail.attachments:type_name -> go_go_golems.minitrace.api.v1.SessionAttachment
-	24, // 30: go_go_golems.minitrace.api.v1.ListSessionsResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	0,  // 31: go_go_golems.minitrace.api.v1.ListSessionsResponse.sessions:type_name -> go_go_golems.minitrace.api.v1.SessionSummary
-	24, // 32: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	1,  // 33: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionSummaryDetail
-	24, // 34: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	10, // 35: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
-	24, // 36: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
-	11, // 37: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionDetail
-	38, // [38:38] is the sub-list for method output_type
-	38, // [38:38] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	21, // 16: go_go_golems.minitrace.api.v1.ToolCall.framework_metadata:type_name -> google.protobuf.Struct
+	21, // 17: go_go_golems.minitrace.api.v1.SessionEvent.framework_metadata:type_name -> google.protobuf.Struct
+	21, // 18: go_go_golems.minitrace.api.v1.SessionAttachment.framework_metadata:type_name -> google.protobuf.Struct
+	5,  // 19: go_go_golems.minitrace.api.v1.Turn.tool_calls_in_turn:type_name -> go_go_golems.minitrace.api.v1.ToolCall
+	6,  // 20: go_go_golems.minitrace.api.v1.Turn.usage:type_name -> go_go_golems.minitrace.api.v1.TurnUsage
+	9,  // 21: go_go_golems.minitrace.api.v1.SessionBlock.turns:type_name -> go_go_golems.minitrace.api.v1.Turn
+	23, // 22: go_go_golems.minitrace.api.v1.SessionBlock.artifacts:type_name -> go_go_golems.minitrace.api.v1.BlockArtifacts
+	16, // 23: go_go_golems.minitrace.api.v1.SessionDetail.timing:type_name -> go_go_golems.minitrace.api.v1.SessionTiming
+	17, // 24: go_go_golems.minitrace.api.v1.SessionDetail.metrics:type_name -> go_go_golems.minitrace.api.v1.SessionMetrics
+	18, // 25: go_go_golems.minitrace.api.v1.SessionDetail.environment:type_name -> go_go_golems.minitrace.api.v1.SessionEnvironment
+	19, // 26: go_go_golems.minitrace.api.v1.SessionDetail.operational_context:type_name -> go_go_golems.minitrace.api.v1.SessionOperationalContext
+	20, // 27: go_go_golems.minitrace.api.v1.SessionDetail.provenance:type_name -> go_go_golems.minitrace.api.v1.SessionProvenance
+	10, // 28: go_go_golems.minitrace.api.v1.SessionDetail.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
+	7,  // 29: go_go_golems.minitrace.api.v1.SessionDetail.events:type_name -> go_go_golems.minitrace.api.v1.SessionEvent
+	8,  // 30: go_go_golems.minitrace.api.v1.SessionDetail.attachments:type_name -> go_go_golems.minitrace.api.v1.SessionAttachment
+	24, // 31: go_go_golems.minitrace.api.v1.ListSessionsResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	0,  // 32: go_go_golems.minitrace.api.v1.ListSessionsResponse.sessions:type_name -> go_go_golems.minitrace.api.v1.SessionSummary
+	24, // 33: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	1,  // 34: go_go_golems.minitrace.api.v1.GetSessionSummaryResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionSummaryDetail
+	24, // 35: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	10, // 36: go_go_golems.minitrace.api.v1.GetSessionBlocksResponse.blocks:type_name -> go_go_golems.minitrace.api.v1.SessionBlock
+	24, // 37: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.meta:type_name -> go_go_golems.minitrace.api.v1.ApiMeta
+	11, // 38: go_go_golems.minitrace.api.v1.GetSessionDetailResponse.session:type_name -> go_go_golems.minitrace.api.v1.SessionDetail
+	39, // [39:39] is the sub-list for method output_type
+	39, // [39:39] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_proto_go_go_golems_minitrace_api_v1_sessions_proto_init() }

@@ -253,6 +253,7 @@ function adaptToolCall(toolCall: PbToolCall): ToolCall {
     timestamp: toolCall.timestamp,
     operation_type: toolCall.operationType,
     record_kind: toolCall.recordKind,
+    framework_metadata: toolCall.frameworkMetadata,
     input: {
       command: toolCall.input?.command,
       arguments: toolCall.input?.arguments,
@@ -272,6 +273,9 @@ function adaptToolCall(toolCall: PbToolCall): ToolCall {
       error: toolCall.output?.error ?? null,
       duration_ms: toolCall.output?.durationMs ?? 0,
       truncated: toolCall.output?.truncated ?? false,
+      full_reference: toolCall.output?.fullReference ?? null,
+      full_bytes: toolCall.output?.fullBytes == null ? null : Number(toolCall.output.fullBytes),
+      full_hash: toolCall.output?.fullHash ?? null,
     },
     badges: toolCall.badges.map(adaptToolCallBadge),
   };

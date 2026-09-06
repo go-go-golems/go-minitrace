@@ -59,6 +59,9 @@ message ToolCallOutput {
   bool truncated = 5;
   string status = 6;
   optional int32 exit_code = 7;
+  optional string full_reference = 8;
+  optional uint64 full_bytes = 9;
+  optional string full_hash = 10;
 }
 
 message ToolCall {
@@ -70,6 +73,7 @@ message ToolCall {
   ToolCallOutput output = 6;
   repeated ToolCallBadge badges = 7;
   string record_kind = 8;
+  google.protobuf.Struct framework_metadata = 9;
 }
 
 message TurnUsage {

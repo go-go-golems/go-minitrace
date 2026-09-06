@@ -68,6 +68,7 @@ export interface FileTarget {
 
 /** Tool call within a turn */
 export interface ToolCall {
+  framework_metadata?: Record<string, unknown>;
   record_kind?: string;
   id: string;
   tool_name: string;
@@ -87,6 +88,9 @@ export interface ToolCall {
     error: string | null;
     duration_ms: number;
     truncated: boolean;
+    full_reference?: string | null;
+    full_bytes?: number | null;
+    full_hash?: string | null;
   };
   badges: ToolCallBadge[];
 }

@@ -447,6 +447,8 @@ function ToolCallRowImpl({
               </Box>
             </Box>
           )}
+          {tc.output.full_reference && <Typography variant="caption" display="block" sx={{ overflowWrap: "anywhere" }}>Output source: {tc.output.full_reference}{tc.output.full_bytes != null ? ` (${tc.output.full_bytes} bytes)` : ""}{tc.output.full_hash ? `; ${tc.output.full_hash}` : ""}</Typography>}
+          {tc.framework_metadata && <Box component="details" sx={{ mb: 1 }}><Box component="summary">Native provenance</Box><Box component="pre" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(tc.framework_metadata, null, 2)}</Box></Box>}
           <ToolCallDetail tc={tc} cmd={cmd} />
         </Box>
       </Collapse>

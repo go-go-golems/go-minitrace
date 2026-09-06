@@ -253,6 +253,21 @@ export declare type ToolCallOutput = Message<"go_go_golems.minitrace.api.v1.Tool
    * @generated from field: optional int32 exit_code = 7;
    */
   exitCode?: number | undefined;
+
+  /**
+   * @generated from field: optional string full_reference = 8;
+   */
+  fullReference?: string | undefined;
+
+  /**
+   * @generated from field: optional uint64 full_bytes = 9;
+   */
+  fullBytes?: bigint | undefined;
+
+  /**
+   * @generated from field: optional string full_hash = 10;
+   */
+  fullHash?: string | undefined;
 };
 
 /**
@@ -304,6 +319,11 @@ export declare type ToolCall = Message<"go_go_golems.minitrace.api.v1.ToolCall">
    * @generated from field: string record_kind = 8;
    */
   recordKind: string;
+
+  /**
+   * @generated from field: google.protobuf.Struct framework_metadata = 9;
+   */
+  frameworkMetadata?: JsonObject | undefined;
 };
 
 /**
