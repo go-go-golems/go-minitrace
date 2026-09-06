@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import Paper from "@mui/material/Paper";
@@ -41,16 +41,15 @@ function BlockCardImpl({
   const baseExpanded = isControlled ? expanded : expanded || internalExpanded;
   const isExpanded = baseExpanded || forceExpanded;
 
-  useEffect(() => {
-    if (
-      focusedTarget?.scopeType === "tool_call" &&
-      block.turns.some((t) =>
-        t.tool_calls_in_turn.some((tc) => tc.id === focusedTarget.targetId),
-      )
-    ) {
-      setShowAllTools(true);
-    }
-  }, [block.turns, focusedTarget]);
+  const hasFocusedTool = focusedTarget?.scopeType === "tool_call" &&
+    block.turns.some((turn) =>
+      turn.tool_calls_in_turn.some((tool) => tool.id === focusedTarget.targetId),
+    );
+  // Keep expansion sticky after focusing a tool, without an effect that causes
+  // an additional post-commit render. This guard converges after one update.
+  if (hasFocusedTool && !showAllTools) {
+    setShowAllTools(true);
+  }
 
   return (
     <Paper
