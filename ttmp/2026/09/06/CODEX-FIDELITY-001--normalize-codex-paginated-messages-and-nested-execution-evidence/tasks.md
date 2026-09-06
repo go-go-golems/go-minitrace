@@ -8,7 +8,7 @@
 ## Implementation
 - [x] Add synthetic paginated-message, nested-exec, and typed-output regression fixtures.
 - [x] Restore messages with identity-based deduplication and valid tool-turn associations.
-- [ ] Decide outcome representation and schema/consumer changes for unknown success.
+- [x] Decide outcome representation and schema/consumer changes for unknown success.
 - [ ] Normalize authoritative CommandExecution lifecycle events without duplicate counts.
 - [ ] Decode structured output blocks before metadata extraction and truncation.
 - [ ] Preserve explicit execution provenance and uncertain parent associations.

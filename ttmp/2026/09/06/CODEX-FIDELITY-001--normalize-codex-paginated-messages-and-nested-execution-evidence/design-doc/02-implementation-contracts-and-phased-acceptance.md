@@ -8,12 +8,18 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: repo://cmd/go-minitrace/cmds/serve/outcome_test.go
+      Note: Protobuf presence and badge tests
+    - Path: repo://pkg/minitrace/outcome.go
+      Note: Evidence-aware nullable outcome contract in 80d7bd5
     - Path: repo://pkg/minitrace/schema.go
       Note: Nullable outcomes and explicit record and file contracts
     - Path: repo://pkg/minitracecmd/core/history/file-history.js
       Note: Unsafe wrapper inference to replace
     - Path: repo://pkg/minitracedb/materialize.go
       Note: SQL outcome and file projections
+    - Path: repo://pkg/minitracedb/outcome_test.go
+      Note: SQL nullability and failure projection tests
     - Path: repo://proto/go_go_golems/minitrace/api/v1/sessions.proto
       Note: API outcome projection
 ExternalSources: []
@@ -22,6 +28,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Make cross-consumer decisions explicit before implementation.
 WhenToUse: Implementing or reviewing this ticket.
 ---
+
 
 
 # Implementation contracts

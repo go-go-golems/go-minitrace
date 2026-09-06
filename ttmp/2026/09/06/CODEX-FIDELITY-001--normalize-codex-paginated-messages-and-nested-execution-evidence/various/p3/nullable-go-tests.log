@@ -1,0 +1,33 @@
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	0.142s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	(cached)
+# github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts
+ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts/01-verify-real-session.go:28:6: non-boolean condition in if statement
+ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts/01-verify-real-session.go:46:6: non-boolean condition in if statement
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	0.037s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	2.035s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	1.420s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	0.042s
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters	0.005s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	0.011s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	0.011s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	0.011s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	0.042s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	0.020s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	0.015s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	0.077s
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	(cached)
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	0.107s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.186s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	0.230s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	0.355s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	0.643s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	0.101s
+FAIL	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts [build failed]
+FAIL

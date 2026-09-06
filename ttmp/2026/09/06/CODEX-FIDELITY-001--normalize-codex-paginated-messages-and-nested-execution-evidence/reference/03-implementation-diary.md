@@ -24,8 +24,14 @@ RelatedFiles:
       Note: Independent CLI acceptance oracle
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/05-audit-message-coverage.py
       Note: Independent native-line coverage audit
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/06-proto-outcomes.go
+      Note: Emit five-state synthetic protojson
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/07-check-proto-outcomes.mjs
+      Note: Actual TypeScript decoder roundtrip
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p1/synthetic-before.json
       Note: Eight expected before-state fidelity failures
+    - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/p3/outcome-states.png
+      Note: Inspected neutral and binary outcome UI
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/slips/00-overall-plan.log
       Note: Printed overall phase checklist
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/slips/01-p1-start.log
@@ -36,6 +42,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -220,4 +227,78 @@ The synthetic message checks and Codex package/race tests pass. An independent p
 
 ### Completion checkpoint
 
-Replaced the flagged if/else with a tagged switch; `make lint` now reports zero issues and glazed-lint passes. `make test` passes the full repository, and the final Codex race rerun passes. Reviewed and committed P2 code as `22b1f4e` — `fix(codex): restore native messages and preserve uncertain tool linkage`; pre-commit lint and full tests also passed without bypasses. P2's message/linkage requirements are verified; execution/output work remains for P3.
+Replaced the flagged if/else with a tagged switch; `make lint` now reports zero issues and glazed-lint passes. `make test` passes the full repository, and the final Codex race rerun passes. Reviewed and committed P2 code as `22b1f4e` — `fix(codex): restore native messages and preserve uncertain tool linkage`; pre-commit lint and full tests also passed without bypasses. P2's message/linkage requirements are verified; execution/output work remains for P3. P2 completion printed at 20:38:14Z; documentation/evidence commit `638926f` records the phase. P3 start printed at 20:39:05Z (`05-p3-start.log`).
+
+## Step 4: Migrate nullable outcomes across consumers
+
+Started P3 by implementing the shared outcome representation before changing Codex execution parsing. Added nullable binary success, explicit lifecycle status, and evidence-aware predicates/setters; migrated existing adapter assignments to preserve their established known outcomes. Changed SQL materialization, preview and serve projections, protobuf presence, and UI neutral rendering so a null outcome cannot silently become a passing or failing result downstream.
+
+This checkpoint is still in progress. Protobuf regeneration succeeded with plugin versions pinned to the versions already recorded in generated headers, avoiding unrelated generator drift. The first full Go test run found one historical ticket script still using bool-only conditions; all production package tests passed, and the next step is to update that compiled script to select explicit failures.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Establish a safe outcome contract through storage and presentation before mapping native executions.
+
+**Inferred user intent:** Missing outcomes must remain visibly unknown, and failed children must not disappear behind successful wrappers.
+
+### What I did
+- Added `pkg/minitrace/outcome.go` and outcome nullability tests; changed `ToolCallOutput.Success` to `*bool` and added `status`.
+- Added `SetSuccess`, `Succeeded`, `Failed`, and `OutcomeStatus` so known outcomes stay consistent and null is never interpreted by boolean falsiness.
+- Migrated existing adapter assignment/assertion sites, SQL insertion and severity, server badges and response structs, and JS import preview fields.
+- Added SQLite `outcome_status`; bumped archive schema to v0.3.0 and normalized SQL schema to v4 for cache invalidation.
+- Changed protobuf success to optional, added status and signed exit code, pinned existing generator versions, and ran `buf generate` successfully.
+- Changed frontend decoding from missing-success=false to null and neutral pending/cancelled/unknown chips in tool rows.
+- Ran `go test ./...`, capturing the first full compile/test result in `various/p3/nullable-go-tests.log`.
+
+### Why
+- An adapter-only nullable value would still become false in the API/UI without these consumer changes.
+- Preserve explicit known outcomes from all other adapters rather than changing their established semantics as an accidental side effect.
+
+### What worked
+- Protobuf regeneration completed successfully; production adapter, schema, database, CLI, JS provider, and serve package tests passed in the first full run.
+- New outcome tests prove JSON success=null for unknown/pending/cancelled and retain true/false for known outcomes.
+
+### What didn't work
+- Full `go test ./...` exited 1 because the historical compiled script was missed by the initial source scan excluding ttmp:
+  - `ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts/01-verify-real-session.go:28:6: non-boolean condition in if statement`
+  - `ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts/01-verify-real-session.go:46:6: non-boolean condition in if statement`
+- This is a source migration omission, not an excuse to exclude the script or bypass repository tests; next action is evidence-aware failure predicates and a fresh full run.
+
+### What I learned
+- Historical ticket scripts participate in `go test ./...` and must remain compilable during public Go schema changes.
+- Existing failure SQL already uses `success = 0`, which naturally excludes null; severity and UI conditions needed explicit predicate changes.
+
+### What was tricky to build
+- Nullable success and lifecycle status convey different evidence: status alone cannot invent a binary outcome. `OutcomeStatus` uses known binary evidence first and only recognizes pending/cancelled when success is null; unsupported or completion-only states remain unknown.
+- API protobuf presence must survive protojson and TypeScript decoding; a plain bool would erase null even if Go/SQLite preserve it.
+
+### What warrants a second pair of eyes
+- Consistency of nullable success/status across API, preview, SQL, badges, and old archive input. No custom unmarshalling or compatibility adapter was introduced.
+- P3 still needs native execution/output implementation plus dedicated SQL/API/UI assertions and visual inspection.
+
+### What should be done in the future
+- Fix the compiled historical script, add database/API/UI outcome tests, validate lint and builds, then commit this schema milestone before execution parsing.
+
+### Code review instructions
+- Start with `pkg/minitrace/outcome.go`, schema/builders, and `proto/.../sessions.proto`; compare generated optional success and the frontend null-coalescing change.
+- Rerun `go test ./...`, then frontend build/lint and explicit nullable outcome integration checks.
+
+### Technical details
+- Generator versions retained: protoc-gen-go v1.36.11 and protoc-gen-es v2.12.0.
+- Codex native wrapper defaults and lifecycle mapping are not repaired by this schema-only checkpoint; the fixture's five remaining assertions are still implementation work.
+
+### Validation checkpoint
+
+Fixed both historical script conditions to `!tc.Output.Failed()` and reran `go test ./...`: all packages pass. Added SQL tests for all five states, including null in tool/file projections and only one error event; added protobuf optional-success and signed-exit-code tests plus badge checks. `make lint` passes with zero issues. `pnpm install --frozen-lockfile` succeeded (existing esbuild/msw build scripts remain unapproved; no approval change was needed); `pnpm build` passes TypeScript and production bundling with the existing large-chunk advisory.
+
+`pnpm lint` exited 1 with 10 errors and 13 warnings, saved verbatim in `various/p3/web-lint.log`. Nine story files use `@storybook/react` directly (`storybook/no-renderer-packages`), including the previously existing import in the modified tool-row story. `BlockCard.tsx:51:7` reports `react-hooks/set-state-in-effect` for `setShowAllTools(true)`. These lines existed before this work; they are validation blockers, not reasons to suppress lint. Next action: use the installed `@storybook/react-vite` framework type imports and replace the effect with a guarded render-time state adjustment that preserves the sticky show-all behavior, then rerun lint and story tests. Warnings in generated protobuf/MSW files and existing memo dependencies are recorded separately; they are not current implementation errors.
+
+After replacing renderer-package imports and preserving sticky expansion through a guarded render-time state update, frontend lint passes with 0 errors (13 existing warnings) and build passes. The first Storybook Vitest invocation (`pnpm exec vitest run --project storybook src/components/TranscriptViewer/stories/ToolCallRow.stories.tsx`) could not launch a browser: `Executable doesn't exist at /home/manuel/.cache/ms-playwright/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell`. No tests ran, so this is not a test pass. Installing the matching Chromium binary is the next low-risk prerequisite step. Generated-file review also found previously mixed ES versions (2.11.0 in other files, 2.12.0 in sessions); the pinned full regeneration consistently produces 2.12.0 headers and optional `| undefined` declarations, with no manual generated edits.
+
+Installed the matching Chromium/headless-shell 1217 using `pnpm exec playwright install chromium`; the installer also garbage-collected unused browser-cache versions. The final two-file Storybook run passes 22 tests. The Go protojson emitter (`scripts/06-proto-outcomes.go`) piped into the actual TypeScript decoder via Node 24 (`scripts/07-check-proto-outcomes.mjs`) passes all five states, retaining null, explicit false, and signed exit code -1.
+
+Visually inspected `various/p3/outcome-states.png`: only succeeded has a green check, only failed has a red border/error icon, and unknown/pending/cancelled are neutral labeled chips. Saved the accessibility snapshot. Browser console reported only the Storybook favicon.ico 404, not an application error. Shut down the temporary Storybook server and tmux session after inspection.
+
+Commits: `ba54414` — `fix(web): repair story framework imports and sticky focus expansion`; `80d7bd5` — `feat(schema): preserve nullable tool outcomes through SQL API and UI`. Pre-commit lint/full tests passed. This is a P3 schema milestone, not P3 completion; no phase-completion slip has been printed.
