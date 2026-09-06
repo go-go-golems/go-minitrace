@@ -311,9 +311,9 @@ function ToolCallRowImpl({
         borderLeft: "2px solid",
         borderColor: focused
           ? "warning.main"
-          : tc.output.success
-            ? "divider"
-            : "error.main",
+          : tc.output.success === false
+            ? "error.main"
+            : "divider",
         bgcolor: focused ? "rgba(245,166,35,0.08)" : "transparent",
         borderRadius: 1,
         ml: 2,
@@ -402,10 +402,17 @@ function ToolCallRowImpl({
         <Typography variant="caption" sx={{ fontFamily: "monospace", opacity: 0.6, minWidth: 50, textAlign: "right" }}>
           {(tc.output.duration_ms / 1000).toFixed(1)}s
         </Typography>
-        {tc.output.success ? (
-          <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "success.main" }} />
+        {tc.output.success === true ? (
+          <CheckCircleOutlineIcon titleAccess="succeeded" sx={{ fontSize: 14, color: "success.main" }} />
+        ) : tc.output.success === false ? (
+          <ErrorOutlineIcon titleAccess="failed" sx={{ fontSize: 14, color: "error.main" }} />
         ) : (
-          <ErrorOutlineIcon sx={{ fontSize: 14, color: "error.main" }} />
+          <Chip
+            label={tc.output.status === "pending" || tc.output.status === "cancelled" ? tc.output.status : "unknown"}
+            size="small"
+            variant="outlined"
+            sx={{ height: 20, fontSize: "0.65rem", color: "text.secondary" }}
+          />
         )}
       </Box>
 
@@ -423,6 +430,25 @@ function ToolCallRowImpl({
             lineHeight: 1.6,
           }}
         >
+          <Typography variant="caption" display="block">Record kind: {tc.record_kind || "tool_call"}</Typography>
+          {(tc.input.file_targets?.length ?? 0) > 0 && (
+            <Box aria-label="File target evidence" sx={{ mb: 1 }}>
+              <Typography variant="body2">File target evidence</Typography>
+              <Box component="ul" sx={{ pl: 2, m: 0 }}>
+                {tc.input.file_targets?.map((target, index) => (
+                  <Box component="li" key={`${target.path}:${index}`} sx={{ overflowWrap: "anywhere" }}>
+                    <strong>{target.path}</strong> — {target.operation_type}; {target.status}; {target.evidence_kind}
+                    <Typography variant="caption" display="block">
+                      Outcome: {target.success === null ? "unknown" : target.success ? "succeeded" : "failed"}; {target.resolved ? `cwd: ${target.cwd || "absolute target"}` : "relative target; cwd unresolved"}
+                    </Typography>
+                    {target.source_reference && <Typography variant="caption" display="block">Source: {target.source_reference}</Typography>}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+          {tc.output.full_reference && <Typography variant="caption" display="block" sx={{ overflowWrap: "anywhere" }}>Output source: {tc.output.full_reference}{tc.output.full_bytes != null ? ` (${tc.output.full_bytes} bytes)` : ""}{tc.output.full_hash ? `; ${tc.output.full_hash}` : ""}</Typography>}
+          {tc.framework_metadata && <Box component="details" sx={{ mb: 1 }}><Box component="summary">Native provenance</Box><Box component="pre" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(tc.framework_metadata, null, 2)}</Box></Box>}
           <ToolCallDetail tc={tc} cmd={cmd} />
         </Box>
       </Collapse>

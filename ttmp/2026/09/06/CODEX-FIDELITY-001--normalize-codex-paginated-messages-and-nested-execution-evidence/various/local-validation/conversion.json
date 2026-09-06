@@ -1,0 +1,112 @@
+{
+  "schema": "go-minitrace-conversion-run-v1",
+  "adapter": "codex",
+  "started_at": "2026-09-06T20:11:26Z",
+  "finished_at": "2026-09-06T20:11:32Z",
+  "output_dir": "/tmp/codex-fidelity-001-local/archives",
+  "collision_policy": "error",
+  "inputs": [
+    {
+      "native_session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+      "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-23-35-01a06de0-5c5b-74e1-acc0-ed790e41732b.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/home/manuel/code/wesen/2026-09-03--agent-forum",
+      "role": "unknown",
+      "identity_basis": "first-session-meta",
+      "sha256": "f5e9f9936078c9dd77c9413a23ab72ad256dfb60dda7ba8440036134f52bbc6e",
+      "size_bytes": 35762344
+    },
+    {
+      "native_session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+      "parent_session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+      "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-28-28-01a06de4-d3a3-7851-bb21-cff77684cc12.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/home/manuel/code/wesen/2026-09-03--agent-forum",
+      "role": "subagent",
+      "identity_basis": "first-session-meta",
+      "sha256": "65d1bc85f052ab3e0fa42aa513deaa9016c7564be7e82a59e9d6ec8b2574b27f",
+      "size_bytes": 97169059
+    },
+    {
+      "native_session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+      "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-29-58-01a06de6-34fd-7930-891b-a492ab38d918.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/home/manuel/code/wesen/2026-09-04--gatemate-symbolic",
+      "role": "unknown",
+      "identity_basis": "first-session-meta",
+      "sha256": "c4822c452f830580bd36598cd9a9f7621c8f5598c3482cd2159cd0df59fc3554",
+      "size_bytes": 40013611
+    },
+    {
+      "native_session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+      "parent_session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+      "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-29-58-01a06de6-35ca-7191-85b9-64f31bae42c8.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/home/manuel/code/wesen/2026-09-04--gatemate-symbolic",
+      "role": "subagent",
+      "identity_basis": "first-session-meta",
+      "sha256": "242da6b0da5627306948083bf4e02b4d9f165ad5f943684a8eca188c4214134b",
+      "size_bytes": 107780607
+    },
+    {
+      "native_session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+      "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-34-31-01a06dea-5dc2-7fb3-992f-dad6143c5d34.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/home/manuel/workspaces/2026-09-01/add-plot-editor",
+      "role": "unknown",
+      "identity_basis": "first-session-meta",
+      "sha256": "003c2376459a625bfce0193669556f9472247cc35d6d46e6c5be60d34fe40e4a",
+      "size_bytes": 24479898
+    },
+    {
+      "native_session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+      "parent_session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+      "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-34-31-01a06dea-5e4b-7652-b6c7-f13261347455.jsonl",
+      "source_format": "codex-session-jsonl-v1",
+      "working_directory": "/home/manuel/workspaces/2026-09-01/add-plot-editor",
+      "role": "subagent",
+      "identity_basis": "first-session-meta",
+      "sha256": "1dab67aa485a19544df7f13946a235e7c93b9c51dbdf1f89e74170d15bbd46bf",
+      "size_bytes": 16977515
+    }
+  ],
+  "outputs": [
+    {
+      "session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+      "path": "/tmp/codex-fidelity-001-local/archives/active/2026-09/01a06de0-5c5b-74e1-acc0-ed790e41732b.minitrace.json",
+      "status": "created"
+    },
+    {
+      "session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+      "path": "/tmp/codex-fidelity-001-local/archives/active/2026-09/01a06de4-d3a3-7851-bb21-cff77684cc12.minitrace.json",
+      "status": "created"
+    },
+    {
+      "session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+      "path": "/tmp/codex-fidelity-001-local/archives/active/2026-09/01a06de6-34fd-7930-891b-a492ab38d918.minitrace.json",
+      "status": "created"
+    },
+    {
+      "session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+      "path": "/tmp/codex-fidelity-001-local/archives/active/2026-09/01a06de6-35ca-7191-85b9-64f31bae42c8.minitrace.json",
+      "status": "created"
+    },
+    {
+      "session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+      "path": "/tmp/codex-fidelity-001-local/archives/active/2026-09/01a06dea-5dc2-7fb3-992f-dad6143c5d34.minitrace.json",
+      "status": "created"
+    },
+    {
+      "session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+      "path": "/tmp/codex-fidelity-001-local/archives/active/2026-09/01a06dea-5e4b-7652-b6c7-f13261347455.minitrace.json",
+      "status": "created"
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "requested": 6,
+    "published": 6,
+    "failed": 0
+  },
+  "complete": true
+}

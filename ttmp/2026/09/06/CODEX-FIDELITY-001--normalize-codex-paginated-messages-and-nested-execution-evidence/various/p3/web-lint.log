@@ -1,0 +1,93 @@
+
+> web@0.0.0 lint /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web
+> eslint .
+
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/public/mockServiceWorker.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/QueryEditor/stories/ResultsTable.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/SessionBrowser/stories/SessionBrowser.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx
+  51:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/BlockCard.tsx:51:7
+  49 |       )
+  50 |     ) {
+> 51 |       setShowAllTools(true);
+     |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |     }
+  53 |   }, [block.turns, focusedTarget]);
+  54 |  react-hooks/set-state-in-effect
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx
+  177:9  warning  The 'annotations' logical expression could make the dependencies of useMemo Hook (at line 219) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/stories/AnnotationModal.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/stories/BlockCard.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/stories/ToolCallRow.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/shared/stories/ActiveBadge.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/shared/stories/FormatDuration.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/shared/stories/ToolCallBadge.stories.tsx
+  1:1  error  Do not import renderer package "@storybook/react" directly. Use a framework package instead (e.g. @storybook/nextjs, @storybook/react-vite, @storybook/nextjs-vite, @storybook/react-webpack5, @storybook/react-native-web-vite)  storybook/no-renderer-packages
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/pages/SessionBrowserPage.tsx
+  16:9  warning  The 'annotations' conditional could make the dependencies of useMemo Hook (at line 31) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+✖ 23 problems (10 errors, 13 warnings)
+  0 errors and 11 warnings potentially fixable with the `--fix` option.
+
+ ELIFECYCLE  Command failed with exit code 1.

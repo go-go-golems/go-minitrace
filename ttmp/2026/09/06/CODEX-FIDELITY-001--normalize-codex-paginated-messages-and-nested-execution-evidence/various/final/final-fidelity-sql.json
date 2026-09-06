@@ -1,0 +1,62 @@
+[
+{
+  "commands": 886,
+  "exec_other": 622,
+  "exit_codes": 886,
+  "map_outputs": 0,
+  "orphan_links": 0,
+  "session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+  "tool_call_count": 1811,
+  "turn_count": 252
+}
+, {
+  "commands": 0,
+  "exec_other": 0,
+  "exit_codes": 0,
+  "map_outputs": 0,
+  "orphan_links": 0,
+  "session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+  "tool_call_count": 0,
+  "turn_count": 630
+}
+, {
+  "commands": 1104,
+  "exec_other": 870,
+  "exit_codes": 1109,
+  "map_outputs": 0,
+  "orphan_links": 0,
+  "session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+  "tool_call_count": 2171,
+  "turn_count": 305
+}
+, {
+  "commands": 0,
+  "exec_other": 5,
+  "exit_codes": 0,
+  "map_outputs": 0,
+  "orphan_links": 0,
+  "session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+  "tool_call_count": 5,
+  "turn_count": 701
+}
+, {
+  "commands": 306,
+  "exec_other": 272,
+  "exit_codes": 307,
+  "map_outputs": 0,
+  "orphan_links": 0,
+  "session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+  "tool_call_count": 617,
+  "turn_count": 99
+}
+, {
+  "commands": 0,
+  "exec_other": 0,
+  "exit_codes": 0,
+  "map_outputs": 0,
+  "orphan_links": 0,
+  "session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+  "tool_call_count": 0,
+  "turn_count": 193
+}
+]

@@ -208,7 +208,7 @@ func TestConvertConversationSnapshotsLinksToolCallsAndNormalizesBlankText(t *tes
 	if got := len(session.ToolCalls); got != 1 {
 		t.Fatalf("expected 1 tool call, got %d", got)
 	}
-	if !session.ToolCalls[0].Output.Success {
+	if !session.ToolCalls[0].Output.Succeeded() {
 		t.Fatalf("expected successful tool call, got %+v", session.ToolCalls[0].Output)
 	}
 	if session.ToolCalls[0].Output.Result == nil || *session.ToolCalls[0].Output.Result != "hi\n" {
@@ -324,7 +324,7 @@ func TestConvertConversationSnapshotsDoesNotDuplicateToolCallsWhenMetadataChange
 	if got := len(session.ToolCalls); got != 1 {
 		t.Fatalf("expected 1 deduplicated tool call, got %d: %#v", got, session.ToolCalls)
 	}
-	if !session.ToolCalls[0].Output.Success {
+	if !session.ToolCalls[0].Output.Succeeded() {
 		t.Fatalf("expected successful tool call not to be downgraded by metadata churn, got %+v", session.ToolCalls[0].Output)
 	}
 	if session.ToolCalls[0].EmittingTurnIndex == nil || *session.ToolCalls[0].EmittingTurnIndex != 2 {

@@ -347,7 +347,7 @@ func TestConvertRecordsMessageLevelToolResultPreservesIsError(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected tc-success tool call in session")
 	}
-	if !successCall.Output.Success {
+	if !successCall.Output.Succeeded() {
 		t.Fatalf("expected tc-success to be successful")
 	}
 	if successCall.Output.Result == nil || *successCall.Output.Result != "ok" {
@@ -358,7 +358,7 @@ func TestConvertRecordsMessageLevelToolResultPreservesIsError(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected tc-fail tool call in session")
 	}
-	if failedCall.Output.Success {
+	if !failedCall.Output.Failed() {
 		t.Fatalf("expected tc-fail to be marked as failed")
 	}
 	if failedCall.Output.Error == nil || *failedCall.Output.Error != "File not found: /tmp/missing.md" {

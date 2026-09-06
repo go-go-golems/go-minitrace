@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import Box from "@mui/material/Box";
 import { SessionBrowser } from "../SessionBrowser";

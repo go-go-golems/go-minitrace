@@ -17,6 +17,7 @@ import Tab from "@mui/material/Tab";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import CommentIcon from "@mui/icons-material/Comment";
+import { ToolCallRow } from "./ToolCallRow";
 import type { Annotation, SessionAttachment, SessionDetail, SessionEvent } from "../../types";
 import { useGetSessionAnnotationsQuery } from "../../api/minitrace";
 import { useVirtualList } from "../shared/useVirtualList";
@@ -153,6 +154,7 @@ export function TranscriptViewer({
   onQuerySession,
 }: TranscriptViewerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [unassociatedVisible, setUnassociatedVisible] = useState(0);
   const [focusedTarget, setFocusedTarget] = useState<FocusedTranscriptTarget | null>(null);
   const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>({});
   const [annotationTarget, setAnnotationTarget] = useState<{
@@ -449,7 +451,7 @@ export function TranscriptViewer({
             sx={{ fontFamily: "monospace" }}
           />
           <Chip
-            label={`${session.metrics.tool_call_count} tool calls`}
+            label={`${session.metrics.tool_call_count} tool records · ${session.metrics.model_invocation_count ?? 0} invocations · ${session.metrics.execution_record_count ?? 0} executions · ${session.metrics.confirmed_file_target_count ?? 0}/${session.metrics.file_touch_count ?? 0} confirmed targets`}
             size="small"
             variant="outlined"
             sx={{ fontFamily: "monospace" }}
@@ -478,6 +480,11 @@ export function TranscriptViewer({
       </Paper>
 
       <SourceFactsPanel events={session.events} attachments={session.attachments} />
+      {!!session.unassociated_tool_calls?.length && <Box sx={{ px: 2, pb: 1, maxHeight: "50vh", overflowY: "auto", flexShrink: 0 }}>
+        <Typography variant="body2">{session.unassociated_tool_calls.length} unassociated tool records — no proven emitting message</Typography>
+        {session.unassociated_tool_calls.slice(0, unassociatedVisible).map((tc) => <ToolCallRow key={tc.id} tc={tc} />)}
+        {unassociatedVisible < session.unassociated_tool_calls.length && <Button onClick={() => setUnassociatedVisible((n) => n + 50)}>Show next unassociated records</Button>}
+      </Box>}
 
       <Box sx={{ px: 2, pb: 1 }}>
         <Tabs

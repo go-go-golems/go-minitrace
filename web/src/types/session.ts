@@ -10,6 +10,13 @@ export interface SessionTiming {
 }
 
 export interface SessionMetrics {
+  tool_call_record_count?: number;
+  orchestration_count?: number;
+  execution_record_count?: number;
+  file_change_count?: number;
+  model_invocation_count?: number;
+  file_touch_count?: number;
+  confirmed_file_target_count?: number;
   turn_count: number;
   tool_call_count: number;
   total_input_tokens?: number;
@@ -47,8 +54,22 @@ export interface SessionSummary {
   operational_context: SessionOperationalContext;
 }
 
+export interface FileTarget {
+  path: string;
+  native_path: string;
+  operation_type: string;
+  evidence_kind: string;
+  status: string;
+  success: boolean | null;
+  cwd: string;
+  resolved: boolean;
+  source_reference: string;
+}
+
 /** Tool call within a turn */
 export interface ToolCall {
+  framework_metadata?: Record<string, unknown>;
+  record_kind?: string;
   id: string;
   tool_name: string;
   timestamp: string;
@@ -57,13 +78,19 @@ export interface ToolCall {
     command?: string;
     arguments?: Record<string, unknown>;
     file_path?: string | null;
+    file_targets?: FileTarget[];
   };
   output: {
-    success: boolean;
+    success: boolean | null;
+    status?: string;
+    exit_code?: number | null;
     result: string | null;
     error: string | null;
     duration_ms: number;
     truncated: boolean;
+    full_reference?: string | null;
+    full_bytes?: number | null;
+    full_hash?: string | null;
   };
   badges: ToolCallBadge[];
 }
@@ -169,6 +196,7 @@ export interface SessionSummaryDetail {
 
 /** Full session detail returned by /api/v2/sessions/:id */
 export interface SessionDetail extends SessionSummaryDetail {
+  unassociated_tool_calls?: ToolCall[];
   blocks: SessionBlock[];
 }
 

@@ -1,8 +1,11 @@
 package serve
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -27,6 +30,13 @@ SELECT
   s.day_of_week,
   s.turn_count,
   s.tool_call_count,
+  s.tool_call_record_count,
+  s.orchestration_count,
+  s.execution_record_count,
+  s.file_change_count,
+  s.model_invocation_count,
+  s.file_touch_count,
+  s.confirmed_file_target_count,
   m.total_input_tokens,
   m.total_output_tokens,
   m.total_cache_read_tokens,
@@ -95,7 +105,7 @@ func sessionSummaryFromRow(row map[string]any) SessionSummaryResponse {
 			DayOfWeek:             cellInt(row["day_of_week"]),
 		},
 		Metrics: SessionMetricsResponse{
-			TurnCount:            cellInt(row["turn_count"]),
+			ActivityCounts: minitrace.ActivityCounts{ToolCallRecordCount: cellInt(row["tool_call_record_count"]), OrchestrationCount: cellInt(row["orchestration_count"]), ExecutionRecordCount: cellInt(row["execution_record_count"]), FileChangeCount: cellInt(row["file_change_count"]), ModelInvocationCount: cellInt(row["model_invocation_count"]), FileTouchCount: cellInt(row["file_touch_count"]), ConfirmedFileTargetCount: cellInt(row["confirmed_file_target_count"])}, TurnCount: cellInt(row["turn_count"]),
 			ToolCallCount:        cellInt(row["tool_call_count"]),
 			TotalInputTokens:     cellOptionalInt(row["total_input_tokens"]),
 			TotalOutputTokens:    cellOptionalInt(row["total_output_tokens"]),
@@ -308,24 +318,33 @@ func protoSessionSummaryDetail(detail SessionSummaryDetailResponse) *apiv1.Sessi
 }
 
 func protoSessionDetail(detail SessionDetailResponse) (*apiv1.SessionDetail, error) {
+	unassociated := make([]*apiv1.ToolCall, 0, len(detail.UnassociatedToolCalls))
+	for _, call := range detail.UnassociatedToolCalls {
+		value, err := protoToolCall(call)
+		if err != nil {
+			return nil, err
+		}
+		unassociated = append(unassociated, value)
+	}
 	blocks, err := protoSessionBlocks(detail.Blocks)
 	if err != nil {
 		return nil, err
 	}
 
 	return &apiv1.SessionDetail{
-		Id:                 detail.ID,
-		Title:              detail.Title,
-		Summary:            detail.Summary,
-		Classification:     detail.Classification,
-		Timing:             protoSessionTiming(detail.Timing),
-		Metrics:            protoSessionMetrics(detail.Metrics),
-		Environment:        protoSessionEnvironment(detail.Environment),
-		OperationalContext: protoOperationalContext(detail.OperationalContext),
-		Provenance:         protoSessionProvenance(detail.Provenance),
-		Blocks:             blocks,
-		Events:             protoSessionEvents(detail.Events),
-		Attachments:        protoSessionAttachments(detail.Attachments),
+		UnassociatedToolCalls: unassociated,
+		Id:                    detail.ID,
+		Title:                 detail.Title,
+		Summary:               detail.Summary,
+		Classification:        detail.Classification,
+		Timing:                protoSessionTiming(detail.Timing),
+		Metrics:               protoSessionMetrics(detail.Metrics),
+		Environment:           protoSessionEnvironment(detail.Environment),
+		OperationalContext:    protoOperationalContext(detail.OperationalContext),
+		Provenance:            protoSessionProvenance(detail.Provenance),
+		Blocks:                blocks,
+		Events:                protoSessionEvents(detail.Events),
+		Attachments:           protoSessionAttachments(detail.Attachments),
 	}, nil
 }
 
@@ -481,18 +500,24 @@ func protoToolCalls(toolCalls []ToolCallResponse) ([]*apiv1.ToolCall, error) {
 }
 
 func protoToolCall(toolCall ToolCallResponse) (*apiv1.ToolCall, error) {
+	metadata, err := strictProtoStruct(toolCall.FrameworkMetadata)
+	if err != nil {
+		return nil, fmt.Errorf("tool %s provenance: %w", toolCall.ID, err)
+	}
 	input, err := protoToolCallInput(toolCall.Input)
 	if err != nil {
 		return nil, err
 	}
 	return &apiv1.ToolCall{
-		Id:            toolCall.ID,
-		ToolName:      toolCall.ToolName,
-		Timestamp:     toolCall.Timestamp,
-		OperationType: toolCall.OperationType,
-		Input:         input,
-		Output:        protoToolCallOutput(toolCall.Output),
-		Badges:        protoToolCallBadges(toolCall.Badges),
+		Id:                toolCall.ID,
+		FrameworkMetadata: metadata,
+		RecordKind:        toolCall.RecordKind,
+		ToolName:          toolCall.ToolName,
+		Timestamp:         toolCall.Timestamp,
+		OperationType:     toolCall.OperationType,
+		Input:             input,
+		Output:            protoToolCallOutput(toolCall.Output),
+		Badges:            protoToolCallBadges(toolCall.Badges),
 	}, nil
 }
 
@@ -501,8 +526,11 @@ func protoToolCallInput(input ToolCallInput) (*apiv1.ToolCallInput, error) {
 		Command:  protoOptionalString(input.Command),
 		FilePath: protoOptionalString(input.FilePath),
 	}
+	for _, target := range input.FileTargets {
+		ret.FileTargets = append(ret.FileTargets, &apiv1.FileTarget{Path: target.Path, NativePath: target.NativePath, OperationType: target.OperationType, EvidenceKind: target.EvidenceKind, Status: target.Status, Success: target.Success, Cwd: target.CWD, Resolved: target.Resolved, SourceReference: target.SourceReference})
+	}
 	if len(input.Arguments) > 0 {
-		arguments, err := structpb.NewStruct(input.Arguments)
+		arguments, err := strictProtoStruct(input.Arguments)
 		if err != nil {
 			return nil, err
 		}
@@ -511,13 +539,43 @@ func protoToolCallInput(input ToolCallInput) (*apiv1.ToolCallInput, error) {
 	return ret, nil
 }
 
+func strictProtoStruct(value map[string]any) (*structpb.Struct, error) {
+	if len(value) == 0 {
+		return nil, nil
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	var normalized map[string]any
+	if err := json.Unmarshal(data, &normalized); err != nil {
+		return nil, err
+	}
+	return structpb.NewStruct(normalized)
+}
+
 func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
+	var fullBytes *uint64
+	if output.FullBytes != nil && *output.FullBytes >= 0 {
+		value := uint64(*output.FullBytes)
+		fullBytes = &value
+	}
+	var exitCode *int32
+	if output.ExitCode != nil {
+		code := int32(*output.ExitCode)
+		exitCode = &code
+	}
 	return &apiv1.ToolCallOutput{
-		Success:    output.Success,
-		Result:     output.Result,
-		Error:      output.Error,
-		DurationMs: clampIntToUint32(output.DurationMs),
-		Truncated:  output.Truncated,
+		Success:       output.Success,
+		Status:        output.Status,
+		ExitCode:      exitCode,
+		Result:        output.Result,
+		Error:         output.Error,
+		DurationMs:    clampIntToUint32(output.DurationMs),
+		Truncated:     output.Truncated,
+		FullReference: output.FullReference,
+		FullBytes:     fullBytes,
+		FullHash:      output.FullHash,
 	}
 }
 
@@ -554,11 +612,18 @@ func protoSessionTiming(timing SessionTimingResponse) *apiv1.SessionTiming {
 
 func protoSessionMetrics(metrics SessionMetricsResponse) *apiv1.SessionMetrics {
 	return &apiv1.SessionMetrics{
-		TurnCount:            clampIntToUint32(metrics.TurnCount),
-		ToolCallCount:        clampIntToUint32(metrics.ToolCallCount),
-		TotalInputTokens:     protoOptionalUint32(metrics.TotalInputTokens),
-		TotalOutputTokens:    protoOptionalUint32(metrics.TotalOutputTokens),
-		TotalCacheReadTokens: protoOptionalUint32(metrics.TotalCacheReadTokens),
+		TurnCount:                clampIntToUint32(metrics.TurnCount),
+		ToolCallCount:            clampIntToUint32(metrics.ToolCallCount),
+		ToolCallRecordCount:      clampIntToUint32(metrics.ToolCallRecordCount),
+		OrchestrationCount:       clampIntToUint32(metrics.OrchestrationCount),
+		ExecutionRecordCount:     clampIntToUint32(metrics.ExecutionRecordCount),
+		FileChangeCount:          clampIntToUint32(metrics.FileChangeCount),
+		ModelInvocationCount:     clampIntToUint32(metrics.ModelInvocationCount),
+		FileTouchCount:           clampIntToUint32(metrics.FileTouchCount),
+		ConfirmedFileTargetCount: clampIntToUint32(metrics.ConfirmedFileTargetCount),
+		TotalInputTokens:         protoOptionalUint32(metrics.TotalInputTokens),
+		TotalOutputTokens:        protoOptionalUint32(metrics.TotalOutputTokens),
+		TotalCacheReadTokens:     protoOptionalUint32(metrics.TotalCacheReadTokens),
 	}
 }
 

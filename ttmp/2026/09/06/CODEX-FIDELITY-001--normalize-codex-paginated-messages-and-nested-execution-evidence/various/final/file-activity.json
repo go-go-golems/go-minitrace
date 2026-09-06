@@ -1,0 +1,20 @@
+[
+{
+  "file_path": "/workspace/actual/first.txt",
+  "last_activity_at": "2026-09-01T10:00:05Z",
+  "latest_evidence_status": "attempted",
+  "latest_operation": "MODIFY",
+  "latest_tool": "exec_command",
+  "operations": 1,
+  "session_id": "fidelity-synthetic"
+}
+, {
+  "file_path": "/workspace/actual/second.txt",
+  "last_activity_at": "2026-09-01T10:00:05Z",
+  "latest_evidence_status": "attempted",
+  "latest_operation": "MODIFY",
+  "latest_tool": "exec_command",
+  "operations": 1,
+  "session_id": "fidelity-synthetic"
+}
+]

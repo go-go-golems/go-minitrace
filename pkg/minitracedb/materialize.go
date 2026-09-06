@@ -73,10 +73,10 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 		if err := insertToolCallEvent(ctx, tx, session.ID, toolCall); err != nil {
 			return err
 		}
-		if toolCall.Input.FilePath != nil && *toolCall.Input.FilePath != "" {
-			turnIndex := nullableIntPointer(toolCall.EmittingTurnIndex)
-			if _, err := tx.ExecContext(ctx, `INSERT INTO files(session_id, tool_call_id, path, operation_type, tool_name, success, turn_index) VALUES (?, ?, ?, ?, ?, ?, ?)`, session.ID, toolCall.ID, *toolCall.Input.FilePath, toolCall.OperationType, toolCall.ToolName, boolInt(toolCall.Output.Success), turnIndex); err != nil {
-				return fmt.Errorf("insert file %s/%s: %w", session.ID, *toolCall.Input.FilePath, err)
+		for ordinal, target := range toolCall.EffectiveFileTargets() {
+			columns := []string{"session_id", "tool_call_id", "path", "operation_type", "tool_name", "success", "turn_index", "target_ordinal", "evidence_kind", "evidence_status", "cwd", "resolved", "native_path", "source_reference"}
+			if err := insertRow(ctx, tx, "files", columns, session.ID, toolCall.ID, target.Path, target.OperationType, toolCall.ToolName, nullableBoolPointer(target.Success), nullableIntPointer(toolCall.EmittingTurnIndex), ordinal, target.EvidenceKind, target.Status, nullableStringValue(target.CWD), boolInt(target.Resolved), nullableStringValue(target.NativePath), nullableStringValue(target.SourceReference)); err != nil {
+				return fmt.Errorf("insert file %s/%s: %w", session.ID, target.Path, err)
 			}
 		}
 	}
@@ -143,6 +143,8 @@ func insertSession(ctx context.Context, tx *sql.Tx, session *minitrace.Session, 
 		outcomeSuccess(session.Outcome), outcomePartial(session.Outcome), outcomeFailureCodes(session.Outcome), outcomeNotes(session.Outcome),
 		session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, mustJSON(session),
 	}
+	columns = append(columns, activityColumnNames...)
+	args = append(args, activityValues(session)...)
 	if err := insertRow(ctx, tx, "sessions", columns, args...); err != nil {
 		return fmt.Errorf("insert session %s: %w", session.ID, err)
 	}
@@ -169,15 +171,15 @@ func insertTurn(ctx context.Context, tx *sql.Tx, sessionID string, turn minitrac
 func insertToolCall(ctx context.Context, tx *sql.Tx, sessionID string, toolCall minitrace.ToolCall) error {
 	columns := []string{
 		"session_id", "tool_call_id", "emitting_turn_index", "timestamp", "tool_name", "operation_type", "file_path",
-		"command", "justification", "arguments_json", "success", "result", "error", "exit_code", "duration_ms", "truncated",
+		"command", "justification", "arguments_json", "success", "outcome_status", "result", "error", "exit_code", "duration_ms", "truncated",
 		"full_bytes", "full_hash", "full_reference", "redacted", "content_origin", "position_in_session", "tools_before_json", "time_since_last_user",
-		"framework_metadata_json", "spawned_agent_type", "spawned_agent_task_scope", "spawned_agent_sub_session_id", "spawned_agent_outcome_summary", "raw_json",
+		"framework_metadata_json", "spawned_agent_type", "spawned_agent_task_scope", "spawned_agent_sub_session_id", "spawned_agent_outcome_summary", "raw_json", "record_kind",
 	}
 	args := []any{
 		sessionID, toolCall.ID, nullableIntPointer(toolCall.EmittingTurnIndex), nullableString(toolCall.Timestamp), toolCall.ToolName, toolCall.OperationType, nullableString(toolCall.Input.FilePath),
-		nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), jsonNullable(toolCall.Input.Arguments), boolInt(toolCall.Output.Success), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated),
+		nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), jsonNullable(toolCall.Input.Arguments), nullableBoolPointer(toolCall.Output.Success), string(toolCall.Output.OutcomeStatus()), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated),
 		nullableIntPointer(toolCall.Output.FullBytes), nullableString(toolCall.Output.FullHash), nullableString(toolCall.Output.FullReference), nullableBoolPointer(toolCall.Output.Redacted), nullableString(toolCall.Output.ContentOrigin), nullableFloat(toolCall.Context.PositionInSession), jsonNullable(toolCall.Context.ToolsBefore), nullableFloat(toolCall.Context.TimeSinceLastUser),
-		jsonNullable(toolCall.FrameworkMetadata), spawnedAgentString(toolCall.SpawnedAgent, "type"), spawnedAgentString(toolCall.SpawnedAgent, "scope"), spawnedAgentString(toolCall.SpawnedAgent, "sub_session"), spawnedAgentString(toolCall.SpawnedAgent, "outcome"), mustJSON(toolCall),
+		jsonNullable(toolCall.FrameworkMetadata), spawnedAgentString(toolCall.SpawnedAgent, "type"), spawnedAgentString(toolCall.SpawnedAgent, "scope"), spawnedAgentString(toolCall.SpawnedAgent, "sub_session"), spawnedAgentString(toolCall.SpawnedAgent, "outcome"), mustJSON(toolCall), toolCall.EffectiveRecordKind(),
 	}
 	if err := insertRow(ctx, tx, "tool_calls", columns, args...); err != nil {
 		return fmt.Errorf("insert tool call %s/%s: %w", sessionID, toolCall.ID, err)
@@ -238,7 +240,7 @@ func insertToolCallEvent(ctx context.Context, tx *sql.Tx, sessionID string, tool
 	}
 	eventID := "tool-" + toolCall.ID
 	severity := "info"
-	if !toolCall.Output.Success {
+	if toolCall.Output.Failed() {
 		severity = "error"
 	}
 	summary := firstNonEmptyPointer(toolCall.Input.FilePath, toolCall.Input.Command, toolCall.Output.Error, toolCall.Output.Result)
@@ -331,6 +333,8 @@ func insertMetrics(ctx context.Context, tx *sql.Tx, session *minitrace.Session) 
 		nullableIntPointer(session.Metrics.TotalReasoningTokens), nullableIntPointer(session.Metrics.TotalToolTokens), nullableFloat(session.Metrics.SessionCost), session.Metrics.SubagentCount, session.Metrics.SubagentToolCalls, nullableIntPointer(session.Metrics.ModelSwitches), nullableIntPointer(session.Metrics.UniqueModels),
 		nullableIntPointer(session.Metrics.MedianResponseTokens), nullableIntPointer(session.Metrics.MaxResponseTokens), mustJSON(session.Metrics),
 	}
+	columns = append(columns, activityColumnNames...)
+	args = append(args, activityValues(session)...)
 	if err := insertRow(ctx, tx, "metrics", columns, args...); err != nil {
 		return fmt.Errorf("insert metrics %s: %w", session.ID, err)
 	}

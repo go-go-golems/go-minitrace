@@ -1,0 +1,19 @@
+[
+{
+  "query_ticket": "absent-ticket",
+  "summary": {
+    "changelog_edits": [],
+    "diary_edits": [],
+    "doc_add_events": [],
+    "doc_relate_events": [],
+    "event_count": 0,
+    "first_event": null,
+    "other_docmgr_events": [],
+    "sessions_touching_ticket": [],
+    "task_edits": [],
+    "ticket_create_events": [],
+    "ticket_create_fallback_candidate": null
+  },
+  "timeline": []
+}
+]

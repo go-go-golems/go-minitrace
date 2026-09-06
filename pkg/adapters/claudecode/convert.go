@@ -193,7 +193,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 						if pending, ok := pendingToolCalls[toolUseID]; ok {
 							resultText := stringifyContent(block["content"])
 							truncated, fullBytes, fullHash := minitrace.TruncateContent(resultText, minitrace.TruncateLimit)
-							pending.Output.Success = !boolValue(block["is_error"])
+							pending.Output.SetSuccess(!boolValue(block["is_error"]))
 							pending.Output.Result = truncated
 							if boolValue(block["is_error"]) {
 								errText := resultText
@@ -354,7 +354,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 
 	for toolCallID, toolCall := range pendingToolCalls {
 		errorText := "no tool_result received"
-		toolCall.Output.Success = false
+		toolCall.Output.SetSuccess(false)
 		toolCall.Output.Error = &errorText
 		toolCalls = append(toolCalls, toolCall)
 
@@ -1007,7 +1007,7 @@ func applyClaudeToolUseResult(toolCall *minitrace.ToolCall, raw any, isError boo
 		if boolValue(value["interrupted"]) {
 			errText := "interrupted by user"
 			toolCall.Output.Error = &errText
-			toolCall.Output.Success = false
+			toolCall.Output.SetSuccess(false)
 			metadata["interrupted"] = true
 		}
 		// No numeric exit-code field has been observed in real transcripts

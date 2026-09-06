@@ -1,0 +1,29 @@
+Building glazed-lint from pinned tool module...
+Installing github.com/go-go-golems/glazed/cmd/tools/glazed-lint@v1.3.5
+golangci-lint run -v
+level=info msg="golangci-lint has version 2.4.0 built with go1.26.1 from (unknown, modified: ?, mod sum: \"h1:qz6O6vr7kVzXJqyvHjHSz5fA3D+PM8v96QU5gxZCNWM=\") on (unknown)"
+level=info msg="[config_reader] Config search paths: [./ /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace /home/manuel/workspaces/2026-09-06/update-codex-adapter /home/manuel/workspaces/2026-09-06 /home/manuel/workspaces /home/manuel /home /]"
+level=info msg="[config_reader] Used config file .golangci.yml"
+level=info msg="[config_reader] Module name \"github.com/go-go-golems/go-minitrace\""
+level=info msg="maxprocs: Leaving GOMAXPROCS=8: CPU quota undefined"
+level=info msg="[goenv] Read go env for 11.345824ms: map[string]string{\"GOCACHE\":\"/home/manuel/.cache/go-build\", \"GOROOT\":\"/home/manuel/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64\"}"
+level=info msg="[lintersdb] Active 9 linters: [errcheck exhaustive gofmt govet ineffassign nonamedreturns predeclared staticcheck unused]"
+level=info msg="[loader] Go packages loading at mode 8767 (exports_file|compiled_files|deps|files|imports|name|types_sizes) took 8.421382305s"
+level=info msg="[runner/filename_unadjuster] Pre-built 0 adjustments in 39.701579ms"
+level=info msg="[linters_context/goanalysis] analyzers took 1m56.125249371s with top 10 stages: buildir: 1m9.594639904s, exhaustive: 5.253772032s, inspect: 2.872659373s, ctrlflow: 1.907817686s, printf: 1.730776205s, fact_deprecated: 1.442022189s, S1038: 1.427639636s, unused: 1.242959156s, fact_purity: 1.230471757s, QF1004: 1.082394958s"
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"test_.*\\\\\\\\.go\""
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"web/node_modules/\""
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"ttmp/.*\\\\\\\\.go\""
+level=info msg="[runner/exclusion_rules] Skipped 0 issues by rules: [Text: \"SA1019: cli.CreateProcessorLegacy\", Linters: \"staticcheck\"]"
+level=info msg="[runner] Processors filtering stat (in/out): fixer: 1/1, severity-rules: 1/1, path_prettifier: 1/1, sort_results: 1/1, path_relativity: 1/1, exclusion_rules: 1/1, max_from_linter: 1/1, path_absoluter: 1/1, exclusion_paths: 1/1, diff: 1/1, uniq_by_line: 1/1, max_per_file_from_linter: 1/1, path_shortener: 1/1, cgo: 1/1, filename_unadjuster: 1/1, invalid_issue: 1/1, max_same_issues: 1/1, source_code: 1/1, generated_file_filter: 1/1, nolint_filter: 1/1"
+level=info msg="[runner] processing took 1.082888ms with stages: nolint_filter: 935.744µs, source_code: 40.921µs, exclusion_paths: 39.003µs, generated_file_filter: 36.706µs, path_relativity: 10.668µs, exclusion_rules: 7.445µs, max_same_issues: 1.807µs, uniq_by_line: 1.688µs, sort_results: 1.405µs, cgo: 1.114µs, max_from_linter: 1.042µs, path_shortener: 928ns, invalid_issue: 861ns, path_absoluter: 759ns, filename_unadjuster: 677ns, diff: 613ns, fixer: 497ns, path_prettifier: 461ns, max_per_file_from_linter: 412ns, severity-rules: 137ns"
+level=info msg="[runner] linters took 16.377165138s with stages: goanalysis_metalinter: 16.375999165s"
+pkg/adapters/codex/messages.go:199:2: QF1003: could use tagged switch on message.role (staticcheck)
+	if message.role == "user" {
+	^
+1 issues:
+* staticcheck: 1
+level=info msg="File cache stats: 1 entries of total size 9.0KiB"
+level=info msg="Memory: 249 samples, avg is 715.9MB, max is 1650.0MB"
+level=info msg="Execution took 24.850770494s"
+make: *** [Makefile:31: lint] Error 1

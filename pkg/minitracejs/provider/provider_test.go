@@ -667,7 +667,8 @@ func writeNativeSessionFixture(t *testing.T) string {
 	path := "app.go"
 	result := "package main"
 	emittingTurn := 1
-	session.ToolCalls = []minitrace.ToolCall{{ID: "tool-1", EmittingTurnIndex: &emittingTurn, ToolName: "Read", OperationType: "read", Input: minitrace.ToolCallInput{FilePath: &path}, Output: minitrace.ToolCallOutput{Success: true, Result: &result}}}
+	success := true
+	session.ToolCalls = []minitrace.ToolCall{{ID: "tool-1", EmittingTurnIndex: &emittingTurn, ToolName: "Read", OperationType: "read", Input: minitrace.ToolCallInput{FilePath: &path}, Output: minitrace.ToolCallOutput{Success: &success, Result: &result}}}
 	session.Metrics = minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, len(session.Annotations), nil)
 	payload, err := json.MarshalIndent(session, "", "  ")
 	if err != nil {
