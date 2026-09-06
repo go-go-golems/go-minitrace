@@ -36,3 +36,8 @@ Native CommandExecution lifecycle reconciliation and typed output decoding lande
 
 P3 hardening: reconcile legacy terminal outcomes after results, preserve terminal conflicts, and keep exec-stream completion-only outcomes unknown (9658081). Full tests, lint, and Codex race tests pass.
 
+
+## 2026-09-06
+
+Resumed with user-authorized additional 1M tokens. Hardened one-to-one native execution identity (f0d4811) and retained repeated/early output provenance and conflicts (4e61b7b). Full tests, lint and Codex race checks passed.
+

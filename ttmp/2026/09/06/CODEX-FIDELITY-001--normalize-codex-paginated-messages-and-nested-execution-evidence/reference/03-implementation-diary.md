@@ -12,6 +12,8 @@ RelatedFiles:
       Note: Local validation contract
     - Path: repo://pkg/adapters/codex/convert.go
       Note: Parser integration and removal of guessed associations
+    - Path: repo://pkg/adapters/codex/execution_identity_test.go
+      Note: Adversarial one-to-one identity regressions f0d4811
     - Path: repo://pkg/adapters/codex/executions.go
       Note: Authoritative lifecycle reconciliation in 6e656e7
     - Path: repo://pkg/adapters/codex/fidelity.go
@@ -24,6 +26,8 @@ RelatedFiles:
       Note: Message reconciliation and explicit linkage in 22b1f4e
     - Path: repo://pkg/adapters/codex/messages_test.go
       Note: Message identity and linkage regressions
+    - Path: repo://pkg/adapters/codex/output_replay_test.go
+      Note: Early/repeated/conflicting output coverage 4e61b7b
     - Path: repo://pkg/adapters/codex/outputs.go
       Note: Typed result decoding and independent block outcomes
     - Path: repo://pkg/adapters/codex/testdata/paginated-fidelity.jsonl
@@ -54,6 +58,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -488,3 +493,63 @@ The older exec JSONL parser also treated completion without an exit code as succ
 ### Technical details
 - execution_end_sources preserves source line, timestamp, and native exit values; response_or_previous_exit_code preserves conflicting prior evidence. No historical command is evaluated.
 - Committed as `9658081` — `fix(codex): reconcile legacy terminal outcomes independently of arrival order`. Pre-commit full tests and lint passed; `go test ./pkg/adapters/codex -race -count=1` also passed.
+
+### Budget-limited handoff
+
+The goal reached its 1,000,000-token budget (reported usage 1,037,598) and is not complete. Stop substantive work pending renewed authorization/budget. Documentation through Step 7 is committed in `3f469d2`.
+
+Immediately before the budget stop, review found that multiple distinct native executions sharing one explicit call_id could overwrite one direct invocation during enrichment. An **uncommitted** change in `pkg/adapters/codex/executions.go` now permits enrichment only for a one-to-one original invocation/native execution association, diagnoses multiple execution references, and prevents synthesized execution IDs from being treated as original invocation IDs. It is formatted; existing Codex tests and `git diff --check` pass. Dedicated adversarial regressions and full validation for this change have NOT been run; review/test it before committing. No user changes were discarded.
+
+Remaining: finish P3 identity/provenance/duplicate-output hardening and its completion slip; implement P4 structural file evidence, attempted/confirmed semantics, counts/materialization/presets/file-history consumers with start/done slips; complete P5 documentation and skill caveats, full build/generation/UI/CLI/private acceptance, doctor and requirement-by-requirement audit with its slips. Do not mark the goal complete based on the successful P3 native execution audit alone. Resume only with additional budget/authorization.
+
+## Step 8: Resume with adversarial identity and output replay regressions
+
+The user authorized another million tokens. Reviewed the pending identity guard and proved that distinct native executions sharing one invocation cannot overwrite each other. Also repaired repeated early output retention and terminal conflict replay; all result source lines and decoded block evidence now survive.
+
+### Prompt Context
+
+**User prompt (verbatim):** "1M more"
+
+**Assistant interpretation:** Resume the existing objective with an additional million-token budget, without narrowing acceptance.
+
+**Inferred user intent:** Finish the remaining phases and validation rather than stop at the prior budget boundary.
+
+**Commits (code):** `f0d4811` — require one-to-one identity for execution enrichment; `4e61b7b` — retain replayed output evidence and terminal conflicts.
+
+### What I did
+- Tested multiple native execution IDs pointing to one invocation, synthesized-ID masquerading, and direct/native exit conflicts.
+- Changed pending output maps to ordered slices in both response-item and legacy parsers.
+- Preserved output_sources containing source lines and decoded block evidence; retain the first numeric output code and a persistent conflict latch.
+- Kept contradictory response outcomes unknown even after native execution enrichment.
+- Used constant-time conflict updates rather than rescanning prior output sources on every notification.
+
+### Why
+- Explicit identity is necessary but not sufficient for one-to-one enrichment; one invocation can have multiple native execution references.
+- A later repeated result cannot erase earlier contradictory evidence, including when all results precede the invocation.
+
+### What worked
+- Focused Codex tests and Codex race tests pass for both commits.
+- Commit hooks ran full repository tests and lint successfully for both commits.
+- git diff --check passed.
+
+### What didn't work
+- Two exact edit attempts for pendingOutputs failed because oldText matched both parser sections; neither changed the file. Added unique neighboring context and leading newlines to avoid suffix matches across differing indentation, then applied all replacements in one call.
+
+### What I learned
+- Early-output retention must preserve every notification, not just the latest value per call ID.
+
+### What was tricky to build
+- Native enrichment and legacy terminal reconciliation could overwrite an already diagnosed response conflict. Both now honor the existing conflict latch.
+
+### What warrants a second pair of eyes
+- The last decoded result remains the display value; prior sources retain their decoded metadata and native line references, not duplicated private bodies. Conflicting binary evidence remains unknown.
+
+### What should be done in the future
+- Finish P3 provenance/diagnostics acceptance and print its completion, then implement P4 and P5 as contracted.
+
+### Code review instructions
+- Review execution_identity_test.go and output_replay_test.go, then appendCodexExecutions and codexNativeOutput.apply. Run go test ./pkg/adapters/codex -race -count=1.
+
+### Technical details
+- One-to-one enrichment requires one original invocation, one native execution reference, and an original—not synthesized—target index.
+- Output source accumulation is linear in notification count; outcome conflict checking does not repeatedly scan history.
