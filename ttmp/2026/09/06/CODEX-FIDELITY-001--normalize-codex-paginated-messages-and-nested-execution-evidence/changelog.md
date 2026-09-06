@@ -41,3 +41,8 @@ P3 hardening: reconcile legacy terminal outcomes after results, preserve termina
 
 Resumed with user-authorized additional 1M tokens. Hardened one-to-one native execution identity (f0d4811) and retained repeated/early output provenance and conflicts (4e61b7b). Full tests, lint and Codex race checks passed.
 
+
+## 2026-09-06
+
+P3 accepted against fresh private/synthetic audits; P3 completion and P4 start physically printed with receipts. P4 schema milestone f0a5377 adds typed targets, independent file outcomes, and SQLite v5 evidence projections; extraction and consumers remain in progress.
+

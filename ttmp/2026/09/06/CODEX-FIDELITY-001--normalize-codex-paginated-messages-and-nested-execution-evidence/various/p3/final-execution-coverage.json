@@ -1,0 +1,74 @@
+[
+  {
+    "session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+    "source_sha256": "f5e9f9936078c9dd77c9413a23ab72ad256dfb60dda7ba8440036134f52bbc6e",
+    "native_completed_executions": 886,
+    "normalized_executions": 886,
+    "native_failed_executions": 77,
+    "missing": [],
+    "invented": [],
+    "duplicates": [],
+    "mismatches": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+    "source_sha256": "65d1bc85f052ab3e0fa42aa513deaa9016c7564be7e82a59e9d6ec8b2574b27f",
+    "native_completed_executions": 0,
+    "normalized_executions": 0,
+    "native_failed_executions": 0,
+    "missing": [],
+    "invented": [],
+    "duplicates": [],
+    "mismatches": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+    "source_sha256": "c4822c452f830580bd36598cd9a9f7621c8f5598c3482cd2159cd0df59fc3554",
+    "native_completed_executions": 1104,
+    "normalized_executions": 1104,
+    "native_failed_executions": 60,
+    "missing": [],
+    "invented": [],
+    "duplicates": [],
+    "mismatches": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+    "source_sha256": "242da6b0da5627306948083bf4e02b4d9f165ad5f943684a8eca188c4214134b",
+    "native_completed_executions": 0,
+    "normalized_executions": 0,
+    "native_failed_executions": 0,
+    "missing": [],
+    "invented": [],
+    "duplicates": [],
+    "mismatches": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+    "source_sha256": "003c2376459a625bfce0193669556f9472247cc35d6d46e6c5be60d34fe40e4a",
+    "native_completed_executions": 306,
+    "normalized_executions": 306,
+    "native_failed_executions": 18,
+    "missing": [],
+    "invented": [],
+    "duplicates": [],
+    "mismatches": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+    "source_sha256": "1dab67aa485a19544df7f13946a235e7c93b9c51dbdf1f89e74170d15bbd46bf",
+    "native_completed_executions": 0,
+    "normalized_executions": 0,
+    "native_failed_executions": 0,
+    "missing": [],
+    "invented": [],
+    "duplicates": [],
+    "mismatches": [],
+    "passed": true
+  }
+]

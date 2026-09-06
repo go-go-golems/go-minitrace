@@ -32,6 +32,10 @@ RelatedFiles:
       Note: Typed result decoding and independent block outcomes
     - Path: repo://pkg/adapters/codex/testdata/paginated-fidelity.jsonl
       Note: Synthetic contract regression source
+    - Path: repo://pkg/minitrace/file_evidence.go
+      Note: Typed structural evidence and explicit empty semantics
+    - Path: repo://pkg/minitracedb/file_evidence_test.go
+      Note: Multi-target SQL outcomes regression f0a5377
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/design-doc/02-implementation-contracts-and-phased-acceptance.md
       Note: Implementation decisions
     - Path: repo://ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/04-check-synthetic-baseline.py
@@ -58,6 +62,7 @@ LastUpdated: 2026-09-06T00:00:00Z
 WhatFor: Audit the implementation against the fidelity contract.
 WhenToUse: Before resuming implementation or reviewing its changes.
 ---
+
 
 
 
@@ -553,3 +558,59 @@ The user authorized another million tokens. Reviewed the pending identity guard 
 ### Technical details
 - One-to-one enrichment requires one original invocation, one native execution reference, and an original—not synthesized—target index.
 - Output source accumulation is linear in notification count; outcome conflict checking does not repeatedly scan history.
+
+## Step 9: Close P3 and start the structural file evidence schema
+
+Fresh P3 conversion of all six private sources passes independent execution and message audits with unchanged baseline hashes. It accounts for all 2,296 executions and 155 failures; the synthetic oracle also passes. Printed the P3 completion and P4 start slips with positive physical-print receipts.
+
+Started P4 with a typed multi-target file evidence model and SQLite projection. File effects have their own nullable outcomes; shell success cannot silently confirm every target. The scalar path remains supported for existing adapters but does not override an explicit structural target list.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8; continuing the renewed objective)
+
+**Assistant interpretation:** Advance to P4 only after fresh P3 acceptance and physical phase boundaries.
+
+**Inferred user intent:** Turn recovered execution activity into trustworthy file evidence and analytical consumers.
+
+**Commit (code):** `f0a5377` — represent structural file evidence and project all targets.
+
+### What I did
+- Fresh private conversion into /tmp/codex-fidelity-001-p3-final and synthetic conversion into /tmp/codex-fidelity-001-p3-final-synthetic.
+- Ran scripts/08-audit-execution-coverage.py, scripts/05-audit-message-coverage.py and scripts/04-check-synthetic-baseline.py; saved final P3 reports in various/p3.
+- Checked every source fingerprint against the original native inventory.
+- Printed various/slips/06-p3-done and 07-p4-start via work_slip.py; both receipts report printed: true, HTTP 200, printer ok.
+- Added FileTarget with path/native path, operation, evidence kind/status, nullable success, cwd/resolution, and source reference.
+- Added first-class record_kind and EffectiveRecordKind, projecting kinds into SQLite.
+- Materialized every structural target with its own outcome and evidence metadata; bumped normalized SQLite schema to v5.
+
+### Why
+- Tool outcome and file-effect outcome are different claims. A successful shell invocation can contain unexecuted or failed statements.
+- A scalar first-path field cannot represent a multi-file operation.
+
+### What worked
+- Fresh P3 private and synthetic acceptance passed; all six source hashes match baseline.
+- New SQL regression projects two targets, neither inheriting the shell's true success, and excludes an explicit-empty wrapper target list despite its scalar convenience path.
+- Focused minitrace/database tests pass. Commit hooks passed full tests and lint.
+
+### What didn't work
+- No command/test failure in this step.
+
+### What I learned
+- nil versus an explicit empty target list distinguishes an older scalar-only adapter from an adapter that explicitly found no structural file evidence.
+
+### What was tricky to build
+- Preserving existing non-Codex scalar behavior without contaminating new structural evidence: legacy_scalar/reported marks that older claim, while explicit targets never inherit the tool outcome.
+
+### What warrants a second pair of eyes
+- P4 extraction, counters, API/UI projections, and file-history integration are still outstanding. The schema milestone alone does not establish Codex file fidelity.
+
+### What should be done in the future
+- Implement direct patch/native FileChange extraction and bounded shell redirects, then consumers and negative tests before P4 completion.
+
+### Code review instructions
+- Review pkg/minitrace/file_evidence.go, filesTable, MaterializeSession and TestStructuralFileTargetsDoNotInheritShellSuccess.
+
+### Technical details
+- files gains target_ordinal, evidence_kind, evidence_status, cwd, resolved, native_path and source_reference. tool_calls gains record_kind.
+- Tool-record count is unchanged; file targets do not become additional tool calls.
