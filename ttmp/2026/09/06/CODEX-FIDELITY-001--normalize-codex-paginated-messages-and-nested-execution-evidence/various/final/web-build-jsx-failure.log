@@ -1,0 +1,7 @@
+
+> web@0.0.0 build /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web
+> tsc -b && vite build
+
+src/components/TranscriptViewer/TranscriptViewer.tsx(483,53): error TS2657: JSX expressions must have one parent element.
+src/components/TranscriptViewer/TranscriptViewer.tsx(560,7): error TS1005: '}' expected.
+ ELIFECYCLE  Command failed with exit code 2.

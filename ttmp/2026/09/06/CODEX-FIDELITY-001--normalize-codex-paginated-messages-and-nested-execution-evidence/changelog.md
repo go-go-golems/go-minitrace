@@ -61,3 +61,8 @@ P4 analytical milestone add1bb4: record-kind/model/file-evidence counters, struc
 
 P4 API/UI milestone ccb63de: typed targets, record kinds, counters and visible independent target outcomes. Go/TS roundtrip and 23 browser tests pass; screenshot inspected. Remaining execution-provenance/consumer audit precedes P4 acceptance.
 
+
+## 2026-09-06
+
+Completed all phases and acceptance. Full smoke failures repaired; 78 browser tests pass; every tool survives API with explicit unknown associations; six unchanged sources independently audit to 2296 executions/155 failures and 472 file events/995 targets. All physical phase receipts retained. See reference/04-final-acceptance-audit.md.
+

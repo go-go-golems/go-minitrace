@@ -1,0 +1,44 @@
+[
+{
+  "query_path": "smoke.txt",
+  "summary": [
+    {
+      "attempted_targets": 0,
+      "confirmed_effects": 0,
+      "created_before_visible_history": false,
+      "creates": 1,
+      "file_path": "/legacy/smoke.txt",
+      "first_op": "NEW",
+      "first_seen": "2026-09-01T10:00:04Z",
+      "first_session": "legacy-history-control",
+      "last_seen": "2026-09-01T10:00:04Z",
+      "modifies": 0,
+      "other": 0,
+      "reads": 0,
+      "sessions": [
+        "legacy-history-control"
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "evidence_cwd": null,
+      "evidence_kind": null,
+      "evidence_status": null,
+      "file_path": "/legacy/smoke.txt",
+      "framework": "pi",
+      "match_source": "file_path",
+      "op": "NEW",
+      "preceding_instruction": null,
+      "raw_operation_type": "NEW",
+      "session_id": "legacy-history-control",
+      "source_reference": null,
+      "success": 1,
+      "timestamp": "2026-09-01T10:00:04Z",
+      "tool_name": "write",
+      "turn_index": null,
+      "working_directory": "/workspace/initial"
+    }
+  ]
+}
+]

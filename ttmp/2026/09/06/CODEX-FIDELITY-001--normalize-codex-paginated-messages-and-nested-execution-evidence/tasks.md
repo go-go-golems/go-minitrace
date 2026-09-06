@@ -12,9 +12,9 @@
 - [x] Normalize authoritative CommandExecution lifecycle events without duplicate counts.
 - [x] Decode structured output blocks before metadata extraction and truncation.
 - [x] Preserve explicit execution provenance and uncertain parent associations.
-- [ ] Expose all structural file targets with attempted-versus-confirmed semantics.
-- [ ] Update materialization, metrics, presets, and file-history consumers.
-- [ ] Test false-branch commands, quoted histories, duplicate events, failures, and missing outcomes.
-- [ ] Run package/full tests and private-source before/after SQL acceptance audit.
-- [ ] Update adapter documentation and transcript-analysis skill caveats.
+- [x] Expose all structural file targets with attempted-versus-confirmed semantics.
+- [x] Update materialization, metrics, presets, and file-history consumers.
+- [x] Test false-branch commands, quoted histories, duplicate events, failures, and missing outcomes.
+- [x] Run package/full tests and private-source before/after SQL acceptance audit.
+- [x] Update adapter documentation and transcript-analysis skill caveats.
 - [x] Validate local native Codex sources against checkout-built conversion before implementation. <!-- t:busa -->

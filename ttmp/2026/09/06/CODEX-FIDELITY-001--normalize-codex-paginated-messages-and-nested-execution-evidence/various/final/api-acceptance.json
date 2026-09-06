@@ -1,0 +1,51 @@
+[
+  {
+    "session_id": "fidelity-synthetic",
+    "api_tool_records": 9,
+    "unassociated": 9,
+    "executions": 6,
+    "passed": true
+  },
+  {
+    "session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+    "api_tool_records": 1811,
+    "unassociated": 1811,
+    "executions": 886,
+    "passed": true
+  },
+  {
+    "session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+    "api_tool_records": 0,
+    "unassociated": 0,
+    "executions": 0,
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+    "api_tool_records": 2171,
+    "unassociated": 2171,
+    "executions": 1104,
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+    "api_tool_records": 5,
+    "unassociated": 5,
+    "executions": 0,
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+    "api_tool_records": 617,
+    "unassociated": 617,
+    "executions": 306,
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+    "api_tool_records": 0,
+    "unassociated": 0,
+    "executions": 0,
+    "passed": true
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "unchanged_source_hashes": 6,
+  "orphan_links": 0,
+  "malformed_map_outputs": 0,
+  "executions": 2296,
+  "failures": 155,
+  "native_file_changes": 472,
+  "confirmed_native_targets": 995,
+  "receipt_complete": true
+}

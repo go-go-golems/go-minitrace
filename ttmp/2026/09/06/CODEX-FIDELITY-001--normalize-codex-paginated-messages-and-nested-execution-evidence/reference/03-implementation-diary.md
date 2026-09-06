@@ -812,3 +812,103 @@ Next concrete repair: ToolCall API responses still omit execution framework_meta
 Remaining P4: finish provenance/consumer auditing, broad non-Codex history regressions and final extraction edge-case review (including native FileChange conflicting content with unchanged path/status), then full P4 acceptance and its completion print. P5 remains: adapter docs and transcript-analysis skill caveats, full make all/build/generation/logcopter checks, frontend checks, help/doctor, fresh six-source SQL/identity/receipt/private audits, requirement-by-requirement completion audit and P5 start/done prints. P3 completion and P4 start are already physically printed with receipts and must not be repeated unnecessarily.
 
 Stop substantive work until renewed budget/authorization. No completion marking is justified by the passing intermediate audits.
+
+
+## Step 13: Finish remaining gaps and enter consolidated acceptance
+
+Finished execution metadata/truncation references through API/UI, same-path native content conflict detection, and remaining file-activity/ticket/context consumers. Updated adapter documentation and the installed transcript-analysis skill and query caveats; snapshots are retained. P4 focused checks pass; P5 performs the single consolidated final smoke requested by the user.
+
+### Prompt Context
+
+**User prompt (verbatim):** "yeah do full smoke test at the end. budget 1M"
+
+**Additional user prompt (verbatim):** "but make sure to finish, no need to over do it all the time"
+
+**Assistant interpretation:** Batch the remaining necessary fixes and finish, without expanding scope or repeatedly running broad validation.
+
+**Inferred user intent:** Complete the ticket efficiently with one credible final acceptance sweep.
+
+### What I did
+- Added strict JSON-compatible metadata serialization and full output reference/size/hash fields to API/protobuf/TypeScript/UI.
+- Added provenance/error and conflicting-content regressions.
+- Updated remaining file consumers to structural Codex evidence, preserving non-Codex behavior and labeling command-text matches as candidates.
+- Updated adapter README/reference and installed skill/caveats.
+
+### Why
+- Remaining consumers must not silently lose provenance or turn source mentions into proven effects.
+
+### What worked
+- Focused adapter/serve/consumer tests, synthetic history checks and non-Codex history smoke pass. Commit hooks provide the full test/lint check without an extra pre-commit broad run.
+
+### What didn't work
+- Ticket-timeline smoke failed with `GoError: ambiguous column name: tool_name` after joining files. Qualified tc.tool_name and reran successfully.
+
+### What I learned
+- Path/status equality alone does not establish identical native file changes; complete payload hashes catch conflicting contents without copying private diffs.
+
+### What was tricky to build
+- Strict protobuf metadata mapping accepts typed Go slices/pointers via JSON normalization and returns errors instead of silently dropping provenance.
+
+### What warrants a second pair of eyes
+- Final acceptance checks source hashes, native inventories, consumer counts and API behavior, not only command exit status.
+
+### What should be done in the future
+- Run the consolidated final smoke, repair only demonstrated failures, and complete the requirement/receipt audit.
+
+### Code review instructions
+- Review provenance_test.go, file_content_conflict_test.go, strictProtoStruct and the remaining consumer SQL diffs. Final commands/results are retained under various/final.
+
+### Technical details
+- Native sources remain unchanged; private archives stay under /tmp. Skill changes are external to this Git repository with committed text snapshots for review.
+
+
+## Step 14: Resolve final smoke failures and complete acceptance
+
+The consolidated smoke passed make all, generation/build, logcopter, race, CLI/native audits and docs. It found seven invalid Storybook setups and an API omission of unassociated tools. Fixed both rather than weakening evidence, reran affected checks and verified the production viewer against real converted archives.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 13)
+
+**Assistant interpretation:** Finish demonstrated gaps, then close with concrete evidence rather than additional exploratory scope.
+
+**Inferred user intent:** A complete working adapter with a credible final smoke.
+
+**Commits (code):** d8a19a7 (remaining provenance/consumers), b344f44 (unassociated API/UI ledger and story providers), 78b8100 (bounded ledger layout).
+
+### What I did
+- Ran scripts/11-final-smoke.sh once; preserved each command's log and exit status.
+- Fixed missing Redux/Router decorators; 78/78 browser tests now pass.
+- Added unassociated_tool_calls to complete session detail, without invented turn references; API checks cover every record in all seven loaded sessions.
+- Bounded/lazily exposed the ledger, built production assets, inspected production UI and stopped server/browser processes.
+- Verified six unchanged hashes, complete six-source receipt, 2,296 executions/155 failures, 472 file events/995 targets, zero malformed outputs/orphans, and partitioning counters.
+
+### Why
+- SQL fidelity is insufficient if the browser/API silently omits all unassociated executions.
+
+### What worked
+- Full test/lint hooks, production build/generation, logcopter, race, frontend build/lint, 78 browser tests, API/CLI/native audits and doctor pass. Evidence map is in reference/04-final-acceptance-audit.md.
+
+### What didn't work
+- Seven full-browser failures: react-redux Provider missing (AnnotationModal) and useLocation outside Router (TranscriptViewer). Added real decorators.
+- Production API initially returned zero turn-associated tools for an affected session: the existing blocks-only presentation dropped null-emitter records. Added a separate ledger and verified complete record counts.
+- First new ledger JSX build failed TS2657/TS1005 due to a missing closing brace. Fixed and rebuilt; failure log retained.
+
+### What I learned
+- Null associations must remain visible as separate records throughout presentation, not merely be valid in SQLite.
+
+### What was tricky to build
+- Preserve existing message blocks while exposing unassociated calls without speculative attribution. The complete detail endpoint now carries both, and the UI limits rendered batches to 50.
+
+### What warrants a second pair of eyes
+- Known informational tilde-path validator limitation is explicitly separated from independent source hash evidence. The narrow shell grammar and evidence-count semantics are documented, not inferred away.
+
+### What should be done in the future
+- N/A for this ticket; broader shell inference would be a separate scope, not required to establish the documented conservative grammar.
+
+### Code review instructions
+- Start with the final acceptance matrix and commits above. Inspect failure logs alongside corrected results and physical print receipts.
+
+### Technical details
+- Build logs confirm actual Dagger generation and Go build. Generated asset/code checks left no unstaged code changes.
+- Private transcript/archive/API bodies remain outside Git. Installed skill changes are captured in reviewed text snapshots.
