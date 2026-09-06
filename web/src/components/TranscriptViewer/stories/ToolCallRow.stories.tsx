@@ -206,6 +206,30 @@ export const Expanded: Story = {
   },
 };
 
+export const StructuralFileAttempts: Story = {
+  args: {
+    defaultExpanded: true,
+    tc: tc({
+      record_kind: "execution",
+      input: {
+        command: "printf x > first; printf y > second",
+        file_targets: ["first", "second"].map((name) => ({
+          path: `/workspace/${name}`, native_path: name,
+          operation_type: "MODIFY", evidence_kind: "shell_redirect",
+          status: "attempted", success: null, cwd: "/workspace", resolved: true,
+          source_reference: "synthetic.jsonl#L9",
+        })),
+      },
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("/workspace/first")).toBeVisible();
+    await expect(canvas.getByText("/workspace/second")).toBeVisible();
+    await expect(canvas.getAllByText(/Outcome: unknown/)).toHaveLength(2);
+    await expect(canvas.getByText("Record kind: execution")).toBeVisible();
+  },
+};
+
 export const MultipleBadges: Story = {
   args: {
     tc: tc({

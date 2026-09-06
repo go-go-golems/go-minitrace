@@ -97,6 +97,41 @@ export declare type SessionMetrics = Message<"go_go_golems.minitrace.api.v1.Sess
    * @generated from field: optional uint32 total_cache_read_tokens = 5;
    */
   totalCacheReadTokens?: number | undefined;
+
+  /**
+   * @generated from field: uint32 tool_call_record_count = 6;
+   */
+  toolCallRecordCount: number;
+
+  /**
+   * @generated from field: uint32 orchestration_count = 7;
+   */
+  orchestrationCount: number;
+
+  /**
+   * @generated from field: uint32 execution_record_count = 8;
+   */
+  executionRecordCount: number;
+
+  /**
+   * @generated from field: uint32 file_change_count = 9;
+   */
+  fileChangeCount: number;
+
+  /**
+   * @generated from field: uint32 model_invocation_count = 10;
+   */
+  modelInvocationCount: number;
+
+  /**
+   * @generated from field: uint32 file_touch_count = 11;
+   */
+  fileTouchCount: number;
+
+  /**
+   * @generated from field: uint32 confirmed_file_target_count = 12;
+   */
+  confirmedFileTargetCount: number;
 };
 
 /**

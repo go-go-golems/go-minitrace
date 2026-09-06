@@ -1,4 +1,5 @@
 import { fromJson } from "@bufbuild/protobuf";
+import { activityMetrics } from "./activityMetrics.ts";
 import {
   ListSessionsResponseSchema,
   GetSessionSummaryResponseSchema,
@@ -63,6 +64,7 @@ function adaptSessionSummary(summary?: PbSessionSummary): SessionSummary {
     metrics: {
       turn_count: summary?.metrics?.turnCount ?? 0,
       tool_call_count: summary?.metrics?.toolCallCount ?? 0,
+      ...activityMetrics(summary?.metrics),
       total_input_tokens: summary?.metrics?.totalInputTokens,
       total_output_tokens: summary?.metrics?.totalOutputTokens,
       total_cache_read_tokens: summary?.metrics?.totalCacheReadTokens,
@@ -96,6 +98,7 @@ function adaptSessionSummaryDetail(summary?: PbSessionSummaryDetail): SessionSum
     metrics: {
       turn_count: summary?.metrics?.turnCount ?? 0,
       tool_call_count: summary?.metrics?.toolCallCount ?? 0,
+      ...activityMetrics(summary?.metrics),
       total_input_tokens: summary?.metrics?.totalInputTokens,
       total_output_tokens: summary?.metrics?.totalOutputTokens,
       total_cache_read_tokens: summary?.metrics?.totalCacheReadTokens,
@@ -137,6 +140,7 @@ function adaptSessionDetail(detail?: PbSessionDetail): SessionDetail {
     metrics: {
       turn_count: detail?.metrics?.turnCount ?? 0,
       tool_call_count: detail?.metrics?.toolCallCount ?? 0,
+      ...activityMetrics(detail?.metrics),
       total_input_tokens: detail?.metrics?.totalInputTokens,
       total_output_tokens: detail?.metrics?.totalOutputTokens,
       total_cache_read_tokens: detail?.metrics?.totalCacheReadTokens,
@@ -248,10 +252,17 @@ function adaptToolCall(toolCall: PbToolCall): ToolCall {
     tool_name: toolCall.toolName,
     timestamp: toolCall.timestamp,
     operation_type: toolCall.operationType,
+    record_kind: toolCall.recordKind,
     input: {
       command: toolCall.input?.command,
       arguments: toolCall.input?.arguments,
       file_path: toolCall.input?.filePath ?? null,
+      file_targets: toolCall.input?.fileTargets.map((target) => ({
+        path: target.path, native_path: target.nativePath,
+        operation_type: target.operationType, evidence_kind: target.evidenceKind,
+        status: target.status, success: target.success ?? null,
+        cwd: target.cwd, resolved: target.resolved, source_reference: target.sourceReference,
+      })) ?? [],
     },
     output: {
       success: toolCall.output?.success ?? null,

@@ -129,6 +129,62 @@ export declare type SessionSummaryDetail = Message<"go_go_golems.minitrace.api.v
 export declare const SessionSummaryDetailSchema: GenMessage<SessionSummaryDetail>;
 
 /**
+ * @generated from message go_go_golems.minitrace.api.v1.FileTarget
+ */
+export declare type FileTarget = Message<"go_go_golems.minitrace.api.v1.FileTarget"> & {
+  /**
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * @generated from field: string native_path = 2;
+   */
+  nativePath: string;
+
+  /**
+   * @generated from field: string operation_type = 3;
+   */
+  operationType: string;
+
+  /**
+   * @generated from field: string evidence_kind = 4;
+   */
+  evidenceKind: string;
+
+  /**
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional bool success = 6;
+   */
+  success?: boolean | undefined;
+
+  /**
+   * @generated from field: string cwd = 7;
+   */
+  cwd: string;
+
+  /**
+   * @generated from field: bool resolved = 8;
+   */
+  resolved: boolean;
+
+  /**
+   * @generated from field: string source_reference = 9;
+   */
+  sourceReference: string;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.FileTarget.
+ * Use `create(FileTargetSchema)` to create a new message.
+ */
+export declare const FileTargetSchema: GenMessage<FileTarget>;
+
+/**
  * @generated from message go_go_golems.minitrace.api.v1.ToolCallInput
  */
 export declare type ToolCallInput = Message<"go_go_golems.minitrace.api.v1.ToolCallInput"> & {
@@ -146,6 +202,11 @@ export declare type ToolCallInput = Message<"go_go_golems.minitrace.api.v1.ToolC
    * @generated from field: optional string file_path = 3;
    */
   filePath?: string | undefined;
+
+  /**
+   * @generated from field: repeated go_go_golems.minitrace.api.v1.FileTarget file_targets = 4;
+   */
+  fileTargets: FileTarget[];
 };
 
 /**
@@ -238,6 +299,11 @@ export declare type ToolCall = Message<"go_go_golems.minitrace.api.v1.ToolCall">
    * @generated from field: repeated go_go_golems.minitrace.api.v1.ToolCallBadge badges = 7;
    */
   badges: ToolCallBadge[];
+
+  /**
+   * @generated from field: string record_kind = 8;
+   */
+  recordKind: string;
 };
 
 /**

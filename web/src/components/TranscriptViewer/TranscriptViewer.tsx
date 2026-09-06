@@ -449,7 +449,7 @@ export function TranscriptViewer({
             sx={{ fontFamily: "monospace" }}
           />
           <Chip
-            label={`${session.metrics.tool_call_count} tool calls`}
+            label={`${session.metrics.tool_call_count} tool records · ${session.metrics.model_invocation_count ?? 0} invocations · ${session.metrics.execution_record_count ?? 0} executions · ${session.metrics.confirmed_file_target_count ?? 0}/${session.metrics.file_touch_count ?? 0} confirmed targets`}
             size="small"
             variant="outlined"
             sx={{ fontFamily: "monospace" }}

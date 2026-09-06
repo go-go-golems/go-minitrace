@@ -430,6 +430,23 @@ function ToolCallRowImpl({
             lineHeight: 1.6,
           }}
         >
+          <Typography variant="caption" display="block">Record kind: {tc.record_kind || "tool_call"}</Typography>
+          {(tc.input.file_targets?.length ?? 0) > 0 && (
+            <Box aria-label="File target evidence" sx={{ mb: 1 }}>
+              <Typography variant="body2">File target evidence</Typography>
+              <Box component="ul" sx={{ pl: 2, m: 0 }}>
+                {tc.input.file_targets?.map((target, index) => (
+                  <Box component="li" key={`${target.path}:${index}`} sx={{ overflowWrap: "anywhere" }}>
+                    <strong>{target.path}</strong> — {target.operation_type}; {target.status}; {target.evidence_kind}
+                    <Typography variant="caption" display="block">
+                      Outcome: {target.success === null ? "unknown" : target.success ? "succeeded" : "failed"}; {target.resolved ? `cwd: ${target.cwd || "absolute target"}` : "relative target; cwd unresolved"}
+                    </Typography>
+                    {target.source_reference && <Typography variant="caption" display="block">Source: {target.source_reference}</Typography>}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
           <ToolCallDetail tc={tc} cmd={cmd} />
         </Box>
       </Collapse>

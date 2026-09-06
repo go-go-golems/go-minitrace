@@ -42,6 +42,7 @@ type SessionTimingResponse struct {
 }
 
 type SessionMetricsResponse struct {
+	minitrace.ActivityCounts
 	TurnCount            int  `json:"turn_count"`
 	ToolCallCount        int  `json:"tool_call_count"`
 	TotalInputTokens     *int `json:"total_input_tokens,omitempty"`
@@ -137,6 +138,7 @@ type TurnResponse struct {
 }
 
 type ToolCallResponse struct {
+	RecordKind    string         `json:"record_kind"`
 	ID            string         `json:"id"`
 	ToolName      string         `json:"tool_name"`
 	Timestamp     string         `json:"timestamp"`
@@ -147,9 +149,10 @@ type ToolCallResponse struct {
 }
 
 type ToolCallInput struct {
-	Command   string         `json:"command,omitempty"`
-	Arguments map[string]any `json:"arguments,omitempty"`
-	FilePath  string         `json:"file_path,omitempty"`
+	FileTargets []minitrace.FileTarget `json:"file_targets"`
+	Command     string                 `json:"command,omitempty"`
+	Arguments   map[string]any         `json:"arguments,omitempty"`
+	FilePath    string                 `json:"file_path,omitempty"`
 }
 
 type ToolCallOutput struct {
@@ -170,6 +173,7 @@ type BlockArtifacts struct {
 }
 
 func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDetailResponse {
+	session.Metrics.ActivityCounts = minitrace.CountToolActivity(session.ToolCalls)
 	return SessionSummaryDetailResponse{
 		SessionSummaryResponse: SessionSummaryResponse{
 			ID:                 session.ID,
@@ -280,13 +284,15 @@ func normalizeUsage(u *minitrace.Usage) *TurnUsageResponse {
 func normalizeToolCall(toolCall minitrace.ToolCall) ToolCallResponse {
 	return ToolCallResponse{
 		ID:            toolCall.ID,
+		RecordKind:    toolCall.EffectiveRecordKind(),
 		ToolName:      toolCall.ToolName,
 		Timestamp:     stringValue(toolCall.Timestamp),
 		OperationType: toolCall.OperationType,
 		Input: ToolCallInput{
-			Command:   stringValue(toolCall.Input.Command),
-			Arguments: normalizeArguments(toolCall.Input.Arguments),
-			FilePath:  stringValue(toolCall.Input.FilePath),
+			Command:     stringValue(toolCall.Input.Command),
+			Arguments:   normalizeArguments(toolCall.Input.Arguments),
+			FilePath:    stringValue(toolCall.Input.FilePath),
+			FileTargets: toolCall.EffectiveFileTargets(),
 		},
 		Output: ToolCallOutput{
 			Success:    toolCall.Output.Success,
@@ -314,6 +320,7 @@ func normalizeTiming(timing minitrace.Timing) SessionTimingResponse {
 
 func normalizeMetrics(metrics minitrace.Metrics) SessionMetricsResponse {
 	return SessionMetricsResponse{
+		ActivityCounts:       metrics.ActivityCounts,
 		TurnCount:            metrics.TurnCount,
 		ToolCallCount:        metrics.ToolCallCount,
 		TotalInputTokens:     metrics.TotalInputTokens,

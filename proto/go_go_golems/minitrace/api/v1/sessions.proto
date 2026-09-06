@@ -32,10 +32,23 @@ message SessionSummaryDetail {
   repeated SessionAttachment attachments = 11;
 }
 
+message FileTarget {
+  string path = 1;
+  string native_path = 2;
+  string operation_type = 3;
+  string evidence_kind = 4;
+  string status = 5;
+  optional bool success = 6;
+  string cwd = 7;
+  bool resolved = 8;
+  string source_reference = 9;
+}
+
 message ToolCallInput {
   optional string command = 1;
   google.protobuf.Struct arguments = 2;
   optional string file_path = 3;
+  repeated FileTarget file_targets = 4;
 }
 
 message ToolCallOutput {
@@ -56,6 +69,7 @@ message ToolCall {
   ToolCallInput input = 5;
   ToolCallOutput output = 6;
   repeated ToolCallBadge badges = 7;
+  string record_kind = 8;
 }
 
 message TurnUsage {

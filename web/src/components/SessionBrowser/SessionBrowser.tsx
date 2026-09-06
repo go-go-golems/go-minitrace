@@ -218,6 +218,9 @@ export function SessionBrowser({
                     <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
                       {session.metrics.tool_call_count.toLocaleString()}
                     </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {session.metrics.model_invocation_count ?? 0} invocations / {session.metrics.execution_record_count ?? 0} executions
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary">

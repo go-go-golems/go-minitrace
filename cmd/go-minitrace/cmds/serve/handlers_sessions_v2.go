@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+
 	apiv1 "github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -27,6 +29,13 @@ SELECT
   s.day_of_week,
   s.turn_count,
   s.tool_call_count,
+  s.tool_call_record_count,
+  s.orchestration_count,
+  s.execution_record_count,
+  s.file_change_count,
+  s.model_invocation_count,
+  s.file_touch_count,
+  s.confirmed_file_target_count,
   m.total_input_tokens,
   m.total_output_tokens,
   m.total_cache_read_tokens,
@@ -95,7 +104,7 @@ func sessionSummaryFromRow(row map[string]any) SessionSummaryResponse {
 			DayOfWeek:             cellInt(row["day_of_week"]),
 		},
 		Metrics: SessionMetricsResponse{
-			TurnCount:            cellInt(row["turn_count"]),
+			ActivityCounts: minitrace.ActivityCounts{ToolCallRecordCount: cellInt(row["tool_call_record_count"]), OrchestrationCount: cellInt(row["orchestration_count"]), ExecutionRecordCount: cellInt(row["execution_record_count"]), FileChangeCount: cellInt(row["file_change_count"]), ModelInvocationCount: cellInt(row["model_invocation_count"]), FileTouchCount: cellInt(row["file_touch_count"]), ConfirmedFileTargetCount: cellInt(row["confirmed_file_target_count"])}, TurnCount: cellInt(row["turn_count"]),
 			ToolCallCount:        cellInt(row["tool_call_count"]),
 			TotalInputTokens:     cellOptionalInt(row["total_input_tokens"]),
 			TotalOutputTokens:    cellOptionalInt(row["total_output_tokens"]),
@@ -487,6 +496,7 @@ func protoToolCall(toolCall ToolCallResponse) (*apiv1.ToolCall, error) {
 	}
 	return &apiv1.ToolCall{
 		Id:            toolCall.ID,
+		RecordKind:    toolCall.RecordKind,
 		ToolName:      toolCall.ToolName,
 		Timestamp:     toolCall.Timestamp,
 		OperationType: toolCall.OperationType,
@@ -500,6 +510,9 @@ func protoToolCallInput(input ToolCallInput) (*apiv1.ToolCallInput, error) {
 	ret := &apiv1.ToolCallInput{
 		Command:  protoOptionalString(input.Command),
 		FilePath: protoOptionalString(input.FilePath),
+	}
+	for _, target := range input.FileTargets {
+		ret.FileTargets = append(ret.FileTargets, &apiv1.FileTarget{Path: target.Path, NativePath: target.NativePath, OperationType: target.OperationType, EvidenceKind: target.EvidenceKind, Status: target.Status, Success: target.Success, Cwd: target.CWD, Resolved: target.Resolved, SourceReference: target.SourceReference})
 	}
 	if len(input.Arguments) > 0 {
 		arguments, err := structpb.NewStruct(input.Arguments)
@@ -561,11 +574,18 @@ func protoSessionTiming(timing SessionTimingResponse) *apiv1.SessionTiming {
 
 func protoSessionMetrics(metrics SessionMetricsResponse) *apiv1.SessionMetrics {
 	return &apiv1.SessionMetrics{
-		TurnCount:            clampIntToUint32(metrics.TurnCount),
-		ToolCallCount:        clampIntToUint32(metrics.ToolCallCount),
-		TotalInputTokens:     protoOptionalUint32(metrics.TotalInputTokens),
-		TotalOutputTokens:    protoOptionalUint32(metrics.TotalOutputTokens),
-		TotalCacheReadTokens: protoOptionalUint32(metrics.TotalCacheReadTokens),
+		TurnCount:                clampIntToUint32(metrics.TurnCount),
+		ToolCallCount:            clampIntToUint32(metrics.ToolCallCount),
+		ToolCallRecordCount:      clampIntToUint32(metrics.ToolCallRecordCount),
+		OrchestrationCount:       clampIntToUint32(metrics.OrchestrationCount),
+		ExecutionRecordCount:     clampIntToUint32(metrics.ExecutionRecordCount),
+		FileChangeCount:          clampIntToUint32(metrics.FileChangeCount),
+		ModelInvocationCount:     clampIntToUint32(metrics.ModelInvocationCount),
+		FileTouchCount:           clampIntToUint32(metrics.FileTouchCount),
+		ConfirmedFileTargetCount: clampIntToUint32(metrics.ConfirmedFileTargetCount),
+		TotalInputTokens:         protoOptionalUint32(metrics.TotalInputTokens),
+		TotalOutputTokens:        protoOptionalUint32(metrics.TotalOutputTokens),
+		TotalCacheReadTokens:     protoOptionalUint32(metrics.TotalCacheReadTokens),
 	}
 }
 
