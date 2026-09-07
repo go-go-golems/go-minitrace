@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
 )
 
@@ -91,21 +92,23 @@ type PreviewTurn struct {
 }
 
 type PreviewToolCall struct {
-	ID                 string `json:"id"`
-	TurnIndex          *int   `json:"turnIndex,omitempty"`
-	ToolName           string `json:"toolName"`
-	OperationType      string `json:"operationType"`
-	FilePath           string `json:"filePath,omitempty"`
-	Command            string `json:"command,omitempty"`
-	Success            *bool  `json:"success"`
-	OutcomeStatus      string `json:"outcomeStatus"`
-	HasResult          bool   `json:"hasResult"`
-	HasError           bool   `json:"hasError"`
-	Truncated          bool   `json:"truncated"`
-	SpawnedAgentType   string `json:"spawnedAgentType,omitempty"`
-	SpawnedSubSession  string `json:"spawnedSubSession,omitempty"`
-	SpawnedAgentScope  string `json:"spawnedAgentScope,omitempty"`
-	OutputContentBytes int    `json:"outputContentBytes,omitempty"`
+	RecordKind         string                 `json:"recordKind"`
+	FileTargets        []minitrace.FileTarget `json:"fileTargets,omitempty"`
+	ID                 string                 `json:"id"`
+	TurnIndex          *int                   `json:"turnIndex,omitempty"`
+	ToolName           string                 `json:"toolName"`
+	OperationType      string                 `json:"operationType"`
+	FilePath           string                 `json:"filePath,omitempty"`
+	Command            string                 `json:"command,omitempty"`
+	Success            *bool                  `json:"success"`
+	OutcomeStatus      string                 `json:"outcomeStatus"`
+	HasResult          bool                   `json:"hasResult"`
+	HasError           bool                   `json:"hasError"`
+	Truncated          bool                   `json:"truncated"`
+	SpawnedAgentType   string                 `json:"spawnedAgentType,omitempty"`
+	SpawnedSubSession  string                 `json:"spawnedSubSession,omitempty"`
+	SpawnedAgentScope  string                 `json:"spawnedAgentScope,omitempty"`
+	OutputContentBytes int                    `json:"outputContentBytes,omitempty"`
 }
 
 type PreviewEvent struct {
@@ -361,6 +364,7 @@ func PreviewLoadedSessionWithOptions(loaded *minitracedb.LoadedSession, options 
 		if len(preview.SampleTools) < limit {
 			sample := PreviewToolCall{
 				ID:                 toolCall.ID,
+				RecordKind:         toolCall.EffectiveRecordKind(),
 				TurnIndex:          toolCall.EmittingTurnIndex,
 				ToolName:           toolCall.ToolName,
 				OperationType:      toolCall.OperationType,
@@ -372,6 +376,13 @@ func PreviewLoadedSessionWithOptions(loaded *minitracedb.LoadedSession, options 
 				HasError:           strings.TrimSpace(stringPtr(toolCall.Output.Error)) != "",
 				Truncated:          toolCall.Output.Truncated,
 				OutputContentBytes: outputContentBytes(toolCall.Output.Result, toolCall.Output.Error),
+			}
+			for _, target := range toolCall.EffectiveFileTargets() {
+				target.Path = filePathForPrivacy(target.Path, privacy)
+				target.NativePath = filePathForPrivacy(target.NativePath, privacy)
+				target.CWD = filePathForPrivacy(target.CWD, privacy)
+				target.SourceReference = filePathForPrivacy(target.SourceReference, privacy)
+				sample.FileTargets = append(sample.FileTargets, target)
 			}
 			if toolCall.SpawnedAgent != nil {
 				sample.SpawnedAgentType = toolCall.SpawnedAgent.AgentType

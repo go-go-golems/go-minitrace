@@ -400,6 +400,7 @@ Recipe selectors:
 - `.SessionSummary()`
 - `.TurnRows()`
 - `.ToolRows()`
+- `.FileRows()` — all materialized file-target evidence, including independent outcomes and provenance
 - `.EventRows()`
 - `.TurnBlockRows()`
 - `.TokenUsageRows()`
@@ -425,6 +426,18 @@ const recipe = mt.query()
   .Build();
 const rows = db.query(recipe.sql(), ...recipe.args());
 ```
+
+### Fidelity-aware projections
+
+`SessionSummary()` includes the ordinary/orchestration/execution/file-change record counts, model invocation count, file-target count, and confirmed-target count. Total tool records are not the same as model invocations or executed processes.
+
+`ToolRows()` preserves nullable `turn_index` and `success` and exposes `record_kind`, `outcome_status`, `framework_metadata_json`, `full_hash`, and `full_reference`. `file_targets_json` is the archive's structural input list; older scalar-only archives can have null here. Use `FileRows()` for the complete materialized target ledger, including explicitly labeled legacy scalar reports. File success is independent of tool success.
+
+`TranscriptRows()` keeps unassociated tools at a null turn index and emits one row per tool even when source membership entries repeat. Rows are ordered by session and turn, with unassociated records last within each session.
+
+`TimelineRows()` is a per-turn projection: it does not assign unassociated tools to a turn. Tool and file aggregates are computed separately so multiple targets or annotations cannot multiply tool counts. It reports `unknown_tool_count`, `file_touch_count`, and `confirmed_file_target_count`; `file_count` counts distinct paths, while `file_touch_count` counts evidence rows. Annotation presence is scoped to turn annotations.
+
+Importer `Preview()` samples include `recordKind` and `fileTargets`. The shared Go helper `PreviewLoadedSessionWithOptions` also honors structural privacy: it retains target operations/evidence/outcomes but redacts path, native path, cwd and source reference without modifying the imported session. The JavaScript importer uses its existing default preview policy.
 
 ## `mt.view()` and `session.view()`
 
@@ -468,6 +481,23 @@ Modifiers:
 - `.BySession()` / `.ByTurn()` / `.ByRole()` / `.ByTool()`
 - `.Plan()` to inspect the underlying query recipe
 - `.Run()` to execute
+
+### Turn frame identity and outcomes
+
+`TurnFrames().Run()` returns frames keyed by both session and turn. Every frame includes `sessionId`, `turnIndex`, `unassociated`, `blocks`, `toolCalls`, and `stats`. Records with no proven turn are retained in a separate frame per session with `turnIndex: null` and `unassociated: true`, never assigned to turn zero. Associated frames sort by turn index, followed by the unassociated frame. Sparse or negative indexes do not require scanning every intervening integer.
+
+`stats.failedToolCalls` counts only explicit false/zero outcomes. `stats.unknownToolCalls` counts absent binary outcomes, including pending/cancelled tools. Consumers must handle nullable frame indexes instead of treating every frame as a conversational turn.
+
+```js
+for (const frame of session.view().TurnFrames().Run()) {
+  if (frame.unassociated) {
+    // Display separately; do not invent an emitting message.
+    renderUnassociated(frame.toolCalls);
+  } else {
+    renderTurn(frame.turnIndex, frame.blocks, frame.toolCalls);
+  }
+}
+```
 
 ## `mt.session()`
 
