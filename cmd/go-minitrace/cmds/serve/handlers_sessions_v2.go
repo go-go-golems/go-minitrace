@@ -3,6 +3,7 @@ package serve
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
@@ -508,6 +509,10 @@ func protoToolCall(toolCall ToolCallResponse) (*apiv1.ToolCall, error) {
 	if err != nil {
 		return nil, err
 	}
+	output, err := protoToolCallOutput(toolCall.Output)
+	if err != nil {
+		return nil, fmt.Errorf("tool %s output: %w", toolCall.ID, err)
+	}
 	return &apiv1.ToolCall{
 		Id:                toolCall.ID,
 		FrameworkMetadata: metadata,
@@ -516,7 +521,7 @@ func protoToolCall(toolCall ToolCallResponse) (*apiv1.ToolCall, error) {
 		Timestamp:         toolCall.Timestamp,
 		OperationType:     toolCall.OperationType,
 		Input:             input,
-		Output:            protoToolCallOutput(toolCall.Output),
+		Output:            output,
 		Badges:            protoToolCallBadges(toolCall.Badges),
 	}, nil
 }
@@ -554,7 +559,7 @@ func strictProtoStruct(value map[string]any) (*structpb.Struct, error) {
 	return structpb.NewStruct(normalized)
 }
 
-func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
+func protoToolCallOutput(output ToolCallOutput) (*apiv1.ToolCallOutput, error) {
 	var fullBytes *uint64
 	if output.FullBytes != nil && *output.FullBytes >= 0 {
 		value := uint64(*output.FullBytes)
@@ -562,7 +567,11 @@ func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
 	}
 	var exitCode *int32
 	if output.ExitCode != nil {
-		code := int32(*output.ExitCode)
+		value := *output.ExitCode
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			return nil, fmt.Errorf("exit code %d is outside the protobuf int32 range", value)
+		}
+		code := int32(value)
 		exitCode = &code
 	}
 	return &apiv1.ToolCallOutput{
@@ -576,7 +585,7 @@ func protoToolCallOutput(output ToolCallOutput) *apiv1.ToolCallOutput {
 		FullReference: output.FullReference,
 		FullBytes:     fullBytes,
 		FullHash:      output.FullHash,
-	}
+	}, nil
 }
 
 var protoToolCallBadgeMap = map[BadgeType]apiv1.ToolCallBadge{

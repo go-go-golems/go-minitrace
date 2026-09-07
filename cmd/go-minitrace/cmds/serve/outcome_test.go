@@ -2,7 +2,9 @@ package serve
 
 import (
 	"encoding/json"
+	"math"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
@@ -19,7 +21,10 @@ func TestToolOutcomeProtoPresenceAndBadges(t *testing.T) {
 			if status == minitrace.ToolOutcomeSucceeded || status == minitrace.ToolOutcomeFailed {
 				output.SetSuccess(status == minitrace.ToolOutcomeSucceeded)
 			}
-			apiOutput := protoToolCallOutput(ToolCallOutput{Success: output.Success, Status: string(output.OutcomeStatus())})
+			apiOutput, err := protoToolCallOutput(ToolCallOutput{Success: output.Success, Status: string(output.OutcomeStatus())})
+			if err != nil {
+				t.Fatal(err)
+			}
 			data, err := protojson.Marshal(apiOutput)
 			if err != nil {
 				t.Fatal(err)
@@ -46,9 +51,32 @@ func TestToolOutcomeProtoPresenceAndBadges(t *testing.T) {
 	}
 }
 
+func TestToolOutcomeProtoExitCodeBounds(t *testing.T) {
+	for _, code := range []int{math.MinInt32, -1, 0, math.MaxInt32} {
+		output, err := protoToolCallOutput(ToolCallOutput{ExitCode: &code})
+		if err != nil || output.ExitCode == nil || int(*output.ExitCode) != code {
+			t.Fatalf("code %d changed: %+v, %v", code, output, err)
+		}
+	}
+	if strconv.IntSize > 32 {
+		for _, code := range []int{math.MinInt, math.MaxInt} {
+			output, err := protoToolCallOutput(ToolCallOutput{ExitCode: &code})
+			if err == nil || output != nil {
+				t.Fatalf("out-of-range code %d accepted", code)
+			}
+			if _, err := protoToolCall(ToolCallResponse{ID: "invalid", Output: ToolCallOutput{ExitCode: &code}}); err == nil {
+				t.Fatal("range error not propagated")
+			}
+		}
+	}
+}
+
 func TestToolOutcomeProtoPreservesSignedExitCode(t *testing.T) {
 	code := -1
-	output := protoToolCallOutput(ToolCallOutput{ExitCode: &code})
+	output, err := protoToolCallOutput(ToolCallOutput{ExitCode: &code})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if output.ExitCode == nil || *output.ExitCode != -1 {
 		t.Fatalf("signed exit code lost: %+v", output)
 	}
