@@ -1,0 +1,23 @@
+│
+▲  No story files found for the specified pattern: src/**/*.mdx
+
+ RUN  v4.1.2 /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web
+
+7:14:43 PM [vite] http proxy error: /api/v2/sessions/019d174c-fc68-7c00-8f1b-7fcc067c1fd6/annotations
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1706:16)
+7:14:46 PM [vite] http proxy error: /api/v2/sessions/019d174c-fc68-7c00-8f1b-7fcc067c1fd6/annotations
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1706:16)
+7:14:47 PM [vite] http proxy error: /api/v2/sessions/019d174c-fc68-7c00-8f1b-7fcc067c1fd6/annotations
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1706:16)
+7:14:48 PM [vite] http proxy error: /api/v2/sessions/019d174c-fc68-7c00-8f1b-7fcc067c1fd6/annotations
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1706:16)
+
+ Test Files  12 passed (12)
+      Tests  78 passed (78)
+   Start at  19:14:36
+   Duration  13.77s (transform 0ms, setup 15.04s, import 11.86s, tests 41.93s, environment 0ms)
+

@@ -1,0 +1,72 @@
+╭───────────────────────────────────────╮
+│ 🥊 lefthook v2.0.16  hook: pre-commit │
+╰───────────────────────────────────────╯
+┃  lint ❯ 
+
+Building glazed-lint from pinned tool module...
+Installing github.com/go-go-golems/glazed/cmd/tools/glazed-lint@v1.3.5
+golangci-lint run -v
+[36mINFO[0m golangci-lint has version 2.4.0 built with go1.26.1 from (unknown, modified: ?, mod sum: "h1:qz6O6vr7kVzXJqyvHjHSz5fA3D+PM8v96QU5gxZCNWM=") on (unknown) 
+[36mINFO[0m [config_reader] Config search paths: [./ /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace /home/manuel/workspaces/2026-09-06/update-codex-adapter /home/manuel/workspaces/2026-09-06 /home/manuel/workspaces /home/manuel /home /] 
+[36mINFO[0m [config_reader] Used config file .golangci.yml 
+[36mINFO[0m [config_reader] Module name "github.com/go-go-golems/go-minitrace" 
+[36mINFO[0m maxprocs: Leaving GOMAXPROCS=8: CPU quota undefined 
+[36mINFO[0m [goenv] Read go env for 12.900948ms: map[string]string{"GOCACHE":"/home/manuel/.cache/go-build", "GOROOT":"/home/manuel/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64"} 
+[36mINFO[0m [lintersdb] Active 9 linters: [errcheck exhaustive gofmt govet ineffassign nonamedreturns predeclared staticcheck unused] 
+[36mINFO[0m [loader] Go packages loading at mode 8767 (deps|exports_file|files|compiled_files|imports|name|types_sizes) took 475.493484ms 
+[36mINFO[0m [runner/filename_unadjuster] Pre-built 0 adjustments in 36.550874ms 
+[36mINFO[0m [linters_context/goanalysis] analyzers took 2.714764516s with top 10 stages: buildir: 581.956541ms, unused: 180.415168ms, gofmt: 179.798943ms, QF1004: 141.543808ms, S1024: 114.573697ms, S1038: 114.146107ms, S1039: 106.579717ms, printf: 105.65462ms, QF1010: 103.683813ms, SA6006: 68.855335ms 
+[36mINFO[0m [runner/exclusion_paths] Skipped 0 issues by pattern "ttmp/.*\\\\.go" 
+[36mINFO[0m [runner/exclusion_paths] Skipped 0 issues by pattern "test_.*\\\\.go" 
+[36mINFO[0m [runner/exclusion_paths] Skipped 0 issues by pattern "web/node_modules/" 
+[36mINFO[0m [runner/exclusion_rules] Skipped 0 issues by rules: [Text: "SA1019: cli.CreateProcessorLegacy", Linters: "staticcheck"] 
+[36mINFO[0m [runner] processing took 46.995µs with stages: exclusion_paths: 27.797µs, exclusion_rules: 15.501µs, max_same_issues: 567ns, path_absoluter: 501ns, max_from_linter: 411ns, nolint_filter: 284ns, fixer: 194ns, path_prettifier: 191ns, filename_unadjuster: 185ns, source_code: 183ns, diff: 178ns, path_relativity: 175ns, max_per_file_from_linter: 170ns, sort_results: 167ns, generated_file_filter: 88ns, invalid_issue: 87ns, path_shortener: 83ns, uniq_by_line: 81ns, cgo: 77ns, severity-rules: 75ns 
+[36mINFO[0m [runner] linters took 829.765657ms with stages: goanalysis_metalinter: 829.654699ms 
+0 issues.
+[36mINFO[0m File cache stats: 0 entries of total size 0B 
+[36mINFO[0m Memory: 15 samples, avg is 123.9MB, max is 265.2MB 
+[36mINFO[0m Execution took 1.355484859s                  
+GOWORK=off go vet -vettool=/tmp/glazed-lint -glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/ ./cmd/... ./pkg/...
+
+┃  test ❯ 
+
+go test ./...
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	1.661s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	(cached)
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	(cached)
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.231s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	(cached)
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts	[no test files]
+
+                                      
+  ────────────────────────────────────
+summary: (done in 4.45 seconds)       
+✔️ lint (3.55 seconds)
+✔️ test (4.44 seconds)
+[task/update-codex-adapter b344f44] fix(serve): retain unassociated tool records without fabricated message links
+ 13 files changed, 128 insertions(+), 91 deletions(-)
+ create mode 100644 cmd/go-minitrace/cmds/serve/unassociated_test.go

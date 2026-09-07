@@ -1,0 +1,50 @@
+[
+{
+  "cwd": "/home/manuel/code/wesen/2026-09-03--agent-forum",
+  "format_hint": "session-jsonl-v1",
+  "id": "rollout-2026-09-04T15-23-35-01a06de0-5c5b-74e1-acc0-ed790e41732b",
+  "last_activity_at": "",
+  "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-23-35-01a06de0-5c5b-74e1-acc0-ed790e41732b.jsonl",
+  "started_at": "2026-09-04T19:25:02.012Z"
+}
+, {
+  "cwd": "/home/manuel/code/wesen/2026-09-03--agent-forum",
+  "format_hint": "session-jsonl-v1",
+  "id": "rollout-2026-09-04T15-28-28-01a06de4-d3a3-7851-bb21-cff77684cc12",
+  "last_activity_at": "",
+  "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-28-28-01a06de4-d3a3-7851-bb21-cff77684cc12.jsonl",
+  "started_at": "2026-09-04T19:28:28.112Z"
+}
+, {
+  "cwd": "/home/manuel/code/wesen/2026-09-04--gatemate-symbolic",
+  "format_hint": "session-jsonl-v1",
+  "id": "rollout-2026-09-04T15-29-58-01a06de6-34fd-7930-891b-a492ab38d918",
+  "last_activity_at": "",
+  "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-29-58-01a06de6-34fd-7930-891b-a492ab38d918.jsonl",
+  "started_at": "2026-09-04T19:30:43.023Z"
+}
+, {
+  "cwd": "/home/manuel/code/wesen/2026-09-04--gatemate-symbolic",
+  "format_hint": "session-jsonl-v1",
+  "id": "rollout-2026-09-04T15-29-58-01a06de6-35ca-7191-85b9-64f31bae42c8",
+  "last_activity_at": "",
+  "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-29-58-01a06de6-35ca-7191-85b9-64f31bae42c8.jsonl",
+  "started_at": "2026-09-04T19:33:09.328Z"
+}
+, {
+  "cwd": "/home/manuel/workspaces/2026-09-01/add-plot-editor",
+  "format_hint": "session-jsonl-v1",
+  "id": "rollout-2026-09-04T15-34-31-01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+  "last_activity_at": "",
+  "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-34-31-01a06dea-5dc2-7fb3-992f-dad6143c5d34.jsonl",
+  "started_at": "2026-09-04T19:35:56.382Z"
+}
+, {
+  "cwd": "/home/manuel/workspaces/2026-09-01/add-plot-editor",
+  "format_hint": "session-jsonl-v1",
+  "id": "rollout-2026-09-04T15-34-31-01a06dea-5e4b-7652-b6c7-f13261347455",
+  "last_activity_at": "",
+  "source_path": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-34-31-01a06dea-5e4b-7652-b6c7-f13261347455.jsonl",
+  "started_at": "2026-09-04T19:36:27.416Z"
+}
+]

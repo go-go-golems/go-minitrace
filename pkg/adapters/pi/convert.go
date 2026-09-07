@@ -261,7 +261,7 @@ func ConvertRecords(records []map[string]any, fallbackID, sourcePath string) (*m
 
 	for toolCallID, pendingIndex := range pendingToolCalls {
 		errorText := "no tool result received"
-		toolCalls[pendingIndex].Output.Success = false
+		toolCalls[pendingIndex].Output.SetSuccess(false)
 		toolCalls[pendingIndex].Output.Error = &errorText
 
 		annotation := minitrace.BuildAnnotation(
@@ -449,7 +449,7 @@ func buildUsage(raw map[string]any, totals *minitrace.TokenTotals) *minitrace.Us
 
 func applyToolResult(toolCall *minitrace.ToolCall, content any, isError bool, timestamp *string, raw map[string]any) {
 	truncated, fullBytes, fullHash := minitrace.TruncateContent(stringifyContent(content), minitrace.TruncateLimit)
-	toolCall.Output.Success = !isError
+	toolCall.Output.SetSuccess(!isError)
 	toolCall.Output.Result = truncated
 	toolCall.Output.Truncated = fullBytes != nil
 	toolCall.Output.FullBytes = fullBytes

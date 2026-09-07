@@ -25,7 +25,7 @@ func DetectBadges(toolCall minitrace.ToolCall) []BadgeType {
 	badges := make([]BadgeType, 0, 2)
 	command := strings.ToLower(extractCommand(toolCall))
 
-	if !toolCall.Output.Success {
+	if toolCall.Output.Failed() {
 		badges = append(badges, BadgeError)
 	}
 	if strings.Contains(command, "git commit") {

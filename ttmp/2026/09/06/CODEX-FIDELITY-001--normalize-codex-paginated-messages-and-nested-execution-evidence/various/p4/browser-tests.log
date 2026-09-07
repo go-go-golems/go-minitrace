@@ -1,0 +1,11 @@
+│
+▲  No story files found for the specified pattern: src/**/*.mdx
+
+ RUN  v4.1.2 /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web
+
+
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+   Start at  18:13:41
+   Duration  4.02s (transform 0ms, setup 1.39s, import 753ms, tests 2.90s, environment 0ms)
+

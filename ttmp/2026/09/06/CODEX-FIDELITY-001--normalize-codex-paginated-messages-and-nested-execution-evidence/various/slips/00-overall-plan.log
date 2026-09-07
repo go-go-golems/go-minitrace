@@ -1,0 +1,25 @@
+layout: ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/slips/00-overall-plan.yaml
+dry_run: false
+height: 535
+layout_member: 00-overall-plan.yaml
+ok: true
+printed: true
+printer_response:
+    ok: true
+rendered_at: "2026-09-06T20:19:10Z"
+response:
+    height: 535
+    ok: true
+    printed: true
+    printerResponse:
+        ok: true
+    renderedAt: "2026-09-06T20:19:10Z"
+    width: 384
+source_kind: file
+status_code: 200
+url: https://almanach.crib.scapegoat.dev/api/render-and-print
+width: 384
+
+---
+
+printed: yes

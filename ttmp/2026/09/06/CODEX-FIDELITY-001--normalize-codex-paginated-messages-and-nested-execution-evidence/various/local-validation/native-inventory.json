@@ -1,0 +1,302 @@
+[
+  {
+    "source": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-23-35-01a06de0-5c5b-74e1-acc0-ed790e41732b.jsonl",
+    "sha256": "f5e9f9936078c9dd77c9413a23ab72ad256dfb60dda7ba8440036134f52bbc6e",
+    "metadata": {
+      "id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+      "cli_version": "0.153.3",
+      "history_mode": "paginated",
+      "cwd": "/home/manuel/code/wesen/2026-09-03--agent-forum"
+    },
+    "counts": {
+      "response_messages": 250,
+      "UserMessage": 50,
+      "AgentMessage": 188,
+      "CommandExecution": 886,
+      "executions_with_exit_code": 886,
+      "array_outputs": 621,
+      "Reasoning": 554,
+      "nonzero_execution_events": 77,
+      "Extension": 10,
+      "FileChange": 296,
+      "ContextCompaction": 8,
+      "McpToolCall": 31,
+      "ImageView": 4
+    },
+    "unique_item_ids": {
+      "UserMessage": 50,
+      "AgentMessage": 188,
+      "CommandExecution": 886,
+      "Reasoning": 554,
+      "Extension": 10,
+      "FileChange": 296,
+      "ContextCompaction": 8,
+      "McpToolCall": 31,
+      "ImageView": 4
+    },
+    "anchors": {
+      "UserMessage": {
+        "line": 10,
+        "id": "01a06de1-b092-7c42-b924-4f0a80ec77f4"
+      },
+      "AgentMessage": {
+        "line": 11,
+        "id": "msg_00caf1136f6fcf14016a9b1b10331c87d18f60bb9afba5eacd"
+      },
+      "CommandExecution": {
+        "line": 15,
+        "id": "exec-f9d6ca2d-ba06-4268-a8a2-2dd798bf42c5"
+      },
+      "array_output": {
+        "line": 17,
+        "call_id": "call_RkK6nyth18RIwKlNfYRVjEXR"
+      },
+      "Reasoning": {
+        "line": 29,
+        "id": "rs_00caf1136f6fcf14016a9b1b254f8c87d18bb8bca7d12e3f2e"
+      },
+      "failed_execution": {
+        "line": 73,
+        "id": "exec-98014f6b-4215-46f0-9ca2-5db59e135c53",
+        "exit_code": 1
+      },
+      "Extension": {
+        "line": 87,
+        "id": "exec-191048b5-16ba-4860-983e-3b87f16ed6c9"
+      },
+      "FileChange": {
+        "line": 95,
+        "id": "exec-0c45aae5-0481-4703-8fd0-5dce062595cd"
+      },
+      "ContextCompaction": {
+        "line": 402,
+        "id": "01a06e27-3192-7c80-8adb-caa3cbbafeeb"
+      },
+      "McpToolCall": {
+        "line": 1895,
+        "id": "exec-f5677d18-ed1d-48aa-993f-e50ef87a76a3"
+      },
+      "ImageView": {
+        "line": 5493,
+        "id": "exec-369a554e-ad1d-4ba5-bf0d-d6b359d7fc9a"
+      }
+    }
+  },
+  {
+    "source": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-28-28-01a06de4-d3a3-7851-bb21-cff77684cc12.jsonl",
+    "sha256": "65d1bc85f052ab3e0fa42aa513deaa9016c7564be7e82a59e9d6ec8b2574b27f",
+    "metadata": {
+      "id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+      "cli_version": "0.153.3",
+      "history_mode": "legacy",
+      "cwd": "/home/manuel/code/wesen/2026-09-03--agent-forum"
+    },
+    "counts": {
+      "response_messages": 630
+    },
+    "unique_item_ids": {},
+    "anchors": {}
+  },
+  {
+    "source": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-29-58-01a06de6-34fd-7930-891b-a492ab38d918.jsonl",
+    "sha256": "c4822c452f830580bd36598cd9a9f7621c8f5598c3482cd2159cd0df59fc3554",
+    "metadata": {
+      "id": "01a06de6-34fd-7930-891b-a492ab38d918",
+      "cli_version": "0.153.3",
+      "history_mode": "paginated",
+      "cwd": "/home/manuel/code/wesen/2026-09-04--gatemate-symbolic"
+    },
+    "counts": {
+      "response_messages": 303,
+      "UserMessage": 45,
+      "AgentMessage": 254,
+      "CommandExecution": 1104,
+      "executions_with_exit_code": 1104,
+      "array_outputs": 860,
+      "Reasoning": 867,
+      "Extension": 21,
+      "nonzero_execution_events": 60,
+      "FileChange": 140,
+      "ContextCompaction": 9,
+      "ImageView": 15,
+      "McpToolCall": 94
+    },
+    "unique_item_ids": {
+      "UserMessage": 45,
+      "AgentMessage": 254,
+      "CommandExecution": 1104,
+      "Reasoning": 867,
+      "Extension": 21,
+      "FileChange": 140,
+      "ContextCompaction": 9,
+      "ImageView": 15,
+      "McpToolCall": 94
+    },
+    "anchors": {
+      "UserMessage": {
+        "line": 10,
+        "id": "01a06de6-e4ee-7c82-ba7f-c866311c9053"
+      },
+      "AgentMessage": {
+        "line": 11,
+        "id": "msg_092bd9aaee304422016a9b1c65261c87d19a5b069bdc243af4"
+      },
+      "CommandExecution": {
+        "line": 15,
+        "id": "exec-6972185e-8b62-4938-8855-272360009b29"
+      },
+      "array_output": {
+        "line": 18,
+        "call_id": "call_QpBOxBX0a8Jp3VqT5uGeRxpT"
+      },
+      "Reasoning": {
+        "line": 26,
+        "id": "rs_092bd9aaee304422016a9b1c76af9c87d1aa451c32411096e6"
+      },
+      "Extension": {
+        "line": 73,
+        "id": "exec-906b4234-f610-4c67-9523-c0b71d10ad44"
+      },
+      "failed_execution": {
+        "line": 74,
+        "id": "exec-23fcae80-f7de-4cc1-bf44-30c00640830f",
+        "exit_code": 1
+      },
+      "FileChange": {
+        "line": 254,
+        "id": "exec-92d6d673-0f32-49a0-9ea3-84df96110043"
+      },
+      "ContextCompaction": {
+        "line": 654,
+        "id": "01a06e18-1d5a-7390-8357-9f4494beafc8"
+      },
+      "ImageView": {
+        "line": 1210,
+        "id": "exec-675b7899-eb0d-4f68-b824-6d17643d2f49"
+      },
+      "McpToolCall": {
+        "line": 2211,
+        "id": "exec-b46ab932-d74d-4948-93df-a948380fdcd5"
+      }
+    }
+  },
+  {
+    "source": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-29-58-01a06de6-35ca-7191-85b9-64f31bae42c8.jsonl",
+    "sha256": "242da6b0da5627306948083bf4e02b4d9f165ad5f943684a8eca188c4214134b",
+    "metadata": {
+      "id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+      "cli_version": "0.153.3",
+      "history_mode": "legacy",
+      "cwd": "/home/manuel/code/wesen/2026-09-04--gatemate-symbolic"
+    },
+    "counts": {
+      "response_messages": 701,
+      "array_outputs": 5
+    },
+    "unique_item_ids": {},
+    "anchors": {
+      "array_output": {
+        "line": 1993,
+        "call_id": "call_3h5uJBKuw5BTsVK4o5iG38uT"
+      }
+    }
+  },
+  {
+    "source": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-34-31-01a06dea-5dc2-7fb3-992f-dad6143c5d34.jsonl",
+    "sha256": "003c2376459a625bfce0193669556f9472247cc35d6d46e6c5be60d34fe40e4a",
+    "metadata": {
+      "id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+      "cli_version": "0.153.3",
+      "history_mode": "paginated",
+      "cwd": "/home/manuel/workspaces/2026-09-01/add-plot-editor"
+    },
+    "counts": {
+      "response_messages": 99,
+      "UserMessage": 19,
+      "AgentMessage": 76,
+      "CommandExecution": 306,
+      "executions_with_exit_code": 306,
+      "array_outputs": 271,
+      "McpToolCall": 57,
+      "Reasoning": 242,
+      "nonzero_execution_events": 18,
+      "FileChange": 36,
+      "ImageView": 25,
+      "Extension": 9,
+      "ContextCompaction": 3
+    },
+    "unique_item_ids": {
+      "UserMessage": 19,
+      "AgentMessage": 76,
+      "CommandExecution": 306,
+      "McpToolCall": 57,
+      "Reasoning": 242,
+      "FileChange": 36,
+      "ImageView": 25,
+      "Extension": 9,
+      "ContextCompaction": 3
+    },
+    "anchors": {
+      "UserMessage": {
+        "line": 10,
+        "id": "01a06deb-aed5-7731-913c-4e38badf9c72"
+      },
+      "AgentMessage": {
+        "line": 11,
+        "id": "msg_077bfae90763d0a4016a9b1d9f4ef887d1a41d630702345cd7"
+      },
+      "CommandExecution": {
+        "line": 15,
+        "id": "exec-2d59b7ae-261e-4d92-a96a-b785e4432ffa"
+      },
+      "array_output": {
+        "line": 17,
+        "call_id": "call_10U5drXPz4bnEGwX3mNkw91N"
+      },
+      "McpToolCall": {
+        "line": 29,
+        "id": "exec-fe7f2876-af42-4541-9f84-60081b653a7c"
+      },
+      "Reasoning": {
+        "line": 38,
+        "id": "rs_077bfae90763d0a4016a9b1dce883087d193627fff8e911651"
+      },
+      "failed_execution": {
+        "line": 76,
+        "id": "exec-c3d3473e-3ec6-428e-8e50-77e125289309",
+        "exit_code": 1
+      },
+      "FileChange": {
+        "line": 85,
+        "id": "exec-9b5d5dd2-ffc4-4878-b9bc-253b6d328415"
+      },
+      "ImageView": {
+        "line": 94,
+        "id": "exec-1df474a7-9ac8-4c98-9bd4-8ed818aabbe6"
+      },
+      "Extension": {
+        "line": 329,
+        "id": "exec-16a09c30-96cb-42de-9ac6-5225117830b7"
+      },
+      "ContextCompaction": {
+        "line": 374,
+        "id": "01a06e04-db43-7c13-8181-dd6842effaea"
+      }
+    }
+  },
+  {
+    "source": "/home/manuel/.codex/sessions/2026/09/04/rollout-2026-09-04T15-34-31-01a06dea-5e4b-7652-b6c7-f13261347455.jsonl",
+    "sha256": "1dab67aa485a19544df7f13946a235e7c93b9c51dbdf1f89e74170d15bbd46bf",
+    "metadata": {
+      "id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+      "cli_version": "0.153.3",
+      "history_mode": "legacy",
+      "cwd": "/home/manuel/workspaces/2026-09-01/add-plot-editor"
+    },
+    "counts": {
+      "response_messages": 193
+    },
+    "unique_item_ids": {},
+    "anchors": {}
+  }
+]

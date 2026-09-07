@@ -138,6 +138,7 @@ type Usage struct {
 }
 
 type ToolCall struct {
+	RecordKind        string          `json:"record_kind,omitempty"`
 	ID                string          `json:"id"`
 	EmittingTurnIndex *int            `json:"emitting_turn_index"`
 	Timestamp         *string         `json:"timestamp"`
@@ -151,24 +152,26 @@ type ToolCall struct {
 }
 
 type ToolCallInput struct {
-	FilePath      *string `json:"file_path"`
-	Command       *string `json:"command"`
-	Justification *string `json:"justification"`
-	Arguments     any     `json:"arguments"`
+	FileTargets   []FileTarget `json:"file_targets"`
+	FilePath      *string      `json:"file_path"`
+	Command       *string      `json:"command"`
+	Justification *string      `json:"justification"`
+	Arguments     any          `json:"arguments"`
 }
 
 type ToolCallOutput struct {
-	Success       bool    `json:"success"`
-	Result        *string `json:"result"`
-	Error         *string `json:"error"`
-	ExitCode      *int    `json:"exit_code"`
-	DurationMS    *int    `json:"duration_ms"`
-	Truncated     bool    `json:"truncated"`
-	FullBytes     *int    `json:"full_bytes"`
-	FullHash      *string `json:"full_hash"`
-	FullReference *string `json:"full_reference"`
-	Redacted      *bool   `json:"redacted"`
-	ContentOrigin *string `json:"content_origin"`
+	Success       *bool             `json:"success"`
+	Status        ToolOutcomeStatus `json:"status"`
+	Result        *string           `json:"result"`
+	Error         *string           `json:"error"`
+	ExitCode      *int              `json:"exit_code"`
+	DurationMS    *int              `json:"duration_ms"`
+	Truncated     bool              `json:"truncated"`
+	FullBytes     *int              `json:"full_bytes"`
+	FullHash      *string           `json:"full_hash"`
+	FullReference *string           `json:"full_reference"`
+	Redacted      *bool             `json:"redacted"`
+	ContentOrigin *string           `json:"content_origin"`
 }
 
 type ToolCallContext struct {
@@ -258,6 +261,7 @@ type TaxonomyMappings struct {
 }
 
 type Metrics struct {
+	ActivityCounts
 	TurnCount                int      `json:"turn_count"`
 	ToolCallCount            int      `json:"tool_call_count"`
 	ReadCount                int      `json:"read_count"`

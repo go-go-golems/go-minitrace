@@ -209,14 +209,21 @@ func (x *SessionTiming) GetDayOfWeek() uint32 {
 }
 
 type SessionMetrics struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	TurnCount            uint32                 `protobuf:"varint,1,opt,name=turn_count,json=turnCount,proto3" json:"turn_count,omitempty"`
-	ToolCallCount        uint32                 `protobuf:"varint,2,opt,name=tool_call_count,json=toolCallCount,proto3" json:"tool_call_count,omitempty"`
-	TotalInputTokens     *uint32                `protobuf:"varint,3,opt,name=total_input_tokens,json=totalInputTokens,proto3,oneof" json:"total_input_tokens,omitempty"`
-	TotalOutputTokens    *uint32                `protobuf:"varint,4,opt,name=total_output_tokens,json=totalOutputTokens,proto3,oneof" json:"total_output_tokens,omitempty"`
-	TotalCacheReadTokens *uint32                `protobuf:"varint,5,opt,name=total_cache_read_tokens,json=totalCacheReadTokens,proto3,oneof" json:"total_cache_read_tokens,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	TurnCount                uint32                 `protobuf:"varint,1,opt,name=turn_count,json=turnCount,proto3" json:"turn_count,omitempty"`
+	ToolCallCount            uint32                 `protobuf:"varint,2,opt,name=tool_call_count,json=toolCallCount,proto3" json:"tool_call_count,omitempty"`
+	TotalInputTokens         *uint32                `protobuf:"varint,3,opt,name=total_input_tokens,json=totalInputTokens,proto3,oneof" json:"total_input_tokens,omitempty"`
+	TotalOutputTokens        *uint32                `protobuf:"varint,4,opt,name=total_output_tokens,json=totalOutputTokens,proto3,oneof" json:"total_output_tokens,omitempty"`
+	TotalCacheReadTokens     *uint32                `protobuf:"varint,5,opt,name=total_cache_read_tokens,json=totalCacheReadTokens,proto3,oneof" json:"total_cache_read_tokens,omitempty"`
+	ToolCallRecordCount      uint32                 `protobuf:"varint,6,opt,name=tool_call_record_count,json=toolCallRecordCount,proto3" json:"tool_call_record_count,omitempty"`
+	OrchestrationCount       uint32                 `protobuf:"varint,7,opt,name=orchestration_count,json=orchestrationCount,proto3" json:"orchestration_count,omitempty"`
+	ExecutionRecordCount     uint32                 `protobuf:"varint,8,opt,name=execution_record_count,json=executionRecordCount,proto3" json:"execution_record_count,omitempty"`
+	FileChangeCount          uint32                 `protobuf:"varint,9,opt,name=file_change_count,json=fileChangeCount,proto3" json:"file_change_count,omitempty"`
+	ModelInvocationCount     uint32                 `protobuf:"varint,10,opt,name=model_invocation_count,json=modelInvocationCount,proto3" json:"model_invocation_count,omitempty"`
+	FileTouchCount           uint32                 `protobuf:"varint,11,opt,name=file_touch_count,json=fileTouchCount,proto3" json:"file_touch_count,omitempty"`
+	ConfirmedFileTargetCount uint32                 `protobuf:"varint,12,opt,name=confirmed_file_target_count,json=confirmedFileTargetCount,proto3" json:"confirmed_file_target_count,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *SessionMetrics) Reset() {
@@ -280,6 +287,55 @@ func (x *SessionMetrics) GetTotalOutputTokens() uint32 {
 func (x *SessionMetrics) GetTotalCacheReadTokens() uint32 {
 	if x != nil && x.TotalCacheReadTokens != nil {
 		return *x.TotalCacheReadTokens
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetToolCallRecordCount() uint32 {
+	if x != nil {
+		return x.ToolCallRecordCount
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetOrchestrationCount() uint32 {
+	if x != nil {
+		return x.OrchestrationCount
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetExecutionRecordCount() uint32 {
+	if x != nil {
+		return x.ExecutionRecordCount
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetFileChangeCount() uint32 {
+	if x != nil {
+		return x.FileChangeCount
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetModelInvocationCount() uint32 {
+	if x != nil {
+		return x.ModelInvocationCount
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetFileTouchCount() uint32 {
+	if x != nil {
+		return x.FileTouchCount
+	}
+	return 0
+}
+
+func (x *SessionMetrics) GetConfirmedFileTargetCount() uint32 {
+	if x != nil {
+		return x.ConfirmedFileTargetCount
 	}
 	return 0
 }
@@ -591,14 +647,22 @@ const file_proto_go_go_golems_minitrace_api_v1_common_proto_rawDesc = "" +
 	"\x17active_duration_seconds\x18\x04 \x01(\x01R\x15activeDurationSeconds\x12\x1e\n" +
 	"\vhour_of_day\x18\x05 \x01(\rR\thourOfDay\x12\x1e\n" +
 	"\vday_of_week\x18\x06 \x01(\rR\tdayOfWeekB\v\n" +
-	"\t_ended_at\"\xc6\x02\n" +
+	"\t_ended_at\"\xad\x05\n" +
 	"\x0eSessionMetrics\x12\x1d\n" +
 	"\n" +
 	"turn_count\x18\x01 \x01(\rR\tturnCount\x12&\n" +
 	"\x0ftool_call_count\x18\x02 \x01(\rR\rtoolCallCount\x121\n" +
 	"\x12total_input_tokens\x18\x03 \x01(\rH\x00R\x10totalInputTokens\x88\x01\x01\x123\n" +
 	"\x13total_output_tokens\x18\x04 \x01(\rH\x01R\x11totalOutputTokens\x88\x01\x01\x12:\n" +
-	"\x17total_cache_read_tokens\x18\x05 \x01(\rH\x02R\x14totalCacheReadTokens\x88\x01\x01B\x15\n" +
+	"\x17total_cache_read_tokens\x18\x05 \x01(\rH\x02R\x14totalCacheReadTokens\x88\x01\x01\x123\n" +
+	"\x16tool_call_record_count\x18\x06 \x01(\rR\x13toolCallRecordCount\x12/\n" +
+	"\x13orchestration_count\x18\a \x01(\rR\x12orchestrationCount\x124\n" +
+	"\x16execution_record_count\x18\b \x01(\rR\x14executionRecordCount\x12*\n" +
+	"\x11file_change_count\x18\t \x01(\rR\x0ffileChangeCount\x124\n" +
+	"\x16model_invocation_count\x18\n" +
+	" \x01(\rR\x14modelInvocationCount\x12(\n" +
+	"\x10file_touch_count\x18\v \x01(\rR\x0efileTouchCount\x12=\n" +
+	"\x1bconfirmed_file_target_count\x18\f \x01(\rR\x18confirmedFileTargetCountB\x15\n" +
 	"\x13_total_input_tokensB\x16\n" +
 	"\x14_total_output_tokensB\x1a\n" +
 	"\x18_total_cache_read_tokens\"S\n" +

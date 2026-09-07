@@ -1,0 +1,36 @@
+- generic [ref=e6]:
+  - generic [ref=e8] [cursor=pointer]:
+    - button [ref=e9]
+    - generic [ref=e14]: exec_command
+    - generic [ref=e15]: "example: succeeded"
+    - button "Annotate" [ref=e16]
+    - generic [ref=e17]: 0.0s
+    - img "succeeded" [ref=e18]
+  - generic [ref=e21] [cursor=pointer]:
+    - button [ref=e22]
+    - generic [ref=e27]: exec_command
+    - generic [ref=e28]: "example: failed"
+    - button "Annotate" [ref=e29]
+    - generic [ref=e30]: 0.0s
+    - img "failed" [ref=e31]
+  - generic [ref=e34] [cursor=pointer]:
+    - button [ref=e35]
+    - generic [ref=e40]: exec_command
+    - generic [ref=e41]: "example: unknown"
+    - button "Annotate" [ref=e42]
+    - generic [ref=e43]: 0.0s
+    - generic [ref=e44]: unknown
+  - generic [ref=e47] [cursor=pointer]:
+    - button [ref=e48]
+    - generic [ref=e53]: exec_command
+    - generic [ref=e54]: "example: pending"
+    - button "Annotate" [ref=e55]
+    - generic [ref=e56]: 0.0s
+    - generic [ref=e57]: pending
+  - generic [ref=e60] [cursor=pointer]:
+    - button [ref=e61]
+    - generic [ref=e66]: exec_command
+    - generic [ref=e67]: "example: cancelled"
+    - button "Annotate" [ref=e68]
+    - generic [ref=e69]: 0.0s
+    - generic [ref=e70]: cancelled

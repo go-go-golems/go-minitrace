@@ -1,0 +1,4 @@
+# github.com/go-go-golems/go-minitrace/pkg/adapters/codex [github.com/go-go-golems/go-minitrace/pkg/adapters/codex.test]
+pkg/adapters/codex/convert.go:10:2: "strconv" imported and not used
+FAIL	github.com/go-go-golems/go-minitrace/pkg/adapters/codex [build failed]
+FAIL

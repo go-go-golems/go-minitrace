@@ -1,0 +1,47 @@
+
+> web@0.0.0 lint /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web
+> eslint .
+
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/public/mockServiceWorker.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/components/TranscriptViewer/TranscriptViewer.tsx
+  179:9  warning  The 'annotations' logical expression could make the dependencies of useMemo Hook (at line 221) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.d.ts
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js
+  3:1  warning  Unused eslint-disable directive (no problems were reported)
+
+/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web/src/pages/SessionBrowserPage.tsx
+  16:9  warning  The 'annotations' conditional could make the dependencies of useMemo Hook (at line 31) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+✖ 13 problems (0 errors, 13 warnings)
+  0 errors and 11 warnings potentially fixable with the `--fix` option.
+

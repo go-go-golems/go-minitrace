@@ -477,7 +477,7 @@ func convertConversationSnapshots(conversationTurns []CanonicalTurnSnapshot, sou
 
 		for toolCallID, idx := range pendingToolCalls {
 			errorText := "no tool result received"
-			deltaToolCalls[idx].Output.Success = false
+			deltaToolCalls[idx].Output.SetSuccess(false)
 			deltaToolCalls[idx].Output.Error = &errorText
 			deltaAnnotations = append(deltaAnnotations, minitrace.BuildAnnotation(
 				fmt.Sprintf("ann-tool-call-pending-%d", len(annotations)+len(deltaAnnotations)),
@@ -633,7 +633,7 @@ func buildToolCallFromBlock(block Block, timestamp *string, emittingTurnIndex in
 
 func applyToolResult(toolCall *minitrace.ToolCall, result any, errorText string, timestamp *string) {
 	truncated, fullBytes, fullHash := minitrace.TruncateContent(stringifyAny(result), minitrace.TruncateLimit)
-	toolCall.Output.Success = strings.TrimSpace(errorText) == ""
+	toolCall.Output.SetSuccess(strings.TrimSpace(errorText) == "")
 	toolCall.Output.Result = truncated
 	toolCall.Output.Truncated = fullBytes != nil
 	toolCall.Output.FullBytes = fullBytes
@@ -735,7 +735,7 @@ func mergeToolCall(existing, incoming minitrace.ToolCall) minitrace.ToolCall {
 }
 
 func isPendingToolCall(toolCall minitrace.ToolCall) bool {
-	return !toolCall.Output.Success && toolCall.Output.Result == nil && toolCall.Output.Error != nil && *toolCall.Output.Error == "no tool result received"
+	return toolCall.Output.Failed() && toolCall.Output.Result == nil && toolCall.Output.Error != nil && *toolCall.Output.Error == "no tool result received"
 }
 
 func appendUniqueString(values []string, value string) []string {

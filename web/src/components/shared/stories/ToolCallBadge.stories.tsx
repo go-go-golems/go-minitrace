@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import Stack from "@mui/material/Stack";
 import { ToolCallBadgeChip } from "../ToolCallBadge";
 import { withTheme } from "../../../test-utils/storybook-decorators";

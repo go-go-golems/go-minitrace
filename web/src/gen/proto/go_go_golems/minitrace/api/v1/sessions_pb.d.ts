@@ -129,6 +129,62 @@ export declare type SessionSummaryDetail = Message<"go_go_golems.minitrace.api.v
 export declare const SessionSummaryDetailSchema: GenMessage<SessionSummaryDetail>;
 
 /**
+ * @generated from message go_go_golems.minitrace.api.v1.FileTarget
+ */
+export declare type FileTarget = Message<"go_go_golems.minitrace.api.v1.FileTarget"> & {
+  /**
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * @generated from field: string native_path = 2;
+   */
+  nativePath: string;
+
+  /**
+   * @generated from field: string operation_type = 3;
+   */
+  operationType: string;
+
+  /**
+   * @generated from field: string evidence_kind = 4;
+   */
+  evidenceKind: string;
+
+  /**
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional bool success = 6;
+   */
+  success?: boolean | undefined;
+
+  /**
+   * @generated from field: string cwd = 7;
+   */
+  cwd: string;
+
+  /**
+   * @generated from field: bool resolved = 8;
+   */
+  resolved: boolean;
+
+  /**
+   * @generated from field: string source_reference = 9;
+   */
+  sourceReference: string;
+};
+
+/**
+ * Describes the message go_go_golems.minitrace.api.v1.FileTarget.
+ * Use `create(FileTargetSchema)` to create a new message.
+ */
+export declare const FileTargetSchema: GenMessage<FileTarget>;
+
+/**
  * @generated from message go_go_golems.minitrace.api.v1.ToolCallInput
  */
 export declare type ToolCallInput = Message<"go_go_golems.minitrace.api.v1.ToolCallInput"> & {
@@ -146,6 +202,11 @@ export declare type ToolCallInput = Message<"go_go_golems.minitrace.api.v1.ToolC
    * @generated from field: optional string file_path = 3;
    */
   filePath?: string | undefined;
+
+  /**
+   * @generated from field: repeated go_go_golems.minitrace.api.v1.FileTarget file_targets = 4;
+   */
+  fileTargets: FileTarget[];
 };
 
 /**
@@ -159,9 +220,9 @@ export declare const ToolCallInputSchema: GenMessage<ToolCallInput>;
  */
 export declare type ToolCallOutput = Message<"go_go_golems.minitrace.api.v1.ToolCallOutput"> & {
   /**
-   * @generated from field: bool success = 1;
+   * @generated from field: optional bool success = 1;
    */
-  success: boolean;
+  success?: boolean | undefined;
 
   /**
    * @generated from field: optional string result = 2;
@@ -182,6 +243,31 @@ export declare type ToolCallOutput = Message<"go_go_golems.minitrace.api.v1.Tool
    * @generated from field: bool truncated = 5;
    */
   truncated: boolean;
+
+  /**
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional int32 exit_code = 7;
+   */
+  exitCode?: number | undefined;
+
+  /**
+   * @generated from field: optional string full_reference = 8;
+   */
+  fullReference?: string | undefined;
+
+  /**
+   * @generated from field: optional uint64 full_bytes = 9;
+   */
+  fullBytes?: bigint | undefined;
+
+  /**
+   * @generated from field: optional string full_hash = 10;
+   */
+  fullHash?: string | undefined;
 };
 
 /**
@@ -228,6 +314,16 @@ export declare type ToolCall = Message<"go_go_golems.minitrace.api.v1.ToolCall">
    * @generated from field: repeated go_go_golems.minitrace.api.v1.ToolCallBadge badges = 7;
    */
   badges: ToolCallBadge[];
+
+  /**
+   * @generated from field: string record_kind = 8;
+   */
+  recordKind: string;
+
+  /**
+   * @generated from field: google.protobuf.Struct framework_metadata = 9;
+   */
+  frameworkMetadata?: JsonObject | undefined;
 };
 
 /**
@@ -614,6 +710,11 @@ export declare type SessionDetail = Message<"go_go_golems.minitrace.api.v1.Sessi
    * @generated from field: repeated go_go_golems.minitrace.api.v1.SessionAttachment attachments = 12;
    */
   attachments: SessionAttachment[];
+
+  /**
+   * @generated from field: repeated go_go_golems.minitrace.api.v1.ToolCall unassociated_tool_calls = 13;
+   */
+  unassociatedToolCalls: ToolCall[];
 };
 
 /**

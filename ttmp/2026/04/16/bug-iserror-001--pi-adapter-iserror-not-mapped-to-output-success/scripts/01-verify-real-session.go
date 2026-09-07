@@ -25,7 +25,7 @@ func main() {
 	failures := 0
 	fileNotFound := 0
 	for _, tc := range session.ToolCalls {
-		if tc.Output.Success {
+		if !tc.Output.Failed() {
 			continue
 		}
 		failures++
@@ -43,7 +43,7 @@ func main() {
 
 	shown := 0
 	for _, tc := range session.ToolCalls {
-		if tc.Output.Success {
+		if !tc.Output.Failed() {
 			continue
 		}
 		errorText := ""

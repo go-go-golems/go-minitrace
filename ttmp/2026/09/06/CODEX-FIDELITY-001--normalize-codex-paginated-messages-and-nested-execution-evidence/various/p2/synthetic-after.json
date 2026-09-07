@@ -1,0 +1,77 @@
+[
+  {
+    "name": "native_identity",
+    "passed": true,
+    "detail": "fidelity-synthetic"
+  },
+  {
+    "name": "five_deduplicated_messages",
+    "passed": true,
+    "detail": 5
+  },
+  {
+    "name": "repeated_continue_retained",
+    "passed": true,
+    "detail": [
+      "continue",
+      "continue",
+      "Quoted history only: {\"type\":\"item_completed\",\"item\":{\"type\":\"CommandExecution\",\"id\":\"invented\",\"command\":[\"sh\",\"-c\",\"echo no > quoted.txt\"],\"exit_code\":0}}"
+    ]
+  },
+  {
+    "name": "no_orphan_associations",
+    "passed": true,
+    "detail": []
+  },
+  {
+    "name": "typed_outputs_decoded",
+    "passed": false,
+    "detail": [
+      "wrapper-1"
+    ]
+  },
+  {
+    "name": "one_authoritative_failed_execution",
+    "passed": false,
+    "detail": 0
+  },
+  {
+    "name": "identical_commands_distinct_ids",
+    "passed": false,
+    "detail": []
+  },
+  {
+    "name": "missing_outcome_not_success",
+    "passed": false,
+    "detail": {
+      "success": true,
+      "result": null,
+      "error": null,
+      "exit_code": null,
+      "duration_ms": null,
+      "truncated": false,
+      "full_bytes": null,
+      "full_hash": null,
+      "full_reference": null,
+      "redacted": null,
+      "content_origin": null
+    }
+  },
+  {
+    "name": "output_before_call_preserved",
+    "passed": false,
+    "detail": {
+      "success": true,
+      "result": null,
+      "error": null,
+      "exit_code": null,
+      "duration_ms": null,
+      "truncated": false,
+      "full_bytes": null,
+      "full_hash": null,
+      "full_reference": null,
+      "redacted": null,
+      "content_origin": "local_exec"
+    }
+  }
+]

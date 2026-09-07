@@ -1,0 +1,496 @@
+Building glazed-lint from pinned tool module...
+Installing github.com/go-go-golems/glazed/cmd/tools/glazed-lint@v1.3.5
+golangci-lint run -v
+level=info msg="golangci-lint has version 2.4.0 built with go1.26.1 from (unknown, modified: ?, mod sum: \"h1:qz6O6vr7kVzXJqyvHjHSz5fA3D+PM8v96QU5gxZCNWM=\") on (unknown)"
+level=info msg="[config_reader] Config search paths: [./ /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace /home/manuel/workspaces/2026-09-06/update-codex-adapter /home/manuel/workspaces/2026-09-06 /home/manuel/workspaces /home/manuel /home /]"
+level=info msg="[config_reader] Used config file .golangci.yml"
+level=info msg="[config_reader] Module name \"github.com/go-go-golems/go-minitrace\""
+level=info msg="maxprocs: Leaving GOMAXPROCS=8: CPU quota undefined"
+level=info msg="[goenv] Read go env for 5.414619ms: map[string]string{\"GOCACHE\":\"/home/manuel/.cache/go-build\", \"GOROOT\":\"/home/manuel/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.5.linux-amd64\"}"
+level=info msg="[lintersdb] Active 9 linters: [errcheck exhaustive gofmt govet ineffassign nonamedreturns predeclared staticcheck unused]"
+level=info msg="[loader] Go packages loading at mode 8767 (compiled_files|deps|imports|types_sizes|exports_file|files|name) took 222.563942ms"
+level=info msg="[runner/filename_unadjuster] Pre-built 0 adjustments in 21.217683ms"
+level=info msg="[linters_context/goanalysis] analyzers took 0s with no stages"
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"web/node_modules/\""
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"ttmp/.*\\\\\\\\.go\""
+level=info msg="[runner/exclusion_paths] Skipped 0 issues by pattern \"test_.*\\\\\\\\.go\""
+level=info msg="[runner/exclusion_rules] Skipped 0 issues by rules: [Text: \"SA1019: cli.CreateProcessorLegacy\", Linters: \"staticcheck\"]"
+level=info msg="[runner] processing took 46.23µs with stages: exclusion_paths: 29.774µs, exclusion_rules: 13.063µs, max_same_issues: 989ns, max_from_linter: 275ns, path_absoluter: 253ns, nolint_filter: 240ns, diff: 187ns, severity-rules: 170ns, max_per_file_from_linter: 154ns, filename_unadjuster: 147ns, path_relativity: 140ns, path_prettifier: 138ns, fixer: 136ns, sort_results: 136ns, source_code: 134ns, path_shortener: 61ns, uniq_by_line: 60ns, invalid_issue: 58ns, generated_file_filter: 58ns, cgo: 57ns"
+level=info msg="[runner] linters took 78.026543ms with stages: goanalysis_metalinter: 77.919774ms"
+0 issues.
+level=info msg="File cache stats: 0 entries of total size 0B"
+level=info msg="Memory: 5 samples, avg is 56.8MB, max is 88.0MB"
+level=info msg="Execution took 327.788481ms"
+GOWORK=off go vet -vettool=/tmp/glazed-lint -glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/ ./cmd/... ./pkg/...
+go test ./...
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	0.904s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	(cached)
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	(cached)
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	(cached)
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.091s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	0.260s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	(cached)
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts	[no test files]
+go generate ./...
+Creating new Engine session... OK!
+Establishing connection to Engine... [95m1   : [0m[90;2m[0mconnect
+[95m1   : [0m[90;2m[0m[90m[0.1s] [0m[90m|[0m cloud [2murl=[0mhttps://dagger.cloud/traces/setup
+[95m2   : [0m[90;2m┆ [0mstarting engine
+[95m3   : [0m[90;2m┆ ┆ [0mcreate container
+[95m4   : [0m[90;2m┆ ┆ ┆ [0mexec docker ps -a --format {{.Names}}
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m openmiko-builder-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m goldeneaglecoincom-webbuildadmin-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m goldeneaglecoincom-webbuild-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m goldeneaglecoincom-php-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m goldeneaglecoincom-apache-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m goldeneaglecoincom-db-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m buildx_buildkit_coinvault-release0
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m coinvault-gec-local-fake-alb-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m coinvault-gec-local-coinvault-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m dagger-engine-v0.21.7
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m gec-rag-depth8-proof-mysql-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m elated_driscoll
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m exciting_jemison
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m al-smoke
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-hostdev-provision-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-hostdev-zitadel-login-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-hostdev-zitadel-api-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-hostdev-postgres-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-hostdev-proxy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-tenant-control-plane-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-proxy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-zitadel-login-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-zitadel-api-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-todo-demo-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-mailpit-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-datadrop-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m zitadel-postgres-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-provision-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-proxy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-zitadel-login-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-zitadel-api-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m datadrop-postgres-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-admin-console-idp-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-admin-console-ca-export-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-admin-console-proxy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-admin-console-mailpit-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-idp-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-meet-web-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-jvb-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-jicofo-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-ca-export-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-proxy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-jitsi-prosody-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-llm-proxy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-idp-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-ca-export-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-local-cert-issuer-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-idp-readiness-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-caddy-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-tinyidp-bootstrap-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m llm-proxy-byok-volume-init-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-phase3-8978-idp-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tinyidp-phase3-8978-message-desk-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m f52be8cb75fd_tinyidp-external-message-desk-idp-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m 07-user-scoped-inbox-keycloak-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m 06-browser-login-keycloak-keycloak-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m goja-redis-chatdemo-server-redis-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m rageval-ttc-mysql
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m go-go-host-keycloak
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m go-go-host-keycloak-postgres
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m go-go-host-postgres
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m almanach-render-service-render-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m almanach-render-service-chrome-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m 2026-03-16--gec-rag-mysql-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m keycloak-keycloak-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m ttc-db-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m pyxis-db
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m simplecal-postgres
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m stale-connections-redis
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m scraper-redis-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m docker-test-dovecot-testcot-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m fcvm-local-vault
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m 2026-03-24--draft-review-postgres-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tuplespace-server
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m tuplespace-postgres
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m hair-booking-container-smoke
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m z2m
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m z2m-mosquitto
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m blissful_agnesi
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m admiring_feistel
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m moments-elasticsearch-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m moments-db-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.1s] [0m[90m|[0m moments-redis-1
+[95m4   : [0m[90;2m┆ ┆ ┆ [0mexec docker ps -a --format {{.Names}}[32m DONE[0m[90m [0.1s][0m
+[95m5   : [0m[90;2m┆ ┆ ┆ [0mexec docker start dagger-engine-v0.21.7
+[95m5   : [0m[90;2m┆ ┆ ┆ [0m[90m[0.0s] [0m[90m|[0m dagger-engine-v0.21.7
+[95m5   : [0m[90;2m┆ ┆ ┆ [0mexec docker start dagger-engine-v0.21.7[32m DONE[0m[90m [0.0s][0m
+[95m3   : [0m[90;2m┆ ┆ [0mcreate container[32m DONE[0m[90m [0.1s][0m
+[95m2   : [0m[90;2m┆ [0mstarting engine[32m DONE[0m[90m [0.1s][0m
+[95m6   : [0m[90;2m┆ [0mconnecting to engine
+[95m6   : [0m[90;2m┆ [0m[90m[0.1s] [0m[90m|[0m [2m19:06:47[0m [92mINF[0m connected [2mname=[0m1c2cd43694aa [2mclient-version=[0mv0.21.7 [2mserver-version=[0mv0.21.7
+[95m6   : [0m[90;2m┆ [0mconnecting to engine[32m DONE[0m[90m [0.1s][0m
+[95m7   : [0m[90;2m┆ [0mstarting session
+[95m7   : [0m[90;2m┆ [0mstarting session[32m DONE[0m[90m [0.1s][0m
+OK!
+
+[95m8   : [0m[90;2m[0mdagger-0.21.7 session --label dagger.io/sdk.name:go --label dagger.io/sdk.version:0.21.7
+[95m1   : [0m[90;2m┆ [0mconnect[32m DONE[0m[90m [0.5s][0m
+
+[95m9   : [0m[90;2m[0mconsuming /v1/traces
+[95m9   : [0m[90;2m[0mconsuming /v1/traces[32m DONE[0m[90m [0.1s][0m
+
+[95m10  : [0m[90;2m[0mconsuming /v1/logs
+[95m10  : [0m[90;2m[0mconsuming /v1/logs[32m DONE[0m[90m [0.0s][0m
+
+[95m11  : [0m[90;2m[0mconsuming /v1/metrics
+[95m11  : [0m[90;2m[0mconsuming /v1/metrics[32m DONE[0m[90m [0.0s][0m
+
+[95m8   : [0m[90;2m[0mdagger-0.21.7 session --label dagger.io/sdk.name:go --label dagger.io/sdk.version:0.21.7
+[95m12  : [0m[90;2m┆ [0m[1mhost[0m[2m: Host![0m
+[95m12  : [0m[90;2m┆ [0m[1mhost[0m[32m DONE[0m[90m [0.0s][0m
+[95m13  : [0m[90;2m┆ [0mHost.[1mdirectory[0m([36mpath: [0m[33m"/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web"[0m, [36mexclude: [0m[[33m"dist"[0m, [33m"node_modules"[0m, [33m"storybook-static"[0m, [33m"tsconfig.tsbuildinfo"[0m, [33m"tsconfig.app.tsbuildinfo"[0m, [33m"tsconfig.node.tsbuildinfo"[0m])[2m: Directory![0m
+[95m14  : [0m[90;2m┆ ┆ [0mfilesync
+[95m15  : [0m[90;2m┆ ┆ [0m.gitignore
+[95m16  : [0m[90;2m┆ ┆ [0meslint.config.js
+
+[95m17  : [0m[90;2m[0m[1mcontainer[0m[2m: Container![0m
+[95m17  : [0m[90;2m[0m[1mcontainer[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m18  : [0m[90;2m[0mContainer.[1mfrom[0m([36maddress: [0m[33m"node:22-bookworm"[0m)[2m: Container![0m
+
+[95m8   : [0m[90;2m[0mdagger-0.21.7 session --label dagger.io/sdk.name:go --label dagger.io/sdk.version:0.21.7
+[95m13  : [0m[90;2m┆ [0mHost.[1mdirectory[0m([36mpath: [0m[33m"/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web"[0m, [36mexclude: [0m[[33m"dist"[0m, [33m"node_modules"[0m, [33m"storybook-static"[0m, [33m"tsconfig.tsbuildinfo"[0m, [33m"tsconfig.app.tsbuildinfo"[0m, [33m"tsconfig.node.tsbuildinfo"[0m])[2m: Directory![0m
+[95m15  : [0m[90;2m┆ ┆ [0m.gitignore[32m DONE[0m[90m [0.0s][0m
+[95m16  : [0m[90;2m┆ ┆ [0meslint.config.js[32m DONE[0m[90m [0.0s][0m
+[95m19  : [0m[90;2m┆ ┆ [0m.storybook
+[95m19  : [0m[90;2m┆ ┆ [0m.storybook[32m DONE[0m[90m [0.0s][0m
+[95m20  : [0m[90;2m┆ ┆ [0mpublic
+[95m20  : [0m[90;2m┆ ┆ [0mpublic[32m DONE[0m[90m [0.0s][0m
+[95m21  : [0m[90;2m┆ ┆ [0mREADME.md
+[95m21  : [0m[90;2m┆ ┆ [0mREADME.md[32m DONE[0m[90m [0.0s][0m
+[95m22  : [0m[90;2m┆ ┆ [0mpackage.json
+[95m22  : [0m[90;2m┆ ┆ [0mpackage.json[32m DONE[0m[90m [0.0s][0m
+[95m23  : [0m[90;2m┆ ┆ [0mpnpm-lock.yaml
+[95m23  : [0m[90;2m┆ ┆ [0mpnpm-lock.yaml[32m DONE[0m[90m [0.0s][0m
+[95m24  : [0m[90;2m┆ ┆ [0mindex.html
+[95m24  : [0m[90;2m┆ ┆ [0mindex.html[32m DONE[0m[90m [0.0s][0m
+[95m25  : [0m[90;2m┆ ┆ [0msrc
+[95m25  : [0m[90;2m┆ ┆ [0msrc[32m DONE[0m[90m [0.0s][0m
+[95m26  : [0m[90;2m┆ ┆ [0mtsconfig.app.json
+[95m26  : [0m[90;2m┆ ┆ [0mtsconfig.app.json[32m DONE[0m[90m [0.0s][0m
+[95m27  : [0m[90;2m┆ ┆ [0mvitest.shims.d.ts
+[95m27  : [0m[90;2m┆ ┆ [0mvitest.shims.d.ts[32m DONE[0m[90m [0.0s][0m
+[95m28  : [0m[90;2m┆ ┆ [0mtsconfig.node.json
+[95m28  : [0m[90;2m┆ ┆ [0mtsconfig.node.json[32m DONE[0m[90m [0.0s][0m
+[95m29  : [0m[90;2m┆ ┆ [0mvite.config.ts
+[95m29  : [0m[90;2m┆ ┆ [0mvite.config.ts[32m DONE[0m[90m [0.0s][0m
+[95m30  : [0m[90;2m┆ ┆ [0mtsconfig.json
+[95m30  : [0m[90;2m┆ ┆ [0mtsconfig.json[32m DONE[0m[90m [0.0s][0m
+[95m31  : [0m[90;2m┆ ┆ [0mcopy
+[95m31  : [0m[90;2m┆ ┆ [0mcopy[32m DONE[0m[90m [0.0s][0m
+[95m14  : [0m[90;2m┆ ┆ [0mfilesync[32m DONE[0m[90m [0.0s][0m
+[95m13  : [0m[90;2m┆ [0mHost.[1mdirectory[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m32  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m33  : [0m[90;2m┆ [0mHTTP HEAD
+[95m33  : [0m[90;2m┆ [0mHTTP HEAD[31m ERROR[0m[90m [0.2s][0m
+[95m32  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[31m ERROR[0m[90m [0.2s][0m
+
+[95m34  : [0m[90;2m[0mremotes.docker.resolver.FetchToken
+[95m35  : [0m[90;2m┆ [0mHTTP GET
+[95m35  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.2s][0m
+[95m34  : [0m[90;2m[0mremotes.docker.resolver.FetchToken[32m DONE[0m[90m [0.2s][0m
+
+[95m36  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m37  : [0m[90;2m┆ [0mHTTP HEAD
+
+[95m38  : [0m[90;2m[0m[34mwithEnvVariable[0m PNPM_HOME=/pnpm
+[95m38  : [0m[90;2m[0mContainer.[1mwithEnvVariable[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m39  : [0m[90;2m[0m[34mwithEnvVariable[0m PATH=/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+[95m39  : [0m[90;2m[0mContainer.[1mwithEnvVariable[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m40  : [0m[90;2m[0mContainer.[1mwithMountedCache[0m(
+[95m40  : [0m[90;2m┆ [0m[36mpath:[0m [33m"/pnpm/store"[0m
+[95m40  : [0m[90;2m┆ [0m[36mcache:[0m [1mcacheVolume[0m([36mkey: [0m[33m"go-minitrace-web-pnpm-store"[0m, [36mnamespace: [0m[33m"mainClient"[0m)[2m: CacheVolume![0m
+[95m40  : [0m[90;2m[0m)[2m: Container![0m
+[95m40  : [0m[90;2m[0mContainer.[1mwithMountedCache[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m41  : [0m[90;2m[0mContainer.[1mwithDirectory[0m(
+[95m41  : [0m[90;2m┆ [0m[36mpath:[0m [33m"/src/web"[0m
+[95m41  : [0m[90;2m┆ [0m[36msource:[0m Host.[1mdirectory[0m([36mpath: [0m[33m"/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web"[0m, [36mexclude: [0m[[33m"dist"[0m, [33m"node_modules"[0m, [33m"storybook-static"[0m, [33m"tsconfig.tsbuildinfo"[0m, [33m"tsconfig.app.tsbuildinfo"[0m, [33m"tsconfig.node.tsbuildinfo"[0m])[2m: Directory![0m
+[95m41  : [0m[90;2m[0m)[2m: Container![0m
+[95m41  : [0m[90;2m[0mContainer.[1mwithDirectory[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m42  : [0m[90;2m[0m[34mwithWorkdir[0m /src/web
+[95m42  : [0m[90;2m[0mContainer.[1mwithWorkdir[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m43  : [0m[90;2m[0m[34mwithExec[0m sh -lc 'corepack enable && corepack prepare pnpm@10.15.0 --activate'
+[95m43  : [0m[90;2m[0mContainer.[1mwithExec[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m44  : [0m[90;2m[0m[34mwithExec[0m pnpm install --frozen-lockfile
+[95m44  : [0m[90;2m[0mContainer.[1mwithExec[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m45  : [0m[90;2m[0m[34mwithExec[0m pnpm run build
+[95m45  : [0m[90;2m[0mContainer.[1mwithExec[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m46  : [0m[90;2m[0mContainer.[1mdirectory[0m([36mpath: [0m[33m"/src/web/dist"[0m)[2m: Directory![0m
+[95m46  : [0m[90;2m[0mContainer.[1mdirectory[0m[32m DONE[0m[90m [0.0s][0m
+
+[95m47  : [0m[90;2m[0mDirectory.[1mexport[0m([36mpath: [0m[33m"/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/cmd/go-minitrace/cmds/serve/frontend"[0m)[2m: String![0m
+
+[95m36  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m37  : [0m[90;2m┆ [0mHTTP HEAD[32m DONE[0m[90m [0.1s][0m
+[95m36  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m48  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m49  : [0m[90;2m┆ [0mHTTP HEAD
+[95m49  : [0m[90;2m┆ [0mHTTP HEAD[31m ERROR[0m[90m [0.0s][0m
+[95m48  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[31m ERROR[0m[90m [0.0s][0m
+
+[95m50  : [0m[90;2m[0mremotes.docker.resolver.FetchToken
+[95m51  : [0m[90;2m┆ [0mHTTP GET
+[95m51  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m50  : [0m[90;2m[0mremotes.docker.resolver.FetchToken[32m DONE[0m[90m [0.1s][0m
+
+[95m52  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m53  : [0m[90;2m┆ [0mHTTP HEAD
+[95m53  : [0m[90;2m┆ [0mHTTP HEAD[32m DONE[0m[90m [0.1s][0m
+[95m52  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m54  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m55  : [0m[90;2m┆ [0mHTTP GET
+[95m55  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.0s][0m
+[95m54  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.0s][0m
+
+[95m56  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m57  : [0m[90;2m┆ [0mHTTP GET
+[95m57  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m56  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m58  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m59  : [0m[90;2m┆ [0mHTTP GET
+
+[95m60  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m61  : [0m[90;2m┆ [0mHTTP GET
+
+[95m58  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m59  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m58  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m60  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m61  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m60  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m62  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m63  : [0m[90;2m┆ [0mHTTP GET
+[95m63  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m62  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m64  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m65  : [0m[90;2m┆ [0mHTTP GET
+[95m65  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m64  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m66  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m67  : [0m[90;2m┆ [0mHTTP GET
+[95m67  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m66  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m68  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m69  : [0m[90;2m┆ [0mHTTP GET
+[95m69  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m68  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m70  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m71  : [0m[90;2m┆ [0mHTTP GET
+[95m71  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m70  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m72  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m73  : [0m[90;2m┆ [0mHTTP GET
+
+[95m74  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m75  : [0m[90;2m┆ [0mHTTP GET
+
+[95m76  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m77  : [0m[90;2m┆ [0mHTTP GET
+
+[95m78  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m79  : [0m[90;2m┆ [0mHTTP GET
+
+[95m80  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m81  : [0m[90;2m┆ [0mHTTP GET
+
+[95m82  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m83  : [0m[90;2m┆ [0mHTTP GET
+
+[95m80  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m81  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.4s][0m
+[95m80  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.4s][0m
+
+[95m84  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m85  : [0m[90;2m┆ [0mHTTP GET
+[95m85  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [0.1s][0m
+[95m84  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [0.1s][0m
+
+[95m76  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m77  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [3.5s][0m
+[95m76  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [3.5s][0m
+
+[95m82  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m83  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [4.7s][0m
+[95m82  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [4.7s][0m
+
+[95m78  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m79  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [5.1s][0m
+[95m78  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [5.1s][0m
+
+[95m74  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m75  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [11.6s][0m
+[95m74  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [11.6s][0m
+
+[95m72  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest
+[95m73  : [0m[90;2m┆ [0mHTTP GET[32m DONE[0m[90m [12.3s][0m
+[95m72  : [0m[90;2m[0mremotes.docker.resolver.HTTPRequest[32m DONE[0m[90m [12.3s][0m
+
+[95m18  : [0m[90;2m[0mContainer.[1mfrom[0m[32m DONE[0m[90m [19.5s][0m
+
+[95m43  : [0m[90;2m[0mContainer.[1mwithExec[0m[32m DONE[0m[90m [0.4s][0m
+[95m43  : [0m[90;2m[0m[90m[19.4s] [0m[90m|[0m Preparing pnpm@10.15.0 for immediate activation...
+
+[95m44  : [0m[90;2m[0mContainer.[1mwithExec[0m[32m DONE[0m[90m [0.7s][0m
+[95m44  : [0m[90;2m[0m[90m[20.9s] [0m[90m|[0m Lockfile is up to date, resolution step is skipped
+[95m44  : [0m[90;2m[0m[90m[20.9s] [0m[90m|[0m Progress: resolved 1, reused 0, downloaded 0, added 0
+[95m44  : [0m[90;2m[0m[90m[21.1s] [0m[90m|[0m Packages: +524
+[95m44  : [0m[90;2m[0m[90m[21.1s] [0m[90m|[0m ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m 
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    ╭──────────────────────────────────────────────╮
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    │                                              │
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    │     Update available! 10.15.0 → 12.3.4.      │
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    │     Changelog: https://pnpm.io/v/12.3.4      │
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    │   To update, run: corepack use pnpm@12.3.4   │
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    │                                              │
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m    ╰──────────────────────────────────────────────╯
+[95m44  : [0m[90;2m[0m[90m[21.5s] [0m[90m|[0m 
+[95m44  : [0m[90;2m[0m[90m[21.9s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 96, added 91
+[95m44  : [0m[90;2m[0m[90m[23.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 239, added 217
+[95m44  : [0m[90;2m[0m[90m[24.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 265, added 241
+[95m44  : [0m[90;2m[0m[90m[25.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 364, added 310
+[95m44  : [0m[90;2m[0m[90m[26.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 507, added 320
+[95m44  : [0m[90;2m[0m[90m[27.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 412
+[95m44  : [0m[90;2m[0m[90m[28.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 432
+[95m44  : [0m[90;2m[0m[90m[29.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 480
+[95m44  : [0m[90;2m[0m[90m[30.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 509
+[95m44  : [0m[90;2m[0m[90m[31.0s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 523
+[95m44  : [0m[90;2m[0m[90m[36.1s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 524
+[95m44  : [0m[90;2m[0m[90m[36.1s] [0m[90m|[0m Progress: resolved 524, reused 0, downloaded 524, added 524, done
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m 
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m dependencies:
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @bufbuild/protobuf 2.11.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @codemirror/commands 6.10.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @codemirror/lang-sql 6.10.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @codemirror/state 6.6.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @codemirror/theme-one-dark 6.1.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @codemirror/view 6.41.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @emotion/react 11.14.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @emotion/styled 11.14.1
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @mui/icons-material 7.3.9
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @mui/material 7.3.9
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @mui/x-data-grid 8.28.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @reduxjs/toolkit 2.11.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + codemirror 6.0.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + react 19.2.4
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + react-dom 19.2.4
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + react-markdown 10.1.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + react-redux 9.2.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + react-router 7.13.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m 
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m devDependencies:
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @chromatic-com/storybook 5.1.1
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @eslint/js 9.39.4
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @storybook/addon-a11y 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @storybook/addon-docs 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @storybook/addon-onboarding 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @storybook/addon-vitest 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @storybook/react 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @storybook/react-vite 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @types/node 24.12.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @types/react 19.2.14
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @types/react-dom 19.2.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @vitejs/plugin-react 6.0.1
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @vitest/browser-playwright 4.1.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + @vitest/coverage-v8 4.1.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + eslint 9.39.4
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + eslint-plugin-react-hooks 7.0.1
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + eslint-plugin-react-refresh 0.5.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + eslint-plugin-storybook 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + globals 17.4.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + msw 2.12.14
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + playwright 1.59.1
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + storybook 10.3.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + typescript 5.9.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + typescript-eslint 8.58.0
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + vite 8.0.3
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m + vitest 4.1.2
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m 
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m ╭ Warning ─────────────────────────────────────────────────────────────────────╮
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m │                                                                              │
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m │   Ignored build scripts: esbuild, msw.                                       │
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m │   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m │   to run scripts.                                                            │
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m │                                                                              │
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m ╰──────────────────────────────────────────────────────────────────────────────╯
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m 
+[95m44  : [0m[90;2m[0m[90m[36.5s] [0m[90m|[0m Done in 16.1s using pnpm v10.15.0
+
+[95m45  : [0m[90;2m[0mContainer.[1mwithExec[0m[32m DONE[0m[90m [0.6s][0m
+[95m45  : [0m[90;2m[0m[90m[37.6s] [0m[90m|[0m 
+[95m45  : [0m[90;2m[0m[90m[37.6s] [0m[90m|[0m > web@0.0.0 build /src/web
+[95m45  : [0m[90;2m[0m[90m[37.6s] [0m[90m|[0m > tsc -b && vite build
+[95m45  : [0m[90;2m[0m[90m[37.6s] [0m[90m|[0m 
+[95m45  : [0m[90;2m[0m[90m[45.8s] [0m[90m|[0m vite v8.0.3 building client environment for production...
+[95m45  : [0m[90;2m[0m[90m[46.0s] [0m[90m|[0m [2Ktransforming...✓ 956 modules transformed.
+[95m45  : [0m[90;2m[0m[90m[46.0s] [0m[90m|[0m rendering chunks...
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m computing gzip size...
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m dist/index.html                    0.39 kB │ gzip:   0.27 kB
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m dist/static/index-Di-lygQp.js  1,235.41 kB │ gzip: 384.97 kB
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m 
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m ✓ built in 736ms
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m [plugin builtin:vite-reporter] 
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m (!) Some chunks are larger than 500 kB after minification. Consider:
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m - Using dynamic import() to code-split the application
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[95m45  : [0m[90;2m[0m[90m[46.5s] [0m[90m|[0m - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[95m47  : [0m[90;2m[0mDirectory.[1mexport[0m([36mpath: [0m[33m"/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/cmd/go-minitrace/cmds/serve/frontend"[0m)[2m: String![0m
+[95m86  : [0m[90;2m┆ [0mexport directory /src/web/dist to host /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/cmd/go-minitrace/cmds/serve/frontend
+[95m86  : [0m[90;2m┆ [0mexport directory /src/web/dist to host /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/cmd/go-minitrace/cmds/serve/frontend[32m DONE[0m[90m [0.0s][0m
+[95m47  : [0m[90;2m[0mDirectory.[1mexport[0m[32m DONE[0m[90m [46.6s][0m
+
+[95m8   : [0m[90;2m[0mdagger-0.21.7 session --label dagger.io/sdk.name:go --label dagger.io/sdk.version:0.21.7[32m DONE[0m[90m [47.6s][0m
+
+go build ./...

@@ -328,13 +328,14 @@ func fixtureSession() *minitrace.Session {
 	path := "app.go"
 	result := "package main"
 	emittingTurn := 1
+	success := true
 	session.ToolCalls = []minitrace.ToolCall{{
 		ID:                "tool-1",
 		EmittingTurnIndex: &emittingTurn,
 		ToolName:          "Read",
 		OperationType:     "read",
 		Input:             minitrace.ToolCallInput{FilePath: &path},
-		Output:            minitrace.ToolCallOutput{Success: true, Result: &result},
+		Output:            minitrace.ToolCallOutput{Success: &success, Result: &result},
 	}}
 	metrics := minitrace.ComputeMetrics(session.Turns, session.ToolCalls, session.Timing, len(session.Annotations), nil)
 	session.Metrics = metrics

@@ -1,0 +1,20 @@
+[
+{
+  "boundary_candidates": {
+    "cache_collapse": null,
+    "summary": null
+  },
+  "boundary_source": "session-start",
+  "boundary_turn": 0,
+  "files_touched": [],
+  "session_id": "fidelity-synthetic",
+  "skills": {
+    "skill_file_reads": [],
+    "skill_loads": [],
+    "skill_sideloads": []
+  },
+  "target_turn": 0,
+  "tool_calls": [],
+  "window_size_turns": 0
+}
+]

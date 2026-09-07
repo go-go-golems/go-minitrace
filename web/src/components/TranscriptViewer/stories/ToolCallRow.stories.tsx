@@ -1,4 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 import Box from "@mui/material/Box";
 import { ToolCallRow } from "../ToolCallRow";
 import { withTheme } from "../../../test-utils/storybook-decorators";
@@ -38,6 +39,44 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+function neutralOutcome(status: "unknown" | "pending" | "cancelled"): Story {
+  return {
+    args: {
+      tc: tc({
+        id: `outcome-${status}`,
+        output: { success: null, status, result: null, error: null, duration_ms: 0, truncated: false },
+      }),
+    },
+    play: async ({ canvas }) => {
+      await expect(canvas.getByText(status)).toBeVisible();
+      await expect(canvas.queryByTitle("succeeded")).not.toBeInTheDocument();
+      await expect(canvas.queryByTitle("failed")).not.toBeInTheDocument();
+    },
+  };
+}
+
+export const UnknownOutcome: Story = neutralOutcome("unknown");
+export const PendingOutcome: Story = neutralOutcome("pending");
+export const CancelledOutcome: Story = neutralOutcome("cancelled");
+
+export const OutcomeStates: Story = {
+  args: { tc: tc({}) },
+  render: () => (
+    <Box>
+      {(["succeeded", "failed", "unknown", "pending", "cancelled"] as const).map((status) => (
+        <ToolCallRow key={status} tc={tc({
+          id: `outcome-${status}`,
+          input: { command: `example: ${status}`, arguments: {} },
+          output: {
+            success: status === "succeeded" ? true : status === "failed" ? false : null,
+            status, result: null, error: null, duration_ms: 0, truncated: false,
+          },
+        })} />
+      ))}
+    </Box>
+  ),
+};
 
 export const SimpleSuccess: Story = {
   args: {
@@ -164,6 +203,30 @@ export const Expanded: Story = {
       },
     }),
     defaultExpanded: true,
+  },
+};
+
+export const StructuralFileAttempts: Story = {
+  args: {
+    defaultExpanded: true,
+    tc: tc({
+      record_kind: "execution",
+      input: {
+        command: "printf x > first; printf y > second",
+        file_targets: ["first", "second"].map((name) => ({
+          path: `/workspace/${name}`, native_path: name,
+          operation_type: "MODIFY", evidence_kind: "shell_redirect",
+          status: "attempted", success: null, cwd: "/workspace", resolved: true,
+          source_reference: "synthetic.jsonl#L9",
+        })),
+      },
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("/workspace/first")).toBeVisible();
+    await expect(canvas.getByText("/workspace/second")).toBeVisible();
+    await expect(canvas.getAllByText(/Outcome: unknown/)).toHaveLength(2);
+    await expect(canvas.getByText("Record kind: execution")).toBeVisible();
   },
 };
 

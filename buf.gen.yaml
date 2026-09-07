@@ -1,11 +1,11 @@
 version: v2
 plugins:
-  - remote: buf.build/bufbuild/es
+  - remote: buf.build/bufbuild/es:v2.12.0
     out: web/src/gen
     opt:
       - target=js+dts
       - import_extension=js
-  - remote: buf.build/protocolbuffers/go
+  - remote: buf.build/protocolbuffers/go:v1.36.11
     out: .
     opt:
       - paths=import

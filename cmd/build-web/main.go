@@ -37,10 +37,6 @@ func buildAndExportFrontend(ctx context.Context) error {
 
 	webDir := filepath.Join(repoRoot, "web")
 	embedDir := filepath.Join(repoRoot, "cmd", "go-minitrace", "cmds", "serve", "frontend")
-	if err := os.RemoveAll(embedDir); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("remove old embed assets: %w", err)
-	}
-
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
 	if err != nil {
 		return fmt.Errorf("connect dagger: %w", err)
@@ -82,14 +78,10 @@ func buildAndExportFrontend(ctx context.Context) error {
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "run", "build"})
 
-	if _, err := container.Directory("/src/web/dist").Export(ctx, embedDir); err != nil {
-		return fmt.Errorf("export built frontend into serve/frontend: %w", err)
-	}
-	if err := os.WriteFile(filepath.Join(embedDir, ".gitkeep"), []byte{}, 0o644); err != nil {
-		return fmt.Errorf("restore frontend .gitkeep: %w", err)
-	}
-
-	return nil
+	return publishFrontend(embedDir, func(staging string) error {
+		_, err := container.Directory("/src/web/dist").Export(ctx, staging)
+		return err
+	})
 }
 
 func findRepoRoot() (string, error) {

@@ -1,0 +1,77 @@
+[
+  {
+    "name": "native_identity",
+    "passed": true,
+    "detail": "fidelity-synthetic"
+  },
+  {
+    "name": "five_deduplicated_messages",
+    "passed": true,
+    "detail": 5
+  },
+  {
+    "name": "repeated_continue_retained",
+    "passed": true,
+    "detail": [
+      "continue",
+      "continue",
+      "Quoted history only: {\"type\":\"item_completed\",\"item\":{\"type\":\"CommandExecution\",\"id\":\"invented\",\"command\":[\"sh\",\"-c\",\"echo no > quoted.txt\"],\"exit_code\":0}}"
+    ]
+  },
+  {
+    "name": "no_orphan_associations",
+    "passed": true,
+    "detail": []
+  },
+  {
+    "name": "typed_outputs_decoded",
+    "passed": true,
+    "detail": []
+  },
+  {
+    "name": "one_authoritative_failed_execution",
+    "passed": false,
+    "detail": 0
+  },
+  {
+    "name": "identical_commands_distinct_ids",
+    "passed": false,
+    "detail": []
+  },
+  {
+    "name": "missing_outcome_not_success",
+    "passed": true,
+    "detail": {
+      "success": null,
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "exit_code": null,
+      "duration_ms": null,
+      "truncated": false,
+      "full_bytes": null,
+      "full_hash": null,
+      "full_reference": null,
+      "redacted": null,
+      "content_origin": null
+    }
+  },
+  {
+    "name": "output_before_call_preserved",
+    "passed": true,
+    "detail": {
+      "success": true,
+      "status": "succeeded",
+      "result": "direct output",
+      "error": null,
+      "exit_code": 0,
+      "duration_ms": 250,
+      "truncated": false,
+      "full_bytes": null,
+      "full_hash": null,
+      "full_reference": "/home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/pkg/adapters/codex/testdata/paginated-fidelity.jsonl#L15",
+      "redacted": null,
+      "content_origin": "local_exec"
+    }
+  }
+]

@@ -84,7 +84,7 @@ func TestConvertRecordsMatchesToolResultsAndBuildsSession(t *testing.T) {
 		t.Fatalf("expected 1 tool call, got %d", len(session.ToolCalls))
 	}
 	toolCall := session.ToolCalls[0]
-	if toolCall.Output.Success != true {
+	if !toolCall.Output.Succeeded() {
 		t.Fatalf("expected successful tool result")
 	}
 	if toolCall.Output.Result == nil || *toolCall.Output.Result != "package main" {
@@ -544,7 +544,7 @@ func TestConvertRecordsMapsToolUseResult(t *testing.T) {
 	}
 
 	stderrCall := byID["tool-stderr"]
-	if stderrCall.Output.Success {
+	if !stderrCall.Output.Failed() {
 		t.Fatalf("expected stderr call to be failed")
 	}
 	if stderrCall.Output.Error == nil || *stderrCall.Output.Error != "boom: command not found" {
@@ -552,7 +552,7 @@ func TestConvertRecordsMapsToolUseResult(t *testing.T) {
 	}
 
 	interruptedCall := byID["tool-int"]
-	if interruptedCall.Output.Success {
+	if !interruptedCall.Output.Failed() {
 		t.Fatalf("expected interrupted call to be failed")
 	}
 	if interruptedCall.Output.Error == nil || *interruptedCall.Output.Error != "interrupted by user" {

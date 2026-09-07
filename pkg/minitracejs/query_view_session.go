@@ -3,6 +3,7 @@ package minitracejs
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -31,6 +32,7 @@ func queryRecipeBuilderObject(vm *goja.Runtime, b *QueryRecipeBuilder) *goja.Obj
 	_ = obj.Set("SessionSummary", func() *goja.Object { return setKind("sessionSummary") })
 	_ = obj.Set("TurnRows", func() *goja.Object { return setKind("turnRows") })
 	_ = obj.Set("ToolRows", func() *goja.Object { return setKind("toolRows") })
+	_ = obj.Set("FileRows", func() *goja.Object { return setKind("fileRows") })
 	_ = obj.Set("EventRows", func() *goja.Object { return setKind("eventRows") })
 	_ = obj.Set("TurnBlockRows", func() *goja.Object { return setKind("turnBlockRows") })
 	_ = obj.Set("TokenUsageRows", func() *goja.Object { return setKind("tokenUsageRows") })
@@ -64,11 +66,13 @@ func (b *QueryRecipeBuilder) Build() (*QueryRecipe, error) {
 	sessionFilter := "(? = '' OR session_id = ?)"
 	switch b.kind {
 	case "sessionSummary", "":
-		return &QueryRecipe{Name: "sessionSummary", SQL: `SELECT session_id, title, summary, agent_framework, model, working_directory, started_at, ended_at, turn_count, tool_call_count FROM sessions WHERE ` + sessionFilter + ` ORDER BY started_at DESC, session_id LIMIT 1`, Args: args, Description: "Session-level summary row.", Output: "SessionSummary"}, nil
+		return &QueryRecipe{Name: "sessionSummary", SQL: `SELECT session_id, title, summary, agent_framework, model, working_directory, started_at, ended_at, turn_count, tool_call_count, tool_call_record_count, orchestration_count, execution_record_count, file_change_count, model_invocation_count, file_touch_count, confirmed_file_target_count FROM sessions WHERE ` + sessionFilter + ` ORDER BY started_at DESC, session_id LIMIT 1`, Args: args, Description: "Session-level summary row.", Output: "SessionSummary"}, nil
 	case "turnRows":
 		return &QueryRecipe{Name: "turnRows", SQL: `SELECT session_id, turn_index, timestamp, role, source, model, content_type, content, thinking, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens, tool_tokens, raw_json FROM turns WHERE ` + sessionFilter + ` ORDER BY turn_index`, Args: args, Description: "Ordered conversational turns.", Output: "TurnRow[]"}, nil
 	case "toolRows":
-		return &QueryRecipe{Name: "toolRows", SQL: `SELECT session_id, tool_call_id, emitting_turn_index AS turn_index, timestamp, tool_name, operation_type, file_path, command, justification, success, result, error, exit_code, duration_ms, truncated, full_bytes, raw_json FROM tool_calls WHERE ` + sessionFilter + ` ORDER BY COALESCE(emitting_turn_index, 999999), timestamp, tool_call_id`, Args: args, Description: "Ordered tool call rows.", Output: "ToolRow[]"}, nil
+		return &QueryRecipe{Name: "toolRows", SQL: `SELECT session_id, tool_call_id, emitting_turn_index AS turn_index, timestamp, tool_name, operation_type, record_kind, file_path, json_extract(raw_json, '$.input.file_targets') AS file_targets_json, command, justification, success, outcome_status, result, error, exit_code, duration_ms, truncated, full_bytes, full_hash, full_reference, framework_metadata_json, raw_json FROM tool_calls WHERE ` + sessionFilter + ` ORDER BY COALESCE(emitting_turn_index, 999999), timestamp, tool_call_id`, Args: args, Description: "Ordered tool call rows.", Output: "ToolRow[]"}, nil
+	case "fileRows":
+		return &QueryRecipe{Name: "fileRows", SQL: `SELECT session_id, tool_call_id, target_ordinal, path, native_path, operation_type, tool_name, evidence_kind, evidence_status, success, cwd, resolved, source_reference, turn_index FROM files WHERE ` + sessionFilter + ` ORDER BY session_id, tool_call_id, target_ordinal`, Args: args, Description: "All file-target evidence rows with independent outcomes.", Output: "FileRow[]"}, nil
 	case "eventRows", "turnBlockRows":
 		return &QueryRecipe{Name: b.kind, SQL: `SELECT session_id, event_id, turn_index, ordinal, kind, role, tool_call_id, annotation_id, title, summary, text, severity, collapsed_by_default, raw_json FROM events WHERE ` + sessionFilter + ` ORDER BY COALESCE(turn_index, 999999), COALESCE(ordinal, 999999), event_id`, Args: args, Description: "Renderable event/block rows.", Output: "TurnBlockRow[]"}, nil
 	case "transcriptRows":
@@ -106,32 +110,50 @@ SELECT 'turn-' || turn_index || '-thinking' AS id, session_id, turn_index, 1 AS 
 	if includeTools {
 		sql += `
 UNION ALL
-SELECT 'tool-' || tc.tool_call_id AS id, tc.session_id, COALESCE(ttc.turn_index, tc.emitting_turn_index, 0) AS turn_index, 10 + COALESCE(ttc.ordinal, 0) AS ordinal, 'tool' AS role,
+SELECT 'tool-' || tc.tool_call_id AS id, tc.session_id, COALESCE(ttc.turn_index, tc.emitting_turn_index) AS turn_index, 10 + COALESCE(ttc.ordinal, 0) AS ordinal, 'tool' AS role,
     CASE WHEN COALESCE(tc.success, 1) = 0 THEN 'tool_error' ELSE 'tool_result' END AS kind,
     tc.tool_name AS name, tc.tool_name || ' / ' || COALESCE(tc.operation_type, 'operation') AS title,
     COALESCE(tc.error, tc.result, tc.command, tc.file_path, '') AS text, tc.timestamp,
     CAST(ROUND(COALESCE(tc.full_bytes, LENGTH(COALESCE(tc.result, tc.error, ''))) / 4.0) AS INTEGER) AS tokens,
     tc.tool_call_id, CASE WHEN COALESCE(tc.success, 1) = 0 THEN 'error' ELSE 'info' END AS severity, 1 AS collapsed_by_default, tc.raw_json AS metadata
-  FROM tool_calls tc LEFT JOIN turn_tool_calls ttc ON ttc.session_id = tc.session_id AND ttc.tool_call_id = tc.tool_call_id
+  FROM tool_calls tc LEFT JOIN (
+    SELECT session_id, tool_call_id, CASE WHEN COUNT(DISTINCT turn_index)=1 THEN MIN(turn_index) END AS turn_index, MIN(ordinal) AS ordinal
+    FROM turn_tool_calls GROUP BY session_id, tool_call_id
+  ) ttc ON ttc.session_id = tc.session_id AND ttc.tool_call_id = tc.tool_call_id
   WHERE (? = '' OR tc.session_id = ?)`
 		args = append(args, sessionID, sessionID)
 	}
-	sql += ` ORDER BY turn_index, ordinal, id`
+	sql = `SELECT * FROM (` + sql + `) ORDER BY session_id, turn_index IS NULL, turn_index, ordinal, id`
 	return &QueryRecipe{Name: "transcriptRows", SQL: sql, Args: args, Description: "Transcript rows for messages, thinking, and optional tools.", Output: "TranscriptRow[]"}
 }
 
 func timelineRowsRecipe(sessionID string) *QueryRecipe {
-	return &QueryRecipe{Name: "timelineRows", SQL: `SELECT t.session_id, t.turn_index, t.role, t.timestamp, SUBSTR(COALESCE(t.content, t.thinking, ''), 1, 600) AS preview,
+	return &QueryRecipe{Name: "timelineRows", SQL: `WITH membership AS (
+ SELECT DISTINCT session_id, turn_index, tool_call_id FROM turn_tool_calls
+), tool_stats AS (
+ SELECT m.session_id, m.turn_index, COUNT(*) AS tool_call_count,
+ SUM(CASE WHEN tc.success=0 THEN 1 ELSE 0 END) AS failed_tool_count,
+ SUM(CASE WHEN tc.success IS NULL THEN 1 ELSE 0 END) AS unknown_tool_count
+ FROM membership m JOIN tool_calls tc ON tc.session_id=m.session_id AND tc.tool_call_id=m.tool_call_id
+ GROUP BY m.session_id, m.turn_index
+), file_stats AS (
+ SELECT m.session_id, m.turn_index, COUNT(DISTINCT f.path) AS file_count,
+ COUNT(*) AS file_touch_count,
+ SUM(CASE WHEN f.evidence_status='confirmed' AND f.success=1 THEN 1 ELSE 0 END) AS confirmed_file_target_count
+ FROM membership m JOIN files f ON f.session_id=m.session_id AND f.tool_call_id=m.tool_call_id
+ GROUP BY m.session_id, m.turn_index
+)
+SELECT t.session_id, t.turn_index, t.role, t.timestamp, SUBSTR(COALESCE(t.content, t.thinking, ''), 1, 600) AS preview,
   COALESCE(t.input_tokens, 0) + COALESCE(t.output_tokens, 0) + COALESCE(t.cache_read_tokens, 0) + COALESCE(t.cache_creation_tokens, 0) + COALESCE(t.reasoning_tokens, 0) + COALESCE(t.tool_tokens, 0) AS total_tokens,
-  COUNT(tc.tool_call_id) AS tool_call_count, SUM(CASE WHEN COALESCE(tc.success, 1) = 0 THEN 1 ELSE 0 END) AS failed_tool_count, COUNT(DISTINCT f.path) AS file_count,
-  CASE WHEN COALESCE(t.thinking, '') != '' THEN 1 ELSE 0 END AS has_thinking, CASE WHEN COUNT(a.annotation_id) > 0 THEN 1 ELSE 0 END AS has_annotations
+  COALESCE(ts.tool_call_count,0) AS tool_call_count, COALESCE(ts.failed_tool_count,0) AS failed_tool_count,
+  COALESCE(ts.unknown_tool_count,0) AS unknown_tool_count, COALESCE(fs.file_count,0) AS file_count,
+  COALESCE(fs.file_touch_count,0) AS file_touch_count, COALESCE(fs.confirmed_file_target_count,0) AS confirmed_file_target_count,
+  CASE WHEN COALESCE(t.thinking, '') != '' THEN 1 ELSE 0 END AS has_thinking,
+  EXISTS(SELECT 1 FROM annotations a WHERE a.session_id=t.session_id AND a.scope_type='turn' AND a.target_id=CAST(t.turn_index AS TEXT)) AS has_annotations
 FROM turns t
-LEFT JOIN turn_tool_calls ttc ON ttc.session_id = t.session_id AND ttc.turn_index = t.turn_index
-LEFT JOIN tool_calls tc ON tc.session_id = t.session_id AND tc.tool_call_id = ttc.tool_call_id
-LEFT JOIN files f ON f.session_id = t.session_id AND f.tool_call_id = tc.tool_call_id
-LEFT JOIN annotations a ON a.session_id = t.session_id AND a.target_id = CAST(t.turn_index AS TEXT)
+LEFT JOIN tool_stats ts ON ts.session_id=t.session_id AND ts.turn_index=t.turn_index
+LEFT JOIN file_stats fs ON fs.session_id=t.session_id AND fs.turn_index=t.turn_index
 WHERE (? = '' OR t.session_id = ?)
-GROUP BY t.session_id, t.turn_index
 ORDER BY t.turn_index`, Args: []any{sessionID, sessionID}, Description: "Condensed timeline rows.", Output: "TimelineRow[]"}
 }
 
@@ -262,43 +284,66 @@ func (b *ViewPlanBuilder) runTurnFrames() ([]map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	frames := map[int]map[string]any{}
+	// Session identity and null association are part of the key. Neither a
+	// different session nor an unassociated event belongs to turn zero.
+	type frameKey struct {
+		session    string
+		turn       int
+		associated bool
+	}
+	frames := map[frameKey]map[string]any{}
+	frameForRow := func(row map[string]any) map[string]any {
+		sessionID, _ := row["session_id"].(string)
+		key := frameKey{session: sessionID, associated: row["turn_index"] != nil}
+		var turnIndex any
+		if key.associated {
+			key.turn = intFromAny(row["turn_index"])
+			turnIndex = key.turn
+		}
+		if frame, found := frames[key]; found {
+			return frame
+		}
+		frame := map[string]any{"sessionId": sessionID, "turnIndex": turnIndex, "unassociated": !key.associated,
+			"blocks": []map[string]any{}, "toolCalls": []map[string]any{},
+			"stats": map[string]any{"chars": 0, "toolCalls": 0, "failedToolCalls": 0, "unknownToolCalls": 0, "estimatedTokens": 0}}
+		frames[key] = frame
+		return frame
+	}
 	for _, block := range blocks {
-		turnIndex := intFromAny(block["turn_index"])
-		frame := frameFor(frames, turnIndex)
+		frame := frameForRow(block)
 		frame["blocks"] = append(frame["blocks"].([]map[string]any), block)
 	}
 	for _, tool := range tools {
-		turnIndex := intFromAny(tool["turn_index"])
-		frame := frameFor(frames, turnIndex)
+		frame := frameForRow(tool)
 		frame["toolCalls"] = append(frame["toolCalls"].([]map[string]any), tool)
 		stats := frame["stats"].(map[string]any)
 		stats["toolCalls"] = intFromAny(stats["toolCalls"]) + 1
-		if intFromAny(tool["success"]) == 0 {
+		switch tool["success"] {
+		case false, 0, int64(0), float64(0):
 			stats["failedToolCalls"] = intFromAny(stats["failedToolCalls"]) + 1
+		case true, 1, int64(1), float64(1):
+		default:
+			stats["unknownToolCalls"] = intFromAny(stats["unknownToolCalls"]) + 1
 		}
 	}
-	out := make([]map[string]any, 0, len(frames))
-	for i := 0; ; i++ {
-		frame, ok := frames[i]
-		if !ok {
-			if len(out) == len(frames) {
-				break
-			}
-			continue
+	keys := make([]frameKey, 0, len(frames))
+	for key := range frames {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].session != keys[j].session {
+			return keys[i].session < keys[j].session
 		}
-		out = append(out, frame)
+		if keys[i].associated != keys[j].associated {
+			return keys[i].associated
+		}
+		return keys[i].turn < keys[j].turn
+	})
+	out := make([]map[string]any, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, frames[key])
 	}
 	return out, nil
-}
-
-func frameFor(frames map[int]map[string]any, turnIndex int) map[string]any {
-	frame := frames[turnIndex]
-	if frame == nil {
-		frame = map[string]any{"turnIndex": turnIndex, "blocks": []map[string]any{}, "toolCalls": []map[string]any{}, "stats": map[string]any{"chars": 0, "toolCalls": 0, "failedToolCalls": 0, "estimatedTokens": 0}}
-		frames[turnIndex] = frame
-	}
-	return frame
 }
 
 func intFromAny(value any) int {

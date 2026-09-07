@@ -17,6 +17,7 @@ const openDb = function() {
 }
 
 const effectiveCommands = function(row) {
+  if (row.framework === "codex") return row.command ? [row.command] : [];
   if (row.command && row.command.length) return [row.command];
   const aj = row.arguments_json || "";
   const out = [];
@@ -68,11 +69,11 @@ function ticketTimeline(tickettimelineopts) {
   const db = openDb();
   try {
     const cmdRows = db.query(`
-      SELECT session_id, emitting_turn_index AS turn_index, timestamp, tool_name,
+      SELECT tc.session_id, s.agent_framework AS framework, emitting_turn_index AS turn_index, timestamp, tool_name,
              substr(COALESCE(command,''),1,400) AS command,
              substr(COALESCE(arguments_json,''),1,2000) AS arguments_json
-      FROM tool_calls
-      WHERE tool_name IN ('Bash','bash','shell','exec','run_terminal_cmd')
+      FROM tool_calls tc JOIN sessions s USING (session_id)
+      WHERE ((s.agent_framework='codex' AND tc.record_kind='execution') OR (COALESCE(s.agent_framework,'')!='codex' AND tool_name IN ('Bash','bash','shell','exec','run_terminal_cmd')))
         AND (COALESCE(command,'') LIKE '%docmgr%' OR COALESCE(arguments_json,'') LIKE '%docmgr%')
         AND (COALESCE(command,'') LIKE ${like} OR COALESCE(arguments_json,'') LIKE ${like})
       ORDER BY timestamp
@@ -80,10 +81,11 @@ function ticketTimeline(tickettimelineopts) {
     `);
 
     const fileRows = db.query(`
-      SELECT session_id, emitting_turn_index AS turn_index, timestamp, tool_name,
-             operation_type, file_path
-      FROM tool_calls
-      WHERE COALESCE(file_path,'') LIKE ${like}
+      SELECT tc.session_id, emitting_turn_index AS turn_index, timestamp, tc.tool_name,
+             f.operation_type, f.path AS file_path, f.evidence_status, f.success
+      FROM files f JOIN tool_calls tc ON f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id
+      JOIN sessions s ON s.session_id=tc.session_id
+      WHERE f.path LIKE ${like} AND (COALESCE(s.agent_framework,'')!='codex' OR f.evidence_kind!='legacy_scalar')
       ORDER BY timestamp
       LIMIT ${tickettimelineopts.limit || 500}
     `);
@@ -96,6 +98,7 @@ function ticketTimeline(tickettimelineopts) {
         events.push({
           session_id: r.session_id, turn_index: r.turn_index, timestamp: r.timestamp,
           channel: "command", category: cat, tool_name: r.tool_name,
+          evidence_kind: "command_text_candidate", verified_subcommand_execution: false,
           detail: cmd.slice(0, 240),
         });
       }
@@ -104,6 +107,7 @@ function ticketTimeline(tickettimelineopts) {
       events.push({
         session_id: r.session_id, turn_index: r.turn_index, timestamp: r.timestamp,
         channel: "file", category: classifyTicketPath(r.file_path), tool_name: r.tool_name,
+        evidence_status: r.evidence_status, success: r.success,
         detail: `${r.operation_type || "?"} ${r.file_path}`,
       });
     }

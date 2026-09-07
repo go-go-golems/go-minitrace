@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const SchemaVersion = "normalized-sqlite-v3"
+const SchemaVersion = "normalized-sqlite-v5"
 
 // SessionsBaseCompatView is a compatibility VIEW that reconstructs the legacy
 // DuckDB `sessions_base` shape (5 scalar columns plus JSON blob columns) from
@@ -42,14 +42,14 @@ func Schema() SchemaDescriptor {
 
 func Tables() []TableDescriptor {
 	return []TableDescriptor{
-		sessionsTable(),
+		withActivityColumns(sessionsTable()),
 		turnsTable(),
 		toolCallsTable(),
 		turnToolCallsTable(),
 		filesTable(),
 		annotationsTable(),
 		handoversTable(),
-		metricsTable(),
+		withActivityColumns(metricsTable()),
 		attachmentsTable(),
 		eventsTable(),
 	}
@@ -322,10 +322,12 @@ func toolCallsTable() TableDescriptor {
 			{Name: "tool_name", Type: "TEXT", Nullable: true},
 			{Name: "operation_type", Type: "TEXT", Nullable: true},
 			{Name: "file_path", Type: "TEXT", Nullable: true},
+			{Name: "record_kind", Type: "TEXT"},
 			{Name: "command", Type: "TEXT", Nullable: true},
 			{Name: "justification", Type: "TEXT", Nullable: true},
 			{Name: "arguments_json", Type: "TEXT", Nullable: true},
 			{Name: "success", Type: "INTEGER", Nullable: true},
+			{Name: "outcome_status", Type: "TEXT", Nullable: true},
 			{Name: "result", Type: "TEXT", Nullable: true},
 			{Name: "error", Type: "TEXT", Nullable: true},
 			{Name: "exit_code", Type: "INTEGER", Nullable: true},
@@ -354,10 +356,12 @@ func toolCallsTable() TableDescriptor {
 	tool_name TEXT,
 	operation_type TEXT,
 	file_path TEXT,
+	record_kind TEXT NOT NULL,
 	command TEXT,
 	justification TEXT,
 	arguments_json TEXT,
 	success INTEGER,
+	outcome_status TEXT,
 	result TEXT,
 	error TEXT,
 	exit_code INTEGER,
@@ -405,7 +409,7 @@ func turnToolCallsTable() TableDescriptor {
 func filesTable() TableDescriptor {
 	return TableDescriptor{
 		Name:        "files",
-		Description: "One row per file path touched by a tool call.",
+		Description: "One row per structural file target or legacy scalar report; evidence_status distinguishes attempts from confirmed effects.",
 		Columns: []ColumnDescriptor{
 			{Name: "session_id", Type: "TEXT"},
 			{Name: "tool_call_id", Type: "TEXT"},
@@ -414,6 +418,13 @@ func filesTable() TableDescriptor {
 			{Name: "tool_name", Type: "TEXT", Nullable: true},
 			{Name: "success", Type: "INTEGER", Nullable: true},
 			{Name: "turn_index", Type: "INTEGER", Nullable: true},
+			{Name: "target_ordinal", Type: "INTEGER"},
+			{Name: "evidence_kind", Type: "TEXT"},
+			{Name: "evidence_status", Type: "TEXT"},
+			{Name: "cwd", Type: "TEXT", Nullable: true},
+			{Name: "resolved", Type: "INTEGER"},
+			{Name: "native_path", Type: "TEXT", Nullable: true},
+			{Name: "source_reference", Type: "TEXT", Nullable: true},
 		},
 		CreateSQL: `CREATE TABLE IF NOT EXISTS files (
 	session_id TEXT NOT NULL,
@@ -422,7 +433,14 @@ func filesTable() TableDescriptor {
 	operation_type TEXT,
 	tool_name TEXT,
 	success INTEGER,
-	turn_index INTEGER
+	turn_index INTEGER,
+	target_ordinal INTEGER NOT NULL,
+	evidence_kind TEXT NOT NULL,
+	evidence_status TEXT NOT NULL,
+	cwd TEXT,
+	resolved INTEGER NOT NULL,
+	native_path TEXT,
+	source_reference TEXT
 );`,
 	}
 }

@@ -18,6 +18,7 @@ const openDb = function() {
 }
 
 const effectiveCommands = function(row) {
+  if (row.framework === "codex") return row.record_kind === "execution" && row.command ? [row.command] : [];
   if (row.command && row.command.length) return [row.command];
   const aj = row.arguments_json || "";
   const out = [];
@@ -118,23 +119,24 @@ function contextWindow(contextwindowopts) {
     }
 
     const calls = db.query(`
-      SELECT emitting_turn_index AS turn_index, timestamp, tool_call_id, tool_name, operation_type,
-             success, file_path,
+      SELECT emitting_turn_index AS turn_index, timestamp, tc.tool_call_id, tool_name, operation_type,
+             success, file_path, s.agent_framework AS framework, tc.record_kind,
+             (SELECT json_group_array(json_object('path',f.path,'operation',f.operation_type,'status',f.evidence_status)) FROM files f WHERE f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id AND f.evidence_kind!='legacy_scalar') AS file_targets_json,
              substr(COALESCE(command,''),1,300) AS command,
              substr(COALESCE(arguments_json,''),1,1500) AS arguments_json
-      FROM tool_calls
-      WHERE session_id = ${sidLit} AND emitting_turn_index BETWEEN ${boundary} AND ${target}
+      FROM tool_calls tc JOIN sessions s USING(session_id)
+      WHERE tc.session_id = ${sidLit} AND emitting_turn_index BETWEEN ${boundary} AND ${target}
       ORDER BY timestamp
     `);
 
     const filesMap = {};
     for (const c of calls) {
-      if (!c.file_path) continue;
-      const f = filesMap[c.file_path] || (filesMap[c.file_path] = {
-        file_path: c.file_path, first_op: c.operation_type || c.tool_name, ops: [], last_seen: c.timestamp,
-      });
-      f.ops.push({ turn: c.turn_index, op: c.operation_type || c.tool_name, tool_name: c.tool_name });
-      f.last_seen = c.timestamp;
+      const targets = c.framework === "codex" ? JSON.parse(c.file_targets_json || "[]") : c.file_path ? [{path:c.file_path,operation:c.operation_type}] : [];
+      for (const target of targets) {
+        const f = filesMap[target.path] || (filesMap[target.path] = {file_path:target.path,first_op:target.operation || c.tool_name,ops:[],last_seen:c.timestamp});
+        f.ops.push({turn:c.turn_index,op:target.operation || c.tool_name,tool_name:c.tool_name,evidence_status:target.status});
+        f.last_seen=c.timestamp;
+      }
     }
 
     const skillLoads = calls.filter((c) => c.tool_name === "Skill")

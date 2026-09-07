@@ -1,0 +1,30 @@
+go test ./...
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/build-web	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	0.228s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	0.043s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	0.145s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	6.988s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	4.266s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	0.063s
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters	0.021s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	0.017s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	0.012s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	0.023s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	0.038s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	0.044s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	0.016s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	0.188s
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	0.299s
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	0.190s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	0.262s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	0.272s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	0.409s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	1.669s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	0.189s
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]

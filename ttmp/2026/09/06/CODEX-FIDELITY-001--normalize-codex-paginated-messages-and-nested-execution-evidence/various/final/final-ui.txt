@@ -1,0 +1,145 @@
+minitrace
+Sessions
+Query
+1 sessions loaded
+Sessions
+fidelity
+continue
+Query
+Annotate
+Started
+
+9/1/2026, 6:00:00 AM
+
+Duration
+18s (18s active)
+100%
+5 turns
+9 tool records · 3 invocations · 6 executions · 0/2 confirmed targets
+synthetic-model
+/workspace/initial
+SOURCE FACTS
+1 events
+fidelity_warning
+
+Codex fidelity diagnostics
+
+2026-09-01T10:00:18Z
+1 fidelity diagnostics; inspect framework metadata for counts and bounded source references
+
+9 unassociated tool records — no proven emitting message
+
+exec
+exec
+Annotate
+0.0s
+unknown
+exec_command
+printf first > first.txt; printf second >> second.txt; exit 7
+error
+Annotate
+1.0s
+Record kind: execution
+
+File target evidence
+
+/workspace/actual/first.txt — MODIFY; attempted; shell_redirect
+Outcome: unknown; cwd: /workspace/actual
+Source: /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/pkg/adapters/codex/testdata/paginated-fidelity.jsonl#L9
+/workspace/actual/second.txt — MODIFY; attempted; shell_redirect
+Outcome: unknown; cwd: /workspace/actual
+Source: /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/pkg/adapters/codex/testdata/paginated-fidelity.jsonl#L9
+Output source: /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/pkg/adapters/codex/testdata/paginated-fidelity.jsonl#L11
+Native provenance
+TOOL CALL ID
+codex-execution:exec-failed
+TOOL
+printf first > first.txt; printf second >> second.txt; exit 7
+ARGUMENTS
+{
+  "argv": [
+    "/bin/sh",
+    "-lc",
+    "printf first > first.txt; printf second >> second.txt; exit 7"
+  ],
+  "cwd": "/workspace/actual"
+}
+OUTPUT
+synthetic failure
+
+ERROR
+synthetic failure
+
+exec_command
+printf ok
+Annotate
+0.0s
+exec_command
+printf ok
+Annotate
+0.0s
+exec_command
+printf direct
+Annotate
+0.3s
+exec
+exec
+Annotate
+0.0s
+pending
+exec_command
+'example-tool' 'argument with spaces'
+Annotate
+0.0s
+unknown
+exec_command
+sleep 10
+Annotate
+0.0s
+pending
+exec_command
+sleep 10
+Annotate
+0.0s
+cancelled
+TRANSCRIPT (3 BLOCKS)
+ANNOTATIONS
+3 BLOCKS
+#1
+2026-09-01 06:00
+
+continue
+
+2t / 0tc
+USER
+#0
+Annotate
+
+continue
+
+ASSISTANT
+#1
+synthetic-model
+Annotate
+
+Inspecting. Then testing.
+
+ASSISTANT
+#2
+synthetic-model
+Annotate
+
+A child failed; some outcomes remain unknown.
+
+#2
+2026-09-01 06:00
+
+continue
+
+0t / 0tc
+#3
+2026-09-01 06:00
+
+Quoted history only: {"type":"item_completed","item":{"type":"CommandExecution","id":"invented","command":["sh","-c","echo no > quoted.txt"],"exit_code":0}}
+
+0t / 0tc

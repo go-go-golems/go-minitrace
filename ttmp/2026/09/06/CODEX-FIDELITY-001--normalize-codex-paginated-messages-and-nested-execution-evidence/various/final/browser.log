@@ -1,0 +1,76 @@
+│
+▲  No story files found for the specified pattern: src/**/*.mdx
+
+ RUN  v4.1.2 /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/web
+
+ ❯ |storybook (chromium)| src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx (4 tests | 4 failed) 621ms
+   × Default 143ms
+   × Long Title 197ms
+   × High Activity Session 113ms
+   × Single Block 167ms
+ ❯ |storybook (chromium)| src/components/TranscriptViewer/stories/AnnotationModal.stories.tsx (4 tests | 3 failed) 1095ms
+   × Session Annotation 222ms
+   × Turn Annotation 174ms
+   × Tool Call Annotation 221ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/AnnotationModal.stories.tsx > Session Annotation
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/AnnotationModal.stories.tsx > Turn Annotation
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/AnnotationModal.stories.tsx > Tool Call Annotation
+Error: 
+[34mClick to debug the error directly in Storybook: http://localhost:6006/?path=/story/transcriptviewer-annotationmodal--session-annotation&addonPanel=storybook/interactions/panel[39m
+
+could not find react-redux context value; please ensure the component is wrapped in a <Provider>
+ ❯ useReduxContext2 node_modules/.pnpm/react-redux@9.2.0_@types+react@19.2.14_react@19.2.4_redux@5.0.1/node_modules/react-redux/dist/react-redux.mjs:916:12
+ ❯ useStore2 node_modules/.pnpm/react-redux@9.2.0_@types+react@19.2.14_react@19.2.4_redux@5.0.1/node_modules/react-redux/dist/react-redux.mjs:932:22
+ ❯ useDispatch2 node_modules/.pnpm/react-redux@9.2.0_@types+react@19.2.14_react@19.2.4_redux@5.0.1/node_modules/react-redux/dist/react-redux.mjs:946:18
+ ❯ node_modules/.pnpm/@reduxjs+toolkit@2.11.2_react-redux@9.2.0_@types+react@19.2.14_react@19.2.4_redux@5.0.1__react@19.2.4/node_modules/@reduxjs/toolkit/dist/query/react/rtk-query-react.modern.mjs:520:23
+ ❯ AnnotationComposer src/components/TranscriptViewer/AnnotationComposer.tsx:50:56
+     48|   compact = false,
+     49| }: AnnotationComposerProps) {
+     50|   const [createAnnotation, { isLoading: isCreating }] = useCreateAnnot…
+       |                                                        ^
+     51|   const [category, setCategory] = useState<AnnotationCategory>("observ…
+     52|   const [annotationTitle, setAnnotationTitle] = useState("");
+ ❯ Object.react_stack_bottom_frame node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:25904:19
+ ❯ renderWithHooks node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:7662:21
+ ❯ updateFunctionComponent node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:10166:18
+ ❯ beginWork node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:11778:17
+ ❯ runWithFiberInDEV node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:871:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx > Default
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx > Long Title
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx > High Activity Session
+ FAIL  |storybook (chromium)| src/components/TranscriptViewer/stories/TranscriptViewer.stories.tsx > Single Block
+Error: 
+[34mClick to debug the error directly in Storybook: http://localhost:6006/?path=/story/screens-transcriptviewer--default&addonPanel=storybook/interactions/panel[39m
+
+useLocation() may be used only in the context of a <Router> component.
+ ❯ invariant node_modules/.cache/storybook/10.3.3/da59c2cd44500346ad1054dca87035b7620e3996d9fddf5c1fe454d7263053b6/sb-vitest/deps/react-router.js?v=94d8b54f:160:78
+ ❯ useLocation node_modules/.cache/storybook/10.3.3/da59c2cd44500346ad1054dca87035b7620e3996d9fddf5c1fe454d7263053b6/sb-vitest/deps/react-router.js?v=94d8b54f:3794:1
+ ❯ useSearchParams node_modules/.cache/storybook/10.3.3/da59c2cd44500346ad1054dca87035b7620e3996d9fddf5c1fe454d7263053b6/sb-vitest/deps/react-router.js?v=94d8b54f:7208:16
+ ❯ TranscriptViewer src/components/TranscriptViewer/TranscriptViewer.tsx:155:42
+    153|   onQuerySession,
+    154| }: TranscriptViewerProps) {
+    155|   const [searchParams, setSearchParams] = useSearchParams();
+       |                                          ^
+    156|   const [focusedTarget, setFocusedTarget] = useState<FocusedTranscript…
+    157|   const [expandedBlocks, setExpandedBlocks] = useState<Record<number, …
+ ❯ Object.react_stack_bottom_frame node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:25904:19
+ ❯ renderWithHooks node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:7662:21
+ ❯ updateFunctionComponent node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:10166:18
+ ❯ beginWork node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:11778:17
+ ❯ runWithFiberInDEV node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:871:29
+ ❯ performUnitOfWork node_modules/.pnpm/react-dom@19.2.4_react@19.2.4/node_modules/react-dom/cjs/react-dom-client.development.js:17641:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+
+ Test Files  2 failed | 10 passed (12)
+      Tests  7 failed | 71 passed (78)
+   Start at  19:09:22
+   Duration  14.95s (transform 0ms, setup 19.98s, import 14.35s, tests 41.80s, environment 0ms)
+

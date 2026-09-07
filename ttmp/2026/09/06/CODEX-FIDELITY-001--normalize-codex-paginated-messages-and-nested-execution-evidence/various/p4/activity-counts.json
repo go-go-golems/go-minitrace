@@ -1,0 +1,13 @@
+[
+{
+  "confirmed_file_target_count": 0,
+  "execution_record_count": 6,
+  "file_change_count": 0,
+  "file_touch_count": 2,
+  "model_invocation_count": 3,
+  "orchestration_count": 2,
+  "session_id": "fidelity-synthetic",
+  "tool_call_count": 9,
+  "tool_call_record_count": 1
+}
+]

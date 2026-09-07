@@ -1,0 +1,25 @@
+layout: /home/manuel/workspaces/2026-09-06/update-codex-adapter/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/various/slips/08-p4-done.yaml
+dry_run: false
+height: 593
+layout_member: 08-p4-done.yaml
+ok: true
+printed: true
+printer_response:
+    ok: true
+rendered_at: "2026-09-06T23:05:46Z"
+response:
+    height: 593
+    ok: true
+    printed: true
+    printerResponse:
+        ok: true
+    renderedAt: "2026-09-06T23:05:46Z"
+    width: 384
+source_kind: file
+status_code: 200
+url: https://almanach.crib.scapegoat.dev/api/render-and-print
+width: 384
+
+---
+
+printed: yes

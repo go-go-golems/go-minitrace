@@ -28,6 +28,7 @@ type SessionSummaryDetailResponse struct {
 }
 
 type SessionDetailResponse struct {
+	UnassociatedToolCalls []ToolCallResponse `json:"unassociated_tool_calls"`
 	SessionSummaryDetailResponse
 	Blocks []SessionBlock `json:"blocks"`
 }
@@ -42,6 +43,7 @@ type SessionTimingResponse struct {
 }
 
 type SessionMetricsResponse struct {
+	minitrace.ActivityCounts
 	TurnCount            int  `json:"turn_count"`
 	ToolCallCount        int  `json:"tool_call_count"`
 	TotalInputTokens     *int `json:"total_input_tokens,omitempty"`
@@ -137,27 +139,35 @@ type TurnResponse struct {
 }
 
 type ToolCallResponse struct {
-	ID            string         `json:"id"`
-	ToolName      string         `json:"tool_name"`
-	Timestamp     string         `json:"timestamp"`
-	OperationType string         `json:"operation_type"`
-	Input         ToolCallInput  `json:"input"`
-	Output        ToolCallOutput `json:"output"`
-	Badges        []BadgeType    `json:"badges"`
+	FrameworkMetadata map[string]any `json:"framework_metadata,omitempty"`
+	RecordKind        string         `json:"record_kind"`
+	ID                string         `json:"id"`
+	ToolName          string         `json:"tool_name"`
+	Timestamp         string         `json:"timestamp"`
+	OperationType     string         `json:"operation_type"`
+	Input             ToolCallInput  `json:"input"`
+	Output            ToolCallOutput `json:"output"`
+	Badges            []BadgeType    `json:"badges"`
 }
 
 type ToolCallInput struct {
-	Command   string         `json:"command,omitempty"`
-	Arguments map[string]any `json:"arguments,omitempty"`
-	FilePath  string         `json:"file_path,omitempty"`
+	FileTargets []minitrace.FileTarget `json:"file_targets"`
+	Command     string                 `json:"command,omitempty"`
+	Arguments   map[string]any         `json:"arguments,omitempty"`
+	FilePath    string                 `json:"file_path,omitempty"`
 }
 
 type ToolCallOutput struct {
-	Success    bool    `json:"success"`
-	Result     *string `json:"result"`
-	Error      *string `json:"error"`
-	DurationMs int     `json:"duration_ms"`
-	Truncated  bool    `json:"truncated"`
+	FullReference *string `json:"full_reference"`
+	FullBytes     *int    `json:"full_bytes"`
+	FullHash      *string `json:"full_hash"`
+	Success       *bool   `json:"success"`
+	Status        string  `json:"status"`
+	ExitCode      *int    `json:"exit_code"`
+	Result        *string `json:"result"`
+	Error         *string `json:"error"`
+	DurationMs    int     `json:"duration_ms"`
+	Truncated     bool    `json:"truncated"`
 }
 
 type BlockArtifacts struct {
@@ -168,6 +178,7 @@ type BlockArtifacts struct {
 }
 
 func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDetailResponse {
+	session.Metrics.ActivityCounts = minitrace.CountToolActivity(session.ToolCalls)
 	return SessionSummaryDetailResponse{
 		SessionSummaryResponse: SessionSummaryResponse{
 			ID:                 session.ID,
@@ -186,7 +197,20 @@ func normalizeSessionSummaryDetail(session minitrace.Session) SessionSummaryDeta
 }
 
 func normalizeSessionDetail(session minitrace.Session) SessionDetailResponse {
+	linked := map[string]bool{}
+	for _, turn := range session.Turns {
+		for _, id := range turn.ToolCallsInTurn {
+			linked[id] = true
+		}
+	}
+	unassociated := []ToolCallResponse{}
+	for _, call := range session.ToolCalls {
+		if !linked[call.ID] {
+			unassociated = append(unassociated, normalizeToolCall(call))
+		}
+	}
 	return SessionDetailResponse{
+		UnassociatedToolCalls:        unassociated,
 		SessionSummaryDetailResponse: normalizeSessionSummaryDetail(session),
 		Blocks:                       buildSessionBlocks(session),
 	}
@@ -277,21 +301,29 @@ func normalizeUsage(u *minitrace.Usage) *TurnUsageResponse {
 
 func normalizeToolCall(toolCall minitrace.ToolCall) ToolCallResponse {
 	return ToolCallResponse{
-		ID:            toolCall.ID,
-		ToolName:      toolCall.ToolName,
-		Timestamp:     stringValue(toolCall.Timestamp),
-		OperationType: toolCall.OperationType,
+		FrameworkMetadata: normalizeArguments(toolCall.FrameworkMetadata),
+		ID:                toolCall.ID,
+		RecordKind:        toolCall.EffectiveRecordKind(),
+		ToolName:          toolCall.ToolName,
+		Timestamp:         stringValue(toolCall.Timestamp),
+		OperationType:     toolCall.OperationType,
 		Input: ToolCallInput{
-			Command:   stringValue(toolCall.Input.Command),
-			Arguments: normalizeArguments(toolCall.Input.Arguments),
-			FilePath:  stringValue(toolCall.Input.FilePath),
+			Command:     stringValue(toolCall.Input.Command),
+			Arguments:   normalizeArguments(toolCall.Input.Arguments),
+			FilePath:    stringValue(toolCall.Input.FilePath),
+			FileTargets: toolCall.EffectiveFileTargets(),
 		},
 		Output: ToolCallOutput{
-			Success:    toolCall.Output.Success,
-			Result:     toolCall.Output.Result,
-			Error:      toolCall.Output.Error,
-			DurationMs: intValue(toolCall.Output.DurationMS),
-			Truncated:  toolCall.Output.Truncated,
+			Success:       toolCall.Output.Success,
+			Status:        string(toolCall.Output.OutcomeStatus()),
+			ExitCode:      toolCall.Output.ExitCode,
+			Result:        toolCall.Output.Result,
+			Error:         toolCall.Output.Error,
+			DurationMs:    intValue(toolCall.Output.DurationMS),
+			Truncated:     toolCall.Output.Truncated,
+			FullReference: toolCall.Output.FullReference,
+			FullBytes:     toolCall.Output.FullBytes,
+			FullHash:      toolCall.Output.FullHash,
 		},
 		Badges: DetectBadges(toolCall),
 	}
@@ -310,6 +342,7 @@ func normalizeTiming(timing minitrace.Timing) SessionTimingResponse {
 
 func normalizeMetrics(metrics minitrace.Metrics) SessionMetricsResponse {
 	return SessionMetricsResponse{
+		ActivityCounts:       metrics.ActivityCounts,
 		TurnCount:            metrics.TurnCount,
 		ToolCallCount:        metrics.ToolCallCount,
 		TotalInputTokens:     metrics.TotalInputTokens,

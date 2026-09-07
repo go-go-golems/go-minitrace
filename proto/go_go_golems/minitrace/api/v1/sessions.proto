@@ -32,18 +32,36 @@ message SessionSummaryDetail {
   repeated SessionAttachment attachments = 11;
 }
 
+message FileTarget {
+  string path = 1;
+  string native_path = 2;
+  string operation_type = 3;
+  string evidence_kind = 4;
+  string status = 5;
+  optional bool success = 6;
+  string cwd = 7;
+  bool resolved = 8;
+  string source_reference = 9;
+}
+
 message ToolCallInput {
   optional string command = 1;
   google.protobuf.Struct arguments = 2;
   optional string file_path = 3;
+  repeated FileTarget file_targets = 4;
 }
 
 message ToolCallOutput {
-  bool success = 1;
+  optional bool success = 1;
   optional string result = 2;
   optional string error = 3;
   uint32 duration_ms = 4;
   bool truncated = 5;
+  string status = 6;
+  optional int32 exit_code = 7;
+  optional string full_reference = 8;
+  optional uint64 full_bytes = 9;
+  optional string full_hash = 10;
 }
 
 message ToolCall {
@@ -54,6 +72,8 @@ message ToolCall {
   ToolCallInput input = 5;
   ToolCallOutput output = 6;
   repeated ToolCallBadge badges = 7;
+  string record_kind = 8;
+  google.protobuf.Struct framework_metadata = 9;
 }
 
 message TurnUsage {
@@ -136,6 +156,7 @@ message SessionDetail {
   repeated SessionBlock blocks = 10;
   repeated SessionEvent events = 11;
   repeated SessionAttachment attachments = 12;
+  repeated ToolCall unassociated_tool_calls = 13;
 }
 
 message ListSessionsResponse {

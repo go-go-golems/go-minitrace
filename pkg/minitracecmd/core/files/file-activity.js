@@ -55,7 +55,7 @@ function fileActivity(filters) {
       ? `AND timestamp >= ${mt.sql.string(filters.since)}`
       : "";
     const writes = filters.write_only !== false
-      ? "AND tc.operation_type IN ('NEW', 'MODIFY')"
+      ? "AND (CASE WHEN s.agent_framework='codex' THEN f.operation_type ELSE tc.operation_type END) IN ('NEW', 'MODIFY', 'DELETE')"
       : "";
 
     // `operations` counts rows surviving the ranked WHERE, so narrowing with
@@ -67,14 +67,16 @@ function fileActivity(filters) {
           tc.session_id,
           tc.timestamp,
           tc.tool_name,
-          tc.operation_type,
-          COALESCE(
+          CASE WHEN s.agent_framework='codex' THEN f.operation_type ELSE tc.operation_type END AS operation_type,
+          f.evidence_status,
+          CASE WHEN s.agent_framework='codex' THEN f.path ELSE COALESCE(
             NULLIF(tc.file_path, ''),
             json_extract(tc.arguments_json, '$.path'),
             json_extract(tc.arguments_json, '$.file_path')
-          ) AS file_path
+          ) END AS file_path
         FROM tool_calls tc
         JOIN sessions s USING (session_id)
+        LEFT JOIN files f ON s.agent_framework='codex' AND f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id AND f.evidence_kind!='legacy_scalar'
         WHERE 1=1
           ${framework}
           ${cwd}
@@ -87,6 +89,7 @@ function fileActivity(filters) {
           timestamp AS last_activity_at,
           operation_type AS latest_operation,
           tool_name AS latest_tool,
+          evidence_status AS latest_evidence_status,
           COUNT(*) OVER (PARTITION BY session_id, file_path) AS operations,
           ROW_NUMBER() OVER (
             PARTITION BY session_id, file_path
@@ -99,7 +102,7 @@ function fileActivity(filters) {
           ${since}
       )
       SELECT session_id, file_path, last_activity_at, operations,
-             latest_operation, latest_tool
+             latest_operation, latest_tool, latest_evidence_status
       FROM ranked
       WHERE row_number = 1
       ORDER BY last_activity_at DESC

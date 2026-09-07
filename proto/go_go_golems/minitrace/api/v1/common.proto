@@ -24,6 +24,13 @@ message SessionMetrics {
   optional uint32 total_input_tokens = 3;
   optional uint32 total_output_tokens = 4;
   optional uint32 total_cache_read_tokens = 5;
+  uint32 tool_call_record_count = 6;
+  uint32 orchestration_count = 7;
+  uint32 execution_record_count = 8;
+  uint32 file_change_count = 9;
+  uint32 model_invocation_count = 10;
+  uint32 file_touch_count = 11;
+  uint32 confirmed_file_target_count = 12;
 }
 
 message SessionEnvironment {

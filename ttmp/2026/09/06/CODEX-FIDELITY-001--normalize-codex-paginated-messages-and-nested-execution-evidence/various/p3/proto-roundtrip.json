@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "outcomes": [
+    {
+      "id": "unknown",
+      "success": null,
+      "status": "unknown",
+      "exit_code": null
+    },
+    {
+      "id": "pending",
+      "success": null,
+      "status": "pending",
+      "exit_code": null
+    },
+    {
+      "id": "cancelled",
+      "success": null,
+      "status": "cancelled",
+      "exit_code": null
+    },
+    {
+      "id": "succeeded",
+      "success": true,
+      "status": "succeeded",
+      "exit_code": null
+    },
+    {
+      "id": "failed",
+      "success": false,
+      "status": "failed",
+      "exit_code": -1
+    }
+  ]
+}

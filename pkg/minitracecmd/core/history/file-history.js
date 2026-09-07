@@ -1,26 +1,12 @@
 // history file-history — when was a file created / edited / read, in which
 // session, turn, and at what timestamp, across all converted archives.
 //
-// See design-doc/01 (GOGO-MINITRACE-HISTORY-VERBS-2026-07-20) for the full
-// design rationale. Short version: `tool_calls.file_path` is the primary
-// signal; Codex patch wrappers sometimes leave file_path empty and put the
-// target path only in `arguments_json`, so that is matched too. A "created"
-// classification is a candidate, never proof the file didn't already exist
-// before this archive's window — see `created_before_visible_history`.
-//
-// Multi-file patches: Codex's apply_patch converter
-// (extractFilePathFromPatch in pkg/adapters/codex/convert.go) records only
-// the FIRST "*** Update/Add/Delete File:" header into tool_calls.file_path.
-// A blanket "only look at arguments_json when file_path is empty" rule
-// therefore hides every file after the first in a multi-file patch — its
-// file_path is non-empty (the first file), so the fallback never runs, and
-// the second file disappears entirely. Fixed by extracting ALL structurally
-// file-path-shaped candidates from arguments_json unconditionally (patch
-// headers, JSON file_path/path keys) rather than gating on file_path being
-// empty. Matching only structured candidates, never raw substring presence
-// in the whole payload, is what avoids reintroducing the original bug this
-// design fixed: a Write tool's free-text `content` argument coincidentally
-// containing the search fragment as prose, not as an actual file reference.
+// Codex uses only normalized structural rows from files, including evidence
+// status and independent file outcome. Never scan its JavaScript wrappers or
+// quoted arguments. Older Codex archives need reconversion for this ledger.
+// Existing non-Codex scalar/argument extraction remains supported below.
+// A NEW classification is a target operation, not proof of prior nonexistence;
+// evidence_status distinguishes attempted targets from confirmed effects.
 
 const openDb = function() {
   const mt = require("minitrace");
@@ -33,9 +19,7 @@ const openDb = function() {
     .Build();
 }
 
-// Cross-framework command extraction: claude-code populates `command`;
-// pi uses lowercase tool names with `command`; codex buries shell commands
-// as JS strings (tools.exec_command({cmd: "..."})) inside arguments_json.
+// Legacy non-Codex command extraction. Codex never enters this inference path.
 const effectiveCommands = function(row) {
   if (row.command && row.command.length) return [row.command];
   const aj = row.arguments_json || "";
@@ -159,14 +143,19 @@ function fileHistory(filehistoryopts) {
       SELECT tc.session_id, s.agent_framework AS framework, s.working_directory,
              s.started_at AS session_started_at,
              tc.emitting_turn_index AS turn_index, tc.timestamp, tc.tool_name,
-             tc.operation_type, tc.success, tc.file_path,
+             CASE WHEN s.agent_framework='codex' THEN f.operation_type ELSE tc.operation_type END AS operation_type,
+             CASE WHEN s.agent_framework='codex' THEN f.success ELSE tc.success END AS success,
+             CASE WHEN s.agent_framework='codex' THEN f.path ELSE tc.file_path END AS file_path,
+             f.evidence_kind, f.evidence_status, f.cwd AS evidence_cwd, f.source_reference,
              substr(COALESCE(tc.command,''),1,2000) AS command,
              substr(COALESCE(tc.arguments_json,''),1,64000) AS arguments_json
       FROM tool_calls tc
       JOIN sessions s USING (session_id)
-      WHERE COALESCE(tc.file_path,'') LIKE ${like}
+      LEFT JOIN files f ON s.agent_framework='codex' AND f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id
+      WHERE (s.agent_framework='codex' AND f.evidence_kind!='legacy_scalar' AND f.path LIKE ${like})
+         OR (COALESCE(s.agent_framework,'')!='codex' AND (COALESCE(tc.file_path,'') LIKE ${like}
          OR COALESCE(tc.command,'') LIKE ${like}
-         OR COALESCE(tc.arguments_json,'') LIKE ${like}
+         OR COALESCE(tc.arguments_json,'') LIKE ${like}))
       ORDER BY tc.timestamp
       LIMIT ${filehistoryopts.limit || 500}
     `);
@@ -184,6 +173,7 @@ function fileHistory(filehistoryopts) {
       (bySession[u.session_id] = bySession[u.session_id] || []).push(u);
     }
     const precedingInstruction = function(sid, turn) {
+      if (turn == null) return null;
       const list = bySession[sid];
       if (!list) return null;
       let best = null;
@@ -201,7 +191,7 @@ function fileHistory(filehistoryopts) {
     const fragLower = frag.toLowerCase();
     const timeline = [];
     for (const r of rows) {
-      const candidates = extractCandidatePaths(r);
+      const candidates = r.framework === "codex" ? [r.file_path] : extractCandidatePaths(r);
       const matched = candidates.filter((p) => p.toLowerCase().includes(fragLower));
       if (!matched.length) continue; // coarse SQL LIKE hit arguments_json prose, not a real path
       for (const path of matched) {
@@ -216,7 +206,11 @@ function fileHistory(filehistoryopts) {
           raw_operation_type: r.operation_type,
           success: r.success,
           file_path: path,
-          match_source: path === r.file_path ? "file_path" : "arguments_json-extracted-path",
+          match_source: r.framework === "codex" ? "structural_file_target" : path === r.file_path ? "file_path" : "arguments_json-extracted-path",
+          evidence_kind: r.evidence_kind,
+          evidence_status: r.evidence_status,
+          evidence_cwd: r.evidence_cwd,
+          source_reference: r.source_reference,
           preceding_instruction: precedingInstruction(r.session_id, r.turn_index),
         });
       }
@@ -233,11 +227,14 @@ function fileHistory(filehistoryopts) {
       const g = groups[key] || (groups[key] = {
         file_path: key, first_seen: t.timestamp, first_op: t.op, first_session: t.session_id,
         last_seen: t.timestamp, creates: 0, modifies: 0, reads: 0, other: 0,
-        sessions: new Set(),
+        sessions: new Set(), structural: false, attempted_targets: 0, confirmed_effects: 0,
       });
       if (t.timestamp < g.first_seen) { g.first_seen = t.timestamp; g.first_op = t.op; g.first_session = t.session_id; }
       if (t.timestamp > g.last_seen) g.last_seen = t.timestamp;
       g.sessions.add(t.session_id);
+      g.structural = g.structural || t.framework === "codex";
+      if (t.evidence_status === "attempted") g.attempted_targets++;
+      if (t.evidence_status === "confirmed" && t.success === 1) g.confirmed_effects++;
       if (t.op.startsWith("NEW")) g.creates++;
       else if (t.op.startsWith("MODIFY")) g.modifies++;
       else if (t.op.startsWith("READ")) g.reads++;
@@ -251,7 +248,8 @@ function fileHistory(filehistoryopts) {
       last_seen: g.last_seen,
       creates: g.creates, modifies: g.modifies, reads: g.reads, other: g.other,
       sessions: [...g.sessions],
-      created_before_visible_history: !g.first_op.startsWith("NEW"),
+      attempted_targets: g.attempted_targets, confirmed_effects: g.confirmed_effects,
+      created_before_visible_history: g.structural ? null : !g.first_op.startsWith("NEW"),
     })).sort((a, b) => (a.first_seen || "").localeCompare(b.first_seen || ""));
 
     return { query_path: frag, timeline, summary };

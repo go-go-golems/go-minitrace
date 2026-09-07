@@ -1,0 +1,50 @@
+[
+  {
+    "session_id": "01a06de0-5c5b-74e1-acc0-ed790e41732b",
+    "native_file_changes": 296,
+    "native_file_targets": 666,
+    "normalized_file_changes": 296,
+    "problems": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de4-d3a3-7851-bb21-cff77684cc12",
+    "native_file_changes": 0,
+    "native_file_targets": 0,
+    "normalized_file_changes": 0,
+    "problems": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-34fd-7930-891b-a492ab38d918",
+    "native_file_changes": 140,
+    "native_file_targets": 275,
+    "normalized_file_changes": 140,
+    "problems": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06de6-35ca-7191-85b9-64f31bae42c8",
+    "native_file_changes": 0,
+    "native_file_targets": 0,
+    "normalized_file_changes": 0,
+    "problems": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5dc2-7fb3-992f-dad6143c5d34",
+    "native_file_changes": 36,
+    "native_file_targets": 54,
+    "normalized_file_changes": 36,
+    "problems": [],
+    "passed": true
+  },
+  {
+    "session_id": "01a06dea-5e4b-7652-b6c7-f13261347455",
+    "native_file_changes": 0,
+    "native_file_targets": 0,
+    "normalized_file_changes": 0,
+    "problems": [],
+    "passed": true
+  }
+]

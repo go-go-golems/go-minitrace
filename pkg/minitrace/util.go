@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	SchemaVersion = "minitrace-v0.2.0"
+	SchemaVersion = "minitrace-v0.3.0"
 	TruncateLimit = 10240
 )
 
