@@ -482,7 +482,16 @@ export function TranscriptViewer({
       <SourceFactsPanel events={session.events} attachments={session.attachments} />
       {!!session.unassociated_tool_calls?.length && <Box sx={{ px: 2, pb: 1, maxHeight: "50vh", overflowY: "auto", flexShrink: 0 }}>
         <Typography variant="body2">{session.unassociated_tool_calls.length} unassociated tool records — no proven emitting message</Typography>
-        {session.unassociated_tool_calls.slice(0, unassociatedVisible).map((tc) => <ToolCallRow key={tc.id} tc={tc} />)}
+        {session.unassociated_tool_calls.slice(0, unassociatedVisible).map((tc) => (
+          <ToolCallRow
+            key={tc.id}
+            tc={tc}
+            focused={focusedTarget?.scopeType === "tool_call" && focusedTarget.targetId === tc.id}
+            annotations={annotationIndex.byToolCall[tc.id] ?? []}
+            onAnnotate={() => handleCreateScopedAnnotation("tool_call", tc.id)}
+            onOpenAnnotation={handleOpenAnnotation}
+          />
+        ))}
         {unassociatedVisible < session.unassociated_tool_calls.length && <Button onClick={() => setUnassociatedVisible((n) => n + 50)}>Show next unassociated records</Button>}
       </Box>}
 

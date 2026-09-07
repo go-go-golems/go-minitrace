@@ -71,7 +71,7 @@ work together (codex shell commands are extracted from JS-embedded
 | `source-probes` | Where did it grep dependency source instead of reading docs? | Probe waves (turn ranges, target repos, symbols sought), repeat-probes (same symbol grepped in 2+ waves = re-derivation, e.g. post-compact) |
 | `api-calls` | What did it really cost? | **Deduplicated** per-API-call token totals (naive turn-row sums are ~2-2.5x inflated), inflation factor, context-size trajectory, detected compaction events |
 | `failure-triage` | What actually went wrong? | Root-cause categories in precedence order: self-kill (pkill matching the harness shell's own cmdline), zsh-expansion, read-before-edit, nul-byte, cwd-drift (tracks persistent-shell cd state), missing-file, timeout, go-compile/test, partial-success |
-| `episodes` | How did work flow? | Episode slices at real user instructions (filters tool-result carriers, skill injections, compaction summaries), tool mix, failures, wall/idle minutes |
+| `episodes` | How did work flow? | Episode slices at real user instructions (filters tool-result carriers, skill injections, compaction summaries), tool mix, explicit failures, unknown binary outcomes, wall/idle minutes |
 
 ### 3. Interpret
 
@@ -93,8 +93,11 @@ healthy-session thresholds. Core reading of the profile:
 - **Metric semantics differ per framework.** Codex can ONLY sideload skills
   (its `~/.codex/skills` mirror — sideloads are its normal channel, not a
   bypass); Pi loads skill files via its `read` tool; only Claude has a Skill
-  tool. Codex `success` is always 1 (failure-blind); compare failures only
-  within a framework.
+  tool. Older Codex archives could be failure-blind; reconvert before comparison.
+  Current `success` is nullable: episodes count only explicit 0/false as failures
+  and report null/unknown binary results (including pending/cancelled calls) as
+  `unknown_outcomes`. Calls without an emitting turn are not assigned to an
+  episode by coercing null to turn zero.
 - **Fix delivery where all frameworks look**: repo-adjacent files (AGENT.md,
   in-repo docs) are the only channel consumed by claude, pi, AND codex.
   A single user sentence pointing at `<app> help` produced complete,

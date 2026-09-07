@@ -1,6 +1,7 @@
 package codex
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 )
 
 type codexExecution struct {
+	outputHashes map[string]string
 	missingID    bool
 	id           string
 	turnID       string
@@ -170,7 +172,9 @@ func (execution *codexExecution) merge(record, item map[string]any, line int) {
 	}
 	execution.completed = true
 	execution.status = status
-	execution.outputLine = line
+	if execution.outputLine == 0 {
+		execution.outputLine = line
+	}
 	if raw, present := item["exit_code"]; present && raw != nil {
 		code, ok := codexInteger(raw)
 		if !ok || code < -2147483648 || code > 2147483647 {
@@ -187,16 +191,35 @@ func (execution *codexExecution) merge(record, item map[string]any, line int) {
 		execution.conflict = true
 		execution.diagnose("conflicting_execution_outcome")
 	}
-	if stdout, ok := item["stdout"].(string); ok {
-		execution.stdout = stdout
+	hasOutput := false
+	if execution.outputHashes == nil {
+		execution.outputHashes = map[string]string{}
 	}
-	if stderr, ok := item["stderr"].(string); ok {
-		execution.stderr = stderr
+	for _, key := range []string{"stdout", "stderr", "aggregated_output"} {
+		if text, ok := item[key].(string); ok {
+			hasOutput = true
+			hash := fmt.Sprintf("sha256:%x", sha256.Sum256([]byte(text)))
+			source[key+"_hash"] = hash
+			if previous, seen := execution.outputHashes[key]; seen && previous != hash {
+				execution.conflict = true
+				execution.diagnose("conflicting_execution_" + key)
+			}
+			execution.outputHashes[key] = hash
+		}
 	}
-	if text, ok := item["aggregated_output"].(string); ok {
-		execution.text = text
-	} else {
-		execution.text = execution.stdout + execution.stderr
+	if hasOutput {
+		execution.outputLine = line
+		if stdout, ok := item["stdout"].(string); ok {
+			execution.stdout = stdout
+		}
+		if stderr, ok := item["stderr"].(string); ok {
+			execution.stderr = stderr
+		}
+		if text, ok := item["aggregated_output"].(string); ok {
+			execution.text = text
+		} else {
+			execution.text = execution.stdout + execution.stderr
+		}
 	}
 	end, endOK := codexInteger(payload["completed_at_ms"])
 	if execution.startedAtMS != nil && endOK && end >= *execution.startedAtMS {

@@ -51,12 +51,13 @@ function episodes() {
       for (let i = 0; i < bs.length; i++) {
         const start = bs[i].turn_index;
         const end = i + 1 < bs.length ? bs[i + 1].turn_index : Infinity;
-        const eps = sessionCalls.filter((c) => c.turn >= start && c.turn < end);
+        const eps = sessionCalls.filter((c) => c.turn != null && c.turn >= start && c.turn < end);
         const tools = {};
-        let failures = 0;
+        let failures = 0, unknownOutcomes = 0;
         for (const c of eps) {
           tools[c.tool_name] = (tools[c.tool_name] || 0) + 1;
-          if (!c.success) failures++;
+          if (c.success === 0 || c.success === false) failures++;
+          else if (c.success !== 1 && c.success !== true) unknownOutcomes++;
         }
         // Wall time + idle-gap detection (gaps > 10 min between calls).
         let wallMin = 0, idleMin = 0;
@@ -76,6 +77,7 @@ function episodes() {
           instruction: bs[i].content.slice(0, 120),
           tool_calls: eps.length,
           failures,
+          unknown_outcomes: unknownOutcomes,
           wall_min: wallMin,
           idle_min: idleMin,
           top_tools: Object.entries(tools).sort((a, b) => b[1] - a[1]).slice(0, 4)
