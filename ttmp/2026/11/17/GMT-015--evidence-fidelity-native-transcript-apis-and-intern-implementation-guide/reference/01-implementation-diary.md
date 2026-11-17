@@ -411,3 +411,42 @@ Read reference/11 and reference/12 for helper implementation details. Start at q
 `--result-envelope --output json` produces one JSON array element containing the result. Errors retain nonzero status and can be recorded with --run-record. All error results expose rows/columns as arrays. The old persona study and its scores remain unchanged.
 
 Validation checkpoint: the corrected minitracejs suite passed three repetitions, and SessionToolCounts passed ten focused repetitions. Full `TMPDIR=/private/tmp go test ./...` reports only the two previously reproduced baseline macOS configuration-precedence failures (LoadsConfiguredRepositoryFromAppConfig and XDGConfigOverridesHomeConfig). `go build ./...`, `go vet ./...` and embedded `help --all` completed without diagnostics. `make lint` cannot run golangci-lint because it is not installed; the pinned Glazed lint tool was built. A staging command guessed two new filenames incorrectly and staged nothing; used the actual Git path inventory on retry.
+
+## Step 10: Freeze an enforced v2 persona harness
+
+Product changes are committed as acac40b. A separate harness now builds and pins the tested binary, separates private oracle data, creates explicit answer contracts and enforces protected paths before invoking any model. The original 32-run experiment remains unchanged.
+
+### Prompt Context
+See Step 8. This step implements the testing and evidence portion of the approved design.
+
+### What I did
+- Recovered the helper's seven Python files after restart and reviewed preparation, OS policy, command receipts, task contracts and evaluator code.
+- Added a reproduction README with platform limits and evidence discipline.
+- Ran three harness tests successfully, including actual sandbox-exec negative probes.
+
+### Why
+The first cohort wrote scratch artifacts into the repository despite prompt restrictions. OS-denied writes and a pinned executable make this failure observable and prevent protected-path mutation. Explicit scope/order fields address ambiguous original task wording.
+
+### What worked
+Direct, child-process and symlink writes were denied; private oracle reads failed; scratch writes succeeded. Exit code zero and a deliberate exit seven were preserved. Grading distinguishes archive source order from chronological order.
+
+### What didn't work
+The helper process was lost during the daemon restart before its final handoff. Its files were intact and reviewed directly. No model results are claimed at this checkpoint.
+
+### What I learned
+Protected-path isolation is useful without claiming full OS containment. Provider state and network remain available outside protected paths; worker wrapper compliance still requires transcript review.
+
+### What was tricky to build
+The host must replay generated commands using fixed argv while writing receipts outside the worker sandbox. The private oracle stays separate from worker-readable fixture inputs. Each run must produce an early checkpoint before optional exploration.
+
+### What warrants a second pair of eyes
+Review sandbox policy scope, subprocess termination and evaluator trust boundaries. Automated checks do not establish optional prose quality or independently prove every claimed SQL/JS comparison.
+
+### What should be done in the future
+Run focused pilots then a fresh matrix against the pinned binary. Preserve failures and scripts without rewriting v1 scores.
+
+### Code review instructions
+Start with scripts/persona-testing-v2/README.md, common.py and run_cohort.py; then inspect contracts.py and evaluate.py.
+
+### Technical details
+Default matrix: four tasks, two models, requested low/high thinking, two repeats; four workers. Timeout 480 seconds and early-checkpoint timeout 90 seconds. Unsupported platforms fail closed. The original private corpus supplies nine real sessions across Claude, Codex and Pi.
