@@ -31,6 +31,7 @@ func queryRecipeBuilderObject(vm *goja.Runtime, b *QueryRecipeBuilder) *goja.Obj
 	setKind := func(kind string) *goja.Object { b.kind = kind; return queryRecipeBuilderObject(vm, b) }
 	_ = obj.Set("SessionSummary", func() *goja.Object { return setKind("sessionSummary") })
 	_ = obj.Set("TurnRows", func() *goja.Object { return setKind("turnRows") })
+	_ = obj.Set("SessionToolCounts", func() *goja.Object { return setKind("sessionToolCounts") })
 	_ = obj.Set("ToolRows", func() *goja.Object { return setKind("toolRows") })
 	_ = obj.Set("FileRows", func() *goja.Object { return setKind("fileRows") })
 	_ = obj.Set("EventRows", func() *goja.Object { return setKind("eventRows") })
@@ -67,6 +68,8 @@ func (b *QueryRecipeBuilder) Build() (*QueryRecipe, error) {
 	switch b.kind {
 	case "sessionSummary", "":
 		return &QueryRecipe{Name: "sessionSummary", SQL: `SELECT session_id, title, summary, agent_framework, model, working_directory, started_at, ended_at, turn_count, tool_call_count, tool_call_record_count, orchestration_count, execution_record_count, file_change_count, model_invocation_count, file_touch_count, confirmed_file_target_count FROM sessions WHERE ` + sessionFilter + ` ORDER BY started_at DESC, session_id LIMIT 1`, Args: args, Description: "Session-level summary row.", Output: "SessionSummary"}, nil
+	case "sessionToolCounts":
+		return &QueryRecipe{Name: "sessionToolCounts", SQL: `SELECT s.session_id, COUNT(tc.tool_call_id) AS tool_count FROM sessions s LEFT JOIN tool_calls tc ON tc.session_id = s.session_id WHERE (? = '' OR s.session_id = ?) GROUP BY s.session_id ORDER BY s.session_id`, Args: args, Description: "Actual tool row counts for every selected session, including zero-tool sessions.", Output: "SessionToolCount[]"}, nil
 	case "turnRows":
 		return &QueryRecipe{Name: "turnRows", SQL: `SELECT session_id, turn_index, timestamp, role, source, model, content_type, content, thinking, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, reasoning_tokens, tool_tokens, raw_json FROM turns WHERE ` + sessionFilter + ` ORDER BY turn_index`, Args: args, Description: "Ordered conversational turns.", Output: "TurnRow[]"}, nil
 	case "toolRows":

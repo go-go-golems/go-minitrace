@@ -67,7 +67,7 @@ JavaScript composes sources and recipes; SQL performs selection and aggregation.
 
 Before combining overlapping normalized archives, `mt.corpusManifest(paths)` reports byte-identical duplicates and conflicting normalized session IDs. It does not choose sources or change ingestion automatically. Original JSONL request bodies require the separate opt-in `mt.native().File(path).ForEach(callback)` or bounded `.Inspect()` API; normalized tool rows alone cannot recover missing request references. Native compaction coordinates are not exact historical model replay.
 
-See `go-minitrace help js-api-reference` for native limits, query result fields, provenance and corpus-selection examples. If you do not have normalized archives yet, continue with discovery and conversion below. SQL CLI analysis can avoid disk-cache writes with `--cache-mode memory` or `none`; `auto`/`disk` may write cache files even for read-only queries.
+See `go-minitrace help evidence-workflows` for command/flag scope, nested command paths, zero-tool session counts, and CLI envelopes. See `go-minitrace help js-api-reference` for native limits, query result fields, provenance and corpus-selection examples. If you do not have normalized archives yet, continue with discovery and conversion below. SQL CLI analysis can avoid disk-cache writes with `--cache-mode memory` or `none`; `auto`/`disk` may write cache files even for read-only queries.
 
 ## Step 1: Discover your sessions
 

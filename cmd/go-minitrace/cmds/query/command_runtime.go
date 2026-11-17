@@ -143,12 +143,33 @@ func RunQueryTargetIntoProcessor(ctx context.Context, target minitracedb.QueryTa
 // RunQueryTargetIntoProcessorWithResult preserves query metadata for receipts
 // before rows are flattened into the Glazed processor.
 func RunQueryTargetIntoProcessorWithResult(ctx context.Context, target minitracedb.QueryTarget, sqlText string, gp middlewares.Processor) (minitracedb.QueryResult, error) {
+	return runQueryTargetIntoProcessor(ctx, target, sqlText, gp, false)
+}
+
+func runQueryTargetIntoProcessor(ctx context.Context, target minitracedb.QueryTarget, sqlText string, gp middlewares.Processor, envelope bool) (minitracedb.QueryResult, error) {
 	result, err := target.QueryResult(ctx, sqlText)
 	if err != nil {
 		return minitracedb.QueryResult{}, err
 	}
 	if result.Error != "" {
 		return result, errors.New(result.Error)
+	}
+	if envelope {
+		// Use the standard formatter: JSON output is an array with one envelope.
+		fields := map[string]any{
+			"columns": result.Columns, "rows": result.Rows,
+			"count": result.Count, "complete": result.Complete,
+		}
+		if result.Truncated {
+			fields["truncated"] = true
+		}
+		if result.RowsTruncated {
+			fields["rowsTruncated"] = true
+		}
+		if len(result.CellDiagnostics) > 0 {
+			fields["cellDiagnostics"] = result.CellDiagnostics
+		}
+		return result, gp.AddRow(ctx, types.NewRowFromMap(fields))
 	}
 	for _, row := range result.Rows {
 		pairs := make([]types.MapRowPair, 0, len(result.Columns))

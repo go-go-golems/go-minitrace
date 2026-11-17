@@ -321,7 +321,7 @@ Convenience methods:
 | Method | Description |
 |---|---|
 | `query(sql, ...args)` | Execute a read-only SQLite query. |
-| `queryOne(sql, ...args)` | Return first row. |
+| `queryOne(sql, ...args)` | Return the first row object, or `null` for no match; throw on query errors. |
 | `execute(recipe)` | Execute a recipe with the full result/completeness envelope. |
 | `queryResult(sql, ...args)` | Return result envelope including validation errors. |
 | `schema()` / `tables()` / `stats()` | Schema introspection. |
@@ -330,7 +330,7 @@ Convenience methods:
 | `cacheInfo()` / `CacheInfo()` | Cache metadata. |
 | `close()` | Close/release handle. |
 
-Queries are validated as read-only SQL and bounded by row, column, cell, and timeout limits.
+Queries are validated as read-only SQL and bounded by row, column, cell, and timeout limits. Rows are objects keyed by column name or alias, not positional arrays. `query()` and `queryOne()` throw on query errors; `queryResult()` and `execute()` return an error envelope. Envelope `rows` and `columns` are always arrays, including failures. `execute()` accepts a built recipe or `{sql, args}`; use `queryResult(sql, ...args)` for a SQL string.
 
 ### Source events and attachments from JavaScript
 
@@ -438,6 +438,7 @@ For UI code such as `ClubMedMeetup/minitrace-viz/lib/course-session-data.js`, th
 Recipe selectors:
 
 - `.SessionSummary()`
+- `.SessionToolCounts()` — actual tool-row counts for every selected session, including zero-tool sessions
 - `.TurnRows()`
 - `.ToolRows()`
 - `.FileRows()` — all materialized file-target evidence, including independent outcomes and provenance
@@ -466,6 +467,18 @@ const recipe = mt.query()
   .Build();
 const rows = db.query(recipe.sql(), ...recipe.args());
 ```
+
+### Counts that retain zero-tool sessions
+
+```js
+const result = db.execute(mt.query().SessionToolCounts().Build());
+if (result.error || !result.complete) throw new Error(result.error || "incomplete counts");
+// Each row is {session_id, tool_count}, ordered by session_id.
+// A session with no tool rows remains present with tool_count: 0.
+const one = db.execute(mt.query().SessionToolCounts().SessionID("sess-123").Build());
+```
+
+The recipe starts from `sessions`, left-joins `tool_calls`, and uses `COUNT(tc.tool_call_id)`, not `COUNT(*)` or stored aggregate metadata. `.SessionID(id)` binds the filter; omit it for all loaded sessions. Counts describe normalized tool rows, including any orchestration records in that table. They do not assert process success or count only executions. Preserve the session identity set when comparing summaries: equal aggregate totals can hide a missing zero-tool session.
 
 ### Fidelity-aware projections
 
@@ -665,4 +678,27 @@ Requests expose `id`, `querySource`, `source`, `shapeHash`, `refs`, `status`, an
 
 Resolution is chronological and file-local. Later blobs do not retroactively repair earlier requests; cross-file inherited references are not recovered. Missing evidence is not zero context. No instruction-wrapper extractor is provided: application code must identify/version any provider-specific body parser it adds. Exact `rawJSON` preserves large numeric spelling; JavaScript's decoded `value` uses ordinary JS numeric semantics.
 
-Compactions expose boundary UUID/parent/logical-parent and source coordinates, native `compactMetadata`, summary coordinates, the preceding message, and first following message/assistant. Preserved-message metadata may refer to records whose physical order differs from conversation order. These are inspection coordinates, **not** certified causal replay cuts. Result-arrival provenance, model invocation, standalone-child identity conversion and agent-memory revival are outside this API.
+Compactions expose `boundary: {source, uuid, parentUuid?, type}`, optional `logicalParentUuid`, native compact metadata under optional `metadata`, `summaries`, and optional `beforeMessage`, `firstFollowingMessage`, and `firstFollowingAssistant`. The generated `NativeInspection` and related TypeScript interfaces describe these exact nested fields. Request `base` and `keep` are consumed during resolution but are not returned properties. Preserved-message metadata may refer to records whose physical order differs from conversation order. These are inspection coordinates, **not** certified causal replay cuts. Result-arrival provenance, model invocation, standalone-child identity conversion and agent-memory revival are outside this API.
+
+
+### Native compaction projection
+
+This example is executed by `TestNativeCompactionProjectionExample` from `pkg/minitracejs/testdata/native_compaction_projection.js` against a synthetic boundary, summary, attachment and EOF boundary. Optional fields remain absent in the native result; this projection intentionally converts absence to `null` for reporting.
+
+```js
+const inspection = mt.native().File("/data/session.jsonl").Inspect();
+// `inspection` is the result of mt.native().File(path).Inspect().
+// Preserve absence explicitly; physical coordinates do not certify replay.
+inspection.compactions.map(c => ({
+  boundary: c.boundary.source,
+  boundaryUuid: c.boundary.uuid,
+  logicalParentUuid: c.logicalParentUuid ?? null,
+  metadata: c.metadata ?? null,
+  summaries: c.summaries.map(s => ({uuid: s.uuid, source: s.source})),
+  precedingUuid: c.beforeMessage?.uuid ?? null,
+  firstFollowingUuid: c.firstFollowingMessage?.uuid ?? null,
+  firstFollowingAssistantUuid: c.firstFollowingAssistant?.uuid ?? null,
+}));
+```
+
+`metadata` retains provider-defined values, so inspect its structure before accessing nested fields in general-purpose code. `source` coordinates are physical JSONL locations. Neither a preserved-segment reference nor a first-following assistant establishes a replayable model checkpoint. Each `mt.native()` call creates a separate mutable builder; setters persist on that builder, and each `ForEach()`/`Inspect()` operation reopens its configured file.

@@ -369,3 +369,45 @@ Start at design-doc/03-persona-review-followups-result-contracts-discoverability
 
 ### Technical details
 The existing recipe/SQLite/Goja architecture and user-requested default row output remain. No compatibility adapter, custom interpreter, or provider replay engine is introduced.
+
+## Step 9: Implement result contracts, query envelopes and executable examples
+
+Implemented the first product milestone after design commit c889b1a. The CLI preserves its normal row output and adds a full-envelope option through the existing Glazed processor. Separate helpers supplied contract fixes and precise native declarations; the primary agent integrated and reviewed them.
+
+### Prompt Context
+See Step 8 for the verbatim implementation request. This step implements its product/API portion.
+
+### What I did
+- Centralized early-error QueryResult construction, added execute(string) guidance and preserved typed normalized-archive decode errors.
+- Added SessionToolCounts with a LEFT JOIN, bound filtering, typed native inspection and a runnable compaction projection example.
+- Added --result-envelope, schema discovery help, the evidence-workflows help page and a nested executable JS example.
+- Ran focused envelope/strict/nested tests, affected package tests, and recovered the v2 harness after a server restart.
+
+### Why
+These changes address observed API defects and common caller errors without changing the normalized database architecture or rewriting native adapters.
+
+### What worked
+Focused CLI envelope/strict/nested tests passed. minitracedb, nativeevidence and minitracecmd package suites passed. Three v2 harness tests passed, including real direct/nested/symlink forbidden-write probes, oracle read denial and command exit status preservation.
+
+### What didn't work
+`TMPDIR=/private/tmp go test ./pkg/minitracedb ./pkg/minitracejs ./pkg/nativeevidence ./pkg/minitracecmd -count=1` exposed a flaky new test: `TestSessionToolCountsGoja: Error: all identities/counts/order`. The test compared JSON.stringify on Go map-backed objects, whose property order is not stable. Changed the assertion to project fields in an explicit order; row ordering remains checked. No production query change was needed. The interrupted documentation write had not executed and was safely rerun after checking status.
+
+### What I learned
+A recipe can guarantee row ordering without guaranteeing Go map property iteration order. Tests must distinguish these contracts. The envelope implementation directly carries Go values to preserve integer precision rather than JSON round-tripping through float64.
+
+### What was tricky to build
+Strict errors must return before either rows or an envelope is emitted. Envelope mode shares the existing query/error path, then changes only successful emission. Empty successful results still emit one envelope.
+
+### What warrants a second pair of eyes
+Conservative malformed-archive recognition and the manually enumerated envelope fields deserve review as contracts evolve. Native TypeScript fields must remain aligned with Go optional fields.
+
+### What should be done in the future
+Complete the combined validation, commit product changes, then freeze a binary and run the revised cohort.
+
+### Code review instructions
+Read reference/11 and reference/12 for helper implementation details. Start at query.go, convert.go, command_runtime.go, query_view_session.go and evidence_controls_test.go. Run the focused tests before the full suite.
+
+### Technical details
+`--result-envelope --output json` produces one JSON array element containing the result. Errors retain nonzero status and can be recorded with --run-record. All error results expose rows/columns as arrays. The old persona study and its scores remain unchanged.
+
+Validation checkpoint: the corrected minitracejs suite passed three repetitions, and SessionToolCounts passed ten focused repetitions. Full `TMPDIR=/private/tmp go test ./...` reports only the two previously reproduced baseline macOS configuration-precedence failures (LoadsConfiguredRepositoryFromAppConfig and XDGConfigOverridesHomeConfig). `go build ./...`, `go vet ./...` and embedded `help --all` completed without diagnostics. `make lint` cannot run golangci-lint because it is not installed; the pinned Glazed lint tool was built. A staging command guessed two new filenames incorrectly and staged nothing; used the actual Git path inventory on retry.

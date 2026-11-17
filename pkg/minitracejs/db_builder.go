@@ -975,6 +975,9 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 		if goja.IsNull(value) || goja.IsUndefined(value) {
 			panic(vm.NewTypeError("execute requires a query recipe"))
 		}
+		if _, ok := value.(goja.String); ok {
+			panic(vm.NewTypeError("execute requires a query recipe, not SQL text; use queryResult(sql, ...args) or execute({sql: sql, args: [...]})"))
+		}
 		recipe := value.ToObject(vm)
 		sqlValue, argsValue := recipe.Get("sql"), recipe.Get("args")
 		if fn, ok := goja.AssertFunction(sqlValue); ok {

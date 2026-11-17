@@ -111,9 +111,15 @@ func (r *QueryRunner) QueryOne(ctx context.Context, sqlText string, args ...any)
 	return rows[0], nil
 }
 
+// queryErrorResult keeps error envelopes consistent with the JS QueryResult contract.
+// Errors never imply a complete empty result set.
+func queryErrorResult(message string) QueryResult {
+	return QueryResult{Columns: []string{}, Rows: []map[string]any{}, Error: message}
+}
+
 func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...any) (QueryResult, error) {
 	if r == nil || r.db == nil {
-		return QueryResult{Error: "db is not initialized"}, nil
+		return queryErrorResult("db is not initialized"), nil
 	}
 	normalized, err := validateReadOnlySQLiteQuery(sqlText, r.opts)
 	if err != nil {
@@ -122,9 +128,9 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 			preview = preview[:160]
 		}
 		if preview != "" {
-			return QueryResult{Error: err.Error() + ": " + preview}, nil
+			return queryErrorResult(err.Error() + ": " + preview), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -134,37 +140,37 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 
 	conn, err := r.db.Conn(qctx)
 	if err != nil {
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	defer func() { _ = conn.Close() }()
 
 	authState := &queryAuthorizationState{}
 	if err := setSQLiteAuthorizer(conn, newReadOnlyAuthorizer(r.allowedReads, authState)); err != nil {
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	defer func() { _ = setSQLiteAuthorizer(conn, nil) }()
 
 	if err := ensureReadonlyPreparedQuery(conn, normalized); err != nil {
 		if authErr := authState.err(); authErr != nil {
-			return QueryResult{Error: authErr.Error()}, nil
+			return queryErrorResult(authErr.Error()), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 
 	rows, err := conn.QueryContext(qctx, normalized, flattenArgs(args)...)
 	if err != nil {
 		if authErr := authState.err(); authErr != nil {
-			return QueryResult{Error: authErr.Error()}, nil
+			return queryErrorResult(authErr.Error()), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	defer func() { _ = rows.Close() }()
 	cols, err := rows.Columns()
 	if err != nil {
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	if len(cols) > r.opts.MaxColumns {
-		return QueryResult{Error: fmt.Sprintf("query returns %d columns; max is %d", len(cols), r.opts.MaxColumns)}, nil
+		return queryErrorResult(fmt.Sprintf("query returns %d columns; max is %d", len(cols), r.opts.MaxColumns)), nil
 	}
 	out := QueryResult{Columns: cols, Rows: make([]map[string]any, 0), Complete: true}
 	for rows.Next() {
@@ -180,7 +186,7 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 			ptrs[i] = &values[i]
 		}
 		if err := rows.Scan(ptrs...); err != nil {
-			return QueryResult{Error: err.Error()}, nil
+			return queryErrorResult(err.Error()), nil
 		}
 		row := map[string]any{}
 		for i, col := range cols {
@@ -197,9 +203,9 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	}
 	if err := rows.Err(); err != nil {
 		if authErr := authState.err(); authErr != nil {
-			return QueryResult{Error: authErr.Error()}, nil
+			return queryErrorResult(authErr.Error()), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	if r.opts.StrictEvidence && !out.Complete {
 		out.Error = "strict evidence: query result is incomplete"

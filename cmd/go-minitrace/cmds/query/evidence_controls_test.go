@@ -84,3 +84,75 @@ func TestValidCommandExecutesDespiteInvalidSibling(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestResultEnvelopePreservesMetadataAndEmptyResults(t *testing.T) {
+	archive := writeAdvancedFixtureArchive(t)
+	for _, tc := range []struct {
+		name, sql string
+		strict    bool
+		wantCount int
+		complete  bool
+	}{
+		{"clipped", "SELECT 'abé' AS text", false, 1, false},
+		{"empty", "SELECT 1 AS n WHERE 0", false, 0, true},
+		{"strict", "SELECT 'abé' AS text", true, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			command, values := mustRunQueryValues(t, archive, map[string]any{
+				"sql": tc.sql, "max-cell-bytes": 3, "strict-evidence": tc.strict, "cache-mode": "memory", "result-envelope": true,
+			})
+			gp := &captureProcessor{}
+			err := command.RunIntoGlazeProcessor(context.Background(), values, gp)
+			if tc.strict {
+				if err == nil || len(gp.rows) != 0 {
+					t.Fatalf("strict emission: %v %+v", err, gp.rows)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows := capturedRowMaps(gp)
+			if len(rows) != 1 {
+				t.Fatalf("envelope count: %d", len(rows))
+			}
+			payload, err := json.Marshal(rows)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var envelopes []struct {
+				Count           int              `json:"count"`
+				Complete        bool             `json:"complete"`
+				Rows            []map[string]any `json:"rows"`
+				CellDiagnostics []any            `json:"cellDiagnostics"`
+			}
+			if err = json.Unmarshal(payload, &envelopes); err != nil {
+				t.Fatal(err)
+			}
+			got := envelopes[0]
+			if got.Count != tc.wantCount || got.Complete != tc.complete || got.Rows == nil {
+				t.Fatalf("envelope: %s", payload)
+			}
+			if !tc.complete && len(got.CellDiagnostics) != 1 {
+				t.Fatalf("missing diagnostics: %s", payload)
+			}
+		})
+	}
+}
+
+func TestEvidenceWorkflowNestedExample(t *testing.T) {
+	setIsolatedConfigHome(t)
+	archive := writeAdvancedFixtureArchive(t)
+	repo, err := filepath.Abs("../../../../testdata/query-repositories/evidence-workflows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd, err := NewCommandsCommand([]string{repo})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd.SetArgs([]string{"analysis", "session-tools", "counts", "--archive-glob", archive, "--output", "json"})
+	if err = cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+}
