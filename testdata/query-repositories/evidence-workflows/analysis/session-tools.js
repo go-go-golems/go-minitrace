@@ -8,3 +8,6 @@ function counts() {
   } finally { db.close(); }
 }
 __verb__("counts", {name: "counts", short: "Count actual tools including zero-tool sessions"});
+
+function purpose() { return {description: "Count actual tool records, including sessions with zero tools"}; }
+__verb__("purpose", {name: "purpose", short: "Explain this query"});

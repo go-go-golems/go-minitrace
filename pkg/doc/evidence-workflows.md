@@ -20,7 +20,7 @@ SectionType: Tutorial
 | `convert codex` | Native Codex input; see its `--help` | Supports `--run-record` |
 | `convert claude-code`, `convert pi` | Native input; see the specific command's `--help` | Do not accept the Codex `--run-record` flag |
 
-Flags belong to their command. Configure JS query policies through its database builder. A JS filename creates a group and `__verb__` names the leaf. Run the checked-in example:
+Flags belong to their command. Configure JS query policies through its database builder. A multi-verb JS filename creates a group and `__verb__` names each leaf. A single verb whose name matches its filename is collapsed: `sessions.js` with `__verb__("sessions", ...)` runs as `query commands sessions`, not `sessions sessions`. A single verb with a different name retains the filename group. Run the checked-in example:
 
 ```bash
 go-minitrace query commands --query-repository ./testdata/query-repositories/evidence-workflows analysis session-tools counts --archive-glob './output/**/*.minitrace.json' --output json

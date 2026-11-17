@@ -156,3 +156,16 @@ func TestEvidenceWorkflowNestedExample(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestResultEnvelopePreservesRowOverflow(t *testing.T) {
+	archive := writeAdvancedFixtureArchive(t)
+	command, values := mustRunQueryValues(t, archive, map[string]any{"sql": "SELECT 1 AS n UNION ALL SELECT 2 AS n", "max-rows": 1, "result-envelope": true, "cache-mode": "memory"})
+	gp := &captureProcessor{}
+	if err := command.RunIntoGlazeProcessor(context.Background(), values, gp); err != nil {
+		t.Fatal(err)
+	}
+	rows := capturedRowMaps(gp)
+	if len(rows) != 1 || rows[0]["complete"] != false || rows[0]["rowsTruncated"] != true || rows[0]["count"] != 1 {
+		t.Fatalf("overflow envelope: %+v", rows)
+	}
+}

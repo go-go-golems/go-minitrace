@@ -4,7 +4,7 @@ import argparse,hashlib,json,os,signal,subprocess,time
 from pathlib import Path
 
 def execute(argv,cwd,receipt,timeout=90):
- receipt=Path(receipt);receipt.parent.mkdir(parents=True,exist_ok=True)
+ receipt=Path(receipt).resolve();receipt.parent.mkdir(parents=True,exist_ok=True)
  if receipt.exists():raise ValueError('Refusing to overwrite command receipt '+str(receipt))
  start=time.time();timed_out=False
  with receipt.with_suffix('.stdout').open('wb') as out,receipt.with_suffix('.stderr').open('wb') as err:

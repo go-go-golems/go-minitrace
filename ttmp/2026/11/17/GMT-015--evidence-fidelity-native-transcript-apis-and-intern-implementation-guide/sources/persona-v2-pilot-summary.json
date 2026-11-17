@@ -1,0 +1,369 @@
+{
+  "schema_version": 2,
+  "cohort": "pilot",
+  "revision": "a709fe7a5672c65851c3df99ba50ba9693413908",
+  "binary_sha256": "5c56a3ca755d4741259bafe92b1f3e2eb37fd4147495debbfb3335b65e8a6701",
+  "runs": [
+    {
+      "run_id": "A-glm-5.3-flash-high-r1",
+      "task": "A",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 95.30362486839294,
+      "tool_calls": 41,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 24632,
+        "output": 10405,
+        "cacheRead": 596736,
+        "cacheWrite": 0,
+        "reasoning": 1461,
+        "totalTokens": 631773
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.100843906402588,
+        "sha256": "b8ec8ef259e48edefa4ba85134d0fd0afa310f3e900023d7355df6a9d3567290"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 5,
+      "checks_total": 23,
+      "mismatches": [
+        {
+          "key": "agent-ae7076749749daca0.turn_count",
+          "actual": null,
+          "expected": 19,
+          "passed": false
+        },
+        {
+          "key": "agent-ae7076749749daca0.tool_count",
+          "actual": null,
+          "expected": 15,
+          "passed": false
+        },
+        {
+          "key": "d047a697-35c0-460c-8fda-541799b5b5b0.turn_count",
+          "actual": null,
+          "expected": 7,
+          "passed": false
+        },
+        {
+          "key": "d047a697-35c0-460c-8fda-541799b5b5b0.tool_count",
+          "actual": null,
+          "expected": 1,
+          "passed": false
+        },
+        {
+          "key": "7dce992c-7793-4e1a-950c-4db92cef2502.turn_count",
+          "actual": null,
+          "expected": 246,
+          "passed": false
+        },
+        {
+          "key": "7dce992c-7793-4e1a-950c-4db92cef2502.tool_count",
+          "actual": null,
+          "expected": 108,
+          "passed": false
+        },
+        {
+          "key": "01a1364a-f58a-7ce3-8460-a856dacc8a1a.turn_count",
+          "actual": null,
+          "expected": 7,
+          "passed": false
+        },
+        {
+          "key": "01a1364a-f58a-7ce3-8460-a856dacc8a1a.tool_count",
+          "actual": null,
+          "expected": 0,
+          "passed": false
+        },
+        {
+          "key": "01a13157-f631-7cd3-8f84-e2666b24af01.turn_count",
+          "actual": null,
+          "expected": 18,
+          "passed": false
+        },
+        {
+          "key": "01a13157-f631-7cd3-8f84-e2666b24af01.tool_count",
+          "actual": null,
+          "expected": 13,
+          "passed": false
+        },
+        {
+          "key": "01a1c666-5f02-7b92-984e-99a27afd7a94.turn_count",
+          "actual": null,
+          "expected": 30,
+          "passed": false
+        },
+        {
+          "key": "01a1c666-5f02-7b92-984e-99a27afd7a94.tool_count",
+          "actual": null,
+          "expected": 165,
+          "passed": false
+        },
+        {
+          "key": "01a0ee23-bd68-75c1-a81f-2c43771fc216.turn_count",
+          "actual": null,
+          "expected": 19,
+          "passed": false
+        },
+        {
+          "key": "01a0ee23-bd68-75c1-a81f-2c43771fc216.tool_count",
+          "actual": null,
+          "expected": 9,
+          "passed": false
+        },
+        {
+          "key": "01a0b061-0cdd-7557-a80a-96802d3d02c5.turn_count",
+          "actual": null,
+          "expected": 29,
+          "passed": false
+        },
+        {
+          "key": "01a0b061-0cdd-7557-a80a-96802d3d02c5.tool_count",
+          "actual": null,
+          "expected": 50,
+          "passed": false
+        },
+        {
+          "key": "01a0a5c3-342f-7447-be74-b6c35f542ff7.turn_count",
+          "actual": null,
+          "expected": 418,
+          "passed": false
+        },
+        {
+          "key": "01a0a5c3-342f-7447-be74-b6c35f542ff7.tool_count",
+          "actual": null,
+          "expected": 345,
+          "passed": false
+        }
+      ],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 17,
+        "1": 4
+      },
+      "diagnostic_observations": {
+        "queryresult": 3,
+        "no such column": 1,
+        "incomplete": 1,
+        "operation not permitted": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r1",
+      "task": "B",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 283.853502035141,
+      "tool_calls": 61,
+      "tool_error_events": 3,
+      "reported_usage": {
+        "input": 35245,
+        "output": 19270,
+        "cacheRead": 1344000,
+        "cacheWrite": 0,
+        "reasoning": 4322,
+        "totalTokens": 1398515
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.592505931854248,
+        "sha256": "488d3a13f76f54180d4c88c4dd58953ab6f2c4a7eb9d665cc0775045cd753281"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 10,
+      "checks_total": 12,
+      "mismatches": [
+        {
+          "key": "synthetic.archive_source_ordinals",
+          "actual": [
+            {
+              "source_ordinal": 0,
+              "tool_call_id": "z-first",
+              "timestamp": "2026-01-01T00:00:03Z"
+            },
+            {
+              "source_ordinal": 1,
+              "tool_call_id": "a-second",
+              "timestamp": "2026-01-01T00:00:01Z"
+            },
+            {
+              "source_ordinal": 2,
+              "tool_call_id": "m-third",
+              "timestamp": "2026-01-01T00:00:02Z"
+            }
+          ],
+          "expected": [
+            0,
+            1,
+            2
+          ],
+          "passed": false
+        },
+        {
+          "key": "synthetic.chronological_source_ordinals",
+          "actual": [
+            {
+              "source_ordinal": 1,
+              "tool_call_id": "a-second",
+              "timestamp": "2026-01-01T00:00:01Z"
+            },
+            {
+              "source_ordinal": 2,
+              "tool_call_id": "m-third",
+              "timestamp": "2026-01-01T00:00:02Z"
+            },
+            {
+              "source_ordinal": 0,
+              "tool_call_id": "z-first",
+              "timestamp": "2026-01-01T00:00:03Z"
+            }
+          ],
+          "expected": [
+            1,
+            2,
+            0
+          ],
+          "passed": false
+        }
+      ],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "1": 4,
+        "0": 7
+      },
+      "diagnostic_observations": {
+        "incomplete": 1,
+        "unknown flag": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r1",
+      "task": "C",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 122.00750279426575,
+      "tool_calls": 41,
+      "tool_error_events": 2,
+      "reported_usage": {
+        "input": 35761,
+        "output": 15779,
+        "cacheRead": 749312,
+        "cacheWrite": 0,
+        "reasoning": 3440,
+        "totalTokens": 800852
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.6020119190216064,
+        "sha256": "3a4829953c8f0dfcbb6e645641ff0dae2316366c801a23543c6c44d41228623d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 2
+      },
+      "diagnostic_observations": {},
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r1",
+      "task": "D",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 342.3386650085449,
+      "tool_calls": 46,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 38933,
+        "output": 22994,
+        "cacheRead": 1146880,
+        "cacheWrite": 0,
+        "reasoning": 9224,
+        "totalTokens": 1208807
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 5.115254163742065,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 2,
+      "checks_total": 8,
+      "mismatches": [
+        {
+          "key": "host.good_command_succeeded",
+          "actual": false,
+          "expected": true,
+          "passed": false
+        },
+        {
+          "key": "claimed.good_command_succeeded",
+          "actual": null,
+          "expected": false,
+          "passed": false
+        },
+        {
+          "key": "host.required_source_visible",
+          "actual": false,
+          "expected": true,
+          "passed": false
+        },
+        {
+          "key": "host.runtime_flags_visible",
+          "actual": false,
+          "expected": true,
+          "passed": false
+        },
+        {
+          "key": "host.bad_sibling_diagnosed",
+          "actual": false,
+          "expected": true,
+          "passed": false
+        },
+        {
+          "key": "claimed.negative_default_supported",
+          "actual": null,
+          "expected": false,
+          "passed": false
+        }
+      ],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 17,
+        "1": 7
+      },
+      "diagnostic_observations": {
+        "unknown flag": 4,
+        "unsupported": 19,
+        "incomplete": 4,
+        "bad.js": 13
+      },
+      "sandbox_probe_count": 13
+    }
+  ],
+  "totals": {
+    "runs": 4,
+    "answers": 4,
+    "exit_zero": 4,
+    "early_checkpoints": 4,
+    "tool_calls": 189,
+    "checks_passed": 72,
+    "checks_total": 98
+  },
+  "limits": "Diagnostic string observations are not bug counts; expected negative probes also contain errors. Requested thinking is not backend verification. Review scripts and traces for causal claims."
+}

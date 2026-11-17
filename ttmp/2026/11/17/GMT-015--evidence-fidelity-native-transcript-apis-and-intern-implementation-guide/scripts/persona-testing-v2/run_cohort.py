@@ -36,8 +36,13 @@ def replay_d(bundle,out,policy):
  receipts.append(execute(prefix+['--help'],out,control/'help.json',60))
  result={'selected_session_ids':[r['session_id'] for r in selected],'commands':receipts};save(control/'summary.json',result);return result
 
+def prepare_run_directories(bundle,cohort,specs):
+ # Freeze the complete directory inventory before any sandbox policy is generated.
+ for group,model,thinking,repeat in specs:
+  (bundle/'runs'/cohort/f'{group}-{model}-{thinking}-r{repeat}').mkdir(parents=True,exist_ok=False)
+
 def run_one(spec,a,config):
- group,model,thinking,repeat=spec;run_id=f'{group}-{model}-{thinking}-r{repeat}';out=a.bundle/'runs'/a.cohort/run_id;out.mkdir(parents=True,exist_ok=False)
+ group,model,thinking,repeat=spec;run_id=f'{group}-{model}-{thinking}-r{repeat}';out=a.bundle/'runs'/a.cohort/run_id;out.mkdir(parents=True,exist_ok=True)
  policy=a.bundle/'control'/f'{a.cohort}-{run_id}.sb'
  # Other run folders are denied reads; this policy is created before its process starts.
  denied=config['denied_read_paths']+[str(p) for p in (a.bundle/'runs').glob('*/*') if p.is_dir() and p!=out]
@@ -49,7 +54,7 @@ PINNED binary: {binary} (sha256 {config['binary_sha256']}). Use this executable,
 READ ONLY repository docs: {config['repo']}/pkg/doc. Corpus: {a.bundle}/corpus; nine real normalized archives are under archives/*/active/*/*.minitrace.json and native files under raw/. Synthetic fixtures: {a.bundle}/fixtures.
 Writable working directory: {out}. Do all work here. OS policy denies writes to repository, corpus, fixtures, binary and harness control paths, plus reads of evaluator data. Provider state outside protected paths remains available; this is not full hostile-code isolation.
 FIRST ACTION: write {out}/answer.partial.json with {{"schema_version":2,"task":"{group}","status":"in_progress","completed_checks":[],"pending_checks":["mandatory checks"]}}. Must exist within {a.checkpoint_timeout}s or run terminates. Update it with genuine progress. Save mandatory answers before optional exploration.
-Final output: {out}/answer.json, plus report.md. Schema_version=2 and task={group} are required. Contract: {json.dumps(SCHEMAS[group])}. Unknown values must be null, not guessed. Include evidence file paths. Do not copy totals between synthetic and real datasets.
+Final output: {out}/answer.json, plus report.md. Schema_version=2 and task={group} are required. Contract: {json.dumps(SCHEMAS[group])}. Use the contract field names at the top level of answer.json, not inside a contract object. The contract describes types, not literal answer values. Unknown values must be null, not guessed. Include evidence file paths. Do not copy totals between synthetic and real datasets.
 Every minitrace CLI invocation should use this receipt wrapper (choose a NEW receipt path for every command):
 {sys.executable} {wrapper} --receipt {out}/receipts/NAME.json --cwd {out} --timeout 60 -- {binary} ...
 This preserves exit status; do not hide failures with final echo/cat. Direct shell invocations are still visible in your trace. Prefer CLI help and API docs; save runnable JS/SQL.
@@ -98,6 +103,7 @@ def main():
  if not a.cohort or Path(a.cohort).name!=a.cohort:p.error('cohort must be one path component')
  config=verify(a.bundle);root=a.bundle/'runs'/a.cohort;root.mkdir(parents=True,exist_ok=False)
  specs=[(g,a.model,'high',1) for g in TASKS] if a.mode=='focused' else list(itertools.product(TASKS,a.models.split(','),a.thinking.split(','),[1,2]))
+ prepare_run_directories(a.bundle,a.cohort,specs)
  save(a.bundle/'control'/f'{a.cohort}-design.json',{'specs':specs,'mode':a.mode,'execute':a.execute,'binary_sha256':config['binary_sha256'],'requested_thinking_not_backend_guarantee':True})
  with concurrent.futures.ThreadPoolExecutor(max_workers=a.workers) as pool:results=list(pool.map(lambda s:run_one(s,a,config),specs))
  save(a.bundle/'control'/f'{a.cohort}-summary.json',results)

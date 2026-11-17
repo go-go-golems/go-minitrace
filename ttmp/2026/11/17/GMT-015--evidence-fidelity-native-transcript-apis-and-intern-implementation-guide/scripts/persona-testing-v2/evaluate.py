@@ -9,6 +9,7 @@ def same(a,b):
  return a==b
 
 def grade(answer,task,rows,fixture,bundle,receipt):
+ if not isinstance(answer,dict):raise ValueError('answer must be a JSON object')
  checks=[]
  def check(key,actual,expected):checks.append({'key':key,'actual':actual,'expected':expected,'passed':same(actual,expected)})
  check('schema_version',answer.get('schema_version'),2);check('task',answer.get('task'),task)
@@ -60,6 +61,7 @@ def grade(answer,task,rows,fixture,bundle,receipt):
     value=load(r['stdout_path']);value=value[0] if isinstance(value,list) and len(value)==1 else value
     if not isinstance(value,dict):raise ValueError('expected one JSON row')
     expectedrow=by[replay['selected_session_ids'][i]] # replay records use selected source order below
+    check(f'host.query{i}.session_id',value.get('session_id'),expectedrow['session_id'])
     check(f'host.query{i}.tool_count',value.get('tool_count'),expectedrow['tool_count'])
    except (ValueError,KeyError,IndexError):check(f'host.query{i}.valid_json_count',False,True)
  return checks

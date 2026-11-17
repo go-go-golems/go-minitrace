@@ -55,3 +55,7 @@ The user requested actual Pi/Lunaroute role-based runs after the original implem
 The machine-readable result file owns the current completion count. Intermediate snapshots are explicitly partial; correct answer fields are distinct from complete task fulfillment.
 
 Final persona result: 32/32 runs with answers and reports, zero timeouts, 1,671 tool calls. All eight command replays and all 32 session-normalization checks are complete. See the consolidated review for confirmed bugs, scope adjudications and workspace-instruction violations. Delivery target: `/ai/2026/11/17/GMT-015`, document `GMT 015 Persona Testing Review and Guide`.
+
+## Review-driven implementation
+
+The follow-up design is [design03](design-doc/03-persona-review-followups-result-contracts-discoverability-and-enforced-test-isolation.md). Product changes are committed in acac40b; the separate enforced v2 harness is a709fe7. See [v2 reproduction](scripts/persona-testing-v2/README.md) for frozen-binary execution, task contracts and isolation limits. Historical v1 results above describe the original implementation and are not revised by this new experiment.

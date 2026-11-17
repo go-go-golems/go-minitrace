@@ -1,0 +1,47 @@
+[
+  {
+    "name": "build",
+    "argv": [
+      "go",
+      "build",
+      "./..."
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 5.494
+  },
+  {
+    "name": "vet",
+    "argv": [
+      "go",
+      "vet",
+      "./..."
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.605
+  },
+  {
+    "name": "help",
+    "argv": [
+      "go",
+      "run",
+      "./cmd/go-minitrace",
+      "help",
+      "--all"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.105
+  },
+  {
+    "name": "glazed-lint",
+    "argv": [
+      "go",
+      "vet",
+      "-vettool=/tmp/glazed-lint",
+      "-glazedclilint.allow-paths=pkg/analysis/,pkg/cli/,pkg/cmds/fields/,pkg/cmds/logging/,pkg/cmds/sources/,pkg/help/",
+      "./cmd/...",
+      "./pkg/..."
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.028
+  }
+]

@@ -19,3 +19,7 @@ Reopened validation per user request: GLM low pilot completed real JS API checks
 ## 2026-11-17
 
 Completed 32 Pi/Lunaroute runs and eight independent command replays: 1,671 tool calls, 32 answer/report pairs, zero timeouts. Re-analyzed all 32 Pi transcripts with minitrace; accounting matches. Added detailed improvement review, prompt/grader adjudications, actual bug evidence, generated scripts and durable private evidence receipt. Prepared review+guide reMarkable delivery.
+
+## 2026-11-17
+
+Implemented review follow-ups in acac40b and enforced v2 harness in a709fe7; fresh pinned-binary persona pilot running.
