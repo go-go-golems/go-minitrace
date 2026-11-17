@@ -1,0 +1,1239 @@
+{
+  "schema_version": 2,
+  "cohort": "matrix",
+  "revision": "7a7c0c64be7086b4d6ee46a4bb7707ff14f09a6d",
+  "binary_sha256": "14363bf439063edaf4006e5cf5ea434f10db5cd1c0a5674dd65350e2a579d01c",
+  "runs": [
+    {
+      "run_id": "A-deepseek-4.1-flash-high-r1",
+      "task": "A",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 120.53235006332397,
+      "tool_calls": 56,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 2563,
+        "output": 14267,
+        "cacheRead": 1020288,
+        "cacheWrite": 32768,
+        "reasoning": 1549,
+        "totalTokens": 1069886
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.136817932128906,
+        "sha256": "b8ec8ef259e48edefa4ba85134d0fd0afa310f3e900023d7355df6a9d3567290"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 22,
+        "1": 5
+      },
+      "diagnostic_observations": {
+        "incomplete": 1,
+        "queryresult": 1,
+        "unknown flag": 2,
+        "operation not permitted": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-deepseek-4.1-flash-high-r2",
+      "task": "A",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 127.5863630771637,
+      "tool_calls": 56,
+      "tool_error_events": 2,
+      "reported_usage": {
+        "input": 2537,
+        "output": 14634,
+        "cacheRead": 1166720,
+        "cacheWrite": 36608,
+        "reasoning": 1998,
+        "totalTokens": 1220499
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 5.119181156158447,
+        "sha256": "8f43b202c7237a49aa24fece88969bb9955eef77de22c3492603e5417f46c96c"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 38,
+        "1": 4
+      },
+      "diagnostic_observations": {
+        "unknown flag": 1,
+        "incomplete": 2,
+        "queryresult": 1,
+        "no such column": 2,
+        "operation not permitted": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-deepseek-4.1-flash-low-r1",
+      "task": "A",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 90.79311680793762,
+      "tool_calls": 42,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 2410,
+        "output": 9386,
+        "cacheRead": 900992,
+        "cacheWrite": 31488,
+        "reasoning": 1141,
+        "totalTokens": 944276
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.173647880554199,
+        "sha256": "8f43b202c7237a49aa24fece88969bb9955eef77de22c3492603e5417f46c96c"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 16
+      },
+      "diagnostic_observations": {
+        "operation not permitted": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-deepseek-4.1-flash-low-r2",
+      "task": "A",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 122.56234192848206,
+      "tool_calls": 47,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 2771,
+        "output": 14877,
+        "cacheRead": 1280512,
+        "cacheWrite": 33792,
+        "reasoning": 2149,
+        "totalTokens": 1331952
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.1405839920043945,
+        "sha256": "b8ec8ef259e48edefa4ba85134d0fd0afa310f3e900023d7355df6a9d3567290"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 25,
+        "1": 4
+      },
+      "diagnostic_observations": {
+        "incomplete": 3,
+        "queryresult": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-glm-5.3-flash-high-r1",
+      "task": "A",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 118.00131678581238,
+      "tool_calls": 39,
+      "tool_error_events": 2,
+      "reported_usage": {
+        "input": 20308,
+        "output": 8463,
+        "cacheRead": 404736,
+        "cacheWrite": 0,
+        "reasoning": 768,
+        "totalTokens": 433507
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 5.636242866516113,
+        "sha256": "b8ec8ef259e48edefa4ba85134d0fd0afa310f3e900023d7355df6a9d3567290"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 14,
+        "1": 6
+      },
+      "diagnostic_observations": {
+        "unknown flag": 4
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-glm-5.3-flash-high-r2",
+      "task": "A",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 140.69446110725403,
+      "tool_calls": 53,
+      "tool_error_events": 3,
+      "reported_usage": {
+        "input": 37266,
+        "output": 13685,
+        "cacheRead": 988160,
+        "cacheWrite": 0,
+        "reasoning": 1627,
+        "totalTokens": 1039111
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.155408143997192,
+        "sha256": "f4fcbc97cfb612a51cb89c513e7b74bfe8247d03f67ed2f603a63489200ffb76"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 17,
+        "1": 9
+      },
+      "diagnostic_observations": {
+        "unknown flag": 2,
+        "no such column": 1,
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-glm-5.3-flash-low-r1",
+      "task": "A",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 99.35481119155884,
+      "tool_calls": 28,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 20633,
+        "output": 6302,
+        "cacheRead": 381184,
+        "cacheWrite": 0,
+        "reasoning": 704,
+        "totalTokens": 408119
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.6493239402770996,
+        "sha256": "b8ec8ef259e48edefa4ba85134d0fd0afa310f3e900023d7355df6a9d3567290"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "1": 6,
+        "0": 12
+      },
+      "diagnostic_observations": {
+        "unknown flag": 3,
+        "operation not permitted": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "A-glm-5.3-flash-low-r2",
+      "task": "A",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 97.35048699378967,
+      "tool_calls": 40,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 26682,
+        "output": 9675,
+        "cacheRead": 605952,
+        "cacheWrite": 0,
+        "reasoning": 1269,
+        "totalTokens": 642309
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.6009418964385986,
+        "sha256": "b8ec8ef259e48edefa4ba85134d0fd0afa310f3e900023d7355df6a9d3567290"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 23,
+      "checks_total": 23,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 15,
+        "1": 6
+      },
+      "diagnostic_observations": {
+        "unknown flag": 2,
+        "no such column": 1,
+        "operation not permitted": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-high-r1",
+      "task": "B",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 120.52186894416809,
+      "tool_calls": 33,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 1583,
+        "output": 16603,
+        "cacheRead": 795520,
+        "cacheWrite": 42752,
+        "reasoning": 5525,
+        "totalTokens": 856458
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.087164878845215,
+        "sha256": "4d8a92112e1d9eb1206d5b30f3c037c3cd03ba57617a9b970d5bd7007daf2ec0"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 12,
+        "1": 2
+      },
+      "diagnostic_observations": {
+        "no such column": 1,
+        "incomplete": 4,
+        "queryresult": 1,
+        "unknown flag": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-high-r2",
+      "task": "B",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 104.41657018661499,
+      "tool_calls": 41,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 2217,
+        "output": 14527,
+        "cacheRead": 822784,
+        "cacheWrite": 31104,
+        "reasoning": 4192,
+        "totalTokens": 870632
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.584994077682495,
+        "sha256": "488d3a13f76f54180d4c88c4dd58953ab6f2c4a7eb9d665cc0775045cd753281"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 5,
+        "1": 2
+      },
+      "diagnostic_observations": {
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-low-r1",
+      "task": "B",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 98.38097810745239,
+      "tool_calls": 32,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 1366,
+        "output": 10211,
+        "cacheRead": 575488,
+        "cacheWrite": 30208,
+        "reasoning": 2259,
+        "totalTokens": 617273
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.598129987716675,
+        "sha256": "4d8a92112e1d9eb1206d5b30f3c037c3cd03ba57617a9b970d5bd7007daf2ec0"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 9,
+        "1": 3
+      },
+      "diagnostic_observations": {
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-low-r2",
+      "task": "B",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 108.96198391914368,
+      "tool_calls": 32,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 1652,
+        "output": 12538,
+        "cacheRead": 946176,
+        "cacheWrite": 51200,
+        "reasoning": 3495,
+        "totalTokens": 1011566
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 2.5853381156921387,
+        "sha256": "488d3a13f76f54180d4c88c4dd58953ab6f2c4a7eb9d665cc0775045cd753281"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 5,
+        "1": 5
+      },
+      "diagnostic_observations": {
+        "incomplete": 1,
+        "unknown flag": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r1",
+      "task": "B",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 121.10449600219727,
+      "tool_calls": 36,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 28116,
+        "output": 12289,
+        "cacheRead": 541696,
+        "cacheWrite": 0,
+        "reasoning": 3624,
+        "totalTokens": 582101
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.5884010791778564,
+        "sha256": "4d8a92112e1d9eb1206d5b30f3c037c3cd03ba57617a9b970d5bd7007daf2ec0"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 4
+      },
+      "diagnostic_observations": {
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r2",
+      "task": "B",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 319.5967860221863,
+      "tool_calls": 54,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 42710,
+        "output": 18168,
+        "cacheRead": 1558528,
+        "cacheWrite": 0,
+        "reasoning": 5034,
+        "totalTokens": 1619406
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 6.618137836456299,
+        "sha256": "488d3a13f76f54180d4c88c4dd58953ab6f2c4a7eb9d665cc0775045cd753281"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 14,
+        "1": 8
+      },
+      "diagnostic_observations": {
+        "no such column": 6,
+        "unknown flag": 2,
+        "incomplete": 2
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-glm-5.3-flash-low-r1",
+      "task": "B",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 141.22542786598206,
+      "tool_calls": 29,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 24138,
+        "output": 7355,
+        "cacheRead": 409856,
+        "cacheWrite": 0,
+        "reasoning": 1248,
+        "totalTokens": 441349
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.089747905731201,
+        "sha256": "4d8a92112e1d9eb1206d5b30f3c037c3cd03ba57617a9b970d5bd7007daf2ec0"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "1": 2,
+        "0": 5
+      },
+      "diagnostic_observations": {
+        "no such column": 1,
+        "incomplete": 2
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "B-glm-5.3-flash-low-r2",
+      "task": "B",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 155.7944860458374,
+      "tool_calls": 37,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 20635,
+        "output": 8407,
+        "cacheRead": 478208,
+        "cacheWrite": 0,
+        "reasoning": 1353,
+        "totalTokens": 507250
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.589974880218506,
+        "sha256": "488d3a13f76f54180d4c88c4dd58953ab6f2c4a7eb9d665cc0775045cd753281"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 12,
+      "checks_total": 12,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 5,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "incomplete": 1,
+        "unknown flag": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-high-r1",
+      "task": "C",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 111.93577980995178,
+      "tool_calls": 42,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 2374,
+        "output": 16175,
+        "cacheRead": 821504,
+        "cacheWrite": 25728,
+        "reasoning": 2761,
+        "totalTokens": 865781
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.106385946273804,
+        "sha256": "545104cd7df046d39f03e13345363ee1afbb01cb56b3fa681cfc656c5d596180"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "1": 2,
+        "0": 2
+      },
+      "diagnostic_observations": {
+        "unknown flag": 2,
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-high-r2",
+      "task": "C",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 122.59512591362,
+      "tool_calls": 26,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 1762,
+        "output": 12030,
+        "cacheRead": 557440,
+        "cacheWrite": 25728,
+        "reasoning": 1767,
+        "totalTokens": 596960
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 8.13013768196106,
+        "sha256": "545104cd7df046d39f03e13345363ee1afbb01cb56b3fa681cfc656c5d596180"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 5
+      },
+      "diagnostic_observations": {
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-low-r1",
+      "task": "C",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 100.34094381332397,
+      "tool_calls": 31,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 1343,
+        "output": 11142,
+        "cacheRead": 395264,
+        "cacheWrite": 24704,
+        "reasoning": 2658,
+        "totalTokens": 432453
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.087862014770508,
+        "sha256": "3a4829953c8f0dfcbb6e645641ff0dae2316366c801a23543c6c44d41228623d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 6,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "incomplete": 3,
+        "queryresult": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-low-r2",
+      "task": "C",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 88.72085976600647,
+      "tool_calls": 48,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 2477,
+        "output": 14042,
+        "cacheRead": 875392,
+        "cacheWrite": 26880,
+        "reasoning": 3405,
+        "totalTokens": 918791
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.096447944641113,
+        "sha256": "3a4829953c8f0dfcbb6e645641ff0dae2316366c801a23543c6c44d41228623d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 7,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "incomplete": 2,
+        "unknown flag": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r1",
+      "task": "C",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 196.05739903450012,
+      "tool_calls": 40,
+      "tool_error_events": 2,
+      "reported_usage": {
+        "input": 24940,
+        "output": 14886,
+        "cacheRead": 580096,
+        "cacheWrite": 0,
+        "reasoning": 1990,
+        "totalTokens": 619922
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.090111017227173,
+        "sha256": "3a4829953c8f0dfcbb6e645641ff0dae2316366c801a23543c6c44d41228623d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 9,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "incomplete": 2
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r2",
+      "task": "C",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 205.67803716659546,
+      "tool_calls": 45,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 33583,
+        "output": 18650,
+        "cacheRead": 1060096,
+        "cacheWrite": 0,
+        "reasoning": 4498,
+        "totalTokens": 1112329
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 5.107150077819824,
+        "sha256": "545104cd7df046d39f03e13345363ee1afbb01cb56b3fa681cfc656c5d596180"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 16,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "unknown flag": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r1",
+      "task": "C",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 87.74795413017273,
+      "tool_calls": 26,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 18281,
+        "output": 8169,
+        "cacheRead": 262656,
+        "cacheWrite": 0,
+        "reasoning": 533,
+        "totalTokens": 289106
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 6.119523048400879,
+        "sha256": "3a4829953c8f0dfcbb6e645641ff0dae2316366c801a23543c6c44d41228623d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "1": 1,
+        "0": 2
+      },
+      "diagnostic_observations": {},
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r2",
+      "task": "C",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 132.633620262146,
+      "tool_calls": 26,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 17184,
+        "output": 9202,
+        "cacheRead": 266496,
+        "cacheWrite": 0,
+        "reasoning": 1157,
+        "totalTokens": 292882
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 7.126327037811279,
+        "sha256": "545104cd7df046d39f03e13345363ee1afbb01cb56b3fa681cfc656c5d596180"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 55,
+      "checks_total": 55,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 2,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "incomplete": 1
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-high-r1",
+      "task": "D",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 174.9917631149292,
+      "tool_calls": 40,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 1659,
+        "output": 17354,
+        "cacheRead": 780160,
+        "cacheWrite": 35584,
+        "reasoning": 8253,
+        "totalTokens": 834757
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 5.607277154922485,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 13,
+        "1": 3
+      },
+      "diagnostic_observations": {
+        "unsupported": 16,
+        "bad.js": 16
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-high-r2",
+      "task": "D",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 200.1806981563568,
+      "tool_calls": 44,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 2036,
+        "output": 17135,
+        "cacheRead": 1378176,
+        "cacheWrite": 48000,
+        "reasoning": 7247,
+        "totalTokens": 1445347
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.603648900985718,
+        "sha256": "150ace185de9e1cf88fe6a09470db819b3de01bedc005c6879c577614d7530bb"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 8,
+        "1": 1
+      },
+      "diagnostic_observations": {
+        "unsupported": 9,
+        "bad.js": 9
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-low-r1",
+      "task": "D",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 462.85238909721375,
+      "tool_calls": 86,
+      "tool_error_events": 2,
+      "reported_usage": {
+        "input": 4288,
+        "output": 40939,
+        "cacheRead": 6150656,
+        "cacheWrite": 106112,
+        "reasoning": 18847,
+        "totalTokens": 6301995
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 5.115579843521118,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 46,
+        "1": 33
+      },
+      "diagnostic_observations": {
+        "unsupported": 41,
+        "bad.js": 41,
+        "unknown flag": 4
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-low-r2",
+      "task": "D",
+      "model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 70.13539814949036,
+      "tool_calls": 31,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 1254,
+        "output": 9648,
+        "cacheRead": 604800,
+        "cacheWrite": 36480,
+        "reasoning": 2860,
+        "totalTokens": 652182
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.0939409732818604,
+        "sha256": "150ace185de9e1cf88fe6a09470db819b3de01bedc005c6879c577614d7530bb"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 8,
+        "1": 5
+      },
+      "diagnostic_observations": {
+        "unsupported": 9,
+        "bad.js": 9,
+        "incomplete": 6
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r1",
+      "task": "D",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 143,
+      "elapsed_seconds": 480.13154888153076,
+      "tool_calls": 70,
+      "tool_error_events": 3,
+      "reported_usage": {
+        "input": 30742,
+        "output": 28529,
+        "cacheRead": 1986048,
+        "cacheWrite": 0,
+        "reasoning": 14399,
+        "totalTokens": 2045319
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 4.100201845169067,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": false,
+      "timed_out": true,
+      "checkpoint_failed": null,
+      "checks_passed": 0,
+      "checks_total": 0,
+      "mismatches": [],
+      "answer_error": "[Errno 2] No such file or directory: '/private/tmp/gmt015-persona-v2-matrix/runs/matrix/D-glm-5.3-flash-high-r1/answer.json'",
+      "wrapped_exit_counts": {
+        "1": 8,
+        "0": 24
+      },
+      "diagnostic_observations": {
+        "unknown flag": 3,
+        "unsupported": 24,
+        "bad.js": 21
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r2",
+      "task": "D",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "exit_code": 0,
+      "elapsed_seconds": 258.1743941307068,
+      "tool_calls": 40,
+      "tool_error_events": 0,
+      "reported_usage": {
+        "input": 59803,
+        "output": 16850,
+        "cacheRead": 1283584,
+        "cacheWrite": 0,
+        "reasoning": 7869,
+        "totalTokens": 1360237
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.591515064239502,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 7,
+        "1": 5
+      },
+      "diagnostic_observations": {
+        "unsupported": 10,
+        "bad.js": 9,
+        "incomplete": 3,
+        "unknown flag": 2
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-glm-5.3-flash-low-r1",
+      "task": "D",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 313.09621810913086,
+      "tool_calls": 58,
+      "tool_error_events": 2,
+      "reported_usage": {
+        "input": 31615,
+        "output": 16174,
+        "cacheRead": 1221632,
+        "cacheWrite": 0,
+        "reasoning": 5268,
+        "totalTokens": 1269421
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.593935012817383,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "0": 13,
+        "1": 3
+      },
+      "diagnostic_observations": {
+        "unsupported": 13,
+        "bad.js": 13,
+        "unknown flag": 2
+      },
+      "sandbox_probe_count": 13
+    },
+    {
+      "run_id": "D-glm-5.3-flash-low-r2",
+      "task": "D",
+      "model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "exit_code": 0,
+      "elapsed_seconds": 263.6918089389801,
+      "tool_calls": 46,
+      "tool_error_events": 1,
+      "reported_usage": {
+        "input": 33013,
+        "output": 15366,
+        "cacheRead": 917760,
+        "cacheWrite": 0,
+        "reasoning": 5073,
+        "totalTokens": 966139
+      },
+      "early_checkpoint": {
+        "elapsed_seconds": 3.0845370292663574,
+        "sha256": "afcb62d0419379b78b1e5137eea7bdab888e911b2be82f45c2d98cdea6c05f1d"
+      },
+      "answer_present": true,
+      "timed_out": null,
+      "checkpoint_failed": null,
+      "checks_passed": 14,
+      "checks_total": 14,
+      "mismatches": [],
+      "answer_error": null,
+      "wrapped_exit_counts": {
+        "1": 7,
+        "0": 14
+      },
+      "diagnostic_observations": {
+        "unknown flag": 2,
+        "unsupported": 15,
+        "bad.js": 11,
+        "incomplete": 5
+      },
+      "sandbox_probe_count": 13
+    }
+  ],
+  "totals": {
+    "runs": 32,
+    "answers": 31,
+    "exit_zero": 31,
+    "early_checkpoints": 32,
+    "tool_calls": 1354,
+    "checks_passed": 818,
+    "checks_total": 818,
+    "planned_checks": 832,
+    "unassessed_checks": 14
+  },
+  "limits": "Diagnostic string observations are not bug counts; expected negative probes also contain errors. Requested thinking is not backend verification. Review scripts and traces for causal claims."
+}

@@ -69,4 +69,32 @@ The first pilot found harness defects before the matrix: relative receipt stream
 
 ## Fresh cohort results
 
-Pilot and matrix completion receipts will be added after the runs finish. No result is inferred from a process merely starting or producing a partial answer. Requested model thinking levels are recorded independently of any claim about backend behavior.
+The pilot completed 4/4 runs with 189 tool calls and 72/98 literal checks. Its scope/type ambiguities were corrected before a separate frozen 32-slot matrix. The matrix used product revision 7a7c0c6 and binary SHA256 14363bf439063edaf4006e5cf5ea434f10db5cd1c0a5674dd65350e2a579d01c.
+
+| Task | Final answers | Executed checks | Unassessed planned checks |
+| --- | ---: | ---: | ---: |
+| A: inventory and SQL/JS parity | 8/8 | 184/184 | 0 |
+| B: fidelity, ordering and manifests | 8/8 | 96/96 | 0 |
+| C: native inspection | 8/8 | 440/440 | 0 |
+| D: generated commands and host replay | 7/8 | 98/98 | 14 |
+| Total | 31/32 | 818/818 | 14 |
+
+The matrix made 1,354 tool calls. All32 produced early checkpoints. GLM high task D repeat1 timed out at480 seconds without final answer/report; its partial checkpoint claimed mandatory completion, but it continued optional probes instead of finalizing. The timeout is an incomplete task, even though saved worker probes succeeded. No rerun replaces that observation.
+
+All32 persisted Pi transcripts were normalized with the pinned binary. Runner/native/SQL tool counts and the five compared usage fields agree, with no conversion warnings; model/thinking metadata matches all32 requested settings. These checks establish accounting consistency, not independent backend reasoning behavior or billing accuracy. Raw files remain private.
+
+### What the passing checks do not establish
+
+Independent review of all32 traces and artifacts found correct mandatory outputs alongside report and artifact mistakes: a 710-versus-706 total typo, a retained broken SQL draft, and a false extension diagnosis caused by a wrong path. One native run overwrote seven early stdout files; their receipt hashes detect the damage, while nine intact replacement outputs support the final answer. See reference14 for exact evidence and attribution.
+
+The separate zero-tool probe passes for only4/7 finalized D commands. Two generated GLM commands reject an empty tool list; one DeepSeek command returns an empty array because it groups only tool rows. An unfinished timeout command also passes the probe, giving5/8 saved commands, but it is excluded from finalized-command success. These are generated-query edge defects, not SessionToolCounts failures. Original mandatory grades were not changed to include the new probe.
+
+### Post-cohort isolation hardening
+
+A worker could list host-analysis and grading filenames under the bundle. The access review found no recorded content read of host grades, other answers or the oracle, and sibling/oracle traversal was denied. That is a trace observation, not exhaustive proof of confidentiality. After the frozen matrix completed, preparation was updated to deny reads of control and agent-analysis directories. A new test proves both file reads and directory listings are denied even if those directories are created after policy construction; startup probes now read a real control file and require denial. Seven local harness tests pass. The original matrix policies remain unchanged and must not be described as having this later protection.
+
+### Reproduction and next iteration
+
+Compact results are in sources/persona-v2-matrix-summary.json; transcript accounting is in sources/persona-v2-session-analysis.json; edge probes are in sources/persona-v2-zero-tool-probes.json. The ticket preserves153 generated source files with hashes under scripts/persona-testing-v2/generated. Use the v2 reproduction guide and private evidence receipt to recover full transcripts and receipts.
+
+The next experiment should explicitly require zero-tool coverage for every generated command and separate optional exploration into a later phase after a valid final answer is saved. Retain exact schemas and per-session identity checks. These are follow-up experiment improvements, not claims that the current cohort already tested that stronger protocol.

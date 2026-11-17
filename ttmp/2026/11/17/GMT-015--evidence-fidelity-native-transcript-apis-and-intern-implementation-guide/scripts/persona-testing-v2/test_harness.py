@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """No models: real OS negative probes, wrapper statuses and explicit-order grading."""
-import json,sys,tempfile,unittest
+import json,sys,tempfile,unittest,subprocess
 from pathlib import Path
 from common import probe,profile
 from record_command import execute
@@ -43,6 +43,18 @@ class HarnessTests(unittest.TestCase):
    oracle=root/'private/oracle.json';oracle.write_text('{"secret":"test-only"}')
    policy=root/'policy.sb';policy.write_text(profile(protected,[root/'private']))
    checks=probe(policy,protected,oracle,root/'work');self.assertEqual(len(checks),8)
+ def test_host_outputs_are_unreadable_in_future_policies(self):
+  from prepare import private_read_paths
+  with tempfile.TemporaryDirectory(prefix='gmt015-private-host-') as tmp:
+   root=Path(tmp).resolve();bundle=root/'bundle';bundle.mkdir()
+   policy=root/'policy.sb'
+   policy.write_text(profile([],private_read_paths(root/'repo',root/'corpus',root/'fixtures',bundle)))
+   # Create after policy construction: future host analysis must also be denied.
+   for name in ['control','agent-analysis']:
+    directory=bundle/name;directory.mkdir();file=directory/'summary.json';file.write_text('{"expected":42}')
+    for expression in ['p.read_text()','list(p.parent.iterdir())']:
+     r=subprocess.run(['/usr/bin/sandbox-exec','-f',str(policy),sys.executable,'-c','from pathlib import Path;import sys;p=Path(sys.argv[1]);print('+expression+')',str(file)],capture_output=True)
+     self.assertNotEqual(r.returncode,0);self.assertEqual(r.stdout,b'')
  def test_exit_zero_and_nonzero(self):
   with tempfile.TemporaryDirectory(prefix='gmt015-v2-status-') as tmp:
    p=Path(tmp)

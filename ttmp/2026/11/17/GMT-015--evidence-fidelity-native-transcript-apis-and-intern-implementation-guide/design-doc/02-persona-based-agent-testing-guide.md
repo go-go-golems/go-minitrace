@@ -279,3 +279,8 @@ That distinction matters: two agents created 12 untracked log/output files in th
 The ticket preserves 127 matrix-generated source artifacts plus the pilot script, the task runner, independent graders, reviewed replay controls, corpus provenance and aggregate receipts. Raw transcripts and streamed model outputs remain private. A durable local compressed evidence archive is recorded in sources/persona-private-evidence.json under ~/.local/share/go-minitrace/experiments/GMT-015; temporary-file cleanup will not erase the only retained copy. All-run event scanning and targeted deep review are distinguished explicitly; this is not a claim that every transcript line was manually reviewed.
 
 See [the detailed improvement review](../reference/10-persona-testing-findings-and-improvement-plan.md) for actual command failures, confirmed bugs, rejected hypotheses and acceptance criteria.
+
+
+## Subsequent v2 implementation
+
+The experiment described above remains the original cohort. For new executions, use [the v2 reproduction guide](../scripts/persona-testing-v2/00-reproduction.md) and [the follow-up design](03-persona-review-followups-result-contracts-discoverability-and-enforced-test-isolation.md). V2 builds a hash-pinned binary, runs OS protected-path probes, records subprocess exits and requires explicit synthetic/real and ordering fields. The [implementation review](../reference/13-review-followup-implementation-and-v2-validation-results.md) records pilot corrections and fresh results. Do not mix denominators or silently replace the original scores with new ones.

@@ -5,6 +5,9 @@ from pathlib import Path
 from common import inventory,load,platform_guard,save,sha
 from contracts import SCHEMAS
 
+def private_read_paths(repo,corpus,fixtures,bundle):
+ return [bundle/'private-oracle',bundle/'control',bundle/'agent-analysis',repo/'ttmp',corpus/'manifest.json',fixtures/'oracle.json']
+
 def prepare(repo,corpus,fixtures,bundle):
  platform_guard();repo=Path(repo).resolve();corpus=Path(corpus).resolve();fixtures=Path(fixtures).resolve();bundle=Path(bundle).resolve()
  if bundle.exists():raise ValueError('Fresh bundle directory required; refusing overwrite')
@@ -25,7 +28,7 @@ def prepare(repo,corpus,fixtures,bundle):
  save(bundle/'private-oracle/corpus.json',{'rows':rows});shutil.copy2(fixtures/'oracle.json',bundle/'private-oracle/fixtures.json');save(bundle/'public/answer-schema.json',SCHEMAS)
  gitdir=subprocess.check_output(['git','rev-parse','--git-common-dir'],cwd=repo,text=True).strip();gitdir=(repo/gitdir).resolve()
  protected=[repo,gitdir,corpus,fixtures,bundle/'bin',bundle/'control',bundle/'private-oracle',bundle/'corpus',bundle/'fixtures',bundle/'public']
- denied=[bundle/'private-oracle',repo/'ttmp',corpus/'manifest.json',fixtures/'oracle.json']
+ denied=private_read_paths(repo,corpus,fixtures,bundle)
  pinned=inventory([bundle/'bin',bundle/'corpus',bundle/'fixtures',bundle/'public'])
  config={'schema_version':2,'repo':str(repo),'bundle':str(bundle),'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'binary':str(bundle/'bin/go-minitrace'),'binary_sha256':sha(bundle/'bin/go-minitrace'),'source_diff_sha256':__import__('hashlib').sha256(subprocess.check_output(['git','diff','HEAD'],cwd=repo)).hexdigest(),'protected_paths':[str(p) for p in protected],'denied_read_paths':[str(p) for p in denied],'hashes':pinned,'limits':'Write protection for listed canonical paths and oracle read denial only; not full OS containment. Network/provider state outside protected paths remains available.'}
  save(bundle/'control/inputs.json',config);return config

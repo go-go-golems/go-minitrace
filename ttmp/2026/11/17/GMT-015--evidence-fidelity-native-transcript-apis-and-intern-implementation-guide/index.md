@@ -58,4 +58,7 @@ Final persona result: 32/32 runs with answers and reports, zero timeouts, 1,671 
 
 ## Review-driven implementation
 
-The follow-up design is [design03](design-doc/03-persona-review-followups-result-contracts-discoverability-and-enforced-test-isolation.md). Product changes are committed in acac40b; the separate enforced v2 harness is a709fe7. See [v2 reproduction](scripts/persona-testing-v2/README.md) for frozen-binary execution, task contracts and isolation limits. Historical v1 results above describe the original implementation and are not revised by this new experiment.
+The follow-up design is [design03](design-doc/03-persona-review-followups-result-contracts-discoverability-and-enforced-test-isolation.md). Product changes are committed in acac40b; the separate enforced v2 harness is a709fe7. See [v2 reproduction](scripts/persona-testing-v2/00-reproduction.md) for frozen-binary execution, task contracts and isolation limits. Historical v1 results above describe the original implementation and are not revised by this new experiment.
+
+
+Final v2 implementation results: [current review](reference/13-review-followup-implementation-and-v2-validation-results.md) and [independent transcript review](reference/14-v2-persona-transcript-review.md). The 32-slot matrix produced 31 final answers, 818 passing executed checks and 14 unassessed checks after one timeout. Separate zero-tool probes pass 4/7 finalized generated commands. Post-cohort host-output read hardening is locally tested and explicitly distinguished from the frozen experiment. The pedagogical report is published in playback-vault, commit ccac298.

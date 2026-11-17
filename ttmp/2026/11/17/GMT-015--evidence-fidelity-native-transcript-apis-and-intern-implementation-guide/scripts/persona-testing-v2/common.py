@@ -27,7 +27,7 @@ def verify(bundle):
   if sha(path)!=digest:raise RuntimeError('Pinned input drift: '+path)
  return expected
 
-def probe(profile_path,protected,oracle,workspace):
+def probe(profile_path,protected,oracle,workspace,private_files=()):
  """Fail closed unless direct and nested child writes fail on every protected root."""
  platform_guard();workspace=Path(workspace);workspace.mkdir(parents=True,exist_ok=True);checks=[]
  for i,root in enumerate(protected):
@@ -46,9 +46,10 @@ def probe(profile_path,protected,oracle,workspace):
  if target.exists():target.unlink();raise RuntimeError('Symlink write bypass allowed')
  if r.returncode==0:raise RuntimeError('Symlink denial probe did not fail')
  checks.append({'symlink_target':str(alias.resolve()),'write_denied':True})
- r=subprocess.run(['/usr/bin/sandbox-exec','-f',str(profile_path),sys.executable,'-c','import pathlib,sys; pathlib.Path(sys.argv[1]).read_bytes()',str(oracle)],capture_output=True,text=True)
- if r.returncode==0:raise RuntimeError('Oracle read was permitted')
- checks.append({'oracle_read_denied':True})
+ for private in [oracle,*private_files]:
+  r=subprocess.run(['/usr/bin/sandbox-exec','-f',str(profile_path),sys.executable,'-c','import pathlib,sys; pathlib.Path(sys.argv[1]).read_bytes()',str(private)],capture_output=True,text=True)
+  if r.returncode==0:raise RuntimeError('Private host file read was permitted: '+str(private))
+  checks.append({'private_path':str(private),'private_read_denied':True})
  r=subprocess.run(['/usr/bin/sandbox-exec','-f',str(profile_path),sys.executable,'-c','import pathlib,sys; pathlib.Path(sys.argv[1]).write_text("ok")',str(workspace/'allowed-probe')],capture_output=True,text=True)
  if r.returncode!=0:raise RuntimeError('Writable workspace probe failed: '+r.stderr)
  checks.append({'workspace_write_allowed':True});return checks

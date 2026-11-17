@@ -446,7 +446,7 @@ Review sandbox policy scope, subprocess termination and evaluator trust boundari
 Run focused pilots then a fresh matrix against the pinned binary. Preserve failures and scripts without rewriting v1 scores.
 
 ### Code review instructions
-Start with scripts/persona-testing-v2/README.md, common.py and run_cohort.py; then inspect contracts.py and evaluate.py.
+Start with scripts/persona-testing-v2/00-reproduction.md, common.py and run_cohort.py; then inspect contracts.py and evaluate.py.
 
 ### Technical details
 Default matrix: four tasks, two models, requested low/high thinking, two repeats; four workers. Timeout 480 seconds and early-checkpoint timeout 90 seconds. Unsupported platforms fail closed. The original private corpus supplies nine real sessions across Claude, Codex and Pi.
@@ -458,3 +458,95 @@ Pilot contract audit: task A retained all nine identities and declared SQL/JS eq
 Task B pilot finished with correct ordering but returned row objects under the ordinal fields, while the grader expected integer arrays (10/12 literal checks). Made both ordinal field types explicit before the matrix, without changing historical grades. The no-model harness suite now has six passing tests after the independent review. Added a row-overflow envelope regression and completed documentation of self-named single-verb collapse versus multi-verb nesting; focused CLI tests pass.
 
 Final pilot: 4/4 exit zero, answers and early checkpoints, 189 tool calls; 72/98 literal checks. D returned IDs as a framework-keyed object and nested booleans in a contract object, preventing fixed-argv replay selection. It also interpreted negative defaults across CLI/YAML and JS, so its boolean was broader than the intended JS-metadata question. The matrix contract now explicitly requests an ID string array, top-level fields and JS __verb__ numeric-default support only. These findings justify the pilot; no product bug is inferred from these schema mismatches. Matrix concurrency will be eight to keep the 32-slot regression bounded in elapsed time; timing is not compared as a model ranking.
+
+## Step 11: Run the frozen matrix and preserve validation provenance
+
+The corrected pilot/harness checkpoint is 7a7c0c6. The matrix uses a new private bundle at /private/tmp/gmt015-persona-v2-matrix and a newly built binary hash 14363bf439063edaf4006e5cf5ea434f10db5cd1c0a5674dd65350e2a579d01c. Product code and task prompts are frozen for all 32 slots.
+
+### Prompt Context
+See Step 8. This step validates the implementation using fresh independent agents and keeps the evidence retraceable.
+
+### What I did
+- Ran the four-persona pilot, retained its literal results and fixed schema/isolation/receipt issues before the matrix.
+- Launched the 32-slot matrix with eight workers, requested low/high thinking, two repeats and the two requested Lunaroute models.
+- Saved a validation driver and compact receipts; added a summary script that does not publish raw transcript bodies.
+
+### Why
+The pilot tests the evaluator itself before its results are used to judge product quality. Frozen inputs prevent mid-cohort changes from contaminating comparison.
+
+### What worked
+All four pilot agents completed with an answer and early checkpoint. Task C passed 55/55 checks. Product build, vet, embedded help and Glazed lint have separately recorded zero exits. Six harness tests pass.
+
+### What didn't work
+Pilot A/B/D exposed answer-shape ambiguity, preserved as 72/98 literal checks rather than silently regraded. `docmgr doctor --ticket GMT-015 --stale-after 30` reported missing frontmatter on the new scripts README; added proper ticket frontmatter. No matrix success is claimed before completion.
+
+### What I learned
+A schema must specify nested types and exact names, not just describe a task in prose. A valid process exit and a valid answer schema are different outcomes.
+
+### What was tricky to build
+Sibling paths must all exist before any policy snapshots them. Relative stream paths must be interpreted against their actual CWD. Both corrections are in the matrix checkpoint, while the original pilot evidence remains unchanged.
+
+### What warrants a second pair of eyes
+Compare generated scripts to answers and host replays, especially when literal grading fails. Do not count an expected negative-probe diagnostic as a newly discovered bug.
+
+### What should be done in the future
+Finish matrix grading, inspect mismatches and transcripts, preserve private evidence and publish the final review.
+
+### Code review instructions
+Use the v2 README and scripts, plus sources/persona-v2-pilot-summary.json and persona-v2-product-validation.json. The matrix configuration is in the private bundle's control directory.
+
+### Technical details
+Eight concurrent workers changes latency, so elapsed-time figures are descriptive only. Input hash verification runs before and after each worker. No new raw transcript content is committed.
+
+Matrix interim checkpoint: all 24 A/B/C runs completed with zero exits and answers; A 184/184, B 96/96, C 440/440 automated checks (720/720 combined). Manual review confirms per-session zero-tool preservation and native raw-file metrics. It also found report-quality defects independent of correct answers: one 710-versus-706 total typo, a retained broken SQL draft, and a false extension diagnosis caused by a wrong path. D runs and host replays remain pending; these observations do not imply a perfect overall cohort.
+
+Final matrix checkpoint: 32 attempted, 31 zero exits and final answers, 32 early checkpoints, 1,354 tool calls. Executed checks pass 818/818; 14 planned checks remain unassessed because D GLM high r1 timed out at480 seconds without final answer/report. Its partial checkpoint claimed mandatory completion before optional work, illustrating why an early partial is not final fulfillment. All32 persisted Pi sessions normalize without tool-count or usage mismatches and recorded model/thinking metadata matches all32 requested settings.
+
+Post-cohort harness hardening: the access audit found a worker could list host-analysis/control filenames; no content read has been identified in the reviewed trace. Future prepare.py policies now deny control and agent-analysis reads, and run startup probes test a real control input file. A new regression verifies file reads and directory listing denial even when host-output directories are created after policy construction. Seven harness tests pass. The finished matrix retains its original policies; this is not represented as retroactive enforcement.
+
+## Step 12: Finalize evidence and write the pedagogical vault report
+
+The implementation and fresh experiment are complete. The final evidence includes the timeout, successful mandatory checks, three finalized generated-command zero-tool defects, and the limited confidentiality findings. The user then requested a standalone technical article in playback-vault; it is written from first principles rather than assuming familiarity with the tool or experiment.
+
+### Prompt Context
+**User prompt (verbatim):**
+> Write a detailed project report for the obsidian vault in ~/code/tulip/playback-vault (instead of go-go-parc) as a deep dive technical analysis blog post using a textbook writing style (no analogies, see skill). Commit and push the playback-vault when done.
+>
+> THe report is about this cosplay driven persona driven optimization looping. Use a textbook authoring style, be pedagogical, explain things in sequence, don't assume the reader knows anything about what this is about or what go-minitrace is, or what the JS API is
+
+**Assistant interpretation:** Add a sequential, self-contained technical report to the specified vault, retain compact evidence locally with it, review it and publish the vault commit. Preserve the earlier implementation and reMarkable delivery work.
+
+### What I did
+- Finalized reference13 and independent reference14, retained 153 generated matrix scripts and compact metrics.
+- Archived both private v2 bundles at ~/.local/share/go-minitrace/experiments/GMT-015/persona-v2-evidence-2026-11-17.tar.gz: 98,078,694 bytes, SHA256 42af92b65ac7367356a39dbd0b33c2048a28848ab8ec52c9915a2ee45add7c32.
+- Applied textbook-authoring and Obsidian-vault skills, inspected playback-vault conventions, and fetched its clean main branch.
+- Wrote a 6,768-word article with definitions, SQL/JS examples, native-reference records, diagrams, experiment design, evidence handling, measured results and limits.
+- Copied eight compact review/result assets beside the article; no raw transcripts were copied into the vault.
+- Obtained an independent technical/pedagogical review and incorporated its corrections. Vault commit: ccac298.
+
+### Why
+The reusable contribution is the iteration method: distinguish product contracts, API discovery, generated analyses, prompts and evaluator defects. A reader needs those foundations before the score tables are meaningful.
+
+### What worked
+Seven local harness tests pass, including the post-cohort host-output read restrictions. All 32 persisted sessions normalize consistently; 31 final answers pass 818 executed checks with 14 unassessed. Article YAML, code-fence balance, eight local evidence links and key metric assertions validate. The vault commit contains only the new report and its eight assets.
+
+### What didn't work
+The frozen matrix had one 480-second timeout. Separate zero-tool tests pass 4/7 finalized commands, plus the unfinished timeout command (5/8 saved commands); the three failures remain documented caller defects. An early receipt-file overwrite was detected by hash mismatch; intact replacements support the final native answer. The post-cohort read policy is not falsely credited to the completed run.
+
+### What I learned
+Correct field values, completed tasks, runnable artifacts, intact receipts and good diagnoses are distinct achievements. Optional exploration should become a later phase after a validated mandatory submission, and every generated command should explicitly test a valid zero-tool session.
+
+### What was tricky to build
+The article needed to define compaction, normalized tool records, Goja builders, recipes and native request references before using them in design claims. It also needed to explain that complete SQL output is not proof of complete source capture, and that an explicit SQL LIMIT can intentionally select a subset.
+
+### What warrants a second pair of eyes
+Retain the separate denominators and avoid model-ranking or causal speedup claims. Review the distinction between filename exposure and observed content access, and between finalized versus unfinished generated code.
+
+### What should be done in the future
+Treat stronger zero-tool task coverage and mandatory/optional phase separation as the next experimental iteration. The signed-default scanner and exact causal replay remain separately scoped work.
+
+### Code review instructions
+Read design03, reference13 and reference14. The vault article is Projects/2026/11/17/PROJECT REPORT - go-minitrace - Persona Driven Optimization Through Executable Experiments.md in playback-vault. Use its colocated evidence assets or the ticket sources; restore private evidence only when raw transcript review is needed.
+
+### Technical details
+The recorded matrix binary is 14363bf439063edaf4006e5cf5ea434f10db5cd1c0a5674dd65350e2a579d01c from 7a7c0c6. Current harness policies add control/agent-analysis read denial afterward. Final source commits and vault push precede reMarkable delivery; successful cloud upload will be reported only after its receipt.

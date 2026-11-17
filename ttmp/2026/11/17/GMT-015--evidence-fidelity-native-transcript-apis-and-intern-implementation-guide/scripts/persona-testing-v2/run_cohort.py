@@ -47,7 +47,7 @@ def run_one(spec,a,config):
  # Other run folders are denied reads; this policy is created before its process starts.
  denied=config['denied_read_paths']+[str(p) for p in (a.bundle/'runs').glob('*/*') if p.is_dir() and p!=out]
  policy.write_text(profile(config['protected_paths'],denied))
- checks=probe(policy,config['protected_paths'],a.bundle/'private-oracle/fixtures.json',out/'probe')
+ checks=probe(policy,config['protected_paths'],a.bundle/'private-oracle/fixtures.json',out/'probe',private_files=[a.bundle/'control/inputs.json'])
  persona,task=TASKS[group];binary=a.bundle/'bin/go-minitrace';wrapper=a.bundle/'bin/record_command.py'
  prompt=f'''You are a {persona} doing bounded technical API tests. Execute checks, never fabricate results.
 PINNED binary: {binary} (sha256 {config['binary_sha256']}). Use this executable, NEVER go run/build or an installed alternate.
