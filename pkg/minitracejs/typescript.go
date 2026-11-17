@@ -28,7 +28,7 @@ func TypeScriptModule() *spec.Module {
 			" ForEach(callback: (record: NativeRecord) => boolean | void): NativeScanStats;",
 			" Inspect(): Record<string, unknown>;",
 			"}",
-			"export interface NativeRecord { source: {line: number; byteOffset: number; rawBytes: number}; value?: Record<string, unknown>; diagnostic?: {code: string; message: string}; }",
+			"export interface NativeRecord { source: {line: number; byteOffset: number; rawBytes: number}; value?: Record<string, unknown>; rawJSON?: string; diagnostic?: {code: string; message: string}; }",
 			"export interface NativeScanStats {sha256: string; hashScope: string; bytes: number; lines: number; malformed: number; stopReason: string;}",
 			"export interface CellDiagnostic { rowIndex: number; columnIndex: number; column: string; originalBytes: number; emittedBytes: number; truncated?: boolean; invalidUtf8?: boolean; }",
 			"export interface QueryResult { columns: string[]; rows: Array<Record<string, unknown>>; count: number; complete: boolean; truncated?: boolean; rowsTruncated?: boolean; cellDiagnostics?: CellDiagnostic[]; error?: string; }",

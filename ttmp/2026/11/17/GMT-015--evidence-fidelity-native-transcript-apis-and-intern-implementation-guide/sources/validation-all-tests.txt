@@ -1,0 +1,48 @@
+?   	github.com/go-go-golems/go-minitrace	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/build-web	0.546s
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/annotate	[no test files]
+?   	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/convert	0.932s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/discover	1.074s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/preview	0.781s
+--- FAIL: TestNewCommandsCommand_LoadsConfiguredRepositoryFromAppConfig (0.06s)
+    commands_test.go:178: found.Short = "List minitrace sessions", want app-config override short description
++-----------------+
+| id              |
++-----------------+
+| fixture-session |
++-----------------+
+--- FAIL: TestNewCommandsCommand_XDGConfigOverridesHomeConfig (0.08s)
+    commands_test.go:535: found.Short = "Home config override session list", want XDG config override short description
+query catalog: skipped bad.js: scan js command bad.js: bad.js#bad: invalid __verb__ metadata: field "fields": field "limit": field "default": unsupported metadata literal "unary_expression"
+[
+{
+  "answer": 42
+}
+]
+FAIL
+FAIL	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	3.584s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/serve	3.327s
+ok  	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/validate	1.434s
+?   	github.com/go-go-golems/go-minitrace/gen/proto/go_go_golems/minitrace/api/v1	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters	1.111s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/chatgpt	0.605s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudeai	0.810s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/claudecode	1.858s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/codex	1.483s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/copilot	2.148s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/pi	2.039s
+ok  	github.com/go-go-golems/go-minitrace/pkg/adapters/turnsdb	1.829s
+ok  	github.com/go-go-golems/go-minitrace/pkg/annotate	1.952s
+?   	github.com/go-go-golems/go-minitrace/pkg/doc	[no test files]
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitrace	2.112s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracecmd	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracedb	(cached)
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs	1.375s
+ok  	github.com/go-go-golems/go-minitrace/pkg/minitracejs/provider	2.077s
+ok  	github.com/go-go-golems/go-minitrace/pkg/nativeevidence	1.267s
+ok  	github.com/go-go-golems/go-minitrace/pkg/validate	1.651s
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/04/16/bug-iserror-001--pi-adapter-iserror-not-mapped-to-output-success/scripts	[no test files]
+?   	github.com/go-go-golems/go-minitrace/ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts	[no test files]
+FAIL
