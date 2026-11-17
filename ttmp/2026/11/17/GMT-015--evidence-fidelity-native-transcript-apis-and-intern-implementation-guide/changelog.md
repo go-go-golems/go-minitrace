@@ -15,3 +15,7 @@ Completed intern architecture/design/implementation guide, diary, API docs and r
 ## 2026-11-17
 
 Reopened validation per user request: GLM low pilot completed real JS API checks; launched 32 fresh Pi/Lunaroute runs against nine frozen Claude/Codex/Pi sessions and synthetic fixtures. Independent grading and friction review underway.
+
+## 2026-11-17
+
+Completed 32 Pi/Lunaroute runs and eight independent command replays: 1,671 tool calls, 32 answer/report pairs, zero timeouts. Re-analyzed all 32 Pi transcripts with minitrace; accounting matches. Added detailed improvement review, prompt/grader adjudications, actual bug evidence, generated scripts and durable private evidence receipt. Prepared review+guide reMarkable delivery.

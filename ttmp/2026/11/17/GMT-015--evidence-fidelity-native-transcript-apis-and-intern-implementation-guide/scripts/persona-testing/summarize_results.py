@@ -47,7 +47,25 @@ def grade_c(answer, corpus):
     scans = answer.get('real_scans', [])
     if not isinstance(scans, list):
         scans = []
-    actual = {str(Path(r.get('path', '')).resolve()): r for r in scans if isinstance(r, dict) and isinstance(r.get('path'), str)}
+    known_paths = {r['native_path'] for r in corpus}
+    relative_candidates = defaultdict(list)
+    for path in known_paths:
+        native = Path(path)
+        relative_candidates[str(Path(native.parent.name) / native.name)].append(path)
+    actual = {}
+    for index, scan in enumerate(scans):
+        if not isinstance(scan, dict) or not isinstance(scan.get('path'), str):
+            continue
+        path = scan['path']
+        # Accept only exact absolute paths or the explicit framework/basename form.
+        # Do not resolve arbitrary paths against cwd or accept ambiguous basenames.
+        if path in known_paths:
+            canonical = path
+        elif not Path(path).is_absolute() and len(relative_candidates.get(path, [])) == 1:
+            canonical = relative_candidates[path][0]
+        else:
+            canonical = 'unrecognized:' + str(index) + ':' + path
+        actual[canonical] = scan
     checks.append(check('real_scan_paths', sorted(actual), sorted(r['native_path'] for r in corpus)))
     checks.append(check('real_scan_rows', len(scans), len(corpus)))
     for row in corpus:
@@ -73,6 +91,8 @@ def summarize(matrix, oracle, manifest):
         archive = json.loads(raw)
         row['turn_count'] = len(archive.get('turns') or [])
         row['tool_count'] = len(archive.get('tool_calls') or [])
+    adjudication_path = Path(__file__).resolve().parents[2] / 'sources/persona-adjudications.json'
+    adjudications = load(adjudication_path).get('adjudications', []) if adjudication_path.exists() else []
     runs = []
     for receipt_path in sorted(matrix.glob('*/receipt.json')):
         try:
@@ -83,6 +103,7 @@ def summarize(matrix, oracle, manifest):
                 'elapsed_seconds', 'exit_code', 'tool_calls', 'tool_error_events', 'reported_usage', 'observed_models']}
         run['finished'] = 'elapsed_seconds' in receipt
         run['timed_out'] = receipt.get('timed_out', False)
+        run['adjudications'] = [a for a in adjudications if a.get('run_id') == run['run_id']]
         if not run['finished']:
             runs.append(run)
             continue
@@ -109,6 +130,9 @@ def summarize(matrix, oracle, manifest):
                 replay = directory / 'independent-replay.json'
                 if replay.exists():
                     run['replay_receipt'] = load(replay)
+                    reviewed = run['replay_receipt'].get('checks', [])
+                    run['reviewed_checks'] = len(reviewed)
+                    run['reviewed_checks_passed'] = sum(c.get('passed') is True for c in reviewed)
                     run['replay_status'] = 'separate_receipt_available_not_automatically_scored'
             run['answer_parseable'] = True
         except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -119,7 +143,7 @@ def summarize(matrix, oracle, manifest):
         run['graded_fields'] = len(checks)
         run['all_graded_fields_correct'] = bool(checks) and all(c['passed'] for c in checks)
         runs.append(run)
-    buckets = defaultdict(lambda: {'runs_started': 0, 'runs_finished': 0, 'answers_present': 0, 'reports_present': 0, 'timeouts': 0, 'correct_fields': 0, 'graded_fields': 0, 'tool_calls': 0, 'tool_error_events': 0, 'elapsed_seconds': 0, 'reported_usage': {}})
+    buckets = defaultdict(lambda: {'runs_started': 0, 'runs_finished': 0, 'answers_present': 0, 'reports_present': 0, 'timeouts': 0, 'correct_fields': 0, 'graded_fields': 0, 'tool_calls': 0, 'tool_error_events': 0, 'reviewed_checks': 0, 'reviewed_checks_passed': 0, 'elapsed_seconds': 0, 'reported_usage': {}})
     for run in runs:
         key = '/'.join(str(run[k]) for k in ['model', 'requested_thinking', 'task'])
         b = buckets[key]; b['runs_started'] += 1
@@ -129,15 +153,16 @@ def summarize(matrix, oracle, manifest):
         for out, name in [('answers_present','answer.json'), ('reports_present','report.md')]:
             b[out] += bool(run['artifacts'][name])
         b['timeouts'] += run['timed_out']
-        for key in ['correct_fields', 'graded_fields', 'tool_calls', 'tool_error_events', 'elapsed_seconds']:
+        for key in ['correct_fields', 'graded_fields', 'tool_calls', 'tool_error_events', 'reviewed_checks', 'reviewed_checks_passed', 'elapsed_seconds']:
             b[key] += run.get(key) or 0
         for key, value in (run.get('reported_usage') or {}).items():
             b['reported_usage'][key] = b['reported_usage'].get(key, 0) + value
     finished = sum(r['finished'] for r in runs)
-    return {'schema': 'gmt015-persona-independent-grades/v1', 'generated_at': datetime.now(timezone.utc).isoformat(),
+    return {'schema': 'gmt015-persona-independent-grades/v2', 'generated_at': datetime.now(timezone.utc).isoformat(),
             'status': 'complete' if finished == len(design['specs']) else 'partial',
             'planned_runs': len(design['specs']), 'started_runs': len(runs), 'finished_runs': finished,
-            'matrix_revision': design['revision'], 'aggregates': dict(buckets), 'runs': runs,
+            'adjudications': adjudications, 'matrix_revision': design['revision'], 'aggregates': dict(buckets), 'runs': runs,
+            'grader_corrections': ['v2 accepts exact framework/basename native scan paths as well as exact absolute paths; v1 incorrectly resolved relative paths against evaluator cwd. Original affected score retained in adjudications.'],
             'limits': ['Field correctness is not task completion or proof of tool use; inspect execution traces.',
                        'D booleans are unverified model claims, excluded from correct-field scores.',
                        'A SQL/JS equality and conversion validation claims require trace review.',

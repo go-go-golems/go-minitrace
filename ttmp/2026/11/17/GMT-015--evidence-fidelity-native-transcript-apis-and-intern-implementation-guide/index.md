@@ -39,3 +39,19 @@ Implementation and intern onboarding for [upstream issue 34](https://github.com/
 Reproduction scripts are in `scripts/`; validation receipts are in `sources/`. The guide explicitly separates delivered fixes from deferred scanner and replay work. Full-suite validation retains two confirmed baseline configuration failures; focused new regressions pass.
 
 Planned delivery: `/ai/2026/11/17/GMT-015`, document `GMT 015 Evidence Fidelity and Intern Guide`. Upload success will be reported in the final session receipt; all commits precede upload at the user’s request.
+
+## Persona testing follow-up
+
+The user requested actual Pi/Lunaroute role-based runs after the original implementation delivery. The fixed matrix uses nine historical Claude/Codex/Pi transcripts, synthetic edge cases, two models and two requested thinking levels.
+
+- [Consolidated findings and improvement plan](reference/10-persona-testing-findings-and-improvement-plan.md)
+- [Testing guide and question bank](design-doc/02-persona-based-agent-testing-guide.md)
+- [Corpus selection](reference/06-persona-corpus-selection.md)
+- [Independent results and adjudications](reference/07-persona-test-results.md)
+- [Observed API friction and command replays](reference/08-persona-friction-review.md)
+- [Analysis of the generated Pi sessions](reference/09-persona-session-self-analysis.md)
+- [Harness reproduction instructions](scripts/persona-testing/00-reproduction.md)
+
+The machine-readable result file owns the current completion count. Intermediate snapshots are explicitly partial; correct answer fields are distinct from complete task fulfillment.
+
+Final persona result: 32/32 runs with answers and reports, zero timeouts, 1,671 tool calls. All eight command replays and all 32 session-normalization checks are complete. See the consolidated review for confirmed bugs, scope adjudications and workspace-instruction violations. Delivery target: `/ai/2026/11/17/GMT-015`, document `GMT 015 Persona Testing Review and Guide`.

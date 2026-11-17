@@ -1,0 +1,1 @@
+SELECT s.session_id, s.agent_framework, (SELECT COUNT(*) FROM turns t WHERE t.session_id = s.session_id) AS turn_rows, (SELECT COUNT(*) FROM tool_calls c WHERE c.session_id = s.session_id) AS tool_rows FROM sessions s ORDER BY s.session_id;

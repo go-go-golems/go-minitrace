@@ -1,0 +1,91 @@
+{
+  "scope": "two agents used relative shell redirections after cd into the read-only-by-prompt repository; actual untracked writes violated workspace instructions; product tracked file hashes remain unchanged",
+  "files": [
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err2.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err3.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err3.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err4.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err4.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err5.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err5.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err6.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err6.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err7.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err7.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err8.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/err9.log",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/err9.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/out_scan.json",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/out_scan.json",
+      "bytes": 5673,
+      "sha256": "0e85cf456323d4f9f2428aae18bdf7626e6eae123c301d8394d49c14047b9e46",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/out_scan.txt",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/out_scan.txt",
+      "bytes": 7772,
+      "sha256": "0637ea01f09616d25d8eb4e274fcab7e5e2af7897f464c214ee40e57e08a3ff0",
+      "run": "C-glm-5.3-flash-high-r2"
+    },
+    {
+      "original_path": "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/out-inspect-cp.json",
+      "preserved_path": "/private/tmp/gmt015-persona/scope-artifacts/out-inspect-cp.json",
+      "bytes": 2787,
+      "sha256": "47892a6a5e165aab5ed29a2a3cdf18ee7ecf5d0814c4a2545a45ff1f5277aad3",
+      "run": "C-deepseek-4.1-flash-low-r2"
+    }
+  ],
+  "moved_not_deleted": true,
+  "next_harness": "run a hash-pinned binary from the run directory and enforce read-only repo mounts"
+}

@@ -1,0 +1,8 @@
+{
+  "archive": "/Users/manuel.odendahl/.local/share/go-minitrace/experiments/GMT-015/persona-evidence-2026-11-17.tar.gz",
+  "sha256": "98c6b4b05f875823d02a12eb7c035ed674086e1c5959d8fe4b56296838256f7d",
+  "bytes": 99031517,
+  "source": "/private/tmp/gmt015-persona",
+  "scope": "private corpus snapshots, full Pi sessions/events, authored outputs, review receipts and normalized re-analysis; not uploaded or committed",
+  "skipped_cache_or_credential_paths": []
+}

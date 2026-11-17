@@ -3,7 +3,7 @@ Title: Historical Claude, Codex and Pi corpus for persona testing
 Ticket: GMT-015
 Status: active
 DocType: reference
-Topics: [testing, minitrace, provenance]
+Topics: [analysis, minitrace]
 Summary: Nine bounded real native transcripts, immutable private copies, targeted conversions and independently checked normalized counts.
 ---
 

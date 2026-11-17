@@ -40,6 +40,11 @@
       }
     }
   ],
+  "extension_sha256": {
+    ".pi/agent/npm/node_modules/@lunaroute/pi-extension/package.json": "0b077b4de44360a7542e68a0eb04c64a0a825d668ed188fb1135f570612992ae",
+    ".pi/agent/npm/node_modules/@lunaroute/pi-extension/src/index.ts": "73166b7e1a631abcfe61a309c21167b223b6e8d28953b880ad21940cbc4609b6",
+    ".pi/agent/npm/node_modules/@lunaroute/pi-extension/src/lunaroute.ts": "b7fc0973531dbf7bd205403cb5a388dcef23b1bceed253b294b2dab4488f8c86"
+  },
   "scope": "local advertised compatibility, not wire capture or proof of backend behavior",
   "billing": "extension assigns zero cost rates; token usage cost is not independent proof of free billing"
 }

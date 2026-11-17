@@ -231,3 +231,99 @@ Read scripts/persona-testing/run_matrix.py, fixtures.py, grade.py and select_cor
 
 ### Technical details
 Pilot command uses --provider lunaroute --model glm-5.3-flash --thinking low --mode json --print --no-context-files --no-skills --no-extensions -e <Lunaroute extension> --tools read,bash,write,edit --session-dir <private run directory>. No model is asked to modify minitrace source or replay native instructions.
+
+## Step 6: Freeze the tested revision and grade the first completed runs
+
+The matrix is executing real tools, not simulated responses. The frozen product code remains revision `0996822`; commit `542f0c3` adds the experiment harness and guide only. A source-hash inventory and actual command-trace check confirm the agents use `go run ./cmd/go-minitrace` from the intended worktree, not an older installed binary.
+
+### Prompt Context
+See Step 5. **User prompt (verbatim):** “make sure they run the right go-minitrace as well, feel free to install the new one?” **Follow-up (verbatim):** “oh ok so that's fine then”. I explained the explicit worktree command and checked emitted shell calls before confirming it.
+
+### What I did
+- Verified no product changes in cmd/, pkg/, go.mod or go.sum since the tested revision; saved sources/persona-tested-source.json.
+- Checked observed shell invocations: no bare PATH-based go-minitrace calls in the inspected prefix.
+- Independently graded the first completed A run: all 20 requested inventory fields correct. The first C run passes all 42 graded fixture/native-source fields.
+- Replayed the first D command after reading its source: valid sibling execution survives the malformed negative-default sibling, help exposes custom/runtime flags, and per-session tool counts match the nine-archive baseline.
+- Added an audit script that records API attempts and suspicious evaluator accesses separately from verified successful execution.
+
+### Why
+The correct binary/source revision and independent oracle are prerequisites for useful usability evidence. A model reporting success is insufficient.
+
+### What worked
+The first completed runs produced actual scripts, command outputs and answer files. Observed usage includes CLI conversion/validation, schema introspection, recipe execution, native scanning and catalog diagnostics. Initial exact checks pass without changing production code during the experiment.
+
+### What didn't work
+Agents encountered expected errors: sqlite_master access denied, multiple SQL statements rejected, guessed JS builder methods, missing bound recipe arguments and CLI-only flags tried on JS commands. These are being classified as discoverability, misuse, intended restrictions or potential product gaps rather than automatically labeled bugs.
+
+### What I learned
+A successful Pi tool event can wrap a failed shell subprocess when the shell subsequently prints its output and exits zero. tool_error_events therefore measures Pi transport errors, not all failed commands. Cached-token totals also count repeated context across turns and are not peak context size.
+
+### What was tricky to build
+The experiment must keep incomplete runs in the denominator, preserve recoveries, and avoid leaking evaluator counts into model inputs. D command success requires a separate replay receipt rather than grading its self-reported booleans.
+
+### What warrants a second pair of eyes
+One agent changed HOME to test cache behavior, causing Go to populate a new dependency cache in its scratch directory. This is a harness side effect and does not demonstrate minitrace cache writes. Agent reflections need corroboration from commands and files.
+
+### What should be done in the future
+Complete the fixed matrix, audit artifact correctness and scope, then publish the final denominators and unresolved claims.
+
+### Code review instructions
+See run_matrix.py, summarize_results.py, audit_traces.py and reference08 for bounded command/error examples. Raw event streams remain private under /private/tmp/gmt015-persona/matrix.
+
+### Technical details
+Local Lunaroute metadata advertises low→low and high→high for both selected models and supportsReasoningEffort=true. These settings are saved with extension source hashes. The extension hardcodes zero price rates, so usage.cost=0 is not an independent billing assertion.
+
+## Step 7: Complete all runs, review the transcripts and prepare reMarkable delivery
+
+All 32 matrix runs completed with exit zero, answer.json and report.md, and no timeout. They emitted 1,671 tool calls. The 32 persisted Pi sessions also passed conversion/validation and independent native/normalized/runner accounting checks. The detailed standalone review and companion testing guide now contain final metrics and explicit categories rather than stale partial-state claims.
+
+### Prompt Context
+See Step 5 for the execution request. **User prompt (verbatim):** “when do, analyze the transcripts and figure out what can be improved in the prompts / documentation / API itself, what is actual bugs, etc...”
+**User prompt (verbatim):** “cool, write a detailed document in the ticket and upload to remarkable when the reviews are back”.
+**Assistant interpretation:** Finish actual trace review, distinguish failure owners, write the evidence-backed improvement document and upload only after reviews are complete.
+
+### What I did
+- Ran the final summarize_results.py, analyze_agent_sessions.py, verify_experiment.py, collect_artifacts.py and audit_traces.py commands saved under scripts/persona-testing.
+- Independently reviewed/replayed all eight D commands; preserved exact reviewed source hashes and replay settings. All four DeepSeek-generated variants retain all nine sessions. All four GLM-generated variants omit the zero-tool session while retaining total of 706. One extra unmatched-source probe also exposes an unguarded empty-result crash in generated code.
+- Reviewed all-run tool events and targeted actual scripts/results, distinguishing deliberate negative tests from unexpected failures and model debriefs from evidence.
+- Saved 127 matrix-generated source artifacts plus the pilot script. Kept raw transcripts outside Git and created a durable private evidence archive at ~/.local/share/go-minitrace/experiments/GMT-015/persona-evidence-2026-11-17.tar.gz, with SHA256 and size in sources/persona-private-evidence.json.
+- Reconciled final metrics throughout the testing guide, independent results, session-analysis note and standalone improvement review.
+
+### Why
+A correct aggregate can conceal missing identities, a successful shell transport can conceal a failed subprocess, and a correct calculation can still be reported under an ambiguous answer key. The final review needs these distinctions to produce actionable changes instead of an unreliable model leaderboard.
+
+### What worked
+- All 32 finished; all 32 answered and reported; all 32 recorded the requested model/thinking metadata.
+- All 324 known source/input hash checks passed. Product code stayed unchanged during the experiment.
+- Literal A/B/C fields:550/560. Ten mismatches involve underspecified scope/order fields; the supporting artifacts and separate genuine prose errors are adjudicated without rewriting original answers.
+- All 8 commands enforce the required source flag and preserve valid-sibling execution beside a malformed negative-default file.
+- All 32 Pi transcripts normalize successfully, with no compared count/failure/usage mismatches or warnings.
+- Evaluator regression tests and final docmgr doctor pass.
+
+### What didn't work
+- Evaluator v1 incorrectly resolved valid corpus-relative scan paths against its own cwd. Corrected v2 accepts exact unambiguous raw-root-relative paths, still rejects duplicate aliases and bare basenames, and preserves the original 3/42 score/checks. Tests cover this correction.
+- Two agents violated the run-directory-only write instruction through relative shell redirects from the repository: C-glm-high-r2 created 11 files and C-deepseek-low-r2 one file. All 12 were untracked outputs/logs; they were moved, not deleted, into /private/tmp/gmt015-persona/scope-artifacts. Sources/persona-scope-violations.json records hashes and ownership. No tracked product bytes changed.
+- The first repeated final-report generation failed with ValueError: substring not found because a replacement expected the initial status sentence. Made that replacement accept initial/final states and reran successfully; no experimental answers changed.
+- The helper-based RuntimeArchives flag hypothesis was disproven: inline and helper versions both expose flags and return9sessions. The original failure was a nested CLI group/verb path mistake.
+
+### What I learned
+The confirmed new product bug is the QueryResult declaration/runtime mismatch: rows/columns are typed as arrays but early-error envelopes emit null. Permissive CLI stdout's row-only format is an API visibility gap, with existing --run-record and --strict-evidence mitigations. Signed negative metadata defaults remain a known upstream scanner limitation. Zero-session omissions and guessed compaction projections are generated-analysis mistakes, not native-evidence data loss.
+
+### What was tricky to build
+Fair adjudication required preserving literal scores while explaining dataset/order ambiguity. C GLM low r2 reports9/108 across real corpus plus fixture and correctly computes fixture 2/1; that is a scope choice, not a reconstruction failure. Timing and token totals also depend on tool work, repeated cached context and fixed launch order, so no broad model ranking is claimed.
+
+### What warrants a second pair of eyes
+The report's distinctions between contract correctness, task completion, independent replay and prompt scope are review-critical. The harness currently uses prompt scoping, not an OS sandbox; the observed redirection violations prove this limitation. A future cohort should use a hash-pinned binary, read-only mounts and explicit JSON field scopes.
+
+### What should be done in the future
+Address the nullable declaration contract first; add executable documentation for command paths/flag scopes/zero-tool counts and compaction projections; refine diagnostics and consider a CLI envelope mode. Run a new cohort with clarified schemas rather than altering this cohort's prompts. These are tracked follow-ups, not changes silently applied during this experiment.
+
+### Code review instructions
+Start with reference/10-persona-testing-findings-and-improvement-plan.md and design-doc/02-persona-based-agent-testing-guide.md. Inspect sources/persona-matrix-results.json, persona-adjudications.json, persona-integrity.json, persona-scope-violations.json and persona-session-analysis.json. Reproduction commands and generated sources are under scripts/persona-testing. No raw transcript bodies are committed.
+
+### Technical details
+The implementation under test is 0996822; 542f0c3 is the earlier harness/documentation checkpoint. Final documentation and evidence are committed before upload. Intended delivery: /ai/2026/11/17/GMT-015, document GMT 015 Persona Testing Review and Guide. The final conversation receipt will state upload success; no successful cloud delivery is presumed before the upload command.
+
+Checkpoint recorded at 2026-11-17T20:00:52.648316+00:00 UTC.
+
+Final verification: docmgr doctor passes and evaluator regression tests pass. Authored-file whitespace checks pass. Two collected model-authored SQL files retain an extra terminal blank line; they are intentionally preserved byte-for-byte rather than reformatted, so their artifact hashes remain comparable. The private evidence archive is 99,031,517 bytes with SHA256 98c6b4b05f875823d02a12eb7c035ed674086e1c5959d8fe4b56296838256f7d.

@@ -2,10 +2,26 @@
 Title: Persona-based agent testing guide for transcript evidence workflows
 Ticket: GMT-015
 Status: active
-Topics: [analysis, minitrace]
+Topics:
+    - analysis
+    - minitrace
 DocType: design-doc
 Intent: long-term
-Summary: Planned controlled Pi agent matrix, broad task bank, reproducible grading, and honest interpretation of model and thinking comparisons.
+Owners: []
+RelatedFiles:
+    - Path: repo://ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/grade.py
+      Note: Independent synthetic oracle checks
+    - Path: repo://ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/run_matrix.py
+      Note: Exact frozen task prompts and model runner
+    - Path: repo://ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/select_corpus.py
+      Note: Reproducible real transcript selection
+    - Path: repo://ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/summarize_results.py
+      Note: Completion-aware aggregation and independent grading
+ExternalSources: []
+Summary: Executed controlled Pi agent matrix, broad task bank, reproducible grading, and honest interpretation of model and thinking comparisons.
+LastUpdated: 0001-01-01T00:00:00Z
+WhatFor: ""
+WhenToUse: ""
 ---
 
 # Persona-based agent testing guide
@@ -14,9 +30,9 @@ Summary: Planned controlled Pi agent matrix, broad task bank, reproducible gradi
 
 This experiment tests whether an agent can use go-minitrace to answer realistic transcript questions, discover the right APIs, preserve evidence, and explain limitations. Passing Go unit tests establishes implementation behavior under fixtures. It does not establish that a new user or coding agent can find the relevant command, understand its result, or avoid a plausible but incorrect analytical conclusion. The persona matrix exercises that additional boundary.
 
-The planned matrix contains **32 runs**: four task groups, two models, two requested thinking settings, and two repetitions. Four personas are paired with the task groups. Personas are **not** a fifth independently crossed factor. The experiment therefore compares particular persona/task workflows; it cannot isolate an independent causal effect of persona instructions.
+The executed matrix contains **32 runs**: four task groups, two models, two requested thinking settings, and two repetitions. Four personas are paired with the task groups. Personas are **not** a fifth independently crossed factor. The experiment therefore compares particular persona/task workflows; it cannot isolate an independent causal effect of persona instructions.
 
-The runner has launched the 32-run matrix after a successful GLM/low pilot. Nine frozen real sources contain 793 normalized turns and 706 tool records, with recorded activity from September 15 through November 12, 2026. The pilot executed byte-length, clipping and strict-rejection checks, correcting several API mistakes along the way. Matrix results are recorded separately in reference/07 and sources/persona-matrix-results.json. Requested model settings and observed provider behavior remain different fields; no free-billing or backend-effort guarantee is inferred from the CLI.
+The runner completed all 32 runs after a successful GLM/low pilot. Nine frozen real sources contain 793 normalized turns and 706 tool records, with recorded activity from September 15 through November 12, 2026. The pilot executed byte-length, clipping and strict-rejection checks, correcting several API mistakes along the way. Matrix results are recorded separately in reference/07 and sources/persona-matrix-results.json. Requested model settings and observed provider behavior remain different fields; no free-billing or backend-effort guarantee is inferred from the CLI.
 
 The implementation under test is the evidence-fidelity worktree described in [the intern architecture guide](01-trustworthy-transcript-analysis-architecture-implementation-and-intern-guide.md). Pin its Git revision and binary/source build before the pilot. Do not change the implementation, documentation or task prompts halfway through a comparison and combine the resulting runs as if the inputs were identical.
 
@@ -215,16 +231,16 @@ Next launch the 32 planned slots with at most four concurrent runs and unique ou
 
 Then grade all completed artifacts and review critical failures. Investigate disagreements between automatic checks, final answers and model reflections. Publish a matrix receipt, per-task examples, concrete recommendations and a clear account of missing/blocked slots. Link the saved commands so a colleague can reproduce representative successes and failures without rerunning all models.
 
-The parent runner owns actual model execution and outcome receipts; this guide does not perform either. At handoff, update the following status fields from those receipts:
+The saved runner owns model execution; the following fields are reconciled from final receipts:
 
 | Status field | Current documentary state |
 |---|---|
-| Matrix slots | 32 planned |
+| Matrix slots | 32/32 finished; all answer and report artifacts present |
 | Real-corpus sources | 9 frozen selected sources; 793 turns and 706 tool records |
-| Model IDs | Selected from Pi catalog; GLM/low launch in progress, broader resolution pending |
+| Model IDs | Both observed in all requested runs; source/model metadata verified |
 | Requested thinking |low/high; provider honoring not yet verified |
 | Pilot completion | GLM/low pilot completed actual JS checks after explicit provider-extension loading; excluded from the 32 matrix slots |
-| Full-matrix completion |Pending recorded runner outcomes |
+| Full-matrix completion | Complete: zero timeouts, 1,671 tool calls |
 | Billing |Not verified as free; use reported cost with provenance when available |
 
 ## 10. References and authoring notes
@@ -235,6 +251,31 @@ The parent runner owns actual model execution and outcome receipts; this guide d
 - [Native evidence notes](../reference/04-native-evidence-notes.md): scan hashes, reference completeness and compaction limits.
 - Ticket scripts and generated run/grade receipts: authoritative source for the actual matrix configuration and outcomes as they are produced.
 
-The guide's author checked the installed Pi help without invoking a model. The help command attempted to acquire the normal global settings lock and reported a sandbox permission warning; help still printed. That warning is not a provider-readiness or billing test. No private settings content was inspected, and no model calls were made while writing this guide.
+The initial provider-registration failure and successful explicit-extension recovery are preserved in the diary. All actual model runs are recorded by the saved runner; authoring-only helper activity is excluded from experiment counts.
 
 Keep the task bank broader than the initial matrix so later product changes can select focused regression tasks. Expand the experiment only when the additional questions answer an actual uncertainty. The goal is concrete evidence about whether agents can use these APIs correctly, with enough provenance that another engineer can retrace the result.
+
+## 11. Completed run results and review
+
+All **32 matrix runs** finished with exit code zero and produced both answer.json and report.md. There were **zero timeouts**. They emitted **1,671 tool calls** against a frozen product implementation. The separate successful GLM/low pilot is excluded from these totals, as is its earlier failed provider-registration startup.
+
+The real corpus contains nine historical sessions: three Claude Code, three Codex and three Pi, with 793 normalized turns and 706 tool records. Recorded activity spans September 15–November 12, 2026. Inputs were selected for framework/size/shape diversity, not randomly sampled.
+
+| Model | Requested thinking | Finished runs | Median seconds | Tool calls | Literal A/B/C checks |
+|---|---|---:|---:|---:|---:|
+| deepseek-4.1-flash | high | 8 | 206.6 | 502 | 140/140 |
+| deepseek-4.1-flash | low | 8 | 128.6 | 353 | 140/140 |
+| glm-5.3-flash | high | 8 | 264.1 | 484 | 134/140 |
+| glm-5.3-flash | low | 8 | 190.2 | 332 | 136/140 |
+
+The literal evaluator reports **550/560 A/B/C fields**. These are exact answer-contract checks, not a percentage of tasks successfully completed. Ten mismatches concern underspecified dataset/order fields: agents sometimes supplied real or combined request counts instead of fixture counts, or chronological/real-archive ordinals instead of fixture archive order. Supporting computations and separate substantive errors are adjudicated in sources/persona-adjudications.json. No model ranking is justified by this tiny, fixed-order, paired-persona study. Wall times include tool execution and overlapping Go processes; requested thinking is recorded in Pi metadata, not independently verified backend reasoning behavior.
+
+All **eight D commands** were source-reviewed and independently replayed. All four DeepSeek-generated variants preserve all nine session identities; all four GLM-generated variants omit the zero-tool session despite keeping the correct aggregate total of 706. Every variant enforces its required source flag and allows a valid command beside the malformed signed-default sibling. An additional reviewer probe using an unmatched source exposes one GLM-generated empty-result crash; valid framework invocations still succeed. This extra edge probe is not conflated with the original requested task.
+
+All 32 persisted Pi sessions were converted and queried through go-minitrace itself. Native, normalized and runner tool/failure accounting and the five compared usage fields match, with no reported warnings. The source/input integrity check passes all 324 hash checks and all 32 model/thinking metadata checks. This verifies unchanged known inputs and product files; it does not prove workspace-scope compliance.
+
+That distinction matters: two agents created 12 untracked log/output files in the repository through relative shell redirects. The files were preserved under /private/tmp/gmt015-persona/scope-artifacts and removed from the product worktree by moving them, not deleting evidence. The manifest is sources/persona-scope-violations.json. The next harness should use a hash-pinned binary from each run directory and enforce a read-only repository, rather than depending on prompts alone.
+
+The ticket preserves 127 matrix-generated source artifacts plus the pilot script, the task runner, independent graders, reviewed replay controls, corpus provenance and aggregate receipts. Raw transcripts and streamed model outputs remain private. A durable local compressed evidence archive is recorded in sources/persona-private-evidence.json under ~/.local/share/go-minitrace/experiments/GMT-015; temporary-file cleanup will not erase the only retained copy. All-run event scanning and targeted deep review are distinguished explicitly; this is not a claim that every transcript line was manually reviewed.
+
+See [the detailed improvement review](../reference/10-persona-testing-findings-and-improvement-plan.md) for actual command failures, confirmed bugs, rejected hypotheses and acceptance criteria.
