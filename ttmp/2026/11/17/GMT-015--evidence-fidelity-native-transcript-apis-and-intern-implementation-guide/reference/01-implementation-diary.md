@@ -327,3 +327,45 @@ The implementation under test is 0996822; 542f0c3 is the earlier harness/documen
 Checkpoint recorded at 2026-11-17T20:00:52.648316+00:00 UTC.
 
 Final verification: docmgr doctor passes and evaluator regression tests pass. Authored-file whitespace checks pass. Two collected model-authored SQL files retain an extra terminal blank line; they are intentionally preserved byte-for-byte rather than reformatted, so their artifact hashes remain comparable. The private evidence archive is 99,031,517 bytes with SHA256 98c6b4b05f875823d02a12eb7c035ed674086e1c5959d8fe4b56296838256f7d.
+
+## Step 8: Design the review-driven implementation
+
+The user authorized implementing the concrete follow-ups after reviewing the persona results. This phase keeps the original study immutable and makes narrowly scoped product and harness changes. The worktree is clean at e1ea7cb before this phase.
+
+### Prompt Context
+**User prompt (verbatim):** “Ok, create a design doc to address all that, and then implement. btw commit at appropriate intervals and keep a detailed diary as you work
+    (using the diary format from the skill).”
+**Assistant interpretation:** Write design03 first, implement the agreed fixes, validate them and run fresh evidence rather than rewriting the first study.
+**Inferred user intent:** Turn observed agent friction into a simpler, more reliable tool and reproducible testing workflow.
+
+### What I did
+- Read AGENT.md and the detailed diary format, checked the clean branch and inspected CLI/query/recipe boundaries.
+- Created design03 with docmgr, specifying result invariants, one-row CLI envelopes, narrow archive diagnostics, zero-session recipe, native interfaces, executable help and v2 isolation.
+- Assigned independent contract, recipe/type and harness work; reserved CLI/help integration and design/diary ownership to the primary agent.
+
+### Why
+The original study mixes real product defects, caller mistakes and harness defects. The design gives each a small appropriate remedy instead of changing working parser behavior or inventing a new framework.
+
+### What worked
+The current package boundaries support small additions. Existing Glazed output can carry one complete result envelope without replacing the formatter. The known helper inference hypothesis needs no patch.
+
+### What didn't work
+Two guessed source filenames in the initial read commands did not exist; located the actual command_runtime.go and convert.go via rg. No implementation failures yet.
+
+### What I learned
+Envelope mode should explicitly document the existing JSON row-array container. Protected-path sandboxing must be verified by actual forbidden-write probes, not claimed from a prompt.
+
+### What was tricky to build
+The v1 experiment must remain immutable while a new harness corrects schemas and isolation. Separate directories and fresh output roots avoid changing historical scores.
+
+### What warrants a second pair of eyes
+CLI error exit/flush behavior, conservative normalized-versus-native input recognition, and actual macOS sandbox enforcement require focused tests.
+
+### What should be done in the future
+Implement and validate the milestones in design03, recording exact failures and commit hashes as they occur.
+
+### Code review instructions
+Start at design-doc/03-persona-review-followups-result-contracts-discoverability-and-enforced-test-isolation.md; compare subsequent code against e1ea7cb.
+
+### Technical details
+The existing recipe/SQLite/Goja architecture and user-requested default row output remain. No compatibility adapter, custom interpreter, or provider replay engine is introduced.
