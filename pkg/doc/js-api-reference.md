@@ -32,6 +32,45 @@ const mt = require("minitrace");
 
 > In xgoja apps this provider can be aliased as `require("mt")`. Query-command examples in this repository still use `require("minitrace")` because that is the provider's registered module name.
 
+## Evidence-first JavaScript
+
+Use JavaScript to compose sources and recipes, SQL to select normalized rows, and `mt.native()` when the question requires original JSONL request/compaction evidence. Native inspection is opt-in and does not populate normalized tables or execute historical commands.
+
+```js
+const mt = require("minitrace");
+const db = mt.db().RuntimeArchives().SQLiteMemory()
+  .MaxCellBytes(16000).StrictEvidence(true).Build();
+try {
+  const result = db.execute(mt.query().ToolRows().Build());
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete evidence");
+  }
+  return result.rows;
+} finally {
+  db.close();
+}
+```
+
+`execute(recipe)` returns the same envelope as `queryResult(sql, ...args)`; it accepts a Go-backed recipe or `{sql: string, args: [...]}`. Query failures may be reported in `result.error`, while builder/argument failures can throw. Always inspect the envelope for analysis; `query()` is a rows-only convenience and cannot convey completeness diagnostics.
+
+### Query fidelity and byte limits
+
+`MaxCellBytes(n)` (or `mt.limits().CellBytes(n)`) limits UTF-8 bytes per result cell. `MaxCellChars` / `CellChars` remain deprecated byte-limit aliases, not Unicode character limits. A positive explicit byte limit takes precedence in query options. Clipping preserves valid UTF-8.
+
+The result contains `columns`, `rows`, `count`, and `complete`, with optional `error`, `truncated`, `rowsTruncated`, and `cellDiagnostics`. `truncated` covers row overflow **or** lossy cell conversion. Each cell diagnostic gives zero-based `rowIndex` and `columnIndex`, `column`, `originalBytes`, `emittedBytes`, `truncated`, and optionally `invalidUtf8`.
+
+With a three-byte cell limit, `SELECT 'abé' AS text` emits `ab`, reports four original bytes and two emitted bytes, and marks the result incomplete. `.StrictEvidence(true)` instead returns an error envelope with empty `rows` and `count: 0`; check `error`, do not interpret an empty result as zero matching data. SQL CLI users can select `--max-cell-bytes` and `--strict-evidence` too.
+
+For read-only analysis without disk-cache writes, choose `.SQLiteMemory()` or the SQL CLI's `--cache-mode memory` / `none`. SQL CLI `auto` and `disk` modes can write a cache; `--cache-dir` makes its location explicit. Read-only queries do not imply a write-free process.
+
+### Exact UTF-8 size
+
+```js
+mt.utf8ByteLength("abé"); // 4
+```
+
+This Go-backed helper computes UTF-8 byte length without constructing a temporary Buffer. It does not count tokens or replace a tokenizer. Node-style modules are partial compatibility surfaces: this addition does **not** implement `Buffer.byteLength` or promise full Node Buffer compatibility.
+
 ## Quick patterns
 
 ### Query-command default
@@ -271,7 +310,7 @@ Convenience methods:
 - source: `.File`, `.Archive`, `.Files`, `.Dir`, `.Glob`, `.Content`, `.RuntimeArchives`
 - conversion: `.AutoConvert`, `.StrictConversion`, `.Strict`
 - cache/storage: `.SQLiteMemory`, `.SQLiteDiskCache`, `.CacheAuto`, `.CacheDir`, `.ForceRebuild`
-- limits: `.MaxRows`, `.MaxColumns`, `.MaxCellChars`, `.Timeout`, `.RequireOrderBy`
+- limits: `.MaxRows`, `.MaxColumns`, `.MaxCellBytes`, `.StrictEvidence`, `.Timeout`, `.RequireOrderBy` (legacy byte alias: `.MaxCellChars`)
 - presets: `.QueryCommandDefaults()`, `.InteractiveDefaults(cacheDir?)`
 - introspection: `.Validate()`, `.CacheKey()`, `.sources()`
 
@@ -283,6 +322,7 @@ Convenience methods:
 |---|---|
 | `query(sql, ...args)` | Execute a read-only SQLite query. |
 | `queryOne(sql, ...args)` | Return first row. |
+| `execute(recipe)` | Execute a recipe with the full result/completeness envelope. |
 | `queryResult(sql, ...args)` | Return result envelope including validation errors. |
 | `schema()` / `tables()` / `stats()` | Schema introspection. |
 | `sources()` | Sources used to build the handle. |
@@ -429,6 +469,11 @@ const rows = db.query(recipe.sql(), ...recipe.args());
 
 ### Fidelity-aware projections
 
+`ToolRows()` additionally exposes `source_ordinal`, `arguments_json`, and `output_status`. `source_ordinal` records the normalized archive tool-array position; it is not a native JSONL line or a result-arrival timestamp. Default recipe ordering remains emitting turn, timestamp, then tool ID. To recover archive-array order, explicitly order a projection by `source_ordinal` within a session. `arguments_json` is serialized input arguments; `output_status` is original archive output status, distinct from normalized `outcome_status`.
+
+`TokenUsageRows()` adds `token_origin`, `token_unit`, `token_method`, and `reported_usage_fields`. Recorded usage rows use origin `recorded_usage` when any usage field is present, otherwise `unknown`; individual missing fields can still be zero-filled, so this is not proof of complete provider accounting. Tool output estimates use `estimated_tokens` and method `round_utf8_bytes_div_4`. Do not combine these estimates with recorded token totals as though they were the same measurement.
+
+
 `SessionSummary()` includes the ordinary/orchestration/execution/file-change record counts, model invocation count, file-target count, and confirmed-target count. Total tool records are not the same as model invocations or executed processes.
 
 `ToolRows()` preserves nullable `turn_index` and `success` and exposes `record_kind`, `outcome_status`, `framework_metadata_json`, `full_hash`, and `full_reference`. `file_targets_json` is the archive's structural input list; older scalar-only archives can have null here. Use `FileRows()` for the complete materialized target ledger, including explicitly labeled legacy scalar reports. File success is independent of tool success.
@@ -569,3 +614,55 @@ mt.sql.like("tool fail")        // => "'%tool fail%'"
 - `go-minitrace help query-commands` — query subsystem overview.
 - `go-minitrace help query-duckdb` — migration notes for scripts written against the removed DuckDB engine.
 - `testdata/query-repositories/js-showcase/` — worked JavaScript command examples.
+
+## `mt.corpusManifest(paths)`
+
+Preflight explicit normalized archive paths before selecting a corpus:
+
+```js
+const manifest = mt.corpusManifest(["/data/a.minitrace.json", "/data/b.minitrace.json"]);
+if (manifest.conflictCount) throw new Error("Choose a source for each conflicting session");
+const selected = manifest.entries
+  .filter(entry => entry.duplicateOf === null)
+  .map(entry => entry.path);
+```
+
+The result has `entries`, `sessions`, `conflictCount`, and `duplicateCount`. Entries include absolute `path`, normalized `sessionId`, nullable `originalSessionId` / `sourceFingerprint`, `sourceFormat`, raw archive `sha256`, `sizeBytes`, nullable zero-based `duplicateOf`, and `conflict`. Groups include `sessionId`, `entryIndexes`, `contentVariants`, and `conflict`.
+
+Byte-identical copies are marked as duplicates. A normalized session ID with multiple byte hashes is a conflict, including differences only in whitespace or metadata. This conservative helper does not choose a winner, change ingestion, or silently substitute native identity for normalized identity. Supply selected paths to a source/DB builder explicitly. It reads each archive to compute identity; this is separate from the streaming native API.
+
+## `mt.native()`
+
+Inspect original JSONL separately from normalized archives:
+
+```js
+const scan = mt.native().File("/data/session.jsonl")
+  .MaxRecordBytes(16 * 1024 * 1024)
+  .ForEach(record => {
+    if (record.diagnostic) return; // Record malformedness separately in real analysis.
+    if (record.value.type === "api-request") {
+      // Inspect record.source and record.value without evaluating contents.
+    }
+    // Return false for early termination; any other return continues.
+  });
+```
+
+`ForEach` is synchronous and streaming. Every callback receives `source: {line, byteOffset, rawBytes}` and either `value` plus exact `rawJSON`, or `diagnostic: {code, message}`. Lines are one-based; offsets are zero-based raw byte positions and lengths include original line endings. Malformed JSON, invalid UTF-8 and oversized records are diagnosed. Oversized records are consumed/hash-counted without retaining their whole contents, then iteration continues.
+
+The returned scan object contains `sha256`, `hashScope`, `bytes`, `lines`, `malformed`, and `stopReason`. Only EOF certifies `hashScope: "whole_source"`; an early stop has `"consumed_prefix"`. Hashes include exact consumed bytes even when records are malformed. Each operation closes its file on success, callback stop, callback error or cancellation. Cancellation is checked between reads, not by interrupting an OS read already blocked.
+
+```js
+const evidence = mt.native().File("/data/session.jsonl")
+  .MaxRecordBytes(16 * 1024 * 1024)
+  .MaxIndexBytes(64 * 1024 * 1024)
+  .Inspect();
+const incomplete = evidence.requests.filter(r => r.status !== "complete");
+```
+
+`Inspect()` builds an opt-in native index and returns `scan`, `requests`, `blobs`, `shapes`, `compactions`, `diagnostics`, `indexBytes`, and `limitations`. Defaults are 16 MiB per raw record and 64 MiB of logical retained index bytes. The index budget is not an exact Go heap ceiling; exceeding it throws instead of returning a partial success. Blob and shape maps retain source coordinates, decoded `value` and exact `rawJSON`. These may contain private transcript text; project appropriate fields before publication.
+
+Requests expose `id`, `querySource`, `source`, `shapeHash`, `refs`, `status`, and `diagnostics`. A complete request requires an available shape, a valid nonnegative integer keep, an available retained base prefix, string tail references and resolvable blobs. Status is `complete` or the first diagnostic category (`missing_shape`, `missing_base`, `missing_blob`, `unsupported`); inspect the full diagnostics array for additional causes. Identical repeated blob/shape payloads deduplicate; conflicting identities retain the first object and make later referencing requests ambiguous.
+
+Resolution is chronological and file-local. Later blobs do not retroactively repair earlier requests; cross-file inherited references are not recovered. Missing evidence is not zero context. No instruction-wrapper extractor is provided: application code must identify/version any provider-specific body parser it adds. Exact `rawJSON` preserves large numeric spelling; JavaScript's decoded `value` uses ordinary JS numeric semantics.
+
+Compactions expose boundary UUID/parent/logical-parent and source coordinates, native `compactMetadata`, summary coordinates, the preceding message, and first following message/assistant. Preserved-message metadata may refer to records whose physical order differs from conversation order. These are inspection coordinates, **not** certified causal replay cuts. Result-arrival provenance, model invocation, standalone-child identity conversion and agent-memory revival are outside this API.

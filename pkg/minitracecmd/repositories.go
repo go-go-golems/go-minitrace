@@ -206,7 +206,7 @@ func LoadConfiguredCatalog(appName string, flagPaths []string) (*Catalog, error)
 	if err != nil {
 		return nil, err
 	}
-	return LoadCatalog(roots)
+	return LoadCatalogWithDiagnostics(roots)
 }
 
 func ExtractRepositoryFlagValuesFromArgs(args []string) []string {

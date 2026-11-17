@@ -45,7 +45,7 @@ func RunJSCommandIntoProcessor(
 		return fmt.Errorf("source root %q not found for js command %s", command.SourceRoot, command.Name)
 	}
 
-	registry, err := jsverbs.ScanFS(root.FS, root.RootDir)
+	registry, err := jsverbs.ScanFS(catalog.RuntimeSourceFS(command.SourceRoot), root.RootDir)
 	if err != nil {
 		return err
 	}

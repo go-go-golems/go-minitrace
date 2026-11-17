@@ -34,6 +34,41 @@ Verify the installation:
 go-minitrace --version
 ```
 
+## JavaScript-first quick path
+
+If you already have normalized `.minitrace.json` archives, start with a small JavaScript command. Save this as `queries/evidence.js`:
+
+```js
+function audit() {
+  const mt = require("minitrace");
+  const db = mt.db().RuntimeArchives().SQLiteMemory()
+    .MaxCellBytes(16000).StrictEvidence(true).Build();
+  try {
+    const result = db.execute(mt.query().ToolRows().Build());
+    if (result.error || !result.complete) {
+      throw new Error(result.error || "Incomplete evidence");
+    }
+    return result.rows;
+  } finally {
+    db.close();
+  }
+}
+__verb__("audit", {name: "audit", short: "Inspect complete normalized tool rows"});
+```
+
+Run it against your archives:
+
+```bash
+go-minitrace query commands --query-repository ./queries \
+  evidence audit --archive-glob './output/**/*.minitrace.json' --output json
+```
+
+JavaScript composes sources and recipes; SQL performs selection and aggregation. `execute()` returns completeness metadata, unlike rows-only `query()`. Strict evidence mode refuses incomplete rows/cells rather than silently treating clipped content as evidence. Byte limits mean UTF-8 bytes, not tokens or Unicode characters. Use `mt.utf8ByteLength(text)` to measure text bytes; this does not add Node's `Buffer.byteLength` API.
+
+Before combining overlapping normalized archives, `mt.corpusManifest(paths)` reports byte-identical duplicates and conflicting normalized session IDs. It does not choose sources or change ingestion automatically. Original JSONL request bodies require the separate opt-in `mt.native().File(path).ForEach(callback)` or bounded `.Inspect()` API; normalized tool rows alone cannot recover missing request references. Native compaction coordinates are not exact historical model replay.
+
+See `go-minitrace help js-api-reference` for native limits, query result fields, provenance and corpus-selection examples. If you do not have normalized archives yet, continue with discovery and conversion below. SQL CLI analysis can avoid disk-cache writes with `--cache-mode memory` or `none`; `auto`/`disk` may write cache files even for read-only queries.
+
 ## Step 1: Discover your sessions
 
 Before converting anything, see what sessions you have. Each discovery command scans a native session store and reports what it finds.

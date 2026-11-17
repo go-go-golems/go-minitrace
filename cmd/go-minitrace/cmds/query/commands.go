@@ -4,8 +4,10 @@ package query
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	"github.com/spf13/cobra"
@@ -49,6 +51,9 @@ Examples:
   go-minitrace query commands overview session-tools session-list --query-repository ./query-commands/team
   GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team go-minitrace query commands overview framework-summary`,
 	}
+	for _, diagnostic := range catalog.Diagnostics {
+		fmt.Fprintf(os.Stderr, "query catalog: skipped %s: %s\n", diagnostic.SourcePath, diagnostic.Error)
+	}
 	groups := map[string]*cobra.Command{}
 	root.PersistentFlags().StringSlice(minitracecmd.QueryRepositoryFlagName, flagPaths, "Repeatable directory flag for additional structured query-command repository roots")
 
@@ -57,7 +62,7 @@ Examples:
 		if err != nil {
 			return nil, err
 		}
-		cobraCommand, err := common.BuildCobraCommandWithShortHelpSections(glazeCommand, "default", QueryRuntimeSectionSlug)
+		cobraCommand, err := common.BuildCobraCommandWithShortHelpSections(glazeCommand, catalogShortHelpSections(command)...)
 		if err != nil {
 			return nil, err
 		}
@@ -212,4 +217,20 @@ func findCommandChild(parent *cobra.Command, use string) *cobra.Command {
 		}
 	}
 	return nil
+}
+
+// Include custom command sections in normal help; otherwise required JS fields
+// can be parsed correctly yet remain invisible until --long-help is requested.
+func catalogShortHelpSections(command *minitracecmd.MinitraceCommand) []string {
+	sections := []string{"default", QueryRuntimeSectionSlug}
+	seen := map[string]bool{"default": true, QueryRuntimeSectionSlug: true}
+	if command != nil && command.Schema != nil {
+		command.Schema.ForEach(func(slug string, _ schema.Section) {
+			if !seen[slug] {
+				sections = append(sections, slug)
+				seen[slug] = true
+			}
+		})
+	}
+	return sections
 }

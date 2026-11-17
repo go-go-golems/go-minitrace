@@ -231,6 +231,8 @@ type QueryLimits struct {
 	MaxRows        int           `json:"maxRows,omitempty"`
 	MaxColumns     int           `json:"maxColumns,omitempty"`
 	MaxCellChars   int           `json:"maxCellChars,omitempty"`
+	MaxCellBytes   int           `json:"maxCellBytes,omitempty"`
+	StrictEvidence bool          `json:"strictEvidence,omitempty"`
 	Timeout        time.Duration `json:"-"`
 	TimeoutMs      int           `json:"timeoutMs,omitempty"`
 	RequireOrderBy bool          `json:"requireOrderBy,omitempty"`
@@ -246,7 +248,16 @@ func queryLimitsBuilderObject(vm *goja.Runtime, b *QueryLimitsBuilder) *goja.Obj
 	obj := vm.NewObject()
 	_ = obj.Set("Rows", func(n int) *goja.Object { b.limits.MaxRows = n; return queryLimitsBuilderObject(vm, b) })
 	_ = obj.Set("Columns", func(n int) *goja.Object { b.limits.MaxColumns = n; return queryLimitsBuilderObject(vm, b) })
-	_ = obj.Set("CellChars", func(n int) *goja.Object { b.limits.MaxCellChars = n; return queryLimitsBuilderObject(vm, b) })
+	_ = obj.Set("CellChars", func(n int) *goja.Object {
+		b.limits.MaxCellChars = n
+		b.limits.MaxCellBytes = 0
+		return queryLimitsBuilderObject(vm, b)
+	})
+	_ = obj.Set("CellBytes", func(n int) *goja.Object { b.limits.MaxCellBytes = n; return queryLimitsBuilderObject(vm, b) })
+	_ = obj.Set("StrictEvidence", func(call goja.FunctionCall) goja.Value {
+		b.limits.StrictEvidence = optionalBool(call, true)
+		return queryLimitsBuilderObject(vm, b)
+	})
 	_ = obj.Set("TimeoutMs", func(n int) *goja.Object {
 		b.limits.TimeoutMs = n
 		b.limits.Timeout = time.Duration(n) * time.Millisecond
@@ -258,7 +269,7 @@ func queryLimitsBuilderObject(vm *goja.Runtime, b *QueryLimitsBuilder) *goja.Obj
 	})
 	_ = obj.Set("Build", func() (*QueryLimits, error) {
 		limits := b.limits
-		if limits.MaxRows < 0 || limits.MaxColumns < 0 || limits.MaxCellChars < 0 || limits.TimeoutMs < 0 {
+		if limits.MaxRows < 0 || limits.MaxColumns < 0 || limits.MaxCellChars < 0 || limits.MaxCellBytes < 0 || limits.TimeoutMs < 0 {
 			return nil, fmt.Errorf("query limits must be non-negative")
 		}
 		return &limits, nil

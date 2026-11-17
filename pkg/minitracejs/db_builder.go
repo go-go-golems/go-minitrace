@@ -187,7 +187,20 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 			b.errors = append(b.errors, "maxCellChars must be > 0")
 		} else {
 			b.query.MaxCellChars = n
+			b.query.MaxCellBytes = 0
 		}
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("MaxCellBytes", func(n int) *goja.Object {
+		if n <= 0 {
+			b.errors = append(b.errors, "maxCellBytes must be > 0")
+		} else {
+			b.query.MaxCellBytes = n
+		}
+		return builderObject(vm, b)
+	})
+	_ = obj.Set("StrictEvidence", func(call goja.FunctionCall) goja.Value {
+		b.query.StrictEvidence = optionalBool(call, true)
 		return builderObject(vm, b)
 	})
 	_ = obj.Set("Timeout", func(ms int) *goja.Object {
@@ -382,7 +395,12 @@ func (b *DBBuilder) applyQueryLimits(limits *QueryLimits) {
 	}
 	if limits.MaxCellChars > 0 {
 		b.query.MaxCellChars = limits.MaxCellChars
+		b.query.MaxCellBytes = 0
 	}
+	if limits.MaxCellBytes > 0 {
+		b.query.MaxCellBytes = limits.MaxCellBytes
+	}
+	b.query.StrictEvidence = limits.StrictEvidence
 	if limits.Timeout > 0 {
 		b.query.Timeout = limits.Timeout
 	}
@@ -950,6 +968,47 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	_ = obj.Set("queryResult", func(sqlText string, args ...any) (map[string]any, error) {
 		result, err := h.runner.QueryResult(context.Background(), sqlText, args...)
 		return toPlainMap(result), err
+	})
+	// Recipes expose sql()/args(); plain data-shaped recipes use sql/args fields.
+	_ = obj.Set("execute", func(call goja.FunctionCall) goja.Value {
+		value := call.Argument(0)
+		if goja.IsNull(value) || goja.IsUndefined(value) {
+			panic(vm.NewTypeError("execute requires a query recipe"))
+		}
+		recipe := value.ToObject(vm)
+		sqlValue, argsValue := recipe.Get("sql"), recipe.Get("args")
+		if fn, ok := goja.AssertFunction(sqlValue); ok {
+			var err error
+			sqlValue, err = fn(value)
+			if err != nil {
+				panic(vm.NewGoError(err))
+			}
+		}
+		if fn, ok := goja.AssertFunction(argsValue); ok {
+			var err error
+			argsValue, err = fn(value)
+			if err != nil {
+				panic(vm.NewGoError(err))
+			}
+		}
+		if sqlValue == nil {
+			panic(vm.NewTypeError("recipe.sql must be a string or sql() method"))
+		}
+		sqlText, ok := sqlValue.Export().(string)
+		if !ok || strings.TrimSpace(sqlText) == "" {
+			panic(vm.NewTypeError("recipe.sql must be a nonempty string"))
+		}
+		var args []any
+		if argsValue != nil && !goja.IsUndefined(argsValue) && !goja.IsNull(argsValue) {
+			if err := vm.ExportTo(argsValue, &args); err != nil {
+				panic(vm.NewTypeError("recipe.args must be an array"))
+			}
+		}
+		result, err := h.runner.QueryResult(context.Background(), sqlText, args...)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		return vm.ToValue(toPlainMap(result))
 	})
 	_ = obj.Set("schema", func() map[string]any { return toPlainMap(h.schema) })
 	_ = obj.Set("tables", func() []map[string]any { return toPlainSlice(h.schema.Tables) })
