@@ -1,0 +1,45 @@
+{
+  "pi_version": "0.87.1",
+  "models": [
+    {
+      "id": "deepseek-4.1-flash",
+      "api": "openai-responses",
+      "reasoning": true,
+      "thinkingLevelMap": {
+        "high": "high",
+        "low": "low",
+        "max": "max",
+        "medium": "medium",
+        "minimal": null,
+        "off": null,
+        "xhigh": "xhigh"
+      },
+      "compat": {
+        "maxTokensField": "max_tokens",
+        "supportsReasoningEffort": true,
+        "thinkingFormat": "openai"
+      }
+    },
+    {
+      "id": "glm-5.3-flash",
+      "api": "openai-responses",
+      "reasoning": true,
+      "thinkingLevelMap": {
+        "high": "high",
+        "low": "low",
+        "max": "max",
+        "medium": "high",
+        "minimal": "low",
+        "off": "low",
+        "xhigh": "high"
+      },
+      "compat": {
+        "maxTokensField": "max_tokens",
+        "supportsReasoningEffort": true,
+        "thinkingFormat": "zai"
+      }
+    }
+  ],
+  "scope": "local advertised compatibility, not wire capture or proof of backend behavior",
+  "billing": "extension assigns zero cost rates; token usage cost is not independent proof of free billing"
+}

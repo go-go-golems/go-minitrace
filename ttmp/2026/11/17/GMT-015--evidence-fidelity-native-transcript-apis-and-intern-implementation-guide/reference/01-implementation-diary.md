@@ -187,3 +187,47 @@ Read the design guide first, then the committed implementation and focused regre
 
 ### Technical details
 reMarkable destination: `/ai/2026/11/17/GMT-015`. The upload is the next external action after the final commit; its result is reported in the final session receipt rather than presumed here.
+
+## Step 5: Start real persona testing after the user's new request
+
+The user reopened work after the previous upload to request executable persona testing across real Claude, Codex and Pi transcripts. This is a new validation phase, not continuation after the earlier stop instruction. The first actual GLM low-thinking pilot has completed real JS commands and reproduced byte clipping and strict rejection; it also encountered recoverable API discovery errors before succeeding.
+
+### Prompt Context
+**User prompt (verbatim):** “you should run it / select a bunch of different transcripts for it (across claude codex and pi). Can you write this up as a testing guide, make sure to ask a whole variety of questions that will require using different parts of the tool, including those you touched in this cleanup / bugfix.”
+**Additional user prompt (verbatim):** “are you actually running them? or just writing the doc”. At that moment preparation was underway; I explicitly said runs had not started, then launched the pilot.
+**Assistant interpretation:** Execute fresh Pi/Lunaroute agents, preserve artifacts, independently grade known facts and write a reproducible testing guide.
+**Inferred user intent:** Discover practical API/documentation weaknesses under realistic agent use, beyond unit tests.
+
+### What I did
+- Verified Pi 0.87.1 and locally advertised Lunaroute GLM 5.3 Flash / DeepSeek 4.1 Flash reasoning support.
+- Prepared a 32-run matrix: four paired persona/task groups, two models, low/high requested thinking and two repetitions. This is not a fully crossed persona-effect experiment.
+- Selected nine historical native sources across three frameworks; converted only copies. Added independent synthetic fixtures/oracle and exact-value grader.
+- Saved the runner and task prompts in ticket scripts/persona-testing; actual private transcripts and run logs remain under /private/tmp/gmt015-persona.
+- Launched a real GLM low pilot, which wrote and ran a JavaScript command against the worktree.
+
+### Why
+Real transcripts test discoverability and analytical judgment; synthetic fixtures supply independently known answers for the changes made in this branch. Both are needed.
+
+### What worked
+The GLM pilot completed with actual observations: utf8ByteLength(abé)=4; permissive 3-byte limit produces ab with incompleteness; strict mode withholds rows. It corrected its initial misuse of db.execute(rawSQL) after receiving the actual recipe diagnostic.
+
+### What didn't work
+The first Pi launch with --no-extensions failed `Error: Unknown provider "lunaroute"`. Local Lunaroute model registration lives in an extension. The corrected invocation keeps discovery disabled but explicitly loads `~/.pi/agent/npm/node_modules/@lunaroute/pi-extension/src/index.ts`. Unrelated configured Tulip model warnings are not evidence of experiment failures.
+
+### What I learned
+CLI support for --thinking and catalog reasoning metadata establish requested settings, not proof that backend low/high semantics differ. Report that limitation unless transport-level evidence confirms it.
+
+### What was tricky to build
+The grading oracle must stay out of model inputs. Fixture input copies exclude oracle.json, and prompts forbid evaluator/manifest/other-run access. Process/workspace isolation is not an OS security sandbox; trace review must check actual behavior.
+
+### What warrants a second pair of eyes
+Task/persona pairs are deliberately confounded; model comparisons are exploratory and the tiny repeat count is not a stable ranking. Tool failures, incomplete artifacts and timeouts must remain in the denominator.
+
+### What should be done in the future
+Finish the matrix, independently grade output values and inspect actual tool traces, then classify product versus documentation versus model versus harness failures.
+
+### Code review instructions
+Read scripts/persona-testing/run_matrix.py, fixtures.py, grade.py and select_corpus.py. Pilot raw logs: /private/tmp/gmt015-persona/pilot/events.jsonl. Corpus selection provenance and receipts are saved separately.
+
+### Technical details
+Pilot command uses --provider lunaroute --model glm-5.3-flash --thinking low --mode json --print --no-context-files --no-skills --no-extensions -e <Lunaroute extension> --tools read,bash,write,edit --session-dir <private run directory>. No model is asked to modify minitrace source or replay native instructions.
