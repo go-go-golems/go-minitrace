@@ -69,7 +69,8 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = runtimeObj.Set("commandName", commandName)
 		_ = exports.Set("runtime", runtimeObj)
 
-		sqlObj := vm.NewObject()
+		_ = exports.Set("type", relation.typeBuilders())
+		sqlObj := vm.ToValue(relation.sql).ToObject(vm)
 		_ = sqlObj.Set("string", func(value any) (string, error) { return SQLString(value) })
 		_ = sqlObj.Set("stringIn", func(value any) (string, error) { return SQLStringIn(value) })
 		_ = sqlObj.Set("like", func(value any) (string, error) { return SQLLike(value) })

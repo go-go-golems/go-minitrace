@@ -34,6 +34,7 @@ func NewOwner() *Owner { return &Owner{} }
 type Query struct {
 	owner     *Owner
 	table     string
+	raw       *rawSource
 	input     *Query
 	columns   []Column
 	predicate *Expr
@@ -64,7 +65,14 @@ type Expr struct {
 func (e *Expr) Type() Type { return e.typ }
 
 func Table(owner *Owner, name string, columns []Column) (*Query, error) {
-	if owner == nil || !validName(name) || len(columns) == 0 || len(columns) > 128 {
+	if owner == nil {
+		return nil, fmt.Errorf("table requires a database owner")
+	}
+	return catalogQuery(owner, name, columns)
+}
+
+func catalogQuery(owner *Owner, name string, columns []Column) (*Query, error) {
+	if !validName(name) || len(columns) == 0 || len(columns) > 128 {
 		return nil, fmt.Errorf("invalid table description %q", name)
 	}
 	seen := make(map[string]bool, len(columns))

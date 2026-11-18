@@ -295,6 +295,7 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		h.owner, h.relation, h.ctx = queryplan.NewOwner(), b.relation, b.ctx
 		return handleObject(vm, h), nil
 	})
+	attachLocalDatabase(vm, obj, b)
 	return obj
 }
 

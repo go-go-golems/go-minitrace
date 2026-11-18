@@ -183,14 +183,16 @@ func (b *relationalBinding) queryObject(q *queryplan.Query) *goja.Object {
 		return value
 	})
 	_ = obj.Set("count", func() *goja.Object { return b.exprObject(q.Count()) })
-	_ = obj.Set("build", func() *goja.Object {
-		plan, err := q.Build()
-		b.check(err)
-		result := b.remember(plan)
-		_ = result.Set("explain", func() map[string]any { return map[string]any{"sql": plan.SQL()} })
-		_ = result.Set("parameters", func() []any { return []any{} })
-		return result
-	})
+	_ = obj.Set("build", func() *goja.Object { return b.planObject(q) })
+	return obj
+}
+
+func (b *relationalBinding) planObject(q *queryplan.Query) *goja.Object {
+	plan, err := q.Build()
+	b.check(err)
+	obj := b.remember(plan)
+	_ = obj.Set("explain", func() map[string]any { return map[string]any{"sql": plan.SQL()} })
+	_ = obj.Set("parameters", func() []any { return []any{} })
 	return obj
 }
 
@@ -225,7 +227,7 @@ func (b *relationalBinding) table(h *DBHandle, name string) *goja.Object {
 }
 
 func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, plan *queryplan.Plan) goja.Value {
-	if h.closed || plan.Owner() != h.owner {
+	if h.closed || (plan.Owner() != nil && plan.Owner() != h.owner) {
 		panic(b.vm.NewTypeError("execute requires the open database that owns this plan"))
 	}
 	result, err := h.QueryResult(ctx, plan.SQL(), plan.Args()...)

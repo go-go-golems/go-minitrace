@@ -763,3 +763,62 @@ Start with `relationalBinding.queryObject`, `relationalBinding.execute` and `Tes
 ### Technical details
 
 The binding uses the loader context for plan execution and compares owner identity before querying. Early milestone commits still build the existing commands during migration. The old execution route is scheduled for deletion at the coordinated API cutover.
+
+## Step 17: Build tagged SQL and run the first migrated CLI command
+
+The local JS API now opens a database from an immutable source builder and accepts tagged SQL as either a directly executable query or a typed input to fluent composition. The evidence-workflows session-tools command now uses the fluent API through the actual CLI command tree.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal.
+
+**Goja binding commit:** `ff1a296`.
+
+### What I did
+
+- Added positional template binding in `pkg/minitracedb/tagged_sql.go` using the existing SQLite literal and comment scanner.
+- Added an opaque SQL source in `pkg/queryplan/raw.go` and connected it to Goja through `pkg/minitracejs/tagged_sql.go`.
+- Added immutable lower camel case source and database methods and migrated the evidence-workflows count command to them.
+- Exercised tagged SQL ordering, a trailing line comment in a composed query, mixed projection and SQL argument order, scalar list matching and rejection of interpolation inside quotes.
+
+### Why
+
+Maintained scripts with grouping, joins and limits need the SQL path before the old API can be removed. Using the same runner keeps result diagnostics, read-only preparation and authorizer behavior in one place.
+
+### What worked
+
+The targeted test command below passed. The CLI fixture calls the migrated nested command with `--archive-glob`, and the Goja fixtures cover local table ownership and correlated counts.
+
+### What didn't work
+
+- `go test ./pkg/minitracejs -run TestTaggedSQLBinding` first reported `TypeError: sql requires a tagged template`. Goja only recognizes its special native call form with the exact `func(goja.FunctionCall) goja.Value` signature. Changing the return type fixed argument delivery.
+- The same test found `query references disallowed table/view "json_each"`. A schema-less authorizer check did not resolve it. That experiment was reverted. The fixture now uses bound delimiter-framed hexadecimal strings, matched by `instr` and SQLite `hex`, while preserving the table read policy. Decide the maintained list-filter form during caller migration.
+- An editing command malformed the `content` method closure. The formatter reported `local_resources.go:37:6: expected declaration, found ')'`. Replaced the complete method and reran the targeted tests successfully.
+
+### What I learned
+
+Raw queries with no relational operations can preserve their top-level ordering. Typed composed queries need their own outer ordering. Adding a newline before closing a derived table preserves SQL with a trailing line comment. Positional arguments must follow the emitted SQL text even when enclosed expressions were assembled in a different order.
+
+### What was tricky to build
+
+Unbound SQL sources can adopt a single table owner's identity while compiling correlated expressions. The compiler now checks the accumulated owner when it encounters any catalog table, including one referenced underneath an otherwise unbound root.
+
+### What warrants a second pair of eyes
+
+Check declared SQL column names and types against actual metadata during execution and parameter integration. The current declaration establishes symbolic columns for composition. Validation of whole declarations and raw named parameters is still open.
+
+### What should be done in the future
+
+Migrate the remaining core commands, maintained examples and test scripts, then remove old methods and SQL quoting helpers as part of the clean cut. Complete named parameters, fragments and runtime mapping. Update declarations and run the broader fixtures and persona validation.
+
+### Code review instructions
+
+Read `TaggedSQL`, `relationalBinding.sql`, `compiler.query` and the migrated evidence-workflows command. Run:
+
+```sh
+go test ./pkg/minitracejs ./pkg/minitracedb ./pkg/queryplan ./cmd/go-minitrace/cmds/query -run 'Test(RelationalBindingThroughRequire|TaggedSQLBinding|EvidenceWorkflowNestedExample|CompiledQueryAgainstSQLite)$'
+```
+
+### Technical details
+
+This checkpoint leaves old entry points in place while callers migrate. The SQL tag currently binds scalar constants and rejects handwritten bind markers. The design's suggested `json_each` list predicate requires revision based on the observed read policy.

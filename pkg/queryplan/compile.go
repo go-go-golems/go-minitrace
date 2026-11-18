@@ -44,7 +44,7 @@ func (q *Query) Build() (*Plan, error) {
 	if len(sql) > 1<<20 {
 		return nil, fmt.Errorf("compiled SQL exceeds 1 MiB")
 	}
-	return &Plan{owner: q.owner, sql: sql, args: c.args, columns: q.Columns()}, nil
+	return &Plan{owner: c.owner, sql: sql, args: c.args, columns: q.Columns()}, nil
 }
 
 type compiler struct {
@@ -80,8 +80,16 @@ func (c *compiler) query(q *Query, outer *scope, depth int) (string, error) {
 	if err := c.visit(depth); err != nil {
 		return "", err
 	}
-	if q.owner != c.owner {
-		return "", fmt.Errorf("query references a different database")
+	if q.owner != nil {
+		if c.owner != nil && q.owner != c.owner {
+			return "", fmt.Errorf("query references a different database")
+		}
+		c.owner = q.owner
+	}
+	if q.raw != nil {
+		c.args = append(c.args, q.raw.args...)
+		// A trailing line comment must end before a surrounding ')' is emitted.
+		return q.raw.sql + "\n", nil
 	}
 	if q.input == nil {
 		names := make([]string, len(q.columns))

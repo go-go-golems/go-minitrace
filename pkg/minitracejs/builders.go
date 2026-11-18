@@ -63,6 +63,7 @@ func sourcesBuilderObject(vm *goja.Runtime, b *SourceSetBuilder) *goja.Object {
 	})
 	_ = obj.Set("Validate", func() ValidationResult { return b.Validate() })
 	_ = obj.Set("Build", func() (*SourceSet, error) { return b.Build() })
+	attachLocalSources(vm, obj, b)
 	return obj
 }
 
