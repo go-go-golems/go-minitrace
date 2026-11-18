@@ -24,7 +24,7 @@ func checkSQLDeclaration(ctx context.Context, conn *sql.Conn, source queryplan.D
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	names, err := rows.Columns()
 	if err != nil {
 		return err

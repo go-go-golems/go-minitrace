@@ -78,18 +78,22 @@ func ScanFile(ctx context.Context, path string, opts Options, visit func(Record)
 
 // Scan hashes exact consumed bytes, including malformed records and line endings.
 // Only EOF establishes hashScope=whole_source; an early hash is a consumed prefix.
-func Scan(ctx context.Context, input io.Reader, opts Options, visit func(Record) (bool, error)) (stats ScanStats, retErr error) {
-	opts, retErr = opts.normalized()
-	if retErr != nil {
-		return
+func Scan(ctx context.Context, input io.Reader, opts Options, visit func(Record) (bool, error)) (ScanStats, error) {
+	opts, err := opts.normalized()
+	if err != nil {
+		return ScanStats{}, err
 	}
+	var stats ScanStats
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	h := sha256.New()
 	stats.HashScope = "consumed_prefix"
 	stats.StopReason = "error"
-	defer func() { stats.SHA256 = hex.EncodeToString(h.Sum(nil)) }()
+	finish := func(err error) (ScanStats, error) {
+		stats.SHA256 = hex.EncodeToString(h.Sum(nil))
+		return stats, err
+	}
 	reader := bufio.NewReaderSize(input, 32<<10)
 	for {
 		start := stats.Bytes
@@ -99,7 +103,7 @@ func Scan(ctx context.Context, input io.Reader, opts Options, visit func(Record)
 		for {
 			if err := ctx.Err(); err != nil {
 				stats.StopReason = "canceled"
-				return stats, err
+				return finish(err)
 			}
 			part, err := reader.ReadSlice('\n')
 			_, _ = h.Write(part)
@@ -118,14 +122,14 @@ func Scan(ctx context.Context, input io.Reader, opts Options, visit func(Record)
 			if errors.Is(err, io.EOF) {
 				eof = true
 			} else if err != nil {
-				return stats, err
+				return finish(err)
 			}
 			break
 		}
 		if stats.Bytes == start && eof {
 			stats.HashScope = "whole_source"
 			stats.StopReason = "eof"
-			return stats, nil
+			return finish(nil)
 		}
 		stats.Lines++
 		record := Record{Source: Coordinate{stats.Lines, start, stats.Bytes - start}}
@@ -156,16 +160,16 @@ func Scan(ctx context.Context, input io.Reader, opts Options, visit func(Record)
 		if visit != nil {
 			more, err := visit(record)
 			if err != nil {
-				return stats, err
+				return finish(err)
 			}
 			if !more {
 				stats.StopReason = "callback"
-				return stats, nil
+				return finish(nil)
 			}
 		}
 		if eof {
 			stats.StopReason = "eof"
-			return stats, nil
+			return finish(nil)
 		}
 	}
 }

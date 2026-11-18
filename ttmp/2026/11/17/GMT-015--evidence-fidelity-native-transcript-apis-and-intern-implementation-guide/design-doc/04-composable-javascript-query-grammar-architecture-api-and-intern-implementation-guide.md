@@ -698,22 +698,27 @@ const result = db.execute(mt.sql`
 
 The existing helper adds surrounding `%` and leaves SQL wildcard behavior inside the input intact. `.contains()` is a literal case-sensitive operation in this design, so substituting it changes semantics. Keep LIKE where LIKE was intended.
 
-For dynamic framework lists in advanced SQL, use one bound JSON value and SQLite's JSON table function:
+For dynamic framework lists in advanced SQL, bind framed hexadecimal UTF-8 keys and compare them with SQLite scalar functions. An empty list uses null. The encoding preserves exact membership, including empty strings and names that contain a separator.
 
 ```javascript
 const frameworks = filters.framework || [];
-const frameworkJSON = JSON.stringify(frameworks);
+const keys = frameworks.map(value => encodeURIComponent(value)
+  .replace(/%[0-9A-F]{2}|./g, token => token[0] === "%"
+    ? token.slice(1)
+    : token.charCodeAt(0).toString(16).padStart(2, "0").toUpperCase()));
+const frameworkKeys = frameworks.length ? "|" + keys.join("|") + "|" : null;
 const result = db.execute(mt.sql`
   SELECT s.agent_framework, COUNT(*) AS sessions
   FROM sessions s
-  WHERE (${frameworks.length === 0} OR s.agent_framework IN (
-    SELECT value FROM json_each(${frameworkJSON})
+  WHERE (${frameworkKeys} IS NULL OR (
+    s.agent_framework IS NOT NULL AND
+    instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0
   ))
   GROUP BY s.agent_framework
 `.build());
 ```
 
-Validate list elements as strings at the command boundary. This preserves “empty list means no filter” without SQL-fragment interpolation or a new registry. The target SQLite engine and read-only authorizer must support this exact JSON-table pattern; add an integration fixture before migrating these callers. It is a proposed required execution capability, not a measured result of this documentation work. Do not bind an array as one scalar SQL IN operand or join quoted input by hand.
+The normalized DB authorizer rejects reads through `json_each`. The maintained activity commands and showcase preserve that read policy and use the scalar form above. Validate list members as strings at the command boundary.
 
 Filter placement matters. In `files/file-activity.js`, path and timestamp restrictions occur before window counts. Moving those conditions outside the aggregate/window SQL can change the reported counts. Bind values in the existing SQL position first; use fluent composition only when its semantics are equivalent.
 
@@ -951,7 +956,7 @@ For report-cookbook's five verbs, the after form is `completeRows(db.execute(mt.
 - Verify auto-conversion defaults, uncached in-memory storage, content names, legacy byte-limit aliases and timeouts independently.
 - Compare every maintained command's output columns, empty behavior, selected population and ordering; do not only compare total row counts.
 - Test SQL-only sources without declarations and composable sources with declared schemas; preserve direct SQL ordering.
-- Test JSON list binding and read-only authorization, quotes, wildcard patterns and empty lists.
+- Test scalar list binding and read-only authorization, quotes, wildcard patterns and empty lists.
 - Test importer preview/save, pre-open cache fingerprints, observed cache/source diagnostics, host metadata and async handlers.
 - Compare complete per-recipe projections before deleting Go recipe branches; maintain exact token provenance and missing-versus-zero semantics.
 - Keep historical scripts unchanged; use their hashes as the review checkpoint. This document's after snippets are specifications until implementation and parity tests execute them.

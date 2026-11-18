@@ -152,7 +152,11 @@ SELECT 42 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 
-	configDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "go-minitrace")
+	userConfig, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	configDir := filepath.Join(userConfig, "go-minitrace")
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll returned error: %v", err)
 	}
@@ -476,31 +480,31 @@ __verb__("sessionList", {
 	}
 }
 
-func TestNewCommandsCommand_XDGConfigOverridesHomeConfig(t *testing.T) {
+func TestNewCommandsCommand_UserConfigOverridesHomeConfig(t *testing.T) {
 	setIsolatedConfigHome(t)
 	homeRepo := t.TempDir()
-	xdgRepo := t.TempDir()
+	userRepo := t.TempDir()
 	homeContent := `/* sqleton
 name: session-list
 short: Home config override session list
 */
 SELECT 1 AS answer FROM {{TABLE_NAME}};`
-	xdgContent := `/* sqleton
+	userContent := `/* sqleton
 name: session-list
-short: XDG config override session list
+short: User config override session list
 */
 SELECT 2 AS answer FROM {{TABLE_NAME}};`
 	if err := os.MkdirAll(filepath.Join(homeRepo, "overview"), 0o755); err != nil {
 		t.Fatalf("MkdirAll(home repo) returned error: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(xdgRepo, "overview"), 0o755); err != nil {
-		t.Fatalf("MkdirAll(xdg repo) returned error: %v", err)
+	if err := os.MkdirAll(filepath.Join(userRepo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(user repo) returned error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(homeRepo, "overview", "session-list.sql"), []byte(homeContent), 0o644); err != nil {
 		t.Fatalf("WriteFile(home repo) returned error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(xdgRepo, "overview", "session-list.sql"), []byte(xdgContent), 0o644); err != nil {
-		t.Fatalf("WriteFile(xdg repo) returned error: %v", err)
+	if err := os.WriteFile(filepath.Join(userRepo, "overview", "session-list.sql"), []byte(userContent), 0o644); err != nil {
+		t.Fatalf("WriteFile(user repo) returned error: %v", err)
 	}
 
 	homeConfigDir := filepath.Join(os.Getenv("HOME"), ".go-minitrace")
@@ -511,12 +515,16 @@ SELECT 2 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("WriteFile(home config) returned error: %v", err)
 	}
 
-	xdgConfigDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "go-minitrace")
-	if err := os.MkdirAll(xdgConfigDir, 0o755); err != nil {
-		t.Fatalf("MkdirAll(xdg config) returned error: %v", err)
+	userConfig, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(xdgConfigDir, "config.yaml"), []byte("queryRepositories:\n  - "+xdgRepo+"\n"), 0o644); err != nil {
-		t.Fatalf("WriteFile(xdg config) returned error: %v", err)
+	userConfigDir := filepath.Join(userConfig, "go-minitrace")
+	if err := os.MkdirAll(userConfigDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(user config) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(userConfigDir, "config.yaml"), []byte("queryRepositories:\n  - "+userRepo+"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(user config) returned error: %v", err)
 	}
 
 	cmd, err := NewCommandsCommand(nil)
@@ -529,10 +537,10 @@ SELECT 2 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("Find returned error: %v", err)
 	}
 	if found == nil || found.Name() != "session-list" {
-		t.Fatalf("expected XDG-config overridden overview/session-list command, got %#v", found)
+		t.Fatalf("expected user-config overridden overview/session-list command, got %#v", found)
 	}
-	if found.Short != "XDG config override session list" {
-		t.Fatalf("found.Short = %q, want XDG config override short description", found.Short)
+	if found.Short != "User config override session list" {
+		t.Fatalf("found.Short = %q, want User config override short description", found.Short)
 	}
 }
 

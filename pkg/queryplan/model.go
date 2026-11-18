@@ -27,9 +27,9 @@ type Column struct {
 }
 
 // Owner identifies a local database handle independently of its schema.
-type Owner struct{ marker byte }
+type Owner byte
 
-func NewOwner() *Owner { return &Owner{} }
+func NewOwner() *Owner { return new(Owner) }
 
 type Query struct {
 	owner     *Owner
@@ -268,7 +268,7 @@ func Operation(op string, operands ...*Expr) (*Expr, error) {
 		if left == "" || right == "" {
 			return nil, fmt.Errorf("%s cannot compare with null, use isNull() or isNotNull()", op)
 		}
-		if left != right && !(numeric(left) && numeric(right)) {
+		if left != right && (!numeric(left) || !numeric(right)) {
 			return nil, fmt.Errorf("%s cannot compare %s with %s", op, left, right)
 		}
 	}

@@ -12,6 +12,8 @@ It demonstrates the lightweight path for generated binaries that do not need the
 
 Run:
 
+With `xgoja` on PATH, run the smoke target. It builds with go-go-goja v0.10.7 by default.
+
 ```bash
 make smoke
 ```

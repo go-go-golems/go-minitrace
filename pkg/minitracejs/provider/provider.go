@@ -31,7 +31,7 @@ type queriesCommandProviderConfig struct {
 
 var moduleConfigSchema = json.RawMessage(`{
   "type": "object",
-  "description": "Optional minitrace module settings. Query execution requires HostServices to provide a SQL connection.",
+  "description": "Optional minitrace module settings. A command host can supply archive selection settings.",
   "additionalProperties": false
 }`)
 
@@ -59,6 +59,7 @@ func Register(registry *providerapi.ProviderRegistry) error {
 			DefaultAs:    minitracejs.ModuleName,
 			Description:  "Read-only minitrace query helpers exposed as require(\"minitrace\").",
 			ConfigSchema: moduleConfigSchema,
+			TypeScript:   minitracejs.TypeScriptModule(),
 			NewModuleFactory: func(ctx providerapi.ModuleSetupContext) (require.ModuleLoader, error) {
 				var conn *sql.Conn
 				var commandName string

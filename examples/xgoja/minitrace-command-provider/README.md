@@ -10,6 +10,8 @@ The local query repository contains a JavaScript query command that uses:
 
 Run:
 
+With `xgoja` on PATH, run the smoke target. It builds with go-go-goja v0.10.7 by default.
+
 ```bash
 make smoke
 ```

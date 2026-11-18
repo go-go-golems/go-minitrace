@@ -57,7 +57,7 @@ func (p Parameter) validate(value any) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parameter %q: %w", p.Name, err)
 	}
-	if lit.typ.Kind != p.Kind && !(p.Kind == Number && lit.typ.Kind == Integer) {
+	if lit.typ.Kind != p.Kind && (p.Kind != Number || lit.typ.Kind != Integer) {
 		return nil, fmt.Errorf("parameter %q expects %s", p.Name, p.Kind)
 	}
 	if p.HasRange {

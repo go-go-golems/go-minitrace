@@ -139,7 +139,10 @@ func TestResolveAppConfigPaths_IncludesGitRootAndWorkingDirLocalConfig(t *testin
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 
-	repoRoot := t.TempDir()
+	repoRoot, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := exec.Command("git", "-C", repoRoot, "init").Run(); err != nil {
 		t.Fatalf("git init returned error: %v", err)
 	}

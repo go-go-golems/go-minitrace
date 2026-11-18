@@ -1216,3 +1216,64 @@ Start with `Plan.SQLDeclarations`, `QueryRunner.QueryPlanResult` and `sql_declar
 ### Technical details
 
 Declarations use exact SQLite column names and output order. The composed validation scan uses the read-only authorizer and no separate storage. Untyped SQL continues to use SQLite's inferred output columns.
+
+## Step 25: Verify the clean cut in Go, TypeScript and generated hosts
+
+The complete Go suite and both maintained xgoja examples now run against the new API. The xgoja provider also exposes the shared TypeScript declaration through its actual generation path.
+
+### Prompt Context
+
+See Steps 15 and 23 for the implementation and documentation requests.
+
+**SQL declaration validation commit:** `f2c73f4`.
+
+### What I did
+
+- Ran the unfiltered suite with a canonical temporary path, then ran the previously failing tests against a temporary archive of pre-implementation commit `c64b877`.
+- Made the config tests use `os.UserConfigDir()` and canonicalized the temporary repository fixture path. Production config resolution stayed unchanged.
+- Fixed lint findings in the new query code and small lint issues in the existing evidence code.
+- Added a compile-only consumer fixture at `pkg/minitracejs/testdata/local_api_types.ts`.
+- Updated go-go-goja to v0.10.7 after an offline compatibility test using a separate modfile. Wired the module descriptor into the xgoja provider and pinned that version in both example Makefiles.
+- Ran both example smoke targets and verified generated declarations with TypeScript 5.9.3. Updated the design's list-filter example to reflect the tested SQLite implementation.
+
+### Why
+
+The compiled APIs are used through multiple host paths. Provider compilation alone had not checked that declaration generation or packaged scripts worked. Reproducing configuration failures against the old commit distinguished platform-fixture problems from implementation bugs.
+
+### What worked
+
+`go test ./...`, `go build ./...`, `go vet ./...` and `go run ./cmd/go-minitrace help --all` passed after dependency reconciliation. Both xgoja `make smoke` targets passed. The inspect host ran summary, tools, preview, auto-convert and save-converted. The command provider wrote its Markdown report for two sessions and five tool calls. The checked-in consumer fixture typechecked directly and against a strictly generated xgoja module. It includes negative checks for execution of raw strings and composition after row mapping.
+
+### What didn't work
+
+- With `TMPDIR=/private/tmp`, the two configuration tests still failed both before and after the implementation. The tests seeded an XDG directory even when macOS's `os.UserConfigDir()` returned `Library/Application Support` under the fixture home. Updating test setup fixed both. The earlier `/private/var` versus `/var` assertion is now independent of that path alias.
+- Initial repository lint reported ten diagnostics. Fixed return-value checking on Close, predeclared identifier shadowing, the owner identity representation, the reported logical conditions and named returns on native scanning. The explicit scan completion function continues to attach the consumed-byte hash for success, cancellation and errors.
+- Strict xgoja generation first reported `runtime module go-minitrace.minitrace as "minitrace" has no TypeScript descriptor`. The pinned provider interface lacked the descriptor field. The version bump and explicit descriptor fixed generation.
+- The first generated declaration then reported `TS1038: A 'declare' modifier cannot be used in an already ambient context`. The provider now adapts the shared declaration to the generated ambient wrapper while keeping the source importable on its own.
+- Expanding the dependency test scope exposed missing checksums. Offline tidy could not fetch `github.com/andreyvit/diff`. Standard `go mod tidy` reconciled the complete dependency graph, and the unfiltered suite passed afterward.
+
+### What I learned
+
+macOS config path behavior can be tested without changing application precedence. A descriptor both needs to be present on the provider registration and must be shaped for the generator's enclosing module declaration.
+
+### What was tricky to build
+
+The dependency update selected newer transitive Goja, protobuf and telemetry versions. Running only the query and module packages left some checksums incomplete for the web and tooling packages. Comprehensive module reconciliation and an unfiltered test run checked those packages too.
+
+### What warrants a second pair of eyes
+
+Review the pinned provider dependency and the retained transitive version updates. Check the authored declaration fixture when adding or removing JS methods.
+
+### What should be done in the future
+
+Run the planned persona pilot and fixed matrix against a pinned clean-cut binary. Preserve prompts, host replays and graded artifacts, then close the implementation acceptance audit.
+
+### Code review instructions
+
+Read the provider registration, shared declaration renderer and consumer fixture. Run either xgoja example's `make smoke` with xgoja on PATH. The examples default to go-go-goja v0.10.7. Run the full Go checks and TypeScript 5.9.3 with `--strict --noEmit`.
+
+### Technical details
+
+Baseline configuration results came from a temporary export of `c64b877`. Generated example binaries, smoke outputs and provider declarations stay out of Git. The fixture and the source declaration are tracked.
+
+Final lint checkpoint: `PATH="<Go bin>:$PATH" GOWORK=off make lint` passed after module reconciliation. golangci-lint reported zero issues and the Glazed vettool phase exited successfully.

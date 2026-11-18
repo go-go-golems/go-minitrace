@@ -53,9 +53,9 @@ func (b *relationalBinding) columnTypes(shape *goja.Object) []queryplan.Column {
 func (b *relationalBinding) typeObject(typ queryplan.Type) *goja.Object {
 	obj := b.remember(typ)
 	_ = obj.Set("nullable", func() *goja.Object {
-		copy := typ
-		copy.Nullable = true
-		return b.typeObject(copy)
+		nullable := typ
+		nullable.Nullable = true
+		return b.typeObject(nullable)
 	})
 	return obj
 }

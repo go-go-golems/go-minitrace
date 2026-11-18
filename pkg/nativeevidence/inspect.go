@@ -218,8 +218,8 @@ func InspectFile(ctx context.Context, path string, opts Options) (Inspection, er
 					if err := charge(m); err != nil {
 						return false, err
 					}
-					copy := m
-					c.FirstFollowingMessage = &copy
+					following := m
+					c.FirstFollowingMessage = &following
 				}
 				if d["isCompactSummary"] == true {
 					if err := charge(m); err != nil {
@@ -231,8 +231,8 @@ func InspectFile(ctx context.Context, path string, opts Options) (Inspection, er
 					if err := charge(m); err != nil {
 						return false, err
 					}
-					copy := m
-					c.FirstFollowingAssistant = &copy
+					following := m
+					c.FirstFollowingAssistant = &following
 					active = -1
 				}
 			}

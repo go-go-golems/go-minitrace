@@ -16,7 +16,7 @@ func TestToolArchiveOrdinalAndOriginalStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	if err = CreateSchema(ctx, db); err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestToolArchiveOrdinalAndOriginalStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for i := 0; rows.Next(); i++ {
 		var id, outcome string
 		var ordinal int
