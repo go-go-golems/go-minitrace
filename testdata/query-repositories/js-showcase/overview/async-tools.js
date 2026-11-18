@@ -1,3 +1,12 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
+const {queryFilters} = require("../lib/query-filters");
+
 __section__("filters", {
   title: "Filters",
   fields: {
@@ -7,7 +16,8 @@ __section__("filters", {
 });
 
 function _db(mt) {
-  return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
 }
 
 async function _withDBAsync(mt, fn) {
@@ -19,26 +29,21 @@ async function _withDBAsync(mt, fn) {
   }
 }
 
-function _frameworkFilterSql(mt, filters) {
-  return filters.framework?.length
-    ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
-    : "";
-}
-
 async function delayedSummary(filters) {
   const timer = require("timer");
   const mt = require("minitrace");
+  const {frameworkKeys} = queryFilters(filters);
   await timer.sleep(1);
   return _withDBAsync(mt, async (db) => {
-    const summary = db.queryOne(`
+    const summary = completeRows(db.execute(mt.sql`
     SELECT
       COUNT(*) AS session_count,
       MIN(session_id) AS first_id,
       MAX(agent_framework) AS sample_framework
     FROM sessions
     WHERE 1=1
-    ${_frameworkFilterSql(mt, filters)}
-  `);
+    AND (${frameworkKeys} IS NULL OR (agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(agent_framework) || '|') > 0))
+  `.build()))[0] ?? null;
 
     return {
       delayed: true,
@@ -53,19 +58,20 @@ async function delayedSummary(filters) {
 async function topSessionCards(filters) {
   const timer = require("timer");
   const mt = require("minitrace");
+  const {frameworkKeys} = queryFilters(filters);
   await timer.sleep(1);
   return _withDBAsync(mt, async (db) => {
-    const rows = db.query(`
+    const rows = completeRows(db.execute(mt.sql`
     SELECT
       session_id AS id,
       title,
       agent_framework AS framework
     FROM sessions
     WHERE 1=1
-    ${_frameworkFilterSql(mt, filters)}
+    AND (${frameworkKeys} IS NULL OR (agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(agent_framework) || '|') > 0))
     ORDER BY started_at DESC
     LIMIT ${filters.limit}
-  `);
+  `.build()));
 
     return rows.map((row, index) => ({
       rank: index + 1,

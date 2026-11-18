@@ -151,75 +151,71 @@ func NewImportBuilder() *ImportBuilder {
 
 func importBuilderObject(vm *goja.Runtime, b *ImportBuilder) *goja.Object {
 	obj := vm.NewObject()
-	_ = obj.Set("Content", func(content string) *goja.Object {
-		b.content = content
-		return importBuilderObject(vm, b)
+	derive := func(configure func(*ImportBuilder)) *goja.Object {
+		next := *b
+		next.converted = nil
+		configure(&next)
+		return importBuilderObject(vm, &next)
+	}
+	_ = obj.Set("content", func(content string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.content = content })
 	})
-	_ = obj.Set("File", func(path string) *goja.Object {
-		b.path = strings.TrimSpace(path)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("file", func(path string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.path = strings.TrimSpace(path) })
 	})
-	_ = obj.Set("Name", func(name string) *goja.Object {
-		b.name = strings.TrimSpace(name)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("name", func(name string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.name = strings.TrimSpace(name) })
 	})
-	_ = obj.Set("SourcePath", func(path string) *goja.Object {
-		b.sourcePath = strings.TrimSpace(path)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("sourcePath", func(path string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.sourcePath = strings.TrimSpace(path) })
 	})
-	_ = obj.Set("AutoDetect", func() *goja.Object {
-		b.autoConvert = true
-		return importBuilderObject(vm, b)
+	_ = obj.Set("autoDetect", func() *goja.Object {
+		return derive(func(next *ImportBuilder) { next.autoConvert = true })
 	})
-	_ = obj.Set("Format", func(format string) *goja.Object {
-		b.format = strings.TrimSpace(format)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("format", func(format string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.format = strings.TrimSpace(format) })
 	})
-	_ = obj.Set("Strict", func(call goja.FunctionCall) goja.Value {
-		b.strict = optionalBool(call, true)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("strict", func(call goja.FunctionCall) goja.Value {
+		return derive(func(next *ImportBuilder) { next.strict = optionalBool(call, true) })
 	})
-	_ = obj.Set("Into", func(rootDir string) *goja.Object {
-		b.rootDir = strings.TrimSpace(rootDir)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("into", func(rootDir string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.rootDir = strings.TrimSpace(rootDir) })
 	})
-	_ = obj.Set("SessionID", func(id string) *goja.Object {
-		b.sessionID = strings.TrimSpace(id)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("sessionId", func(id string) *goja.Object {
+		return derive(func(next *ImportBuilder) { next.sessionID = strings.TrimSpace(id) })
 	})
-	_ = obj.Set("Overwrite", func(call goja.FunctionCall) goja.Value {
-		b.overwrite = optionalBool(call, true)
-		return importBuilderObject(vm, b)
+	_ = obj.Set("overwrite", func(call goja.FunctionCall) goja.Value {
+		return derive(func(next *ImportBuilder) { next.overwrite = optionalBool(call, true) })
 	})
-	_ = obj.Set("Detect", func() (map[string]any, error) {
+	_ = obj.Set("detect", func() (map[string]any, error) {
 		loaded, err := b.load()
 		if err != nil {
 			return nil, err
 		}
-		b.converted = loaded
 		return map[string]any{"format": loaded.Format, "adapter": loaded.Adapter, "diagnostics": toPlainSlice(loaded.Diagnostics)}, nil
 	})
-	_ = obj.Set("Convert", func() (*goja.Object, error) {
-		if _, err := b.Convert(); err != nil {
-			return importBuilderObject(vm, b), err
+	_ = obj.Set("convert", func() (*goja.Object, error) {
+		next := *b
+		if _, err := next.Convert(); err != nil {
+			return nil, err
 		}
-		return importBuilderObject(vm, b), nil
+		return importBuilderObject(vm, &next), nil
 	})
-	_ = obj.Set("Converted", func() (map[string]any, error) {
+	_ = obj.Set("converted", func() (map[string]any, error) {
 		converted, err := b.Converted()
 		return toPlainMap(converted), err
 	})
-	_ = obj.Set("Preview", func() (map[string]any, error) {
+	_ = obj.Set("preview", func() (map[string]any, error) {
 		preview, err := b.Preview()
 		return toPlainMap(preview), err
 	})
-	_ = obj.Set("Diagnostics", func() []map[string]any {
+	_ = obj.Set("diagnostics", func() []map[string]any {
 		if b.converted == nil {
 			return nil
 		}
 		return toPlainSlice(b.converted.Diagnostics)
 	})
-	_ = obj.Set("Save", func() (map[string]any, error) {
+	_ = obj.Set("save", func() (map[string]any, error) {
 		saved, err := b.Save()
 		return toPlainMap(saved), err
 	})

@@ -114,7 +114,7 @@ func TestGojaFidelityViews(t *testing.T) {
    const detached=frames.find(f=>f.sessionId===id && f.unassociated);
    check(detached.turnIndex===null && detached.toolCalls.length===1 && detached.stats.unknownToolCalls===1,'unassociated frame lost');
   }
-  const preview=mt.importer().File(paths[0]).Preview();
+  const preview=mt.importer().file(paths[0]).preview();
   check(preview.sampleTools[0].recordKind==='execution' && preview.sampleTools[0].fileTargets.length===2,'preview evidence lost');
  } finally {db.close()}
  `)

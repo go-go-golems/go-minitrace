@@ -1,3 +1,12 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
+const {queryFilters} = require("../lib/query-filters");
+
 __section__("filters", {
   title: "Filters",
   fields: {
@@ -7,7 +16,8 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
+function _db(mt) { return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build(); }
 
 function _withDB(mt, fn) {
   const db = _db(mt);
@@ -18,14 +28,6 @@ function _withDB(mt, fn) {
   }
 }
 
-function _sessionWhere(mt, filters, alias) {
-  const p = alias ? `${alias}.` : "";
-  const clauses = ["1=1"];
-  if (filters.framework?.length) clauses.push(`${p}agent_framework IN (${mt.sql.stringIn(filters.framework)})`);
-  if (filters.working_directory_like) clauses.push(`COALESCE(${p}working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
-  return clauses.join("\n    AND ");
-}
-
 function _limit(filters) {
   const limit = Number(filters.limit || 10);
   return Math.max(1, Math.min(limit, 100));
@@ -33,9 +35,9 @@ function _limit(filters) {
 
 function contextInventory(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
+  const {frameworkKeys, cwd} = queryFilters(filters);
   return _withDB(mt, (db) => {
-  const rows = db.query(`
+  const rows = completeRows(db.execute(mt.sql`
     SELECT
       s.session_id AS id,
       s.title,
@@ -70,10 +72,11 @@ function contextInventory(filters) {
       WHERE spawned_agent_type IS NOT NULL
       GROUP BY session_id
     ) sa ON sa.session_id = s.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     ORDER BY annotation_count DESC, spawned_agent_count DESC, s.tool_call_count DESC, id ASC
     LIMIT ${_limit(filters)}
-  `);
+  `.build()));
 
   return rows.map((row) => ({
     ...row,
@@ -85,9 +88,9 @@ function contextInventory(filters) {
 
 function annotationRiskMatrix(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
+  const {frameworkKeys, cwd} = queryFilters(filters);
   return _withDB(mt, (db) => {
-  return db.query(`
+  return completeRows(db.execute(mt.sql`
     SELECT
       a.category,
       COALESCE(a.classification, '(none)') AS classification,
@@ -97,19 +100,20 @@ function annotationRiskMatrix(filters) {
       GROUP_CONCAT(DISTINCT s.title) AS sample_titles
     FROM annotations a
     JOIN sessions s ON s.session_id = a.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     GROUP BY a.category, a.classification, a.scope_type
     ORDER BY annotation_count DESC, category ASC, classification ASC
     LIMIT ${_limit(filters)}
-  `);
+  `.build()));
   });
 }
 
 function handoverQueue(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
+  const {frameworkKeys, cwd} = queryFilters(filters);
   return _withDB(mt, (db) => {
-  return db.query(`
+  return completeRows(db.execute(mt.sql`
     SELECT
       h.direction,
       h.from_session,
@@ -120,18 +124,19 @@ function handoverQueue(filters) {
       SUBSTR(h.document, 1, 160) AS document_preview
     FROM handovers h
     JOIN sessions s ON s.session_id = h.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     ORDER BY h.direction ASC, s.started_at DESC, id ASC
     LIMIT ${_limit(filters)}
-  `);
+  `.build()));
   });
 }
 
 function spawnedAgentAudit(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
+  const {frameworkKeys, cwd} = queryFilters(filters);
   return _withDB(mt, (db) => {
-  return db.query(`
+  return completeRows(db.execute(mt.sql`
     SELECT
       s.session_id AS id,
       s.title,
@@ -145,11 +150,12 @@ function spawnedAgentAudit(filters) {
       t.position_in_session
     FROM tool_calls t
     JOIN sessions s ON s.session_id = t.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
       AND t.spawned_agent_type IS NOT NULL
     ORDER BY s.started_at DESC, t.emitting_turn_index ASC, t.tool_call_id ASC
     LIMIT ${_limit(filters)}
-  `);
+  `.build()));
   });
 }
 

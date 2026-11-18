@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 __section__("filters", {
   title: "Filters",
   fields: {
@@ -6,7 +13,8 @@ __section__("filters", {
 });
 
 function _db(mt) {
-  return mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
 }
 
 function _withDB(mt, fn) {
@@ -20,24 +28,24 @@ function _withDB(mt, fn) {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  return _withDB(mt, (db) => db.query(`
+  return _withDB(mt, (db) => completeRows(db.execute(mt.sql`
     SELECT session_id AS id, title, agent_framework AS framework
     FROM sessions
     ORDER BY started_at DESC
     LIMIT ${filters.limit}
-  `));
+  `.build())));
 }
 
 function frameworkShare(filters) {
   const mt = require("minitrace");
   return _withDB(mt, (db) => {
-    const rows = db.query(`
+    const rows = completeRows(db.execute(mt.sql`
     SELECT agent_framework AS framework, COUNT(*) AS count
     FROM sessions
     GROUP BY 1
     ORDER BY count DESC, framework ASC
     LIMIT ${filters.limit}
-  `);
+  `.build()));
     const total = rows.reduce((sum, row) => sum + Number(row.count || 0), 0) || 1;
     return rows.map(row => ({ ...row, share_percent: Math.round((Number(row.count || 0) / total) * 100) }));
   });

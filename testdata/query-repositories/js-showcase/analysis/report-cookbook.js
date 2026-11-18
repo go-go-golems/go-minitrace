@@ -1,3 +1,12 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
+const {queryFilters} = require("../lib/query-filters");
+
 __section__("filters", {
   title: "Filters",
   fields: {
@@ -7,7 +16,8 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
+function _db(mt) { return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build(); }
 
 function _withDB(mt, fn) {
   const db = _db(mt);
@@ -23,18 +33,10 @@ function _limit(filters) {
   return Math.max(1, Math.min(limit, 200));
 }
 
-function _sessionWhere(mt, filters, alias) {
-  const p = alias ? `${alias}.` : "";
-  const clauses = ["1=1"];
-  if (filters.framework?.length) clauses.push(`${p}agent_framework IN (${mt.sql.stringIn(filters.framework)})`);
-  if (filters.working_directory_like) clauses.push(`COALESCE(${p}working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
-  return clauses.join("\n    AND ");
-}
-
 function sessionInventory(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
-  return _withDB(mt, (db) => db.query(`
+  const {frameworkKeys, cwd} = queryFilters(filters);
+  return _withDB(mt, (db) => completeRows(db.execute(mt.sql`
     SELECT
       s.session_id AS id,
       s.title,
@@ -61,16 +63,17 @@ function sessionInventory(filters) {
       FROM handovers
       GROUP BY session_id
     ) h ON h.session_id = s.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     ORDER BY s.started_at DESC, s.tool_call_count DESC, id ASC
     LIMIT ${_limit(filters)}
-  `));
+  `.build())));
 }
 
 function toolRiskMatrix(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
-  return _withDB(mt, (db) => db.query(`
+  const {frameworkKeys, cwd} = queryFilters(filters);
+  return _withDB(mt, (db) => completeRows(db.execute(mt.sql`
     SELECT
       t.tool_name,
       t.operation_type,
@@ -92,18 +95,19 @@ function toolRiskMatrix(filters) {
     LEFT JOIN annotations a ON a.session_id = t.session_id
       AND a.scope_type = 'tool_call'
       AND a.target_id = t.tool_call_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
       AND t.tool_name IS NOT NULL
     GROUP BY t.tool_name, t.operation_type
     ORDER BY failed_calls DESC, annotated_calls DESC, spawned_agent_calls DESC, calls DESC, t.tool_name ASC
     LIMIT ${_limit(filters)}
-  `));
+  `.build())));
 }
 
 function fileHeatmap(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
-  return _withDB(mt, (db) => db.query(`
+  const {frameworkKeys, cwd} = queryFilters(filters);
+  return _withDB(mt, (db) => completeRows(db.execute(mt.sql`
     SELECT
       f.path,
       f.operation_type,
@@ -113,17 +117,18 @@ function fileHeatmap(filters) {
       GROUP_CONCAT(DISTINCT s.title) AS sample_titles
     FROM files f
     JOIN sessions s ON s.session_id = f.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     GROUP BY f.path, f.operation_type
     ORDER BY touches DESC, sessions DESC, f.path ASC
     LIMIT ${_limit(filters)}
-  `));
+  `.build())));
 }
 
 function promptInstructionAudit(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
-  return _withDB(mt, (db) => db.query(`
+  const {frameworkKeys, cwd} = queryFilters(filters);
+  return _withDB(mt, (db) => completeRows(db.execute(mt.sql`
     SELECT
       s.session_id AS id,
       s.title,
@@ -136,16 +141,17 @@ function promptInstructionAudit(filters) {
       CASE WHEN LOWER(COALESCE(s.system_prompt, '')) LIKE '%legacy%' THEN 1 ELSE 0 END AS mentions_legacy,
       SUBSTR(COALESCE(s.system_prompt, ''), 1, 180) AS prompt_preview
     FROM sessions s
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     ORDER BY has_system_prompt DESC, system_prompt_chars DESC, id ASC
     LIMIT ${_limit(filters)}
-  `));
+  `.build())));
 }
 
 function turnTimeline(filters) {
   const mt = require("minitrace");
-  const whereSql = _sessionWhere(mt, filters, "s");
-  return _withDB(mt, (db) => db.query(`
+  const {frameworkKeys, cwd} = queryFilters(filters);
+  return _withDB(mt, (db) => completeRows(db.execute(mt.sql`
     SELECT
       e.session_id AS id,
       s.title AS session_title,
@@ -160,10 +166,11 @@ function turnTimeline(filters) {
       e.annotation_id
     FROM events e
     JOIN sessions s ON s.session_id = e.session_id
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
     ORDER BY e.session_id ASC, COALESCE(e.turn_index, 999999) ASC, e.ordinal ASC, e.event_id ASC
     LIMIT ${_limit(filters)}
-  `));
+  `.build())));
 }
 
 __verb__("sessionInventory", {

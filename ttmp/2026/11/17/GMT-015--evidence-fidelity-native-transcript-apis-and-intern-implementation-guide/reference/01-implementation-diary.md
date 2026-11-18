@@ -885,3 +885,57 @@ Start with the activity SQL predicates and the history result wrapper. Run the f
 ### Technical details
 
 Source probes previously stored literal NUL bytes as grouping-key separators. The migrated source spells them as JS Unicode escapes with the same runtime value. Historical ticket scripts were outside this migration.
+
+## Step 19: Migrate repository showcases and xgoja examples
+
+The advanced showcases and provider examples now construct SQL plans, check result envelopes and continue using ordinary JavaScript for their joins, ranks, cards and reports. The separate importer exposes an immutable lower camel case configuration chain and still previews or saves raw transcript conversions.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal.
+
+**Embedded and docmetrics migration commit:** `03290f4`.
+
+### What I did
+
+- Migrated the query-bearing scripts in both showcase repositories. Preserved SQL statement bodies where possible and put optional predicates at the same logical stage as before.
+- Added a CommonJS helper that prepares bound filter values for the richer showcase. Kept the simpler mixed showcase's filtering and reporting behavior.
+- Migrated the xgoja inspect verbs and Markdown report source. The Markdown report now closes its database in a finally block.
+- Renamed the JS importer methods and made configuration and conversion return a new value. Removed stale converted data when deriving different configuration.
+- Updated provider import fixtures for the new spelling and preserved SQLite cell values through plan result envelopes.
+
+### Why
+
+The showcase scripts are maintained usage examples and semantic checks for the cutover. Their result reducers and command metadata remain useful tests of the boundary around the fluent grammar. The importer owns explicit conversion and saving as operations separate from query plans.
+
+### What worked
+
+`go test ./pkg/minitracejs/... ./pkg/queryplan ./pkg/minitracedb` passed. This includes the provider importer preview and save fixtures. The command tests for JSShowcase, MixedSQLJSShowcase, Migrated and EvidenceWorkflow also passed. The authored xgoja example scripts were migrated, with independent execution of those example entry points still part of final validation.
+
+### What didn't work
+
+The first showcase run failed in `TestMinitraceCatalogGlazeCommand_RunIntoGlazeProcessorExecutesAdvancedJSShowcaseCommands/report_cookbook_commands_produce_raw_SQL_analysis_rows`. It reported `row[mentions_tests] = 1, want 1`. Envelope JSON conversion had changed an SQLite integer from Go int64 to float64. The plan execution wrapper now retains the runner's row values, and the existing assertion passes.
+
+### What I learned
+
+Columns, diagnostics and status map cleanly into the existing envelope conversion. Row values need the runner's original scalar types for Go-side output consumers. SQL-only commands can preserve their result shape and still surface incomplete delivery explicitly.
+
+### What was tricky to build
+
+The rich showcase filters have query-specific SQL aliases. Their predicates now name those aliases statically and bind only values. The helper prepares exact list membership keys and leaves the SQL source opaque. The async commands still perform their host wait before querying, and the legacy policy for a null result from a first-row selection is made explicit at the few sites that use it.
+
+### What warrants a second pair of eyes
+
+Check real filtered list results for framework labels outside the synthetic corpus and verify the examples with the generated xgoja command entry points. Refresh the remaining public API and provider documentation when old query methods are removed.
+
+### What should be done in the future
+
+Complete parameters, fragments and runtime callbacks. Remove transitional query entry points after migrating the remaining inline JS fixtures and published help. Run the full acceptance and persona validation against the final API.
+
+### Code review instructions
+
+Start with the advanced showcase tests, the importer JS binding and the plan result envelope. Run the package command above and `go test ./cmd/go-minitrace/cmds/query -run 'Test.*(JSShowcase|MixedSQLJSShowcase|Migrated|EvidenceWorkflow)'`.
+
+### Technical details
+
+The new `query-filters.js` exports a helper via CommonJS and uses a function expression to avoid command discovery. Optional filters are represented by null or scalar values and bind through the same tagged SQL path as the command limits.

@@ -232,5 +232,8 @@ func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, plan *quer
 	}
 	result, err := h.QueryResult(ctx, plan.SQL(), plan.Args()...)
 	b.check(err)
-	return b.vm.ToValue(toPlainMap(result))
+	envelope := toPlainMap(result)
+	// Preserve the SQL runner’s integer and real cell types for Go hosts.
+	envelope["rows"] = result.Rows
+	return b.vm.ToValue(envelope)
 }

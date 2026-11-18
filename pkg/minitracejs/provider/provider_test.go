@@ -812,16 +812,16 @@ func TestModuleLoaderImporterSavesJSONLContent(t *testing.T) {
 	_ = vm.Set("rootDir", root)
 	value, err := vm.RunString(`
 		const importer = mt.importer()
-		  .Content(jsonlContent)
-		  .Name("importer-content.jsonl")
-		  .Into(rootDir)
-		  .SessionID("saved-session")
-		  .AutoDetect()
-		  .Strict()
-		  .Convert();
-		const converted = importer.Converted();
-		const saved = importer.Save();
-		JSON.stringify({ converted, saved, diagnostics: importer.Diagnostics() });
+		  .content(jsonlContent)
+		  .name("importer-content.jsonl")
+		  .into(rootDir)
+		  .sessionId("saved-session")
+		  .autoDetect()
+		  .strict()
+		  .convert();
+		const converted = importer.converted();
+		const saved = importer.save();
+		JSON.stringify({ converted, saved, diagnostics: importer.diagnostics() });
 	`)
 	if err != nil {
 		t.Fatalf("run importer script: %v", err)
@@ -880,11 +880,11 @@ func TestModuleLoaderImporterConvertSupportsCopilotJSONL(t *testing.T) {
 	_ = vm.Set("jsonlContent", content)
 	value, err := vm.RunString(`
 		const importer = mt.importer()
-		  .Content(jsonlContent)
-		  .Name("copilot-events.jsonl")
-		  .AutoDetect()
-		  .Convert();
-		JSON.stringify(importer.Converted());
+		  .content(jsonlContent)
+		  .name("copilot-events.jsonl")
+		  .autoDetect()
+		  .convert();
+		JSON.stringify(importer.converted());
 	`)
 	if err != nil {
 		t.Fatalf("run importer script: %v", err)

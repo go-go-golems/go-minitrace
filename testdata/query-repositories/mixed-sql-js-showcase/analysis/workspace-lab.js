@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 __section__("filters", {
   title: "Filters",
   fields: {
@@ -6,7 +13,8 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
+function _db(mt) { return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build(); }
 
 function _withDB(mt, fn) {
   const db = _db(mt);
@@ -17,32 +25,26 @@ function _withDB(mt, fn) {
   }
 }
 
-function _workspaceWhere(mt, filters) {
-  const clauses = ["1=1"];
-  if (filters.working_directory_like) clauses.push(`COALESCE(working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
-  return clauses.join("\n    AND ");
-}
-
 function workspaceScoreboard(filters) {
   const mt = require("minitrace");
-  const whereSql = _workspaceWhere(mt, filters);
+  const cwd = filters.working_directory_like ? "%" + filters.working_directory_like + "%" : null;
   return _withDB(mt, (db) => {
 
-  const workspaceRows = db.query(`
+  const workspaceRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, COUNT(*) AS session_count, AVG(tool_call_count) AS avg_tool_calls
     FROM sessions
-    WHERE ${whereSql}
+    WHERE (${cwd} IS NULL OR COALESCE(working_directory, '') LIKE ${cwd})
     GROUP BY 1
     ORDER BY session_count DESC, avg_tool_calls DESC, working_directory ASC
     LIMIT ${filters.limit}
-  `);
+  `.build()));
 
-  const highlightRows = db.query(`
+  const highlightRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, session_id AS id, title, tool_call_count
     FROM sessions
-    WHERE ${whereSql}
+    WHERE (${cwd} IS NULL OR COALESCE(working_directory, '') LIKE ${cwd})
     ORDER BY tool_call_count DESC, session_id ASC
-  `);
+  `.build()));
 
   const byWorkspace = {};
   for (const row of highlightRows) if (!byWorkspace[row.working_directory]) byWorkspace[row.working_directory] = row;

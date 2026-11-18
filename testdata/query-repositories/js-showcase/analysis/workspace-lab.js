@@ -1,3 +1,12 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
+const {queryFilters} = require("../lib/query-filters");
+
 const cookbook = require("./lib/cookbook");
 
 __section__("filters", {
@@ -10,7 +19,8 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
+function _db(mt) { return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build(); }
 
 function _withDB(mt, fn) {
   const db = _db(mt);
@@ -21,22 +31,12 @@ function _withDB(mt, fn) {
   }
 }
 
-function _workspaceWhere(mt, filters, alias) {
-  const p = alias ? alias + "." : "";
-  const clauses = ["1=1"];
-  if (filters.framework?.length) clauses.push(`${p}agent_framework IN (${mt.sql.stringIn(filters.framework)})`);
-  if (filters.working_directory_like) clauses.push(`COALESCE(${p}working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
-  if (filters.min_tool_calls) clauses.push(`${p}tool_call_count >= ${filters.min_tool_calls}`);
-  return clauses.join("\n    AND ");
-}
-
 function workspaceScoreboard(filters) {
   const mt = require("minitrace");
-  const whereSql = _workspaceWhere(mt, filters, "");
+  const {frameworkKeys, cwd, minTools} = queryFilters(filters);
   return _withDB(mt, (db) => {
-  const joinedWhereSql = _workspaceWhere(mt, filters, "s");
 
-  const workspaceRows = db.query(`
+  const workspaceRows = completeRows(db.execute(mt.sql`
     SELECT
       COALESCE(working_directory, '(none)') AS working_directory,
       COUNT(*) AS session_count,
@@ -44,27 +44,33 @@ function workspaceScoreboard(filters) {
       AVG(turn_count) AS avg_turns,
       MAX(started_at) AS latest_started_at
     FROM sessions
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(working_directory, '') LIKE ${cwd})
+    AND (${minTools} IS NULL OR tool_call_count >= ${minTools})
     GROUP BY 1
     ORDER BY session_count DESC, avg_tool_calls DESC, working_directory ASC
     LIMIT ${filters.limit}
-  `);
+  `.build()));
 
-  const highlightRows = db.query(`
+  const highlightRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, session_id AS id, title, tool_call_count
     FROM sessions
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(working_directory, '') LIKE ${cwd})
+    AND (${minTools} IS NULL OR tool_call_count >= ${minTools})
     ORDER BY tool_call_count DESC, session_id ASC
-  `);
+  `.build()));
 
-  const toolRows = db.query(`
+  const toolRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(s.working_directory, '(none)') AS working_directory, t.tool_name, COUNT(*) AS tool_uses
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
-    WHERE ${joinedWhereSql}
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd})
+    AND (${minTools} IS NULL OR s.tool_call_count >= ${minTools})
       AND t.tool_name IS NOT NULL
     GROUP BY 1, 2
     ORDER BY working_directory ASC, tool_uses DESC, tool_name ASC
-  `);
+  `.build()));
 
   const bestSessionByWorkspace = cookbook.firstBy(highlightRows, "working_directory");
   const topToolByWorkspace = cookbook.firstBy(toolRows, "working_directory");
@@ -92,31 +98,35 @@ function workspaceScoreboard(filters) {
 
 function workspaceSessionHighlights(filters) {
   const mt = require("minitrace");
-  const whereSql = _workspaceWhere(mt, filters, "");
+  const {frameworkKeys, cwd, minTools} = queryFilters(filters);
   return _withDB(mt, (db) => {
 
-  const workspaceRows = db.query(`
+  const workspaceRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, COUNT(*) AS session_count
     FROM sessions
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(working_directory, '') LIKE ${cwd})
+    AND (${minTools} IS NULL OR tool_call_count >= ${minTools})
     GROUP BY 1
     ORDER BY session_count DESC, working_directory ASC
     LIMIT ${filters.limit}
-  `);
+  `.build()));
 
-  const sessionRows = db.query(`
+  const sessionRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(working_directory, '(none)') AS working_directory, session_id AS id, title, tool_call_count, model
     FROM sessions
-    WHERE ${whereSql}
+    WHERE (${frameworkKeys} IS NULL OR (agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(working_directory, '') LIKE ${cwd})
+    AND (${minTools} IS NULL OR tool_call_count >= ${minTools})
     ORDER BY working_directory ASC, tool_call_count DESC, session_id ASC
-  `);
+  `.build()));
 
-  const toolRows = db.query(`
+  const toolRows = completeRows(db.execute(mt.sql`
     SELECT COALESCE(s.working_directory, '(none)') AS working_directory, t.tool_name, COUNT(*) AS tool_uses
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
     GROUP BY 1, 2
     ORDER BY working_directory ASC, tool_uses DESC, tool_name ASC
-  `);
+  `.build()));
 
   const sessionsByWorkspace = cookbook.groupBy(sessionRows, "working_directory");
   const toolsByWorkspace = cookbook.groupBy(toolRows, "working_directory");

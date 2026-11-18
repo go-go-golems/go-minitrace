@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 __package__({
   name: "inspect",
   short: "Inspect minitrace archives and raw session exports with require(\"minitrace\")",
@@ -5,13 +12,15 @@ __package__({
 
 function openDB(file) {
   const mt = require("minitrace");
-  return mt.db().File(file).QueryCommandDefaults().Build();
+  return mt.db().sources(mt.sources().files([file]).build())
+    .import({autoConvert: true, strict: true}).build();
 }
 
 function summary(file) {
+  const mt = require("minitrace");
   const db = openDB(file);
   try {
-    const row = db.queryOne(`
+    const row = completeRows(db.execute(mt.sql`
       SELECT
         session_id,
         title,
@@ -23,7 +32,8 @@ function summary(file) {
       FROM sessions
       ORDER BY session_id
       LIMIT 1
-    `);
+    `.build()))[0] ?? null;
+    if (!row) throw new Error("Archive contains no sessions");
     return {
       file,
       session_id: row.session_id,
@@ -51,9 +61,10 @@ __verb__("summary", {
 });
 
 function tools(file, limit) {
+  const mt = require("minitrace");
   const db = openDB(file);
   try {
-    return db.query(`
+    return completeRows(db.execute(mt.sql`
       SELECT
         tool_name,
         COALESCE(operation_type, '') AS operation_type,
@@ -62,8 +73,8 @@ function tools(file, limit) {
       FROM tool_calls
       GROUP BY tool_name, operation_type
       ORDER BY calls DESC, tool_name ASC, operation_type ASC
-      LIMIT ?
-    `, limit || 10);
+      LIMIT ${limit || 10}
+    `.build()));
   } finally {
     db.close();
   }
@@ -88,11 +99,11 @@ __verb__("tools", {
 function preview(file) {
   const mt = require("minitrace");
   const importer = mt.importer()
-    .File(file)
-    .AutoDetect()
-    .Convert();
-  const converted = importer.Converted();
-  const preview = importer.Preview();
+    .file(file)
+    .autoDetect()
+    .convert();
+  const converted = importer.converted();
+  const preview = importer.preview();
   return {
     file,
     converted,
@@ -124,19 +135,15 @@ __verb__("preview", {
 
 function autoConvert(file, cacheDir, limit) {
   const mt = require("minitrace");
-  const sources = mt.sources().File(file).Build();
-  const importPolicy = mt.importPolicy().AutoConvert().Strict().Build();
-  const cache = mt.cache().Auto().Dir(cacheDir).Build();
-  const limits = mt.limits().Rows(limit || 25).Build();
   const builder = mt.db()
-    .Sources(sources)
-    .Import(importPolicy)
-    .Cache(cache)
-    .Limits(limits);
-  const cacheKey = builder.CacheKey();
-  const db = builder.Build();
+    .sources(mt.sources().files([file]).build())
+    .import({autoConvert: true, strict: true})
+    .cache({mode: "auto", dir: cacheDir})
+    .limits({maxRows: limit || 25});
+  const cacheKey = builder.cacheKey();
+  const db = builder.build();
   try {
-    const session = db.queryOne(`
+    const session = completeRows(db.execute(mt.sql`
       SELECT
         session_id,
         agent_framework,
@@ -144,13 +151,13 @@ function autoConvert(file, cacheDir, limit) {
         tool_call_count
       FROM sessions
       LIMIT 1
-    `);
-    const roles = db.query(`
+    `.build()))[0] ?? null;
+    const roles = completeRows(db.execute(mt.sql`
       SELECT role, COUNT(*) AS turns
       FROM turns
       GROUP BY role
       ORDER BY role
-    `);
+    `.build()));
     return {
       file,
       cacheKey: cacheKey.key,
@@ -189,14 +196,14 @@ __verb__("autoConvert", {
 function saveConverted(file, out) {
   const mt = require("minitrace");
   const importer = mt.importer()
-    .File(file)
-    .AutoDetect()
-    .Into(out)
-    .Overwrite()
-    .Convert();
+    .file(file)
+    .autoDetect()
+    .into(out)
+    .overwrite()
+    .convert();
   return {
-    converted: importer.Converted(),
-    saved: importer.Save(),
+    converted: importer.converted(),
+    saved: importer.save(),
   };
 }
 
