@@ -36,7 +36,7 @@ Implementation and intern onboarding for [upstream issue 34](https://github.com/
 - [Provenance](reference/03-provenance-notes.md)
 - [Native evidence](reference/04-native-evidence-notes.md)
 
-Reproduction scripts are in `scripts/`; validation receipts are in `sources/`. The guide explicitly separates delivered fixes from deferred scanner and replay work. Full-suite validation retains two confirmed baseline configuration failures; focused new regressions pass.
+Reproduction scripts are in `scripts/`; validation receipts are in `sources/`. The guide explicitly separates delivered fixes from deferred scanner and replay work. Earlier configuration test failures were reproduced and fixed in the platform test fixtures. The final full suite passes.
 
 Planned delivery: `/ai/2026/11/17/GMT-015`, document `GMT 015 Evidence Fidelity and Intern Guide`. Upload success will be reported in the final session receipt; all commits precede upload at the user’s request.
 
@@ -69,3 +69,7 @@ Final v2 implementation results: [current review](reference/13-review-followup-i
 [Design04: composable JavaScript query grammar and Go architecture](design-doc/04-composable-javascript-query-grammar-architecture-api-and-intern-implementation-guide.md) specifies the next clean-cut API. It deliberately removes legacy exports and aliases, replaces domain preset switches with a small typed grammar, and describes Go package restructuring, callback phases, local execution, scoped fragments and staged implementation. This is proposed work; the persona-tested implementation above remains the current code.
 
 Design04 now includes a before/after review of all 28 maintained JS scripts and an index of all 267 discovered JS/MJS/CJS files. The local-execution revision retains fragments and ordinary callbacks; it excludes plan transport and function registries. Reproduce the inventory with `scripts/04-inventory-js-api-migration.py`; hashes and lexical method evidence are in `sources/js-api-migration-inventory.json`.
+
+## Local JS API implementation
+
+Design04 is implemented on this branch. The local API supports fluent queries, tagged SQL, named parameters, scoped fragments and terminal mapping through a single execution method. Published docs, examples and the installed transcript analysis skill use the new API. See [acceptance and persona replays](reference/15-local-js-api-acceptance-and-persona-replay-results.md) for the verified checks, the frozen original matrix and the separate retest.

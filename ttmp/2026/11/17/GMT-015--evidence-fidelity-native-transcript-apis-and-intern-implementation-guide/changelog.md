@@ -35,3 +35,7 @@ Added design04: clean-cut composable JS grammar and Go restructuring, with inter
 ## 2026-11-17
 
 Simplify design04 to local script execution with scoped fragments; add existing-script before/after review, 267-file reproducible inventory, and source-verified migration corrections.
+
+## 2026-11-18
+
+Completed Design04 local JavaScript API and documentation cutover. Full Go gates, generated declarations and xgoja smoke pass. Frozen persona matrix 6/8 and separate mapped report retest 2/2.

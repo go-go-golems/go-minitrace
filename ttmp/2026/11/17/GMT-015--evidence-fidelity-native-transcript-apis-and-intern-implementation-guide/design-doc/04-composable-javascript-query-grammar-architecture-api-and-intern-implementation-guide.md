@@ -13,10 +13,10 @@ RelatedFiles:
       Note: Execution authorization and evidence semantics
     - Path: repo://pkg/minitracejs/module.go
       Note: Public export clean cut
-    - Path: repo://pkg/minitracejs/query_view_session.go
-      Note: Preset switch to replace with a composable grammar
     - Path: repo://pkg/minitracejs/typescript.go
       Note: Replacement public declarations
+    - Path: repo://pkg/queryplan/compile.go
+      Note: Implemented local query compiler
     - Path: repo://ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/04-inventory-js-api-migration.py
       Note: Reproduce complete standalone JavaScript inventory and migration-family index
 ExternalSources: []

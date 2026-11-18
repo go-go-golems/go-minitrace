@@ -9,3 +9,4 @@
 - [x] Follow up confirmed QueryResult nullable array declaration mismatch <!-- t:guwi -->
 - [x] Improve executable documentation for CLI verb paths flag scopes and zero-tool session counting <!-- t:7x1f -->
 - [x] Revise persona answer contracts to explicitly separate synthetic and real scopes and archive versus chronological order <!-- t:pa1d -->
+- [x] Implement and verify Design04 local JavaScript API clean cut and persona acceptance <!-- t:uz73 -->

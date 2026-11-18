@@ -305,5 +305,71 @@
         ]
       }
     ]
+  },
+  "followup": {
+    "passed": 2,
+    "attempted": 2,
+    "revision": "d0989b3d9910eb806cae066139ac0d69011556fa",
+    "hashes": {
+      "go-minitrace": "6c116b540f255440525352292047fecd7b2a4d62cc1e4ca4ba05e22983c466b9",
+      "api.md": "5854f7c0d7d07033153709c782d3d79269377343837ebe423c2234460a813293",
+      "empty.minitrace.json": "5d871e4a46493adf3f4ab030ecda143872b278e8421fbb1748876f2ad9f6cde1",
+      "single.minitrace.json": "ae741459fa72a666fad8174780ddd37b3e5bc42669830d633278db5b4ae37d43",
+      "two.minitrace.json": "7219424787959bbfbb42f3c68b60a1e3223a15553922bc6a367c68e360689145"
+    },
+    "runs": [
+      {
+        "task": "report",
+        "model": "glm-5.3-flash",
+        "thinking": "low",
+        "model_exit": 0,
+        "prompt_sha256": "93b647bcbd6bba96fa8784cd3e6d3e3cbbcd197cd501c1f5fd3582b7f3f09e3f",
+        "answer_sha256": "650e7ac9217b1b9a11f7f47f1b02b20c2d0fd63f106b9f5659f6ddd60d893014",
+        "passed": true,
+        "script_sha256": "8a8ed25ee9ea33d2e3e04be4bc5a169a3c0f105d509008eb90b19a54ce61aa70",
+        "replay_exit": 0,
+        "replay_sha256": "bb8db87eeb54c7b07f14a16685550edab8dd28d5d13ea7917e8c65086de5c3b1",
+        "rows": [
+          {
+            "label": "0 tools",
+            "session_id": "empty"
+          },
+          {
+            "label": "1 tools",
+            "session_id": "single"
+          },
+          {
+            "label": "2 tools",
+            "session_id": "two"
+          }
+        ]
+      },
+      {
+        "task": "report",
+        "model": "glm-5.3-flash",
+        "thinking": "high",
+        "model_exit": 0,
+        "prompt_sha256": "93b647bcbd6bba96fa8784cd3e6d3e3cbbcd197cd501c1f5fd3582b7f3f09e3f",
+        "answer_sha256": "6eba25ff41d4f6a0b3287a74aff19167db6325994ae727b003338cff2bcb2cf4",
+        "passed": true,
+        "script_sha256": "46c32a0b1e54f1206111f926d35bf382844670812701578ec357cd434cad89ec",
+        "replay_exit": 0,
+        "replay_sha256": "bb8db87eeb54c7b07f14a16685550edab8dd28d5d13ea7917e8c65086de5c3b1",
+        "rows": [
+          {
+            "label": "0 tools",
+            "session_id": "empty"
+          },
+          {
+            "label": "1 tools",
+            "session_id": "single"
+          },
+          {
+            "label": "2 tools",
+            "session_id": "two"
+          }
+        ]
+      }
+    ]
   }
 }

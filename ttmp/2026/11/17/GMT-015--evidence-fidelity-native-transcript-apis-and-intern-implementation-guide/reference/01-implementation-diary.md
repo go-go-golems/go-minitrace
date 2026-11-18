@@ -1329,3 +1329,57 @@ Inspect the compact receipt and saved generated scripts in the ticket. Run `go t
 ### Technical details
 
 Only public API references and task descriptions were provided to the models. The synthetic fixture data was available to the replayed command. Model event streams and full sessions remain outside Git.
+
+## Step 27: Close the local API acceptance audit
+
+Both targeted GLM report retests passed after the API reference was expanded. The original eight-run matrix stays at six passes. The revised examples and the new diagnostic are part of the accepted implementation.
+
+### Prompt Context
+
+See Steps 15, 23 and 26. The retest pinned commit `d0989b3`.
+
+### What I did
+
+- Ran the two GLM report tasks against a fresh binary and revised reference hash.
+- Compared exact returned rows through the fixed host command and verified the probe again.
+- Preserved compact receipts and generated source separately from the original matrix.
+- Ran the full Go suite, build, vet, embedded help and repository lint against the final code revision.
+- Checked the published API, examples, skill parity, replay data and commit history against Design04 and linked the acceptance reference from the ticket index.
+
+### Why
+
+A successful retest should preserve the original discovery failures and separately check whether the improved guidance helps with the affected task. Repository tests establish deterministic product behavior.
+
+### What worked
+
+Both follow-up runs finished with model exit zero and replay exit zero. Their scripts ordered the query before mapping, used the parameter binding and produced the exact rows including the zero-tool session. The final unfiltered test, build, vet, help and lint sequence passed. Earlier strict standalone and generated TypeScript checks and both xgoja smoke targets are recorded in Step 25.
+
+### What didn't work
+
+No failures in the targeted retest or final repository gate. The original matrix's two caller errors and the pilot sandbox startup failure remain documented in Step 26.
+
+### What I learned
+
+The complete example clarified two distinct boundaries in the same workflow. The result applies to the tested model, prompts and synthetic corpus.
+
+### What was tricky to build
+
+The retest needed a fresh binary and documentation pin so its results could not be confused with the original matrix. The receipt records both hashes before entering the cohort and the harness verifies them again afterward.
+
+### What warrants a second pair of eyes
+
+Check the generated scripts beside their receipts when interpreting the authoring results. The separate upstream signed-default fix and exact causal replay remain outside this implementation.
+
+### What should be done in the future
+
+Grow acceptance coverage when new query components or browser hosting are implemented. No additional local API cutover work is pending in this ticket scope.
+
+### Code review instructions
+
+Start with the acceptance reference and compact JSON receipt. Step 25 records static and generated-host verification. Steps 26 and 27 record the original matrix, recovery and follow-up runs.
+
+### Technical details
+
+The synthetic input corpus and all generated query code are reproducible. Scratch sessions and full process output remain outside Git. Final runtime checks ran against the code in `d0989b3`. This closing commit records results and ticket history.
+
+Ticket verification found stale related-file metadata for the removed Go recipe selector and missing frontmatter on the reproduction guide. Updated those entries, added frontmatter, and gave the reproduction guide the ticket's numeric prefix.

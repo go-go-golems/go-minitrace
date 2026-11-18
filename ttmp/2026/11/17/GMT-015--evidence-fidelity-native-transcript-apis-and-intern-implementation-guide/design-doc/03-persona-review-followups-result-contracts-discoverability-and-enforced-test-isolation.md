@@ -13,8 +13,6 @@ RelatedFiles:
       Note: Result envelope CLI contract
     - Path: repo://pkg/minitracedb/query.go
       Note: Non-null error arrays
-    - Path: repo://pkg/minitracejs/query_view_session.go
-      Note: Zero-tool session recipe
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-11-17T15:13:24.590367-05:00

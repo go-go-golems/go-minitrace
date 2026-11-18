@@ -1,3 +1,16 @@
+---
+Title: Reproduce local JavaScript API persona acceptance
+Ticket: GMT-015
+Status: active
+Topics: [minitrace, analysis]
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: Synthetic corpus, pinned CLI and sandboxed host replay.
+---
+
 # Local JS API persona acceptance
 
 Run from the repository root on macOS with Python, Go, Pi and the installed
