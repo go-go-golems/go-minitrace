@@ -1383,3 +1383,51 @@ Start with the acceptance reference and compact JSON receipt. Step 25 records st
 The synthetic input corpus and all generated query code are reproducible. Scratch sessions and full process output remain outside Git. Final runtime checks ran against the code in `d0989b3`. This closing commit records results and ticket history.
 
 Ticket verification found stale related-file metadata for the removed Go recipe selector and missing frontmatter on the reproduction guide. Updated those entries, added frontmatter, and gave the reproduction guide the ticket's numeric prefix.
+
+## Step 28: Draft open-ended real transcript persona briefs
+
+The next evaluation asks agents to investigate real records and write their own scripts. The briefs keep replayable evidence requirements and leave method, case selection and conclusions open.
+
+### Prompt Context
+
+> make more complex asks, leaving the models a bit more freedom to do their own script writing and all. Open ended tasks on existing transcripts or so.
+
+### What I did
+
+Wrote four analyst briefs on recovery, file attribution, efficiency and handoffs. Verified that the frozen inventory has three sessions each for Claude Code, Codex and Pi and that all nine normalized archives exist.
+
+### Why
+
+The synthetic matrix tested a particular API sequence. The new briefs test how agents choose an approach and reason about ambiguous evidence.
+
+### What worked
+
+Each brief requires a reusable JS command and independently checkable claims. The rubric separates reproducibility, factual accuracy and analytical quality.
+
+### What didn't work
+
+The first bookkeeping command omitted the ticket path variable and could not append the diary or validate the brief. The brief itself was saved. Restored the variable and reran validation.
+
+### What I learned
+
+The host can check a submitted selection and its quantities without prescribing a finding.
+
+### What was tricky to build
+
+Each question needed enough freedom for original analysis and enough observable claims for independent replay.
+
+### What warrants a second pair of eyes
+
+Check the pilot for unintended dependencies on one adapter's schema or evidence coverage.
+
+### What should be done in the future
+
+Pilot one run per brief, then freeze the prompts, corpus and rubric before running the matrix.
+
+### Code review instructions
+
+Read reference 16 for the shared prompt, four briefs and host checks. Reference 15 records the narrower baseline.
+
+### Technical details
+
+Only corpus presence and framework counts were checked. No model runs were launched for this prompt-writing step.

@@ -73,3 +73,5 @@ Design04 now includes a before/after review of all 28 maintained JS scripts and 
 ## Local JS API implementation
 
 Design04 is implemented on this branch. The local API supports fluent queries, tagged SQL, named parameters, scoped fragments and terminal mapping through a single execution method. Published docs, examples and the installed transcript analysis skill use the new API. See [acceptance and persona replays](reference/15-local-js-api-acceptance-and-persona-replay-results.md) for the verified checks, the frozen original matrix and the separate retest.
+
+For the next authoring cohort, see [open-ended persona briefs](reference/16-open-ended-persona-briefs-for-real-transcript-analysis.md).
