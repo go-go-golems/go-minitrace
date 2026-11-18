@@ -26,6 +26,8 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 	}
 	return func(vm *goja.Runtime, moduleObj *goja.Object) {
 		exports := moduleObj.Get("exports").(*goja.Object)
+		relation := newRelationalBinding(vm)
+		_ = exports.Set("from", relation.from)
 		_ = exports.Set("native", func() *goja.Object { return nativeEvidenceBuilderObject(ctx, vm) })
 		_ = exports.Set("corpusManifest", func(paths []string) map[string]any { return corpusManifest(vm, paths) })
 		_ = exports.Set("utf8ByteLength", func(text string) int { return len(text) })
@@ -33,7 +35,9 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 			return importBuilderObject(vm, NewImportBuilder())
 		})
 		_ = exports.Set("db", func() *goja.Object {
-			return builderObject(vm, NewDBBuilderWithRuntime(ctx, runtimeSettings))
+			builder := NewDBBuilderWithRuntime(ctx, runtimeSettings)
+			builder.relation = relation
+			return builderObject(vm, builder)
 		})
 		_ = exports.Set("sources", func() *goja.Object {
 			return sourcesBuilderObject(vm, NewSourceSetBuilder())

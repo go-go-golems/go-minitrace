@@ -710,3 +710,56 @@ Read `Query.Select`, `Query.Build` and `compiler.expr` together. Run `go test ./
 ### Technical details
 
 Queries share immutable child pointers. Each query pointer identifies its callback row scope and each owner identifies a database handle. The compiler bounds nesting and node count and the existing runner retains authority over execution.
+
+## Step 16: Execute a fluent query through the Goja module
+
+The binding calls the same Go query model from the existing `require("minitrace")` loader. It keeps symbolic expressions local to the current runtime and returns the runner's existing result envelope.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal.
+
+**Core compiler commit:** `9704e61`.
+
+### What I did
+
+- Added `relational.go` with symbolic rows, scalar expressions, fluent combinators and local plans.
+- Connected `mt.from`, `db.table` and plan execution to the existing loader and database handle.
+- Added a runtime fixture that opens an in-memory archive through the module and executes a real correlated count.
+- Verified callback timing, unknown fields, accidental `===`, Promise rejection, array sort keys and cross-handle plan rejection.
+
+### Why
+
+The current loader is shared by the command and provider paths. Reusing it and the current runner tests the actual module boundary without introducing a second host.
+
+### What worked
+
+`go test ./pkg/minitracejs ./pkg/queryplan` passed and `git diff --check` was clean. The runtime fixture returns one zero-tool session and invokes the projection callback once across two builds.
+
+### What didn't work
+
+The first sandboxed `go test ./pkg/minitracejs` failed during setup with `open /Users/manuel.odendahl/Library/Caches/go-build/5f/5fde204454053edb446913f4fd5682338cb96c85ee6f3000539859525dd2107e-d: operation not permitted`. The same command passed with approved access to the existing build cache.
+
+### What I learned
+
+A private JS WeakMap associates the public objects with opaque Go state while allowing discarded builders to be collected. The query callback can return normal JS objects as projections and the binding converts their fields to typed expressions.
+
+### What was tricky to build
+
+A symbolic row's Proxy distinguishes a schema miss from a probe for `then`. It returns undefined for an absent `then` and still permits an actual projected column of that name. Promise rejection uses the Goja export type so ordinary projection objects do not need a property read to classify them.
+
+### What warrants a second pair of eyes
+
+Review scope handling around user-defined fragments once they are attached. Check that the final cutover removes the old reflected database handle and recipe execution route after migrating callers.
+
+### What should be done in the future
+
+Implement tagged SQL and the resource builder vocabulary, migrate a CLI command and verify host discovery. Parameter binding, fragments, runtime mapping, declarations, remaining callers and persona validation are still open.
+
+### Code review instructions
+
+Start with `relationalBinding.queryObject`, `relationalBinding.execute` and `TestRelationalBindingThroughRequire`. Run `go test ./pkg/minitracejs ./pkg/queryplan`.
+
+### Technical details
+
+The binding uses the loader context for plan execution and compares owner identity before querying. Early milestone commits still build the existing commands during migration. The old execution route is scheduled for deletion at the coordinated API cutover.

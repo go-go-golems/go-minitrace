@@ -15,9 +15,11 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
+	"github.com/go-go-golems/go-minitrace/pkg/queryplan"
 )
 
 type DBBuilder struct {
+	relation            *relationalBinding
 	ctx                 context.Context
 	backend             string
 	storage             string
@@ -46,6 +48,9 @@ type ValidationResult struct {
 }
 
 type DBHandle struct {
+	owner       *queryplan.Owner
+	relation    *relationalBinding
+	ctx         context.Context
 	db          *sql.DB
 	runner      *minitracedb.QueryRunner
 	schema      minitracedb.SchemaDescriptor
@@ -287,6 +292,7 @@ func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
 		if err != nil {
 			return nil, err
 		}
+		h.owner, h.relation, h.ctx = queryplan.NewOwner(), b.relation, b.ctx
 		return handleObject(vm, h), nil
 	})
 	return obj
@@ -959,6 +965,9 @@ func NewArchiveQueryTarget(ctx context.Context, archiveGlobs []string, query min
 func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	obj := vm.NewObject()
 	_ = obj.Set("_handle", h)
+	if h.relation != nil {
+		_ = obj.Set("table", func(name string) *goja.Object { return h.relation.table(h, name) })
+	}
 	_ = obj.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
 		return h.runner.Query(context.Background(), sqlText, args...)
 	})
@@ -972,6 +981,11 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	// Recipes expose sql()/args(); plain data-shaped recipes use sql/args fields.
 	_ = obj.Set("execute", func(call goja.FunctionCall) goja.Value {
 		value := call.Argument(0)
+		if h.relation != nil {
+			if plan, ok := h.relation.lookup(value).(*queryplan.Plan); ok {
+				return h.relation.execute(h.ctx, h, plan)
+			}
+		}
 		if goja.IsNull(value) || goja.IsUndefined(value) {
 			panic(vm.NewTypeError("execute requires a query recipe"))
 		}
