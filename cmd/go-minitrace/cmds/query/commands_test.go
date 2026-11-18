@@ -11,7 +11,59 @@ import (
 	"time"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+	"github.com/spf13/cobra"
 )
+
+func TestNewCommandsCommand_ArchiveFlagOnUnresolvedPath(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repo, "probe_sandbox.js"), []byte(`
+function probe_sandbox() { return [{ ok: true }]; }
+__verb__("probe_sandbox", { name: "probe-sandbox" });
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(t.TempDir(), "sample.minitrace.json")
+	if err := os.WriteFile(archive, []byte(`{"id":"sample","profile":"organic","turns":[],"tool_calls":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{"unknown root verb", []string{"missing", "--archive-glob", archive}, []string{`unknown query command "missing"`, "available commands:"}},
+		{"group only", []string{"probe_sandbox", "--archive-glob", archive}, []string{"choose a runnable query command", "available commands: probe-sandbox"}},
+		{"unknown nested verb", []string{"probe_sandbox", "typo", "--archive-glob=" + archive}, []string{`unknown query command "typo"`, "available commands: probe-sandbox"}},
+		{"unrelated flag on group", []string{"probe_sandbox", "--bogus"}, []string{"unknown flag: --bogus"}},
+		{"unrelated flag on leaf", []string{"probe_sandbox", "probe-sandbox", "--bogus"}, []string{"unknown flag: --bogus"}},
+		{"complete command", []string{"probe_sandbox", "probe-sandbox", "--archive-glob", archive, "--output", "json"}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			queryCmd, err := NewCommand([]string{repo})
+			if err != nil {
+				t.Fatal(err)
+			}
+			root := &cobra.Command{Use: "go-minitrace", SilenceErrors: true, SilenceUsage: true}
+			root.AddCommand(queryCmd)
+			root.SetArgs(append([]string{"query", "commands"}, tc.args...))
+			if err := root.Execute(); len(tc.want) == 0 {
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if err == nil {
+					t.Fatal("expected a command error")
+				}
+				for _, want := range tc.want {
+					if !strings.Contains(err.Error(), want) {
+						t.Errorf("error %q is missing %q", err, want)
+					}
+				}
+			}
+		})
+	}
+}
 
 func TestNewCommandsCommand_IncludesEmbeddedCommandsAsFolderGroups(t *testing.T) {
 	setIsolatedConfigHome(t)

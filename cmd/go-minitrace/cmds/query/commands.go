@@ -3,6 +3,7 @@ package query
 //glazedclilint:file-ignore legacy query command uses Cobra flags pending Glazed field migration
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func NewCommandsCommand(flagPaths []string) (*cobra.Command, error) {
@@ -56,6 +58,7 @@ Examples:
 	}
 	groups := map[string]*cobra.Command{}
 	root.PersistentFlags().StringSlice(minitracecmd.QueryRepositoryFlagName, flagPaths, "Repeatable directory flag for additional structured query-command repository roots")
+	root.SetFlagErrorFunc(explainUnresolvedQueryCommand)
 
 	for _, command := range catalog.Commands {
 		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
@@ -77,6 +80,23 @@ Examples:
 	}
 
 	return root, nil
+}
+
+// Cobra parses flags on the last resolved node before validating positional
+// arguments. A leaf-only flag on a group can therefore hide a missing verb.
+func explainUnresolvedQueryCommand(cmd *cobra.Command, err error) error {
+	var unknown *pflag.NotExistError
+	if cmd.Runnable() || !errors.As(err, &unknown) || unknown.GetSpecifiedName() != "archive-glob" {
+		return err
+	}
+	message := fmt.Sprintf("choose a runnable query command under %q before using --archive-glob", cmd.CommandPath())
+	if args := cmd.Flags().Args(); len(args) > 0 {
+		message = fmt.Sprintf("unknown query command %q under %q", args[0], cmd.CommandPath())
+	}
+	if children := childCommandNames(cmd); len(children) > 0 {
+		message += "\n  available commands: " + strings.Join(children, ", ")
+	}
+	return errors.New(message)
 }
 
 // wrapArgumentParseErrors rejects surplus positional arguments on a leaf
@@ -102,7 +122,7 @@ func wrapArgumentParseErrors(cmd *cobra.Command, command *minitracecmd.Minitrace
 				fmt.Fprintf(&b, " more than %d positional argument(s)", maxArgs)
 			}
 			fmt.Fprintf(&b, "\n  extra arguments: %s", strings.Join(args[maxArgs:], " "))
-			if siblings := siblingVerbNames(c); len(siblings) > 0 {
+			if siblings := childCommandNames(c.Parent()); len(siblings) > 0 {
 				parentPath := c.CommandPath()
 				if parent := c.Parent(); parent != nil {
 					parentPath = parent.CommandPath()
@@ -141,17 +161,16 @@ func maxPositionalArgs(command *minitracecmd.MinitraceCommand) (int, bool) {
 	return count, false
 }
 
-func siblingVerbNames(cmd *cobra.Command) []string {
-	parent := cmd.Parent()
+func childCommandNames(parent *cobra.Command) []string {
 	if parent == nil {
 		return nil
 	}
 	names := make([]string, 0, len(parent.Commands()))
-	for _, sibling := range parent.Commands() {
-		if sibling == nil || sibling.Hidden {
+	for _, child := range parent.Commands() {
+		if child == nil || child.Hidden {
 			continue
 		}
-		names = append(names, sibling.Name())
+		names = append(names, child.Name())
 	}
 	return names
 }
