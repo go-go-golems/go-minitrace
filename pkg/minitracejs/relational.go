@@ -12,9 +12,10 @@ import (
 // Relational values are ordinary JS objects. The private WeakMap gives them
 // identity without exposing Go pointers or retaining discarded query branches.
 type relationalBinding struct {
-	vm       *goja.Runtime
-	state    *goja.Object
-	get, set goja.Callable
+	vm          *goja.Runtime
+	state       *goja.Object
+	get, set    goja.Callable
+	mappingRows bool
 }
 
 type relationalValue struct{ value any }
@@ -187,16 +188,19 @@ func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragme
 		return value
 	})
 	_ = obj.Set("count", func() *goja.Object { return b.exprObject(q.Count()) })
-	_ = obj.Set("build", func() *goja.Object { return b.planObject(q) })
+	_ = obj.Set("build", func() *goja.Object { return b.planObject(q, nil) })
+	_ = obj.Set("mapRows", func(fn goja.Value, options *goja.Object) *goja.Object {
+		return b.mappedQuery(q, fn, options)
+	})
 	b.attachFragments(obj, q, fragments)
 	return obj
 }
 
-func (b *relationalBinding) planObject(q *queryplan.Query) *goja.Object {
+func (b *relationalBinding) planObject(q *queryplan.Query, mapper *runtimeMapper) *goja.Object {
 	plan, err := q.Build()
 	b.check(err)
-	obj := b.remember(plan)
-	_ = obj.Set("explain", func() map[string]any { return map[string]any{"sql": plan.SQL()} })
+	obj := b.remember(executablePlan{plan, mapper})
+	_ = obj.Set("explain", func() map[string]any { return map[string]any{"sql": plan.SQL(), "mapRows": mapper != nil} })
 	_ = obj.Set("parameters", func() []map[string]any { return toPlainSlice(plan.Parameters()) })
 	return obj
 }
@@ -231,7 +235,11 @@ func (b *relationalBinding) table(h *DBHandle, name string) *goja.Object {
 	panic(b.vm.NewTypeError("unknown table %q, see db.tables()", name))
 }
 
-func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, plan *queryplan.Plan, options goja.Value) goja.Value {
+func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, executable executablePlan, options goja.Value) goja.Value {
+	plan := executable.query
+	if executable.mapper != nil && b.mappingRows {
+		return b.executionError("mapRows cannot execute another mapping stage from a callback")
+	}
 	if h.closed || (plan.Owner() != nil && plan.Owner() != h.owner) {
 		return b.executionError("execute requires the open database that owns this plan")
 	}
@@ -246,6 +254,9 @@ func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, plan *quer
 	result, err := h.QueryResult(ctx, plan.SQL(), args...)
 	if err != nil {
 		return b.executionError(err.Error())
+	}
+	if executable.mapper != nil {
+		result = b.mapResult(ctx, h, result, executable.mapper)
 	}
 	envelope := toPlainMap(result)
 	// Preserve the SQL runner’s integer and real cell types for Go hosts.

@@ -992,3 +992,56 @@ Start with `Plan.Bind`, `relationalBinding.parameterObject` and `relationalBindi
 ### Technical details
 
 The compiler collects parameter definitions in first-placeholder order. Rebinding uses a new local map on every execution. Wrong database ownership now returns an error envelope with zero rows, consistent with the Design04 execution contract.
+
+## Step 21: Run terminal row transformations in the owning Goja VM
+
+A relational query can now end in `mapRows(callback, {columns})`. SQLite delivers a complete result first, and Goja invokes the callback once per row during execution. A mapped result uses the same byte and column policies as a SQL result.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal.
+
+**Parameter and fragment commit:** `ac7f7c5`.
+
+### What I did
+
+- Added the terminal mapping builder and local callback state in `pkg/minitracejs/map_rows.go`. The mapped builder exposes `build`.
+- Shared the SQLite runner's per-row normalization and strict evidence handling with `QueryRunner.MapResult`.
+- Applied the configured timeout to the mapping phase and handled cancellation through Goja's interrupt API.
+- Added a real module fixture for closure timing, empty input, type validation, incomplete input, UTF-8 clipping, strict evidence, exceptions and VM reuse after interruption.
+
+### Why
+
+Runtime callbacks need actual result values and declared output fields. A terminal stage keeps symbol evaluation and runtime row processing separate and leaves the Go relational plan independent of Goja functions.
+
+### What worked
+
+`go test ./pkg/minitracejs -run TestMapRows -count=3 -timeout=15s` passed. The fixture times out a looping callback and immediately executes a valid mapping on the same VM. `go test ./pkg/minitracedb ./pkg/minitracejs/... ./pkg/queryplan` and the focused migrated CLI and showcase tests also passed.
+
+### What didn't work
+
+No product or test failures in this checkpoint.
+
+### What I learned
+
+The mapper has to read output properties inside a Goja call boundary. A returned object may have getters or proxy traps, so reading fields can fail just like the callback itself. The error envelope records the stage and row without repeating the JS exception message or exposing rows mapped before the failure.
+
+### What was tricky to build
+
+Cancellation can race with a callback finishing. Cleanup stops the scheduled interruption or waits for it before clearing the VM flag. Mapped execution inside another mapping callback is rejected so it cannot clear the outer stage's interrupt state. The callback still runs on the VM's existing execution thread.
+
+### What warrants a second pair of eyes
+
+Review the interaction with other host uses of Goja interruption if a future host adds its own concurrent cancellation hook. The timeout applies to the mapping phase and cannot interrupt an arbitrary native Go operation invoked from JS.
+
+### What should be done in the future
+
+Finish the clean cut across the module, inline fixtures, TypeScript declarations and embedded help. Bring declared SQL shape checks and API diagnostics in line with the design, then run full and persona validation.
+
+### Code review instructions
+
+Read `QueryRunner.MapResult`, `relationalBinding.mapRow` and `pkg/minitracejs/testdata/map_rows.js`. Run the focused fixture and both package test commands recorded above.
+
+### Technical details
+
+Empty but complete SQL input yields an empty result with the declared output schema. Permissive cell clipping marks the mapped result incomplete and reports diagnostics. Strict mode retains those diagnostics and suppresses mapped rows. The mapper never runs on incomplete SQL input.

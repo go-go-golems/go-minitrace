@@ -102,7 +102,16 @@ func TestTaggedSQLBinding(t *testing.T) {
 }
 
 func TestParametersAndFragments(t *testing.T) {
-	source, err := os.ReadFile("testdata/parameters_fragments.js")
+	runRelationalFixture(t, "parameters_fragments.js")
+}
+
+func TestMapRows(t *testing.T) {
+	runRelationalFixture(t, "map_rows.js")
+}
+
+func runRelationalFixture(t *testing.T, fixture string) {
+	t.Helper()
+	source, err := os.ReadFile("testdata/" + fixture)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +119,7 @@ func TestParametersAndFragments(t *testing.T) {
 	registry := new(require.Registry)
 	registry.RegisterNativeModule(ModuleName, NewLoader(context.Background(), nil, "fixture", RuntimeSettings{}))
 	registry.Enable(vm)
-	if _, err := vm.RunScript("parameters_fragments.js", string(source)); err != nil {
+	if _, err := vm.RunScript(fixture, string(source)); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -25,7 +25,7 @@ func (b *relationalBinding) sql(call goja.FunctionCall) goja.Value {
 	q, err := queryplan.SQL(statement, args, nil)
 	b.check(err)
 	obj := b.vm.NewObject()
-	_ = obj.Set("build", func() *goja.Object { return b.planObject(q) })
+	_ = obj.Set("build", func() *goja.Object { return b.planObject(q, nil) })
 	_ = obj.Set("columns", func(shape *goja.Object) *goja.Object {
 		q, err := queryplan.SQL(statement, args, b.columnTypes(shape))
 		b.check(err)

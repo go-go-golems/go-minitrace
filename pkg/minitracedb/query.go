@@ -188,18 +188,7 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 		if err := rows.Scan(ptrs...); err != nil {
 			return queryErrorResult(err.Error()), nil
 		}
-		row := map[string]any{}
-		for i, col := range cols {
-			value, diagnostic := normalizeCellWithDiagnostic(values[i], r.opts.MaxCellBytes)
-			row[col] = value
-			if diagnostic != nil {
-				diagnostic.RowIndex, diagnostic.ColumnIndex, diagnostic.Column = out.Count, i, col
-				out.CellDiagnostics = append(out.CellDiagnostics, *diagnostic)
-				out.Truncated, out.Complete = true, false
-			}
-		}
-		out.Rows = append(out.Rows, row)
-		out.Count++
+		r.appendResultRow(&out, values)
 	}
 	if err := rows.Err(); err != nil {
 		if authErr := authState.err(); authErr != nil {
@@ -207,12 +196,31 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 		}
 		return queryErrorResult(err.Error()), nil
 	}
+	r.finishResult(&out, "query")
+	return out, nil
+}
+
+func (r *QueryRunner) appendResultRow(out *QueryResult, values []any) {
+	row := make(map[string]any, len(out.Columns))
+	for i, col := range out.Columns {
+		value, diagnostic := normalizeCellWithDiagnostic(values[i], r.opts.MaxCellBytes)
+		row[col] = value
+		if diagnostic != nil {
+			diagnostic.RowIndex, diagnostic.ColumnIndex, diagnostic.Column = out.Count, i, col
+			out.CellDiagnostics = append(out.CellDiagnostics, *diagnostic)
+			out.Truncated, out.Complete = true, false
+		}
+	}
+	out.Rows = append(out.Rows, row)
+	out.Count++
+}
+
+func (r *QueryRunner) finishResult(out *QueryResult, stage string) {
 	if r.opts.StrictEvidence && !out.Complete {
-		out.Error = "strict evidence: query result is incomplete"
+		out.Error = "strict evidence: " + stage + " result is incomplete"
 		out.Rows = make([]map[string]any, 0)
 		out.Count = 0
 	}
-	return out, nil
 }
 
 // NormalizeCell retains the legacy byte-limit behavior, but never splits UTF-8.

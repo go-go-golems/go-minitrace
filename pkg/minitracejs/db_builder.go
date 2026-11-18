@@ -983,7 +983,7 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	_ = obj.Set("execute", func(call goja.FunctionCall) goja.Value {
 		value := call.Argument(0)
 		if h.relation != nil {
-			if plan, ok := h.relation.lookup(value).(*queryplan.Plan); ok {
+			if plan, ok := h.relation.lookup(value).(executablePlan); ok {
 				return h.relation.execute(h.ctx, h, plan, call.Argument(1))
 			}
 		}
