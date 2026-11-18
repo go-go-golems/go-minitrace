@@ -6,15 +6,16 @@ import (
 )
 
 type Plan struct {
-	owner   *Owner
-	sql     string
-	args    []any
-	columns []Column
+	owner      *Owner
+	sql        string
+	bindings   []binding
+	parameters map[string]Parameter
+	paramOrder []string
+	columns    []Column
 }
 
 func (p *Plan) Owner() *Owner     { return p.owner }
 func (p *Plan) SQL() string       { return p.sql }
-func (p *Plan) Args() []any       { return append([]any(nil), p.args...) }
 func (p *Plan) Columns() []Column { return append([]Column(nil), p.columns...) }
 
 func (q *Query) Build() (*Plan, error) {
@@ -44,14 +45,16 @@ func (q *Query) Build() (*Plan, error) {
 	if len(sql) > 1<<20 {
 		return nil, fmt.Errorf("compiled SQL exceeds 1 MiB")
 	}
-	return &Plan{owner: c.owner, sql: sql, args: c.args, columns: q.Columns()}, nil
+	return &Plan{owner: c.owner, sql: sql, bindings: c.bindings, parameters: c.parameters, paramOrder: c.paramOrder, columns: q.Columns()}, nil
 }
 
 type compiler struct {
-	owner   *Owner
-	aliases int
-	nodes   int
-	args    []any
+	owner      *Owner
+	aliases    int
+	nodes      int
+	bindings   []binding
+	parameters map[string]Parameter
+	paramOrder []string
 }
 
 type scope struct {
@@ -87,7 +90,11 @@ func (c *compiler) query(q *Query, outer *scope, depth int) (string, error) {
 		c.owner = q.owner
 	}
 	if q.raw != nil {
-		c.args = append(c.args, q.raw.args...)
+		for _, expr := range q.raw.args {
+			if err := c.bind(expr); err != nil {
+				return "", err
+			}
+		}
 		// A trailing line comment must end before a surrounding ')' is emitted.
 		return q.raw.sql + "\n", nil
 	}
@@ -144,9 +151,8 @@ func (c *compiler) expr(e *Expr, visible *scope, depth int) (string, error) {
 			}
 		}
 		return "", fmt.Errorf("column %q is outside its row scope", e.name)
-	case "literal":
-		c.args = append(c.args, e.value)
-		return "?", nil
+	case "literal", "parameter":
+		return "?", c.bind(e)
 	case "count":
 		sql, err := c.query(e.count, visible, depth+1)
 		if err != nil {

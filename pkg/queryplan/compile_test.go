@@ -49,7 +49,7 @@ func TestCompiledQueryAgainstSQLite(t *testing.T) {
 	}))
 	filtered := must(projection.Where(must(queryplan.Operation("gte", must(projection.Column("calls")), must(queryplan.Literal(0))))))
 	plan := must(filtered.Build())
-	result := must(runner.QueryResult(ctx, plan.SQL(), plan.Args()...))
+	result := must(runner.QueryResult(ctx, plan.SQL(), must(plan.Bind(nil))...))
 	if result.Error != "" || !result.Complete || len(result.Rows) != 3 {
 		t.Fatalf("unexpected result: %+v", result)
 	}

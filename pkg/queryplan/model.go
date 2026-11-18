@@ -53,13 +53,14 @@ type Order struct {
 }
 
 type Expr struct {
-	typ      Type
-	op       string
-	row      *Query
-	name     string
-	value    any
-	operands []*Expr
-	count    *Query
+	typ       Type
+	op        string
+	row       *Query
+	name      string
+	value     any
+	operands  []*Expr
+	parameter Parameter
+	count     *Query
 }
 
 func (e *Expr) Type() Type { return e.typ }
@@ -183,6 +184,16 @@ func (q *Query) OrderBy(keys ...Order) (*Query, error) {
 		}
 	}
 	return &Query{owner: q.owner, input: q, columns: q.columns, order: append([]Order(nil), keys...)}, nil
+}
+
+// DerivedFrom reports whether query composition retained the supplied input.
+func (q *Query) DerivedFrom(input *Query) bool {
+	for current := q; current != nil; current = current.input {
+		if current == input {
+			return true
+		}
+	}
+	return false
 }
 
 func (q *Query) Count() *Expr {

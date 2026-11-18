@@ -60,10 +60,9 @@ func (b *relationalBinding) expression(value goja.Value) *queryplan.Expr {
 	if expr, ok := b.lookup(value).(*queryplan.Expr); ok {
 		return expr
 	}
-	if _, ok := value.(*goja.Object); ok || value == nil || goja.IsUndefined(value) {
-		panic(b.vm.NewTypeError("expected a symbolic expression or scalar literal"))
-	}
-	expr, err := queryplan.Literal(value.Export())
+	raw, err := scalarValue(value)
+	b.check(err)
+	expr, err := queryplan.Literal(raw)
 	b.check(err)
 	return expr
 }
@@ -132,8 +131,13 @@ func (b *relationalBinding) from(value goja.Value) *goja.Object {
 	return b.queryObject(table.query)
 }
 
-func (b *relationalBinding) queryObject(q *queryplan.Query) *goja.Object {
-	obj := b.remember(q)
+type queryValue struct {
+	query     *queryplan.Query
+	fragments []*fragment
+}
+
+func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragment) *goja.Object {
+	obj := b.remember(queryValue{q, fragments})
 	_ = obj.Set("where", func(fn goja.Value) *goja.Object {
 		value := b.callback("where", fn, b.row(q))
 		predicate, ok := b.lookup(value).(*queryplan.Expr)
@@ -142,7 +146,7 @@ func (b *relationalBinding) queryObject(q *queryplan.Query) *goja.Object {
 		}
 		next, err := q.Where(predicate)
 		b.check(err)
-		return b.queryObject(next)
+		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("select", func(fn goja.Value) *goja.Object {
 		value, ok := b.callback("select", fn, b.row(q)).(*goja.Object)
@@ -155,7 +159,7 @@ func (b *relationalBinding) queryObject(q *queryplan.Query) *goja.Object {
 		}
 		next, err := q.Select(fields)
 		b.check(err)
-		return b.queryObject(next)
+		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("orderBy", func(fn goja.Value) *goja.Object {
 		value := b.callback("orderBy", fn, b.row(q))
@@ -173,17 +177,18 @@ func (b *relationalBinding) queryObject(q *queryplan.Query) *goja.Object {
 		}
 		next, err := q.OrderBy(keys...)
 		b.check(err)
-		return b.queryObject(next)
+		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("use", func(fn goja.Value) goja.Value {
 		value := b.callback("use", fn, obj)
-		if _, ok := b.lookup(value).(*queryplan.Query); !ok {
+		if _, ok := b.lookup(value).(queryValue); !ok {
 			panic(b.vm.NewTypeError("use expects a query builder result"))
 		}
 		return value
 	})
 	_ = obj.Set("count", func() *goja.Object { return b.exprObject(q.Count()) })
 	_ = obj.Set("build", func() *goja.Object { return b.planObject(q) })
+	b.attachFragments(obj, q, fragments)
 	return obj
 }
 
@@ -192,7 +197,7 @@ func (b *relationalBinding) planObject(q *queryplan.Query) *goja.Object {
 	b.check(err)
 	obj := b.remember(plan)
 	_ = obj.Set("explain", func() map[string]any { return map[string]any{"sql": plan.SQL()} })
-	_ = obj.Set("parameters", func() []any { return []any{} })
+	_ = obj.Set("parameters", func() []map[string]any { return toPlainSlice(plan.Parameters()) })
 	return obj
 }
 
@@ -226,14 +231,31 @@ func (b *relationalBinding) table(h *DBHandle, name string) *goja.Object {
 	panic(b.vm.NewTypeError("unknown table %q, see db.tables()", name))
 }
 
-func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, plan *queryplan.Plan) goja.Value {
+func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, plan *queryplan.Plan, options goja.Value) goja.Value {
 	if h.closed || (plan.Owner() != nil && plan.Owner() != h.owner) {
-		panic(b.vm.NewTypeError("execute requires the open database that owns this plan"))
+		return b.executionError("execute requires the open database that owns this plan")
 	}
-	result, err := h.QueryResult(ctx, plan.SQL(), plan.Args()...)
-	b.check(err)
+	params, err := b.boundParameters(options)
+	if err != nil {
+		return b.executionError(err.Error())
+	}
+	args, err := plan.Bind(params)
+	if err != nil {
+		return b.executionError(err.Error())
+	}
+	result, err := h.QueryResult(ctx, plan.SQL(), args...)
+	if err != nil {
+		return b.executionError(err.Error())
+	}
 	envelope := toPlainMap(result)
 	// Preserve the SQL runner’s integer and real cell types for Go hosts.
 	envelope["rows"] = result.Rows
 	return b.vm.ToValue(envelope)
+}
+
+func (b *relationalBinding) executionError(message string) goja.Value {
+	return b.vm.ToValue(map[string]any{
+		"error": message, "complete": false, "count": int64(0),
+		"rows": []map[string]any{}, "columns": []string{},
+	})
 }

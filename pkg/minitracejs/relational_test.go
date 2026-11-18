@@ -2,6 +2,7 @@ package minitracejs
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/dop251/goja"
@@ -50,7 +51,7 @@ func TestRelationalBindingThroughRequire(t *testing.T) {
 			const other = mt.db().Content(JSON.stringify({
 				id: "other", profile: "organic", turns: [], tool_calls: []
 			})).Build();
-			try { rejects(() => other.execute(plan), "owns this plan"); }
+			try { if (!other.execute(plan).error.includes("owns this plan")) throw Error("wrong database accepted"); }
 			finally { other.close(); }
 		} finally { db.close(); }
 	`)
@@ -96,6 +97,20 @@ func TestTaggedSQLBinding(t *testing.T) {
 		} finally { db.close(); }
 	`)
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestParametersAndFragments(t *testing.T) {
+	source, err := os.ReadFile("testdata/parameters_fragments.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	vm := goja.New()
+	registry := new(require.Registry)
+	registry.RegisterNativeModule(ModuleName, NewLoader(context.Background(), nil, "fixture", RuntimeSettings{}))
+	registry.Enable(vm)
+	if _, err := vm.RunScript("parameters_fragments.js", string(source)); err != nil {
 		t.Fatal(err)
 	}
 }

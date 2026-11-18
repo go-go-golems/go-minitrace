@@ -939,3 +939,56 @@ Start with the advanced showcase tests, the importer JS binding and the plan res
 ### Technical details
 
 The new `query-filters.js` exports a helper via CommonJS and uses a function expression to avoid command discovery. Optional filters are represented by null or scalar values and bind through the same tagged SQL path as the command limits.
+
+## Step 20: Bind named parameters and extend queries with scoped fragments
+
+The compiler now records positional binding slots for both literals and named parameters. Goja exposes typed parameter descriptors and scoped fragment declarations. Both use the existing local query plan and runner.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal.
+
+**Showcase and provider migration commit:** `666d0f6`.
+
+### What I did
+
+- Added parameter descriptors and binding resolution in `pkg/queryplan/parameters.go`. SQL tags and fluent operations collect bindings through the same compiler.
+- Exposed `mt.param`, plan parameter metadata, and `db.execute(plan, {params})`. Invalid execution inputs return the same empty result envelope as other execution failures.
+- Implemented `mt.fragment` and `extend`, capturing method functions and required field names without changing the underlying query representation.
+- Added a Goja fixture that calls the real module and SQLite runner with defaults, overrides, repeated slots and invalid inputs. It also exercises fragment inheritance and branch isolation.
+
+### Why
+
+A plan needs to accept different values without replaying callbacks or rebuilding SQL. Fragments give application-specific transformations discoverable methods while keeping Go compilation based on the same fixed grammar.
+
+### What worked
+
+`go test ./pkg/queryplan ./pkg/minitracejs/...` passed with the new fixture. The final focused rerun also passed for compilation, tagged SQL, Goja callbacks and migrated CLI commands. The fixture checks duplicated parameters across SQL and fluent expressions, descriptor snapshot isolation, range/type/missing/extra values, conflicting declarations and fragment method collisions.
+
+### What didn't work
+
+No failed tests in this checkpoint. An initial poll of the package tests returned while the test process was still running. The next poll confirmed all three packages passed.
+
+### What I learned
+
+The compiler must add tagged SQL bindings in emitted text order just like fluent operands. UI metadata stays separate from binding identity. A repeated name with equivalent binding constraints uses the first descriptor's UI metadata. The equivalent Go integer and number conversions are normalized before comparing defaults.
+
+### What was tricky to build
+
+A relational query's builder state needs both the immutable query value and its attached fragment list. A fragment method must return a builder derived from the receiver and retain its attachments. Validation also runs on invocation, so a projection that drops a required field produces an actionable error. Installation does not mutate the original builder or the supplied declaration.
+
+### What warrants a second pair of eyes
+
+Review runtime mapping's upcoming interaction with fragments and the consistent reporting of build and execution errors. Declared SQL result-schema validation remains open.
+
+### What should be done in the future
+
+Implement terminal runtime mapping, complete the legacy API removal and update declarations and help. Validate the full CLI and representative persona workflows after cutover.
+
+### Code review instructions
+
+Start with `Plan.Bind`, `relationalBinding.parameterObject` and `relationalBinding.attachFragments`. Run `go test ./pkg/queryplan ./pkg/minitracejs/...`. The runnable fixture is `pkg/minitracejs/testdata/parameters_fragments.js`.
+
+### Technical details
+
+The compiler collects parameter definitions in first-placeholder order. Rebinding uses a new local map on every execution. Wrong database ownership now returns an error envelope with zero rows, consistent with the Design04 execution contract.

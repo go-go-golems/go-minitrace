@@ -18,12 +18,9 @@ func (b *relationalBinding) sql(call goja.FunctionCall) goja.Value {
 	}
 	statement, err := minitracedb.TaggedSQL(parts)
 	b.check(err)
-	args := make([]any, len(parts)-1)
+	args := make([]*queryplan.Expr, len(parts)-1)
 	for i, value := range call.Arguments[1:] {
-		if _, ok := value.(*goja.Object); ok || goja.IsUndefined(value) {
-			panic(b.vm.NewTypeError("sql interpolation requires a scalar value"))
-		}
-		args[i] = value.Export()
+		args[i] = b.expression(value)
 	}
 	q, err := queryplan.SQL(statement, args, nil)
 	b.check(err)

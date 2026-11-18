@@ -984,7 +984,7 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 		value := call.Argument(0)
 		if h.relation != nil {
 			if plan, ok := h.relation.lookup(value).(*queryplan.Plan); ok {
-				return h.relation.execute(h.ctx, h, plan)
+				return h.relation.execute(h.ctx, h, plan, call.Argument(1))
 			}
 		}
 		if goja.IsNull(value) || goja.IsUndefined(value) {

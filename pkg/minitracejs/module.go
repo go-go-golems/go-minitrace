@@ -28,6 +28,8 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		exports := moduleObj.Get("exports").(*goja.Object)
 		relation := newRelationalBinding(vm)
 		_ = exports.Set("from", relation.from)
+		_ = exports.Set("param", relation.parameterBuilders())
+		_ = exports.Set("fragment", relation.newFragment)
 		_ = exports.Set("native", func() *goja.Object { return nativeEvidenceBuilderObject(ctx, vm) })
 		_ = exports.Set("corpusManifest", func(paths []string) map[string]any { return corpusManifest(vm, paths) })
 		_ = exports.Set("utf8ByteLength", func(text string) int { return len(text) })
