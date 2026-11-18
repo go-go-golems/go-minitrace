@@ -105,6 +105,24 @@ const plan = mt.from(db.table("sessions")).extend(byFramework)
 
 `mapRows` runs during execution after successful, complete SQL delivery. It produces one row per input row and requires declared scalar output columns. Build and execute the terminal stage to obtain rows. A callback error reports its row index without exposing partial output. Use ordinary JS after checking several complete results for operations such as grouping frames or ranking workspaces.
 
+A declared SQL source is already a fluent query builder. Call its fluent methods directly. Apply sorting before `mapRows`, then call `build` once at the end.
+
+```js
+const minimum = mt.param.integer("minimum").default(0);
+const plan = mt.sql`
+  SELECT session_id, COUNT(*) AS turn_count
+  FROM turns GROUP BY session_id HAVING COUNT(*) >= ${minimum}
+`.columns({session_id: mt.type.string(), turn_count: mt.type.integer()})
+  .orderBy(row => row.session_id.asc())
+  .mapRows(row => ({id: row.session_id, label: `${row.turn_count} turns`}), {
+    columns: {id: mt.type.string(), label: mt.type.string()},
+  })
+  .build();
+const result = db.execute(plan, {params: {minimum: 5}});
+```
+
+`mt.from()` accepts a handle from `db.table(name)`. A built plan goes directly to `db.execute(plan)`. The mapping stage exposes `build()`.
+
 ## Results and evidence
 
 The result contains `columns`, `rows`, `count`, `complete`, and optional `error`, `truncated`, `rowsTruncated`, and `cellDiagnostics`. Check the envelope before reducing results. Permissive clipping reports loss while returning available rows. Strict mode suppresses incomplete rows. Query completeness describes delivery of the selected normalized rows. Native evidence and source coverage are separate.

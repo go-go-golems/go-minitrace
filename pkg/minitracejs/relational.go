@@ -128,11 +128,17 @@ var promiseType = reflect.TypeFor[*goja.Promise]()
 type tableValue struct{ query *queryplan.Query }
 
 func (b *relationalBinding) from(value goja.Value) *goja.Object {
-	table, ok := b.lookup(value).(tableValue)
-	if !ok {
-		panic(b.vm.NewTypeError("from requires a table from db.table()"))
+	switch source := b.lookup(value).(type) {
+	case tableValue:
+		return b.queryObject(source.query)
+	case executablePlan:
+		b.buildError("E_QUERY_SOURCE", "from", "from expects db.table(), and build() ends query construction. For SQL composition, call .columns(...) on the tagged SQL source before build()")
+	case queryValue:
+		b.buildError("E_QUERY_SOURCE", "from", "this value is already a query builder. Continue composition directly before calling build()")
+	default:
+		b.buildError("E_QUERY_SOURCE", "from", "from expects a table from db.table()")
 	}
-	return b.queryObject(table.query)
+	return nil
 }
 
 type queryValue struct {

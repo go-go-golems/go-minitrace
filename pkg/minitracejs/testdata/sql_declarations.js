@@ -48,6 +48,8 @@ try {
     }
     throw Error("expected " + code);
   };
+  failBuild(() => mt.from(flags.build()), "E_QUERY_SOURCE", "from");
+  failBuild(() => mt.from(flags), "E_QUERY_SOURCE", "from");
   failBuild(() => flags.where(r => r.missing), "E_UNKNOWN_COLUMN", "where.missing");
   failBuild(() => flags.where(r => r.flag === true), "E_EXPECTED_PREDICATE", "where");
   let escaped;

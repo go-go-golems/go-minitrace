@@ -1277,3 +1277,55 @@ Read the provider registration, shared declaration renderer and consumer fixture
 Baseline configuration results came from a temporary export of `c64b877`. Generated example binaries, smoke outputs and provider declarations stay out of Git. The fixture and the source declaration are tracked.
 
 Final lint checkpoint: `PATH="<Go bin>:$PATH" GOWORK=off make lint` passed after module reconciliation. golangci-lint reported zero issues and the Glazed vettool phase exited successfully.
+
+## Step 26: Exercise the published API with pinned persona replays
+
+The pilot and fixed matrix use synthetic archives and the public JS API reference. They test whether generated commands preserve zero-tool sessions and use the intended composition boundaries. The host checks output independently.
+
+### Prompt Context
+
+See Steps 15 and 23 for the implementation request and documentation steering.
+
+**Initial pinned code commit:** `a3b805e`. The binary SHA256 begins `ac3f05d5c7f0`.
+
+### What I did
+
+- Added a no-tools Pi harness with two authoring tasks and a fixed eight-run matrix.
+- Pinned the compiled binary and three synthetic input archives.
+- Replayed generated scripts with fixed host arguments under an OS replay policy and verified protected reads and writes using a probe.
+- Graded exact rows and inspected failed generated scripts. Added a full typed SQL to mapped output example and the `E_QUERY_SOURCE` diagnostic. Re-synced the installed skill reference.
+- Recorded the original pilot, corrected pilot replays and fixed matrix in the ticket.
+
+### Why
+
+The earlier persona experiment used the removed API. A fresh pin and new tasks distinguish product behavior from API discovery under the clean cut.
+
+### What worked
+
+Both pilot scripts passed unchanged on recovery. Six of eight matrix scripts passed. Both models preserved all three identities and actual counts in their fluent inventory scripts. Both DeepSeek reports constructed typed SQL, supplied the named binding and formatted the rows successfully.
+
+### What didn't work
+
+The initial sandbox aborted the pinned binary with exit 134 at startup. It also aborted the version command, independent of a generated script. Default OS reads with restrictions on user and scratch locations restored startup. The probe confirmed that protected input writes and receipt reads still fail. The original pilot failure receipts remain distinct. The report's first manual recovery reused its scratch replay output filename, so its original output file is represented by the pre-recovery receipt hash.
+
+GLM at low thinking supplied a built SQL plan to `mt.from()` and also placed sorting after mapping. GLM at high thinking placed ordering after mapping and received `TypeError: Object has no member 'orderBy'`. The original scores are retained. The targeted regression checks the new source error and leaves `mapRows` terminal.
+
+### What I learned
+
+The mapped-report workflow needed a complete example that shows where ordering and build happen. Direct typed SQL already returns the fluent query. Table lookup, SQL declaration and final plan execution are distinct steps.
+
+### What warrants a second pair of eyes
+
+Compare the follow-up results with the original GLM report failures as a targeted retest. The experiments use synthetic archives and limited prompts. They are evidence of usability and correctness under the test conditions.
+
+### What should be done in the future
+
+Run the affected report task against a new pin with the revised reference. Verify the final Go acceptance checks and record the retest separately.
+
+### Code review instructions
+
+Inspect the compact receipt and saved generated scripts in the ticket. Run `go test ./pkg/minitracejs/... ./cmd/go-minitrace/cmds/query`. The harness README explains fresh reproduction and the pilot replay command.
+
+### Technical details
+
+Only public API references and task descriptions were provided to the models. The synthetic fixture data was available to the replayed command. Model event streams and full sessions remain outside Git.
