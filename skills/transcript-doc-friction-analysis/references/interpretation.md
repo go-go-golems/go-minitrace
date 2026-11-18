@@ -8,11 +8,10 @@ subagent deep-dives (reports in that ticket's `analysis/02`-`08`; synthesis in
 
 ## Adapter traps (check before quoting ANY number)
 
-0. **The JS `db.query()` sandbox silently caps rows (~1000 by default).** No
-   error, no flag — with multiple archives only the first session fits the
-   window, producing false "missing data" bugs. All shipped verbs set
-   `mt.limits().Rows(200000)`; do the same in any new verb, and distrust any
-   result whose row count is suspiciously round.
+0. **Check execution completeness before comparing counts.** The default
+   JavaScript row limit is 1,000. A larger result sets `rowsTruncated` and
+   clears `complete`. Use `db.execute(plan)` and inspect the envelope.
+   Shipped verbs use `.limits({maxRows: 200000})` and check every input.
 
 1. **Token inflation ~2-2.5x.** The claude-code adapter stores one `turns` row
    per content block; consecutive assistant rows from one API call repeat

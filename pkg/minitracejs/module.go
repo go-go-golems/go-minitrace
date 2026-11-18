@@ -40,16 +40,7 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 			return builderObject(vm, builder)
 		})
 		_ = exports.Set("sources", func() *goja.Object {
-			return sourcesBuilderObject(vm, NewSourceSetBuilder())
-		})
-		_ = exports.Set("importPolicy", func() *goja.Object {
-			return importPolicyBuilderObject(vm, NewImportPolicyBuilder())
-		})
-		_ = exports.Set("cache", func() *goja.Object {
-			return cachePolicyBuilderObject(vm, NewCachePolicyBuilder())
-		})
-		_ = exports.Set("limits", func() *goja.Object {
-			return queryLimitsBuilderObject(vm, NewQueryLimitsBuilder())
+			return relation.sourcesBuilder(&SourceSetBuilder{})
 		})
 
 		runtimeObj := vm.NewObject()

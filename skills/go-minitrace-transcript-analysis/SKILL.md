@@ -5,6 +5,8 @@ description: Use when analyzing previous Pi or Codex coding-agent transcripts wi
 
 # go-minitrace Transcript Analysis
 
+For reusable JavaScript queries, build a local plan and call `db.execute(plan)`. Start with [JavaScript query command authoring](references/js-query-authoring.md) and the installed `go-minitrace help js-api-reference`.
+
 ## Purpose
 
 Use this skill to turn native coding-agent session logs into a small, reproducible body of evidence. The standard sequence is:

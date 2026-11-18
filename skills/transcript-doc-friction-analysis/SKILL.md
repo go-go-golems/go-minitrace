@@ -151,8 +151,8 @@ after compaction.
 The verbs live in `query-commands/docmetrics/*.js`. Authoring rules learned
 the hard way (see also `go-minitrace help js-api-reference`):
 
-- Handler pattern: `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`,
-  query, `db.close()` in `finally`; return plain JSON.
+- Handler pattern: `mt.db().sources(mt.sources().runtimeArchives().build()).import({autoConvert: true, strict: true}).build()`.
+  Execute built plans with `db.execute(plan)`. Check completeness before processing and close in `finally`.
 - **Every top-level `function name(...)` declaration is registered as a CLI
   verb** — write helpers as `const name = function(...)` or the file becomes a
   polluted command group and the single-verb path collapse breaks.

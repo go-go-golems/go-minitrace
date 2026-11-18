@@ -22,7 +22,7 @@ The `query` group loads converted minitrace archives into a normalized SQLite da
 - `query run` for built-in presets, inline SQL, and SQL files against the normalized schema
 - `query commands` for repository-backed sqleton-style structured commands, including SQL templates and JavaScript handlers
 
-Both workflows share the same engine: a sandboxed, read-only SQLite query runner over the normalized tables. SQL structured commands render read-only SQL against that runner; JavaScript structured commands call `require("minitrace").db().RuntimeArchives().QueryCommandDefaults().Build()` and can run several queries and combine or score the results in JavaScript.
+Both workflows share the same engine: a sandboxed, read-only SQLite query runner over the normalized tables. SQL structured commands render read-only SQL against that runner; JavaScript structured commands call `db.execute(plan)` after opening the archive selection with `mt.sources().runtimeArchives()` and can run several queries and combine or score the results in JavaScript.
 
 ## Query workflow choices
 

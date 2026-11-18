@@ -365,7 +365,7 @@ __section__("filters", {
   title: "Filters",
   fields: {
     framework: {
-      type: "stringList",
+      type: "string",
       help: "Filter by agent framework",
     },
     limit: {
@@ -378,19 +378,21 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
   try {
-    return db.query(`
+    const result = db.execute(mt.sql`
       SELECT
         session_id,
         title,
         agent_framework AS framework
       FROM sessions
-      WHERE 1=1
-      ${filters.framework?.length ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})` : ""}
-      ORDER BY started_at DESC
+      WHERE (${filters.framework || null} IS NULL OR agent_framework = ${filters.framework || null})
+      ORDER BY started_at DESC, session_id
       LIMIT ${filters.limit}
-    `);
+    `.build());
+    if (result.error || !result.complete) throw Error(result.error || "Incomplete result");
+    return result.rows;
   } finally {
     db.close();
   }
@@ -437,7 +439,7 @@ Those testdata repositories demonstrate:
 - relative helper modules,
 - pure synthetic row generation with no DB query,
 - async commands using `require("timer")`,
-- `queryOne(...)` plus JS-side reshaping,
+- explicit first-row selection plus JS-side reshaping,
 - query results post-processed in JavaScript before emission,
 - multiple SQL queries joined together in JS,
 - JS-side scoring and session classification logic,
@@ -535,7 +537,7 @@ The two approaches are complementary. Raw `query run` is the fastest ad hoc path
 
 ## See also
 
-- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.db()`, `db.query()`, normalized SQLite tables, cache modes, `mt.sql.*`, `mt.runtime`, built-in modules, scanner markers, field types
+- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.db()`, `db.execute(plan)`, normalized SQLite tables, cache modes, tagged `mt.sql`, `mt.runtime`, built-in modules, scanner markers, field types
 - `go-minitrace help analysis-guide` — end-to-end workflow with JS command guidance, authoring loop, and when to use JS vs SQL
 - `go-minitrace help query-recipes` — ready-to-use SQL examples that can be promoted into structured commands
 - `go-minitrace help writing-queries` — SQL patterns for the normalized schema: joins, JSON access, filtering

@@ -1,4 +1,4 @@
-// `inspection` is the result of mt.native().File(path).Inspect().
+// `inspection` is the result of mt.native().file(path).inspect().
 // Preserve absence explicitly; physical coordinates do not certify replay.
 inspection.compactions.map(c => ({
   boundary: c.boundary.source,

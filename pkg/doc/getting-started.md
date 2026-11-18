@@ -41,10 +41,10 @@ If you already have normalized `.minitrace.json` archives, start with a small Ja
 ```js
 function audit() {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().SQLiteMemory()
-    .MaxCellBytes(16000).StrictEvidence(true).Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .limits({maxCellBytes: 16000, strict: true}).build();
   try {
-    const result = db.execute(mt.query().ToolRows().Build());
+    const result = db.execute(mt.sql`SELECT session_id, tool_call_id, tool_name FROM tool_calls ORDER BY session_id, source_ordinal`.build());
     if (result.error || !result.complete) {
       throw new Error(result.error || "Incomplete evidence");
     }
@@ -63,9 +63,9 @@ go-minitrace query commands --query-repository ./queries \
   evidence audit --archive-glob './output/**/*.minitrace.json' --output json
 ```
 
-JavaScript composes sources and recipes; SQL performs selection and aggregation. `execute()` returns completeness metadata, unlike rows-only `query()`. Strict evidence mode refuses incomplete rows/cells rather than silently treating clipped content as evidence. Byte limits mean UTF-8 bytes, not tokens or Unicode characters. Use `mt.utf8ByteLength(text)` to measure text bytes; this does not add Node's `Buffer.byteLength` API.
+JavaScript composes sources and queries. SQLite performs selection and aggregation. The `execute(plan)` envelope includes completeness metadata. Strict evidence mode refuses incomplete rows/cells rather than silently treating clipped content as evidence. Byte limits mean UTF-8 bytes, not tokens or Unicode characters. Use `mt.utf8ByteLength(text)` to measure text bytes; this does not add Node's `Buffer.byteLength` API.
 
-Before combining overlapping normalized archives, `mt.corpusManifest(paths)` reports byte-identical duplicates and conflicting normalized session IDs. It does not choose sources or change ingestion automatically. Original JSONL request bodies require the separate opt-in `mt.native().File(path).ForEach(callback)` or bounded `.Inspect()` API; normalized tool rows alone cannot recover missing request references. Native compaction coordinates are not exact historical model replay.
+Before combining overlapping normalized archives, `mt.corpusManifest(paths)` reports byte-identical duplicates and conflicting normalized session IDs. It does not choose sources or change ingestion automatically. Original JSONL request bodies require the separate opt-in `mt.native().file(path).forEach(callback)` or bounded `.inspect()` API; normalized tool rows alone cannot recover missing request references. Native compaction coordinates are not exact historical model replay.
 
 See `go-minitrace help evidence-workflows` for command/flag scope, nested command paths, zero-tool session counts, and CLI envelopes. See `go-minitrace help js-api-reference` for native limits, query result fields, provenance and corpus-selection examples. If you do not have normalized archives yet, continue with discovery and conversion below. SQL CLI analysis can avoid disk-cache writes with `--cache-mode memory` or `none`; `auto`/`disk` may write cache files even for read-only queries.
 

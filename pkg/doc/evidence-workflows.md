@@ -26,7 +26,7 @@ Flags belong to their command. Configure JS query policies through its database 
 go-minitrace query commands --query-repository ./testdata/query-repositories/evidence-workflows analysis session-tools counts --archive-glob './output/**/*.minitrace.json' --output json
 ```
 
-Use the complete path before requesting `--help`; group help does not list a child's runtime flags. This example uses `SessionToolCounts()` to count actual `tool_calls` rows while retaining sessions with zero tools. Stored metrics are separate evidence and need not equal those rows.
+Use the complete path before requesting `--help`; group help does not list a child's runtime flags. This example uses correlated fluent counts to count actual `tool_calls` rows while retaining sessions with zero tools. Stored metrics are separate evidence and need not equal those rows.
 
 ## Retain query fidelity metadata
 
@@ -41,13 +41,14 @@ Limits are UTF-8 bytes, not tokens or character counts. Omitted `truncated`, `ro
 ## Bind values and discover the schema
 
 ```js
-const result = db.queryResult(
-  "SELECT session_id FROM sessions WHERE agent_framework = ? ORDER BY session_id",
-  "claude-code"
-);
+const plan = mt.sql`
+  SELECT session_id FROM sessions
+  WHERE agent_framework = ${"claude-code"} ORDER BY session_id
+`.build();
+const result = db.execute(plan);
 if (result.error || !result.complete) throw new Error(result.error || "Incomplete evidence");
 ```
 
-`queryResult(sql, ...args)` accepts SQL strings; `execute(recipe)` accepts a recipe or `{sql, args}`. Bind values instead of interpolating them. `queryOne` returns `null` when no row matches. Error envelopes always contain array-valued `rows` and `columns`, but callers must check `error` before interpreting an empty result.
+The tagged template binds interpolated scalar values. A successful empty query returns an empty rows array. Check `error` before interpreting empty output.
 
-Run `go-minitrace help minitrace-schema` for normalized columns. In JS, inspect `db.tables()` and `db.schema()` rather than guessing names. `go-minitrace help js-api-reference` includes native compaction projection and typed coordinate examples. Native `Inspect()` uses nested `boundary`, `summaries`, and `firstFollowingAssistant` coordinates; absent optional fields are not zero-valued coordinates.
+Run `go-minitrace help minitrace-schema` for normalized columns. In JS, inspect `db.tables()` and `db.schema()` rather than guessing names. `go-minitrace help js-api-reference` includes native compaction projection and typed coordinate examples. Native `inspect()` uses nested `boundary`, `summaries`, and `firstFollowingAssistant` coordinates; absent optional fields are not zero-valued coordinates.

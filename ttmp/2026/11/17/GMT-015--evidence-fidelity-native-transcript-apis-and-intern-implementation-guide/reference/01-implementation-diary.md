@@ -1099,3 +1099,66 @@ Read `examples/query-library/analysis.js` alongside `TestGojaFidelityViews` and 
 ### Technical details
 
 Analysis functions return a local query or, for frames, grouped JS records. Typed sources preserve direct SQL order until a caller applies fluent composition and specifies its own order. The old documentation and TypeScript declarations are still a separate cutover checkpoint.
+
+## Step 23: Cut over the DB API, declarations, examples and skills
+
+The JS module now has one query execution path. The new lower camel case API is reflected in the embedded declarations and help, the maintained examples, and the transcript analysis skill used by coding agents.
+
+### Prompt Context
+
+See Step 15 for the implementation goal.
+
+**User steering (verbatim)**
+
+> no backwards compatibility needed boy
+
+> update all docs and example scripts and the skill about minitrace as well (I don't know if there's a copy of the skill in the repo, if not, copy it over from ~/.codex/skills, otherwise unify them)
+
+**Recipe removal commit:** `8fb99f5`.
+
+### What I did
+
+- Deleted the uppercase source and DB bindings, standalone configuration exports, reflected handle, rows-only methods and object-shaped execution route. Preserved named import, cache and limits options and made source selections opaque.
+- Kept recursive archive discovery as `sources().directory(path)` and retained an explicitly unsourced database for schema-only work. Explicit selections that resolve to no archives report an error.
+- Renamed native evidence operations and made native configuration immutable.
+- Migrated remaining inline provider, catalog, CLI and serve fixtures to the single `execute(plan)` route.
+- Replaced the declaration surface with an embedded `minitrace.d.ts`. Updated public README, help, maintained scripts and their accompanying docs.
+- Compared both copies of the transcript analysis skill before editing. They matched. Synced its updated skill entry and JavaScript reference from the repository to the installed location. A recursive diff then reported no differences. Updated the repository's doc-friction skill guidance as well.
+
+### Why
+
+A clean cut requires deleting obsolete methods and updating the materials agents use to discover the API. Keeping old methods in tests or examples would hide a missed migration and teach unsupported syntax.
+
+### What worked
+
+The package and focused CLI tests passed. `go test ./... -skip 'Test(ResolveAppConfigPaths_IncludesGitRootAndWorkingDirLocalConfig|NewCommandsCommand_LoadsConfiguredRepositoryFromAppConfig|NewCommandsCommand_XDGConfigOverridesHomeConfig)$'` passed across the repository. `go run ./cmd/go-minitrace help --all` loaded the revised embedded help. Searches of maintained docs and examples found no remaining calls to the deleted query methods or legacy resource chains. The negative contract fixture checks absent exports and verifies that execute rejects plain strings and old recipe-shaped objects.
+
+### What didn't work
+
+The first module test run caught three fixture migration misses. `TestModuleLoaderDBBuilderAutoConvertsJSONLContent` still called `Build`; the disk and memory cache fixtures still called `queryOne`. Migrated those calls. The negative fixture also surfaced a default-policy regression: setting only `autoConvert` was implicitly disabling strict conversion. Fixed the option application to preserve omitted settings and confirmed the malformed archive diagnostic is intact.
+
+Three configuration-resolution tests observed earlier in Step 18 were excluded from the broad pass. Full validation still needs either a clean run or a baseline reproduction. A standalone TypeScript compiler and xgoja generator were absent from PATH during this checkpoint, so the provider compiled with the embedded descriptor and the declaration file still needs an independent typecheck.
+
+### What I learned
+
+Resource operations are easier to verify when tests use the same opaque JS values as commands. Defaults are observable behavior even after a clean syntax cut. Retaining recursive directory selection preserves an existing query workflow without restoring duplicate builder methods.
+
+### What was tricky to build
+
+The tests used deprecated calls through several different handles and inline Go strings. Final searches covered CLI fixtures and help as well as the provider package. The user-facing help needed to explain the phase distinction between fluent callbacks and runtime mapping and to preserve the evidence contract around errors and clipping.
+
+### What warrants a second pair of eyes
+
+Verify TypeScript inference and declaration generation in an actual target host. Review representative real archives and verify declared SQL result schemas at execution. The latter is still open for composed declared sources.
+
+### What should be done in the future
+
+Complete declared SQL shape validation and structured build diagnostics, confirm configuration test baselines, and finish the CLI and persona acceptance runs. Keep the repository skill as the source for future installed copies.
+
+### Code review instructions
+
+Start with `pkg/minitracejs/local_resources.go`, `handleObject` and `minitrace.d.ts`. Read the new `pkg/doc/js-api-reference.md` and the skill's JS authoring reference. Re-run package tests, embedded help and the full-suite command recorded above.
+
+### Technical details
+
+The runtime exposes one `sql` tag and one `execute(plan, options)` method. The Go SQL runner remains the shared read-only execution layer for the CLI and web, independent of JS builder syntax.

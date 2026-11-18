@@ -123,13 +123,13 @@ func TestModuleLoaderProvidesDBBuilder(t *testing.T) {
 	}
 
 	value, err := vm.RunString(`
-		const db = mt.db().SQLiteMemory().MaxRows(5).Build();
+		const db = mt.db().limits({maxRows: 5}).build();
 		const stats = db.stats();
 		const tables = db.tables().map(t => t.name).sort();
-		const row = db.queryOne("SELECT COUNT(*) AS n FROM sessions");
-		const rejected = db.queryResult("INSERT INTO sessions(session_id) VALUES ('bad')");
+		const row = db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0];
+		let rejectedError; try { mt.sql` + "`" + `INSERT INTO sessions(session_id) VALUES ('bad')` + "`" + `; } catch (err) { rejectedError = String(err); }
 		db.close();
-		JSON.stringify({ stats, tables, row, rejectedError: rejected.error });
+		JSON.stringify({ stats, tables, row, rejectedError });
 	`)
 	if err != nil {
 		t.Fatalf("run db builder script: %v", err)
@@ -176,12 +176,12 @@ func TestModuleLoaderDBBuilderLoadsNativeFile(t *testing.T) {
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("fixturePath", path)
 	value, err := vm.RunString(`
-		const db = mt.db().File(fixturePath).SQLiteMemory().Build();
+		const db = mt.db().sources(mt.sources().files([fixturePath]).build()).build();
 		const summary = {
-			sessions: db.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
-			turns: db.queryOne("SELECT COUNT(*) AS n FROM turns").n,
-			tools: db.queryOne("SELECT COUNT(*) AS n FROM tool_calls").n,
-			file: db.queryOne("SELECT path FROM files").path,
+			sessions: db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0].n,
+			turns: db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM turns` + "`" + `.build()).rows[0].n,
+			tools: db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM tool_calls` + "`" + `.build()).rows[0].n,
+			file: db.execute(mt.sql` + "`" + `SELECT path FROM files` + "`" + `.build()).rows[0].path,
 			sources: db.sources().length
 		};
 		db.close();
@@ -222,11 +222,11 @@ func TestModuleLoaderDBBuilderLoadsNativeDirAndGlob(t *testing.T) {
 	_ = vm.Set("fixtureDir", dir)
 	_ = vm.Set("fixtureGlob", filepath.Join(dir, "*.minitrace.json"))
 	value, err := vm.RunString(`
-		const byDir = mt.db().Dir(fixtureDir).Build();
-		const byGlob = mt.db().Glob(fixtureGlob).Build();
+		const byDir = mt.db().sources(mt.sources().directory(fixtureDir).build()).build();
+		const byGlob = mt.db().sources(mt.sources().glob(fixtureGlob).build()).build();
 		const result = {
-			dirSessions: byDir.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
-			globSessions: byGlob.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
+			dirSessions: byDir.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0].n,
+			globSessions: byGlob.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0].n,
 			dirSources: byDir.sources().length,
 			globSources: byGlob.sources().length
 		};
@@ -269,10 +269,10 @@ func TestModuleLoaderDBBuilderAutoConvertsJSONLContent(t *testing.T) {
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("jsonlContent", content)
 	value, err := vm.RunString(`
-		const db = mt.db().Content(jsonlContent, {name: "pi-content.jsonl"}).AutoConvert(true).Build();
+		const db = mt.db().sources(mt.sources().content(jsonlContent, {name: "pi-content.jsonl"}).build()).import({autoConvert:true}).build();
 		const result = {
-			id: db.queryOne("SELECT session_id FROM sessions").session_id,
-			turns: db.queryOne("SELECT COUNT(*) AS n FROM turns").n,
+			id: db.execute(mt.sql` + "`" + `SELECT session_id FROM sessions` + "`" + `.build()).rows[0].session_id,
+			turns: db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM turns` + "`" + `.build()).rows[0].n,
 			diagnosticFormat: db.diagnostics()[0].format
 		};
 		db.close();
@@ -312,9 +312,9 @@ func TestModuleLoaderDBBuilderExposesCacheKeyAndCacheInfo(t *testing.T) {
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("jsonlContent", content)
 	value, err := vm.RunString(`
-		const builder = mt.db().Content(jsonlContent, "cache-content.jsonl").AutoConvert(true);
-		const builderKey = builder.CacheKey();
-		const db = builder.Build();
+		const builder = mt.db().sources(mt.sources().content(jsonlContent, {name: "cache-content.jsonl"}).build()).import({autoConvert:true});
+		const builderKey = builder.cacheKey();
+		const db = builder.build();
 		const handleKey = db.cacheInfo();
 		const result = {
 			builderKey: builderKey.key,
@@ -380,17 +380,17 @@ func TestModuleLoaderDBBuilderAutoCacheUsesMemoryDiskThenRebuild(t *testing.T) {
 	_ = vm.Set("changedContent", changedContent)
 	_ = vm.Set("cacheDir", cacheDir)
 	value, err := vm.RunString(`
-		const warmer = mt.db().Content(jsonlContent, "auto-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).Build();
+		const warmer = mt.db().sources(mt.sources().content(jsonlContent, {name: "auto-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"disk",dir:cacheDir}).build();
 		const warmInfo = warmer.cacheInfo();
 		warmer.close();
-		const fromDisk = mt.db().Content(jsonlContent, "auto-cache-content.jsonl").AutoConvert(true).Cache("auto").CacheDir(cacheDir).Build();
+		const fromDisk = mt.db().sources(mt.sources().content(jsonlContent, {name: "auto-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"auto",dir:cacheDir}).build();
 		const diskInfo = fromDisk.cacheInfo();
-		const fromMemory = mt.db().Content(jsonlContent, "auto-cache-content.jsonl").AutoConvert(true).Cache("auto").CacheDir(cacheDir).Build();
+		const fromMemory = mt.db().sources(mt.sources().content(jsonlContent, {name: "auto-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"auto",dir:cacheDir}).build();
 		const memoryInfo = fromMemory.cacheInfo();
 		fromMemory.close();
 		const afterMemoryClose = fromDisk.cacheInfo();
 		fromDisk.close();
-		const rebuilt = mt.db().Content(changedContent, "auto-cache-content.jsonl").AutoConvert(true).Cache("auto").CacheDir(cacheDir).Build();
+		const rebuilt = mt.db().sources(mt.sources().content(changedContent, {name: "auto-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"auto",dir:cacheDir}).build();
 		const rebuiltInfo = rebuilt.cacheInfo();
 		rebuilt.close();
 		JSON.stringify({
@@ -460,15 +460,15 @@ func TestModuleLoaderDBBuilderDiskCacheBuildsAndReusesSQLiteFile(t *testing.T) {
 	_ = vm.Set("jsonlContent", content)
 	_ = vm.Set("cacheDir", cacheDir)
 	value, err := vm.RunString(`
-		const first = mt.db().Content(jsonlContent, "disk-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).Build();
+		const first = mt.db().sources(mt.sources().content(jsonlContent, {name: "disk-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"disk",dir:cacheDir}).build();
 		const firstInfo = first.cacheInfo();
-		const firstCount = first.queryOne("SELECT COUNT(*) AS n FROM sessions").n;
-		const rejected = first.queryResult("INSERT INTO sessions(session_id) VALUES ('bad')").error;
+		const firstCount = first.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0].n;
+		let rejected; try { mt.sql` + "`" + `INSERT INTO sessions(session_id) VALUES ('bad')` + "`" + `; } catch (err) { rejected = String(err); }
 		first.close();
-		const second = mt.db().Content(jsonlContent, "disk-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).Build();
+		const second = mt.db().sources(mt.sources().content(jsonlContent, {name: "disk-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"disk",dir:cacheDir}).build();
 		const secondInfo = second.cacheInfo();
 		second.close();
-		const rebuilt = mt.db().Content(jsonlContent, "disk-cache-content.jsonl").AutoConvert(true).SQLiteDiskCache(cacheDir).ForceRebuild().Build();
+		const rebuilt = mt.db().sources(mt.sources().content(jsonlContent, {name: "disk-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"disk",dir:cacheDir,forceRebuild:true}).build();
 		const rebuiltInfo = rebuilt.cacheInfo();
 		rebuilt.close();
 		JSON.stringify({
@@ -527,15 +527,15 @@ func TestModuleLoaderDBBuilderMemoryCacheReusesByCacheKey(t *testing.T) {
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("jsonlContent", content)
 	value, err := vm.RunString(`
-		const first = mt.db().Content(jsonlContent, "memory-cache-content.jsonl").AutoConvert(true).Cache("memory").Build();
+		const first = mt.db().sources(mt.sources().content(jsonlContent, {name: "memory-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"memory"}).build();
 		const firstInfo = first.cacheInfo();
-		const second = mt.db().Content(jsonlContent, "memory-cache-content.jsonl").AutoConvert(true).Cache("memory").Build();
+		const second = mt.db().sources(mt.sources().content(jsonlContent, {name: "memory-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"memory"}).build();
 		const secondInfo = second.cacheInfo();
-		const secondCount = second.queryOne("SELECT COUNT(*) AS n FROM sessions").n;
+		const secondCount = second.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0].n;
 		second.close();
 		const afterSecondClose = first.cacheInfo();
 		first.close();
-		const changed = mt.db().Content(jsonlContent + "\n", "memory-cache-content.jsonl").AutoConvert(true).Cache("memory").Build();
+		const changed = mt.db().sources(mt.sources().content(jsonlContent + "\n", {name: "memory-cache-content.jsonl"}).build()).import({autoConvert:true}).cache({mode:"memory"}).build();
 		const changedInfo = changed.cacheInfo();
 		changed.close();
 		JSON.stringify({
@@ -593,9 +593,9 @@ func TestModuleLoaderDBBuilderNonStrictConversionKeepsValidSources(t *testing.T)
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("fixturePath", path)
 	value, err := vm.RunString(`
-		const db = mt.db().File(fixturePath).Content("not json", "bad.txt").StrictConversion(false).Build();
+		const db = mt.db().sources(mt.sources().files([fixturePath]).content("not json", {name:"bad.txt"}).build()).import({strict:false}).build();
 		const result = {
-			sessions: db.queryOne("SELECT COUNT(*) AS n FROM sessions").n,
+			sessions: db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0].n,
 			diagnosticCount: db.diagnostics().length,
 			errorSeverity: db.diagnostics().some(d => d.severity === "error")
 		};
@@ -630,7 +630,7 @@ func TestModuleLoaderDBBuilderValidation(t *testing.T) {
 	_ = moduleObj.Set("exports", exports)
 	loader(vm, moduleObj)
 	_ = vm.Set("mt", exports)
-	value, err := vm.RunString(`JSON.stringify(mt.db().MaxRows(-1).Validate())`)
+	value, err := vm.RunString(`try { mt.db().limits({maxRows:-1}); } catch (err) { JSON.stringify({valid:false,errors:[String(err)]}); }`)
 	if err != nil {
 		t.Fatalf("run validation script: %v", err)
 	}
@@ -722,14 +722,12 @@ func TestModuleLoaderComposesDBFromSubBuilders(t *testing.T) {
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("jsonlContent", content)
 	value, err := vm.RunString(`
-		const sources = mt.sources().Content(jsonlContent).Name("builder-content.jsonl").Build();
-		const importPolicy = mt.importPolicy().AutoConvert().Strict().Build();
-		const cache = mt.cache().None().Build();
-		const limits = mt.limits().Rows(25).CellChars(2000).Build();
-		const db = mt.db().Sources(sources).Import(importPolicy).Cache(cache).Limits(limits).Build();
-		const row = db.queryOne("SELECT session_id, turn_count FROM sessions");
-		const sourceSummary = sources.Summary();
-		const cacheSummary = cache.Summary();
+		const sources = mt.sources().content(jsonlContent,{name:"builder-content.jsonl"}).build();
+		const db = mt.db().sources(sources).import({autoConvert:true,strict:true})
+		  .cache({mode:"none"}).limits({maxRows:25,maxCellBytes:2000}).build();
+		const row = db.execute(mt.sql` + "`" + `SELECT session_id, turn_count FROM sessions` + "`" + `.build()).rows[0];
+		const sourceSummary = db.sources();
+		const cacheSummary = db.cacheInfo();
 		db.close();
 		JSON.stringify({ row, sourceSummary, cacheSummary });
 	`)
@@ -770,8 +768,8 @@ func TestModuleLoaderDBBuilderConveniencePresets(t *testing.T) {
 	_ = vm.Set("mt", exports)
 	_ = vm.Set("fixturePath", path)
 	value, err := vm.RunString(`
-		const db = mt.db().File(fixturePath).InteractiveDefaults().Build();
-		const row = db.queryOne("SELECT COUNT(*) AS n FROM sessions");
+		const db = mt.db().sources(mt.sources().files([fixturePath]).build()).import({autoConvert:true,strict:true}).cache({mode:"auto"}).build();
+		const row = db.execute(mt.sql` + "`" + `SELECT COUNT(*) AS n FROM sessions` + "`" + `.build()).rows[0];
 		const cacheInfo = db.cacheInfo();
 		db.close();
 		JSON.stringify({ sessions: row.n, cacheMode: cacheInfo.mode });

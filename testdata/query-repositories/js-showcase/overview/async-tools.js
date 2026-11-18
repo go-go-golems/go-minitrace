@@ -85,7 +85,7 @@ async function topSessionCards(filters) {
 
 __verb__("delayedSummary", {
   name: "delayed-summary",
-  short: "Use async JS plus queryOne to build a summary row",
+  short: "Build a summary row with async JS and a tagged SQL plan",
   fields: { filters: { bind: "filters" } },
 });
 

@@ -27,7 +27,7 @@ It demonstrates:
 - file-stem command grouping (`overview/session-tools.js` -> `overview session-tools ...`),
 - multiple verbs per JS file,
 - helper modules hidden from command discovery,
-- `query(...)` and `queryOne(...)`,
+- tagged SQL and `db.execute(plan)`,
 - JS-side reshaping/scoring/classification,
 - async commands using `require("timer")`,
 - advanced analysis examples,

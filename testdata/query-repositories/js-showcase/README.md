@@ -18,7 +18,7 @@ Defined in `overview/session-tools.js`.
 - `session-list`
   - basic JS-backed query command
   - uses section-bound typed inputs
-  - uses `mt.sql.stringIn(...)`
+  - uses bound framework membership filters
 - `framework-share`
   - queries grouped framework counts
   - uses a relative helper module (`./lib/transforms`)
@@ -39,7 +39,7 @@ Defined in `overview/async-tools.js`.
 
 - `delayed-summary`
   - async command using `require("timer")`
-  - uses `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and `db.queryOne(...)`
+  - uses `mt.sources().runtimeArchives()` and `mt.db().sources(selection)` and `db.execute(plan)` with explicit first-row selection
   - returns a single synthesized summary row
 - `top-session-cards`
   - async command returning multiple rows
@@ -112,8 +112,8 @@ This showcase now covers all of these patterns:
 - relative helper modules
 - pure synthetic row generation with no DB query
 - async commands using `require("timer")`
-- `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` for query-command archive loading
-- `db.queryOne(...)`
+- `mt.sources().runtimeArchives()` and `mt.db().sources(selection)` for query-command archive loading
+- `db.execute(plan)` with explicit first-row selection
 - query results post-processed in JavaScript before emission
 - multiple SQL queries combined in JS
 - JS-side joins across independently queried aggregates

@@ -53,9 +53,9 @@ func TestRelationalBindingThroughRequire(t *testing.T) {
 			rejects(() => sessions.where(s => s.typo.eq("x")), "available:");
 			rejects(() => sessions.where(s => s.session_id === "x"), "instead of ===");
 			rejects(() => sessions.select(async s => ({id: s.session_id})), "synchronously");
-			const other = mt.db().Content(JSON.stringify({
+			const other = mt.db().sources(mt.sources().content(JSON.stringify({
 				id: "other", profile: "organic", turns: [], tool_calls: []
-			})).Build();
+			})).build()).build();
 			try { if (!other.execute(plan).error.includes("owns this plan")) throw Error("wrong database accepted"); }
 			finally { other.close(); }
 		} finally { db.close(); }

@@ -25,12 +25,12 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`
     SELECT session_id AS id, title
     FROM sessions
     LIMIT ${filters.limit}
-  `+"`"+`);
+  `+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {
@@ -90,12 +90,12 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(` + "`" + `
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql` + "`" + `
     SELECT session_id AS id
     FROM sessions
     LIMIT ${filters.limit}
-  ` + "`" + `);
+  ` + "`" + `.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {
@@ -162,12 +162,12 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(` + "`" + `
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql` + "`" + `
     SELECT session_id AS id
     FROM sessions
     LIMIT ${filters.limit}
-  ` + "`" + `);
+  ` + "`" + `.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {
@@ -342,12 +342,12 @@ async function sessionList(filters) {
   const mt = require("minitrace");
   const timer = require("timer");
   await timer.sleep(1);
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`
     SELECT session_id AS id
     FROM sessions
     LIMIT ${filters.limit}
-  `+"`"+`);
+  `+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {

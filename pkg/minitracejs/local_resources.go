@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/go-go-golems/go-minitrace/pkg/queryplan"
 )
 
-func attachLocalSources(vm *goja.Runtime, obj *goja.Object, b *SourceSetBuilder) {
+func (binding *relationalBinding) sourcesBuilder(b *SourceSetBuilder) *goja.Object {
+	vm := binding.vm
+	obj := vm.NewObject()
 	derive := func(apply func(*SourceSetBuilder)) *goja.Object {
 		next := *b
 		next.sources = append([]dbSource(nil), b.sources...)
 		next.errors = append([]string(nil), b.errors...)
 		apply(&next)
-		return sourcesBuilderObject(vm, &next)
+		return binding.sourcesBuilder(&next)
 	}
 	_ = obj.Set("files", func(paths []string) *goja.Object {
 		return derive(func(next *SourceSetBuilder) {
@@ -26,6 +29,11 @@ func attachLocalSources(vm *goja.Runtime, obj *goja.Object, b *SourceSetBuilder)
 	_ = obj.Set("glob", func(pattern string) *goja.Object {
 		return derive(func(next *SourceSetBuilder) {
 			next.sources = append(next.sources, dbSource{Kind: "glob", Path: strings.TrimSpace(pattern)})
+		})
+	})
+	_ = obj.Set("directory", func(path string) *goja.Object {
+		return derive(func(next *SourceSetBuilder) {
+			next.sources = append(next.sources, dbSource{Kind: "dir", Path: strings.TrimSpace(path)})
 		})
 	})
 	_ = obj.Set("content", func(content string, options *goja.Object) *goja.Object {
@@ -40,10 +48,16 @@ func attachLocalSources(vm *goja.Runtime, obj *goja.Object, b *SourceSetBuilder)
 			next.sources = append(next.sources, dbSource{Kind: "runtime"})
 		})
 	})
-	_ = obj.Set("build", b.Build)
+	_ = obj.Set("build", func() *goja.Object {
+		sources, err := b.Build()
+		binding.check(err)
+		return binding.remember(sources)
+	})
+	return obj
 }
 
-func attachLocalDatabase(vm *goja.Runtime, obj *goja.Object, b *DBBuilder) {
+func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
+	obj := vm.NewObject()
 	derive := func(apply func(*DBBuilder)) *goja.Object {
 		next := *b
 		next.sources = append([]dbSource(nil), b.sources...)
@@ -51,13 +65,26 @@ func attachLocalDatabase(vm *goja.Runtime, obj *goja.Object, b *DBBuilder) {
 		apply(&next)
 		return builderObject(vm, &next)
 	}
-	_ = obj.Set("sources", func(sources *SourceSet) *goja.Object {
-		return derive(func(next *DBBuilder) { next.applySourceSet(sources) })
+	_ = obj.Set("sources", func(value goja.Value) *goja.Object {
+		sources, ok := b.relation.lookup(value).(*SourceSet)
+		if !ok {
+			panic(vm.NewTypeError("sources requires a source selection from mt.sources().build()"))
+		}
+		return derive(func(next *DBBuilder) {
+			next.applySourceSet(sources)
+			if len(next.sources) == 0 && len(next.errors) == 0 {
+				next.errors = append(next.errors, "source selection matched no archives")
+			}
+		})
 	})
 	_ = obj.Set("import", func(options *goja.Object) *goja.Object {
 		return derive(func(next *DBBuilder) {
-			next.autoConvert = boolOption(vm, options, "autoConvert")
-			next.strictConversion = boolOption(vm, options, "strict")
+			if value := option(vm, options, "autoConvert"); value != nil && !goja.IsUndefined(value) {
+				next.autoConvert = boolOption(vm, options, "autoConvert")
+			}
+			if value := option(vm, options, "strict"); value != nil && !goja.IsUndefined(value) {
+				next.strictConversion = boolOption(vm, options, "strict")
+			}
 		})
 	})
 	_ = obj.Set("cache", func(options *goja.Object) *goja.Object {
@@ -86,8 +113,22 @@ func attachLocalDatabase(vm *goja.Runtime, obj *goja.Object, b *DBBuilder) {
 			})
 		})
 	})
-	_ = obj.Set("cacheKey", obj.Get("CacheKey"))
-	_ = obj.Set("build", obj.Get("Build"))
+	_ = obj.Set("cacheKey", func() (map[string]any, error) {
+		key, err := b.CacheKey()
+		if err != nil {
+			return nil, err
+		}
+		return toPlainMap(key), nil
+	})
+	_ = obj.Set("build", func() (*goja.Object, error) {
+		h, err := b.Build()
+		if err != nil {
+			return nil, err
+		}
+		h.owner, h.relation, h.ctx = queryplan.NewOwner(), b.relation, b.ctx
+		return handleObject(vm, h), nil
+	})
+	return obj
 }
 
 func option(vm *goja.Runtime, obj *goja.Object, key string) goja.Value {

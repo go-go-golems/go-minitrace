@@ -219,25 +219,25 @@ JavaScript command handlers run in a Goja-powered JS runtime and have access to 
 ```js
 __section__("filters", {
   fields: {
-    framework: { type: "stringList", help: "Filter by framework" },
+    framework: { type: "string", help: "Filter by framework" },
     limit:     { type: "int",        default: 25, help: "Row limit" },
   },
 });
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
   try {
-    return db.query(`
+    const result = db.execute(mt.sql`
       SELECT session_id, title, agent_framework AS framework
       FROM sessions
-      WHERE 1=1
-      ${filters.framework?.length
-        ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
-        : ""}
-      ORDER BY started_at DESC
+      WHERE (${filters.framework || null} IS NULL OR agent_framework = ${filters.framework || null})
+      ORDER BY started_at DESC, session_id
       LIMIT ${filters.limit}
-    `);
+    `.build());
+    if (result.error || !result.complete) throw Error(result.error || "Incomplete result");
+    return result.rows;
   } finally {
     db.close();
   }
@@ -263,22 +263,19 @@ go-minitrace query commands overview session-tools session-list \
 
 | Export | Description |
 |--------|-------------|
-| `mt.db()` | Create a fluent normalized SQLite builder. In query commands, start with `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`. |
-| `db.query(sql)` | Execute read-only SQL against normalized tables such as `sessions`, `turns`, `tool_calls`, `files`, `metrics`, and `events`; return `Array<Record>`. |
-| `db.queryOne(sql)` | Same but return only the first row or `null`/`undefined`. |
-| `db.queryResult(sql)` | Return `{ columns, rows, count, truncated, error }` instead of throwing on query validation errors. |
-| `db.schema()` / `db.tables()` | Discover the normalized SQLite schema from inside JS. |
-| `db.close()` | Release or close the DB handle; call it in `finally`. |
-| `mt.sql.string(val)` | Single-quoted, escaped SQL string literal. |
-| `mt.sql.stringIn(arr)` | Comma-separated quoted list for `IN (...)` clauses. |
-| `mt.sql.like(val)` | `LIKE` pattern with `%` wildcards on both sides. |
+| `mt.db()` | Builds a local database from an explicit source selection and query policies. |
+| `mt.from(db.table(name))` | Composes a fluent query from catalog-backed columns. |
+| `mt.sql` | Tags SQL text with scalar value bindings. |
+| `db.execute(plan)` | Runs a built plan and reports rows, completeness and optional diagnostics. |
+| `db.schema()` / `db.tables()` | Discover normalized SQLite columns inside JS. |
+| `db.close()` | Releases the database handle. Call it in `finally`. |
 | `mt.runtime` | Read-only context object (`archiveGlob`, `commandName`, plus compatibility fields). |
 
 See `go-minitrace help js-api-reference` for the complete API, all built-in modules, scanner markers, and the supported field type set.
 
 **Start from working examples.** The testdata showcase directories demonstrate every practical pattern:
 
-- `testdata/query-repositories/js-showcase/` — pure JS commands: multi-verb files, aliases targeting JS, relative helpers, async via `require("timer")`, `mt.db().RuntimeArchives().QueryCommandDefaults().Build()`, `db.queryOne()`, multi-query joins in JS, JS-side scoring, tool co-occurrence
+- `testdata/query-repositories/js-showcase/` — pure JS commands: multi-verb files, aliases targeting JS, relative helpers, async via `require("timer")`, `mt.db().sources(mt.sources().runtimeArchives().build()).import({autoConvert: true, strict: true}).build()`, tagged SQL, multi-query joins in JS, JS-side scoring, tool co-occurrence
 - `testdata/query-repositories/mixed-sql-js-showcase/` — the same commands side-by-side as `.sql` and `.js` equivalents so you can compare SQL vs JS approaches directly
 
 Smoke the showcases against your own local archive:

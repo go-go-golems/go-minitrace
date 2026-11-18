@@ -52,7 +52,7 @@ func NewSessionCommand() (*SessionCommand, error) {
 		cmds.WithShort("Preview Pi, Codex, Claude Code, or native minitrace sessions"),
 		cmds.WithLong(`Preview source sessions without writing an archive.
 
-The command uses the same auto-detection path as mt.importer().Preview(). It
+The command uses the same auto-detection path as mt.importer().file(path).preview(). It
 loads native minitrace JSON directly and auto-converts supported Pi, Codex, and
 Claude Code JSONL files before emitting compact structural previews.
 
