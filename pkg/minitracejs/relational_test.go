@@ -9,11 +9,16 @@ import (
 	"github.com/dop251/goja_nodejs/require"
 )
 
-func TestRelationalBindingThroughRequire(t *testing.T) {
+func newRelationalTestVM() *goja.Runtime {
 	vm := goja.New()
 	registry := new(require.Registry)
 	registry.RegisterNativeModule(ModuleName, NewLoader(context.Background(), nil, "fixture", RuntimeSettings{}))
 	registry.Enable(vm)
+	return vm
+}
+
+func TestRelationalBindingThroughRequire(t *testing.T) {
+	vm := newRelationalTestVM()
 	_, err := vm.RunString(`
 		const mt = require("minitrace");
 		const db = mt.db().sources(mt.sources().content(JSON.stringify({
@@ -61,10 +66,7 @@ func TestRelationalBindingThroughRequire(t *testing.T) {
 }
 
 func TestTaggedSQLBinding(t *testing.T) {
-	vm := goja.New()
-	registry := new(require.Registry)
-	registry.RegisterNativeModule(ModuleName, NewLoader(context.Background(), nil, "fixture", RuntimeSettings{}))
-	registry.Enable(vm)
+	vm := newRelationalTestVM()
 	_, err := vm.RunString(`
 		const mt = require("minitrace");
 		const db = mt.db().sources(mt.sources().content(JSON.stringify({
@@ -115,10 +117,7 @@ func runRelationalFixture(t *testing.T, fixture string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vm := goja.New()
-	registry := new(require.Registry)
-	registry.RegisterNativeModule(ModuleName, NewLoader(context.Background(), nil, "fixture", RuntimeSettings{}))
-	registry.Enable(vm)
+	vm := newRelationalTestVM()
 	if _, err := vm.RunScript(fixture, string(source)); err != nil {
 		t.Fatal(err)
 	}

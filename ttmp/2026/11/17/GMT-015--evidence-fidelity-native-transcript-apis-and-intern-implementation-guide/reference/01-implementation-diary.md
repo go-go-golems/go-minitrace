@@ -1045,3 +1045,57 @@ Read `QueryRunner.MapResult`, `relationalBinding.mapRow` and `pkg/minitracejs/te
 ### Technical details
 
 Empty but complete SQL input yields an empty result with the declared output schema. Permissive cell clipping marks the mapped result incomplete and reports diagnostics. Strict mode retains those diagnostics and suppresses mapped rows. The mapper never runs on incomplete SQL input.
+
+## Step 22: Replace built-in recipes with ordinary analysis functions
+
+The Goja runtime no longer exposes recipe, view or session builders. The SQL projections and grouping behavior useful to current analyses live in an ordinary CommonJS example. A caller can copy the library beside a command and work with the same query objects as any other script.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal. The clean cut and preservation of useful projections are specified in Design04.
+
+**Runtime mapping commit:** `b6742e7`.
+
+### What I did
+
+- Removed `pkg/minitracejs/query_view_session.go` and its loader exports. The tagged SQL export now has no string quoting helpers.
+- Added `examples/query-library/analysis.js` for tool, file, event, summary, turn, transcript, timeline and usage queries. The actual per-session count uses fluent correlated counts.
+- Preserved full tool and token result projections for fluent composition through declared column types. Implemented frames as ordinary JS over the complete event and tool result sets.
+- Migrated evidence and provenance tests to call the library through the current module. Replaced legacy route assertions with tests for tagged binding, fluent counts and strict result behavior.
+- Extended the default module smoke test to verify that `query`, `view` and `session` are absent at runtime.
+
+### Why
+
+The old Go selector coupled analysis vocabulary to module implementation. Ordinary functions expose the useful analyses without creating a second execution interface. Evidence defaults and derived columns still matter when moving an analysis out of Go.
+
+### What worked
+
+`go test ./pkg/minitracejs/... ./pkg/queryplan` passed. The focused CLI, provider and evidence tests passed as well. Assertions cover actual counts despite forged summary metadata, the zero-tool session, origin labels for known zero and missing usage, UTF-8 tool token estimates, source ordering, failed and unknown outcomes, detailed file targets and detached tool calls.
+
+### What didn't work
+
+No product or test failures occurred in this checkpoint.
+
+### What I learned
+
+Token projections can share a static CTE for session and role grouping while retaining a separate explicit function per analysis. Frames still need session identity and a nullable turn index in the grouping key. A row with no association belongs to a distinct frame even when it appears near turn zero.
+
+### What was tricky to build
+
+Transcript queries can bind a boolean to include tools in a union while keeping all statement text static. The tool membership aggregation prevents duplicated output when a tool is linked to more than one turn. The library also preserves independent file-target and tool-outcome counts.
+
+### What warrants a second pair of eyes
+
+Check the copied SQL schema declarations against real outputs, especially nullable values in old archives. The next validation work will verify declared SQL output shape at execution.
+
+### What should be done in the future
+
+Finish deleting the transitional resource and DB methods after switching their remaining Go test scripts. Regenerate the declaration surface and update published help. Run the complete acceptance checks and persona workflows.
+
+### Code review instructions
+
+Read `examples/query-library/analysis.js` alongside `TestGojaFidelityViews` and `TestAnalysisTokenOriginsAndSourceProjection`. The package test command above runs the module absence check and the new analysis fixtures.
+
+### Technical details
+
+Analysis functions return a local query or, for frames, grouped JS records. Typed sources preserve direct SQL order until a caller applies fluent composition and specifies its own order. The old documentation and TypeScript declarations are still a separate cutover checkpoint.

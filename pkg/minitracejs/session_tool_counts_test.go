@@ -1,17 +1,15 @@
 package minitracejs
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
 
-	"github.com/dop251/goja"
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 )
 
 func TestSessionToolCountsGoja(t *testing.T) {
-	vm := goja.New()
+	vm := newRelationalTestVM()
 	archives := []string{}
 	// Deliberately out of ID order; a has zero tools and forged summary metadata.
 	for i, id := range []string{"z", "a", "m"} {
@@ -28,22 +26,26 @@ func TestSessionToolCountsGoja(t *testing.T) {
 		archives = append(archives, string(raw))
 	}
 	_ = vm.Set("archives", archives)
-	_ = vm.Set("newDB", func() *goja.Object { return builderObject(vm, NewDBBuilder(context.Background())) })
-	_ = vm.Set("newQuery", func() *goja.Object { return queryRecipeBuilderObject(vm, NewQueryRecipeBuilder()) })
 	_, err := vm.RunString(`
- const builder=newDB().SQLiteMemory();
- archives.forEach((archive,i)=>builder.Content(archive,'fixture-'+i));
- const db=builder.Build();
+ const mt=require("minitrace");
+ const sources=archives.reduce((builder, archive, i) =>
+   builder.content(archive, {name: 'fixture-'+i}), mt.sources()).build();
+ const db=mt.db().sources(sources).build();
  function check(v,m){if(!v)throw Error(m)}
  try {
-  const recipe=newQuery().SessionToolCounts().Build();
+  const sessions=mt.from(db.table("sessions"));
+  const tools=mt.from(db.table("tool_calls"));
+  const counts=sessions.select(s=>({
+   session_id:s.session_id,
+   tool_count:tools.where(t=>t.session_id.eq(s.session_id)).count()
+  })).orderBy(s=>s.session_id.asc());
+  const recipe=counts.build();
   const all=db.execute(recipe);
   check(all.complete&&!all.error,'complete envelope');
   check(JSON.stringify(all.rows.map(r=>({session_id:r.session_id,tool_count:r.tool_count})))==='[{"session_id":"a","tool_count":0},{"session_id":"m","tool_count":1},{"session_id":"z","tool_count":2}]','all identities/counts/order');
-  const zero=newQuery().SessionToolCounts().SessionID('a').Build();
-  check(JSON.stringify(zero.args())==='["a","a"]','bound filter');
+  const zero=counts.where(s=>s.session_id.eq("a")).build();
   check(db.execute(zero).rows[0].tool_count===0,'filtered zero');
-  const absent=newQuery().SessionToolCounts().SessionID("' OR 1=1 --").Build();
+  const absent=counts.where(s=>s.session_id.eq("' OR 1=1 --")).build();
   check(db.execute(absent).rows.length===0,'filter must remain bound');
  }finally{db.close()}
  `)

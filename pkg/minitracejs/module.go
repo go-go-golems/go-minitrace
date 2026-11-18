@@ -3,8 +3,6 @@ package minitracejs
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"strings"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
@@ -53,15 +51,6 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = exports.Set("limits", func() *goja.Object {
 			return queryLimitsBuilderObject(vm, NewQueryLimitsBuilder())
 		})
-		_ = exports.Set("query", func() *goja.Object {
-			return queryRecipeBuilderObject(vm, NewQueryRecipeBuilder())
-		})
-		_ = exports.Set("view", func() *goja.Object {
-			return viewPlanBuilderObject(vm, NewViewPlanBuilder())
-		})
-		_ = exports.Set("session", func() *goja.Object {
-			return sessionBuilderObject(vm, NewSessionBuilder(ctx, runtimeSettings))
-		})
 
 		runtimeObj := vm.NewObject()
 		_ = runtimeObj.Set("tableName", runtimeSettings.TableName)
@@ -72,53 +61,6 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = exports.Set("runtime", runtimeObj)
 
 		_ = exports.Set("type", relation.typeBuilders())
-		sqlObj := vm.ToValue(relation.sql).ToObject(vm)
-		_ = sqlObj.Set("string", func(value any) (string, error) { return SQLString(value) })
-		_ = sqlObj.Set("stringIn", func(value any) (string, error) { return SQLStringIn(value) })
-		_ = sqlObj.Set("like", func(value any) (string, error) { return SQLLike(value) })
-		_ = exports.Set("sql", sqlObj)
-	}
-}
-
-func SQLString(value any) (string, error) {
-	s, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("sql.string expects string, got %T", value)
-	}
-	return "'" + strings.ReplaceAll(s, "'", "''") + "'", nil
-}
-
-func SQLLike(value any) (string, error) {
-	s, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("sql.like expects string, got %T", value)
-	}
-	return "'%" + strings.ReplaceAll(s, "'", "''") + "%'", nil
-}
-
-func SQLStringIn(value any) (string, error) {
-	switch typed := value.(type) {
-	case nil:
-		return "", nil
-	case []string:
-		parts := make([]string, 0, len(typed))
-		for _, item := range typed {
-			parts = append(parts, "'"+strings.ReplaceAll(item, "'", "''")+"'")
-		}
-		return strings.Join(parts, ", "), nil
-	case []any:
-		parts := make([]string, 0, len(typed))
-		for _, item := range typed {
-			s, ok := item.(string)
-			if !ok {
-				return "", fmt.Errorf("sql.stringIn expects string items, got %T", item)
-			}
-			parts = append(parts, "'"+strings.ReplaceAll(s, "'", "''")+"'")
-		}
-		return strings.Join(parts, ", "), nil
-	case string:
-		return "'" + strings.ReplaceAll(typed, "'", "''") + "'", nil
-	default:
-		return "", fmt.Errorf("sql.stringIn expects string or []string, got %T", value)
+		_ = exports.Set("sql", relation.sql)
 	}
 }
