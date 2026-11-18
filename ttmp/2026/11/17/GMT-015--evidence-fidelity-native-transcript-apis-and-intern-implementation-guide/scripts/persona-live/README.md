@@ -1,5 +1,7 @@
 # Live persona evaluation
 
+For an operator handoff, follow the [persona cosplay playbook](../../reference/18-playbook-for-running-and-reviewing-persona-cosplay.md).
+
 This lab adds a stakeholder conversation to the file-attribution [brief](../../reference/16-open-ended-persona-briefs-for-real-transcript-analysis.md). It follows the Playback Asset Studio pattern of separate stakeholder, product agent, host verification and judge.
 
 1. The stakeholder opens with the scenario's file-change request.

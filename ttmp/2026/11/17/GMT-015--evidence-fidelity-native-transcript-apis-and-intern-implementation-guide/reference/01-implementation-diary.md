@@ -2011,3 +2011,57 @@ View the final batch on port 8799 and the final GLM retry on 8800. Read design d
 ### Technical details
 
 `compare.py` can regenerate pairwise summaries from original and candidate directories. The final compact receipt contains independent judge profiles and counts of shortened previews with saved complete captures.
+
+## Step 39: Write and verify the persona evaluation handoff
+
+I turned the accumulated persona workflow into an operator playbook. It gives a colleague a fixture run that requires no model account, then shows how to start a historical batch, watch it, inspect exact outputs, replay a failure and hand off the evidence.
+
+### Prompt Context
+
+> What would you improve now? also write a playbook on how to run subagent cosplay stuff, so we cna hand it off to a colleague
+
+**Previous code checkpoint.** `99ce9f7` — Record completed historical persona reruns for discovery fixes.
+
+### What I did
+
+- Added reference 18 and linked it from the live harness README.
+- Documented the stakeholder, Pi analyst, host verifier and Codex judge, along with the manifest contract, local result receipts, chronology and comparison workflow.
+- Reviewed the final batch outcomes and proposed structured command discovery, a first-class schema lookup in the SQL tool and a broader scenario set.
+
+### Why
+
+The handoff should explain what each part can establish and give the next operator commands they can run in their own worktree. The remaining eight actionable resolution errors and two initial schema guesses support the next improvements.
+
+### What worked
+
+- Built a fresh CLI from the worktree and ran the playbook's exact offline setup. The host passed the all-archive, all-archive and Codex-only checks.
+- Confirmed `replay.py --help` and `rejudge.py --help` work. Ran `compare.py` on the scripted fixture.
+- Checked the playbook's docmgr frontmatter and its local references.
+
+### What didn't work
+
+No failures in the documented offline flow. This documentation pass did not repeat model calls. The prior real batch remains the evidence for provider and historical workflows.
+
+### What I learned
+
+Role separation transfers across products when the user-visible context and the executable verifier are both scoped. A command resolution or schema suggestion needs to be measurable on the analyst's next step.
+
+### What was tricky to build
+
+The original historical manifest includes private archive paths. The handoff describes its minimal normalized input contract and provides a provider-free fixture that any colleague can run.
+
+### What warrants a second pair of eyes
+
+Review the prompt and the verifier before adding a new scenario. The existing runner loads one scenario and verifies a file-target ledger.
+
+### What should be done in the future
+
+Prototype command path feedback and compact schema lookup. Evaluate each on a failing attempt and then add new scenario coverage.
+
+### Code review instructions
+
+Start at reference 18. The README still has the terse runner reference and links to the playbook.
+
+### Technical details
+
+The playbook's scripted fixture expected two rows across all archives and one within Codex. This verification exercises the actual binary and verifier and makes no external model calls.
