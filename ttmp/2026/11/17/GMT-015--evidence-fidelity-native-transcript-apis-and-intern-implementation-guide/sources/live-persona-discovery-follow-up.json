@@ -1,0 +1,609 @@
+{
+  "batches": {
+    "baseline": {
+      "batch": "gmt015-live-historical-v2",
+      "inputs": {
+        "input/go-minitrace": "9987668348554a12ed8968867fcdda75de5196dcd81f96cd8cbd622811b1ea0b",
+        "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+        "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+        "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+        "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+        "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+        "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+        "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+        "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+        "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+      },
+      "runs": {
+        "deepseek-4.1-flash": {
+          "first_successful_js_call_ordinal": 13,
+          "first_successful_ledger_call_ordinal": 34,
+          "tool_calls": {
+            "minitrace": 38,
+            "save_artifact": 35
+          },
+          "signals": {
+            "successful help invocation": 5,
+            "delivery preview shortened": 13,
+            "nonzero or interrupted CLI invocation": 7,
+            "SQLite schema introspection denied": 1,
+            "unresolved command reported as --archive-glob": 4,
+            "scanner skipped invalid command declaration": 2,
+            "successful js invocation": 24,
+            "Pi tool validation failure": 2,
+            "raw source outside allowed inputs": 1,
+            "tool subprocess output exceeded cap": 1
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 5,
+              "delivery preview shortened": 12,
+              "nonzero or interrupted CLI invocation": 6,
+              "SQLite schema introspection denied": 1,
+              "unresolved command reported as --archive-glob": 4,
+              "scanner skipped invalid command declaration": 2,
+              "successful js invocation": 10,
+              "Pi tool validation failure": 2,
+              "raw source outside allowed inputs": 1
+            },
+            "analyst-2.pi": {
+              "successful js invocation": 10,
+              "delivery preview shortened": 1,
+              "nonzero or interrupted CLI invocation": 1,
+              "tool subprocess output exceeded cap": 1
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 4
+            }
+          },
+          "elapsed_seconds": 245.3,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 1,
+              "expected_rows": 1,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true
+        },
+        "glm-5.3-flash": {
+          "first_successful_js_call_ordinal": 28,
+          "first_successful_ledger_call_ordinal": 28,
+          "tool_calls": {
+            "minitrace": 47,
+            "save_artifact": 23
+          },
+          "signals": {
+            "successful help invocation": 7,
+            "successful sql invocation": 14,
+            "delivery preview shortened": 12,
+            "nonzero or interrupted CLI invocation": 17,
+            "unresolved command reported as --archive-glob": 15,
+            "Pi tool validation failure": 3,
+            "scanner skipped invalid command declaration": 6,
+            "successful js invocation": 6,
+            "SQLite schema introspection denied": 1,
+            "duplicate command registration": 1
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 6,
+              "successful sql invocation": 6,
+              "delivery preview shortened": 11,
+              "nonzero or interrupted CLI invocation": 13,
+              "unresolved command reported as --archive-glob": 13,
+              "Pi tool validation failure": 2,
+              "scanner skipped invalid command declaration": 6,
+              "successful js invocation": 1
+            },
+            "analyst-2.pi": {
+              "successful help invocation": 1,
+              "nonzero or interrupted CLI invocation": 4,
+              "SQLite schema introspection denied": 1,
+              "unresolved command reported as --archive-glob": 2,
+              "duplicate command registration": 1,
+              "successful js invocation": 3,
+              "Pi tool validation failure": 1,
+              "delivery preview shortened": 1,
+              "successful sql invocation": 5
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 2,
+              "successful sql invocation": 3
+            }
+          },
+          "elapsed_seconds": 320.97,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": false,
+              "observed_rows": null,
+              "expected_rows": null,
+              "missing_count": null,
+              "unexpected_count": null
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 1,
+              "expected_rows": 1,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true
+        }
+      },
+      "judge": null
+    },
+    "initial_render": {
+      "batch": "runs",
+      "inputs": {
+        "input/go-minitrace": "1e5ea0e3f79cc00bfc3a9023b58cf82b2975818ef81ce9febe2b0eaa19a5f236",
+        "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+        "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+        "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+        "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+        "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+        "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+        "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+        "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+        "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+      },
+      "runs": {
+        "deepseek-4.1-flash": {
+          "first_successful_js_call_ordinal": 9,
+          "first_successful_ledger_call_ordinal": 20,
+          "tool_calls": {
+            "minitrace": 25,
+            "save_artifact": 22
+          },
+          "signals": {
+            "Pi tool validation failure": 1,
+            "successful help invocation": 3,
+            "nonzero or interrupted CLI invocation": 6,
+            "SQLite schema introspection denied": 1,
+            "delivery preview shortened": 8,
+            "unresolved command with actionable diagnostic": 2,
+            "successful js invocation": 15,
+            "tool subprocess output exceeded cap": 1
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "Pi tool validation failure": 1,
+              "successful help invocation": 3,
+              "nonzero or interrupted CLI invocation": 4,
+              "SQLite schema introspection denied": 1,
+              "delivery preview shortened": 5,
+              "unresolved command with actionable diagnostic": 2,
+              "successful js invocation": 6
+            },
+            "analyst-2.pi": {
+              "successful js invocation": 5,
+              "nonzero or interrupted CLI invocation": 2,
+              "delivery preview shortened": 2,
+              "tool subprocess output exceeded cap": 1
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 4,
+              "delivery preview shortened": 1
+            }
+          },
+          "elapsed_seconds": 186.0,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 1,
+              "expected_rows": 1,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true
+        },
+        "glm-5.3-flash": {
+          "first_successful_js_call_ordinal": 9,
+          "first_successful_ledger_call_ordinal": 22,
+          "tool_calls": {
+            "minitrace": 34,
+            "save_artifact": 11
+          },
+          "signals": {
+            "successful help invocation": 2,
+            "nonzero or interrupted CLI invocation": 11,
+            "SQLite schema introspection denied": 1,
+            "delivery preview shortened": 6,
+            "unresolved command with actionable diagnostic": 3,
+            "scanner skipped invalid command declaration": 1,
+            "successful js invocation": 10,
+            "successful sql invocation": 11,
+            "query envelope incomplete": 2,
+            "raw source outside allowed inputs": 2
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 2,
+              "nonzero or interrupted CLI invocation": 5,
+              "SQLite schema introspection denied": 1,
+              "delivery preview shortened": 4,
+              "unresolved command with actionable diagnostic": 3,
+              "scanner skipped invalid command declaration": 1,
+              "successful js invocation": 6,
+              "successful sql invocation": 2
+            },
+            "analyst-2.pi": {
+              "query envelope incomplete": 1,
+              "successful sql invocation": 1
+            },
+            "analyst-3.pi": {
+              "nonzero or interrupted CLI invocation": 6,
+              "successful js invocation": 4,
+              "successful sql invocation": 8,
+              "raw source outside allowed inputs": 2,
+              "delivery preview shortened": 2,
+              "query envelope incomplete": 1
+            }
+          },
+          "elapsed_seconds": 170.85,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 1,
+              "expected_rows": 1,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true
+        }
+      },
+      "judge": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      }
+    },
+    "final_first_attempt": {
+      "batch": "runs",
+      "inputs": {
+        "input/go-minitrace": "d19f75acba464a4103af333cdbcc6c149dae9b9f0799534b88ac783fba99c12b",
+        "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+        "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+        "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+        "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+        "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+        "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+        "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+        "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+        "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+      },
+      "runs": {
+        "deepseek-4.1-flash": {
+          "first_successful_js_call_ordinal": 7,
+          "first_successful_ledger_call_ordinal": 21,
+          "tool_calls": {
+            "minitrace": 26,
+            "save_artifact": 20,
+            "read_artifact": 2
+          },
+          "signals": {
+            "Pi tool validation failure": 1,
+            "successful help invocation": 1,
+            "nonzero or interrupted CLI invocation": 7,
+            "SQLite schema introspection denied": 1,
+            "delivery preview shortened": 4,
+            "unresolved command with actionable diagnostic": 2,
+            "scanner skipped invalid command declaration": 1,
+            "successful js invocation": 17,
+            "raw source outside allowed inputs": 2
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "Pi tool validation failure": 1,
+              "successful help invocation": 1,
+              "nonzero or interrupted CLI invocation": 4,
+              "SQLite schema introspection denied": 1,
+              "delivery preview shortened": 3,
+              "unresolved command with actionable diagnostic": 2,
+              "scanner skipped invalid command declaration": 1,
+              "successful js invocation": 7
+            },
+            "analyst-2.pi": {
+              "delivery preview shortened": 1,
+              "successful js invocation": 3
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 7,
+              "nonzero or interrupted CLI invocation": 3,
+              "raw source outside allowed inputs": 2
+            }
+          },
+          "elapsed_seconds": 177.57,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 1,
+              "expected_rows": 1,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true
+        },
+        "glm-5.3-flash": {
+          "first_successful_js_call_ordinal": null,
+          "first_successful_ledger_call_ordinal": null,
+          "tool_calls": {
+            "minitrace": 15,
+            "save_artifact": 1
+          },
+          "signals": {
+            "successful help invocation": 2,
+            "nonzero or interrupted CLI invocation": 4,
+            "SQLite schema introspection denied": 1,
+            "delivery preview shortened": 1,
+            "successful sql invocation": 9,
+            "query envelope incomplete": 1
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 2,
+              "nonzero or interrupted CLI invocation": 4,
+              "SQLite schema introspection denied": 1,
+              "delivery preview shortened": 1,
+              "successful sql invocation": 9,
+              "query envelope incomplete": 1
+            }
+          },
+          "elapsed_seconds": 66.93,
+          "terminal_event": "failure",
+          "replays": [],
+          "judge_delivered": false
+        }
+      },
+      "judge": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      }
+    },
+    "final_glm_retry": {
+      "batch": "glm-retry",
+      "inputs": {
+        "input/go-minitrace": "d19f75acba464a4103af333cdbcc6c149dae9b9f0799534b88ac783fba99c12b",
+        "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+        "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+        "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+        "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+        "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+        "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+        "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+        "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+        "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+      },
+      "runs": {
+        "glm-5.3-flash": {
+          "first_successful_js_call_ordinal": 16,
+          "first_successful_ledger_call_ordinal": 24,
+          "tool_calls": {
+            "minitrace": 26,
+            "save_artifact": 15,
+            "read_artifact": 1
+          },
+          "signals": {
+            "successful help invocation": 2,
+            "nonzero or interrupted CLI invocation": 12,
+            "SQLite schema introspection denied": 1,
+            "Pi tool validation failure": 3,
+            "delivery preview shortened": 7,
+            "unresolved command with actionable diagnostic": 6,
+            "raw source outside allowed inputs": 1,
+            "successful js invocation": 9
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 2,
+              "nonzero or interrupted CLI invocation": 8,
+              "SQLite schema introspection denied": 1,
+              "Pi tool validation failure": 3,
+              "delivery preview shortened": 4,
+              "unresolved command with actionable diagnostic": 4,
+              "raw source outside allowed inputs": 1,
+              "successful js invocation": 3
+            },
+            "analyst-2.pi": {
+              "nonzero or interrupted CLI invocation": 1,
+              "delivery preview shortened": 2,
+              "successful js invocation": 2
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 4,
+              "delivery preview shortened": 1,
+              "nonzero or interrupted CLI invocation": 3,
+              "unresolved command with actionable diagnostic": 2
+            }
+          },
+          "elapsed_seconds": 155.0,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 34,
+              "expected_rows": 34,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 1,
+              "expected_rows": 1,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true
+        }
+      },
+      "judge": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      }
+    }
+  },
+  "final_capture_and_judge": {
+    "deepseek-4.1-flash": {
+      "receipts": 25,
+      "shortened_previews_with_complete_captures": 4,
+      "judge": {
+        "requested": {
+          "provider": "openai-codex",
+          "model": "gpt-6.2-sol",
+          "thinking": "medium"
+        },
+        "exit": 0,
+        "turn_completed": true,
+        "tool_items": [],
+        "usage": {
+          "input_tokens": 27639,
+          "cached_input_tokens": 7296,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 349,
+          "reasoning_output_tokens": 51
+        }
+      }
+    },
+    "glm-5.3-flash": {
+      "receipts": 23,
+      "shortened_previews_with_complete_captures": 7,
+      "judge": {
+        "requested": {
+          "provider": "openai-codex",
+          "model": "gpt-6.2-sol",
+          "thinking": "medium"
+        },
+        "exit": 0,
+        "turn_completed": true,
+        "tool_items": [],
+        "usage": {
+          "input_tokens": 27934,
+          "cached_input_tokens": 25984,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 381,
+          "reasoning_output_tokens": 85
+        }
+      }
+    }
+  }
+}

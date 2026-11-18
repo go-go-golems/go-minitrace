@@ -1956,3 +1956,58 @@ Read design doc 06, then the CLI help and the receipt logic in `analyst.ts`. Ins
 ### Technical details
 
 The rendered-help checkpoint serves on port 8799. The initial combined rerun serves on 8798. Both use the nine frozen normalized archives and the independent 34-target all-archive and one-target Codex baseline.
+
+## Step 38: Close the combined persona rerun
+
+Both final-build personas completed the three-turn historical case and the Codex API judgment. I kept the first combined rerun, the incomplete final GLM attempt, and the final repeat in the receipt instead of collapsing them into one result.
+
+### Prompt Context
+
+See Step 37.
+
+**Implementation commit.** `b2298e1` — Improve command discovery and separate query delivery statuses.
+
+### What I did
+
+- Compared the raw Pi tool starts and results by tool call ID and recorded the first successful JS and ledger invocation.
+- Verified all nine historical archive hashes match across the baseline and candidate batches. Verified both final completed runs use the same CLI hash.
+- Saved compact results in `sources/live-persona-discovery-follow-up.json` and completed the review tasks in design doc 06.
+
+### Why
+
+The success metric is a resolved executable command and an exact host result after a scope change. The tool counts explain friction along the way. The independent judge reviews those signals and replay outcomes without grading from large tool previews.
+
+### What worked
+
+- Both final runs replayed exactly 34, 34 and one target. Both `openai-codex/gpt-6.2-sol` medium judges completed without tool calls.
+- First successful JS calls occurred at 7 and 16, compared with 13 and 28 in the baseline. First successful ledger calls occurred at 21 and 24, compared with 34 and 28.
+- The misleading archive flag diagnostic fell from 19 observed occurrences in the original two runs to zero in the final completed two. Eleven shortened previews kept complete local captures.
+
+### What didn't work
+
+- The first final GLM run ended with `Error Code upstream_stream_failed: the upstream stream failed before completion`. Started a fresh GLM-only batch on the same binary and corpus. The fresh run completed.
+- Both final analysts still used `sqlite_master` once. DeepSeek and GLM received two and six actionable unresolved-command messages. The discovery issue changed form and remains visible.
+
+### What I learned
+
+An actionable diagnostic makes the category inspectable but cannot guarantee immediate recovery. Schema guidance at the point of denial did not prevent the initial SQL catalog guess in either run. Verification confirms all ledger rows, including scope narrowing, without relying on model previews.
+
+### What was tricky to build
+
+Comparing ordinals requires joining starts and exits by tool call ID. Calls can overlap. The successful ordinal comes from the invocation start, while success is decided from its corresponding result.
+
+### What warrants a second pair of eyes
+
+The old and new runs share data and scenario but change several interventions together. The result establishes two concrete recoveries and remaining friction without isolating mechanisms or estimating rates.
+
+### What should be done in the future
+
+Use another open-ended scenario when evaluating whether the revised discovery path generalizes.
+
+### Code review instructions
+
+View the final batch on port 8799 and the final GLM retry on 8800. Read design doc 06 and the four batch summaries in the comparison JSON.
+
+### Technical details
+
+`compare.py` can regenerate pairwise summaries from original and candidate directories. The final compact receipt contains independent judge profiles and counts of shortened previews with saved complete captures.
