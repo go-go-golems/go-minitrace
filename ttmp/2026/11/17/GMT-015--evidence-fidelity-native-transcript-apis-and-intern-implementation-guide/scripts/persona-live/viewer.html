@@ -287,6 +287,13 @@ pre.numbered { counter-reset: ln; padding-left: .3rem; }
 .chronology-message { padding: 1rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); }
 .chronology-thinking { display: flex; flex-wrap: wrap; align-items: baseline; gap: .45rem .8rem; padding: .4rem .75rem; color: var(--muted); font-size: .84rem; border-left: 2px solid var(--live); }
 .chronology-thinking span:last-child { font-variant-numeric: tabular-nums; }
+.timeline-tool { padding: .6rem .8rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); }
+.timeline-tool[data-tone="fail"] { border-left: 3px solid var(--fail); }
+.timeline-tool .voice { margin-bottom: .35rem; }
+.timeline-tool .voice h3 { font: 650 .81rem/1.4 var(--sans); letter-spacing: 0; text-transform: none; }
+.timeline-preview { margin: .3rem 0; padding: .5rem .65rem; background: var(--sunken); color: var(--ink-2); border-radius: .25rem; white-space: pre-wrap; overflow-wrap: anywhere; font: .78rem/1.5 var(--mono); }
+.timeline-tool > details { margin-top: .3rem; }
+.timeline-tool > details > summary { cursor: pointer; font-size: .76rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -305,9 +312,9 @@ pre.numbered { counter-reset: ln; padding-left: .3rem; }
 <p class="banner" id="banner" role="alert" hidden></p>
 <nav class="bar" aria-label="Views and follow controls">
   <div class="views">
-    <button type="button" data-view="conversation" aria-pressed="true">Conversation</button>
+    <button type="button" data-view="raw" aria-pressed="true">Timeline <span class="badge" id="countRaw"></span></button>
+    <button type="button" data-view="conversation" aria-pressed="false">Conversation summary</button>
     <button type="button" data-view="inspect" aria-pressed="false">Errors and code <span class="badge" id="countInspect"></span></button>
-    <button type="button" data-view="raw" aria-pressed="false">Chronology <span class="badge" id="countRaw"></span></button>
   </div>
   <div class="follow">
     <span id="followNote"></span>
@@ -318,9 +325,9 @@ pre.numbered { counter-reset: ln; padding-left: .3rem; }
 <div class="layout">
   <aside id="rail" aria-label="Run summary"></aside>
   <main id="main" tabindex="-1">
-    <div id="view-conversation"></div>
+    <div id="view-conversation" hidden></div>
     <div id="view-inspect" hidden></div>
-    <div id="view-raw" hidden>
+    <div id="view-raw">
       <div class="raw-tools">
         <label>Role
           <select id="roleFilter">
@@ -1241,32 +1248,63 @@ function renderInspect(m) {
 
 /* ---------- Raw timeline ---------- */
 
-function rawRow(event) {
-  const title = humanise(event.role) + " · " + humanise(event.kind);
-  if (event.type === "thinking") {
-    const elapsed = record(event.data).elapsed_seconds;
-    return h("article", {class: "chronology-thinking"},
-      timeEl(event.time), h("span", null, humanise(event.role) + " · " + event.text),
-      typeof elapsed === "number" ? h("span", null, span(elapsed)) : null);
-  }
-  if (["reply", "request", "followup", "judgeMessage", "verdict"].includes(event.type)) {
-    return h("article", {class: "chronology-message"},
-      voice(title, event.time), markdown(event.text));
-  }
+function eventDetails(event, summary) {
   return fold({
     key: "raw:" + event.seq, cls: "tool",
-    summary: [
-      timeEl(event.time),
-      h("span", {class: "raw-role"}, humanise(event.role)),
-      h("span", {class: "raw-kind"}, event.kind),
-      h("span", {class: "raw-text"}, firstLine(event.text)),
-    ],
+    summary,
     body: inner => inner.append(h("div", {class: "tool-detail"},
       h("p", {class: "evidence-sub"}, `Event ${event.seq + 1} `,
         event.callId ? h("code", null, event.callId) : null, " ", copyButton(() => JSON.stringify(event.raw), "Copy event JSON")),
       event.text ? codeBlock(event.text, {label: "Text"}) : null,
       event.data !== null ? codeBlock(asText(event.data), {label: typeof event.raw?.data === "string" && typeof event.data !== "string" ? "Data, decoded from a JSON string" : "Data"}) : null)),
   });
+}
+
+function toolTimelineRow(event) {
+  const call = event.type === "toolCall";
+  const args = record(event.data);
+  const output = call ? null : readResult(event);
+  const method = args.kind === "sql" ? "SQL query" : args.kind === "js" ? "JavaScript command" :
+    args.kind === "help" ? "Help" : event.text;
+  const title = call ? "Tool call · " + method : "Tool result · " + event.text;
+  const status = call ? null : toolOutcome({output, result: event}, false);
+  const full = call ? args.text ?? args.name ?? asText(event.data) :
+    output.saved !== undefined ? "Saved " + output.saved :
+    [output.stderr, output.error, output.stdout].filter(Boolean).join("\n");
+  const lines = String(full ?? "").trim().split("\n");
+  const excerpt = lines.slice(0, 5).join("\n").slice(0, 480);
+  const clipped = excerpt.length < String(full ?? "").trim().length;
+  return h("article", {class: "timeline-tool", "data-tone": status?.tone},
+    voice(title, event.time),
+    status ? chip(status.label, status.tone) : null,
+    excerpt ? h("pre", {class: "timeline-preview"}, excerpt + (clipped ? "\n…" : "")) : null,
+    eventDetails(event, call ? "Full arguments" : "Full recorded result"));
+}
+
+function rawRow(event) {
+  const turn = record(event.data).turn;
+  const title = event.type === "request" && Number.isInteger(turn)
+    ? `Turn ${turn} · Stakeholder request`
+    : humanise(event.role) + " · " + humanise(event.kind);
+  if (event.type === "thinking") {
+    const elapsed = record(event.data).elapsed_seconds;
+    return h("article", {class: "chronology-thinking"},
+      timeEl(event.time), h("span", null, humanise(event.role) + " · " + event.text),
+      typeof elapsed === "number" ? h("span", null, span(elapsed)) : null);
+  }
+  if (event.type === "toolCall" || event.type === "toolResult") return toolTimelineRow(event);
+  if (event.type === "replay") return replayBlock(event);
+  if (["reply", "request", "followup", "judgeMessage", "verdict"].includes(event.type)) {
+    const id = event.type === "request" ? "turn-" + event.seq : event.type === "verdict" ? "verdict" : null;
+    return h("article", {class: "chronology-message", id, tabindex: id ? "-1" : null},
+      voice(title, event.time), markdown(event.text));
+  }
+  return eventDetails(event, [
+    timeEl(event.time),
+    h("span", {class: "raw-role"}, humanise(event.role)),
+    h("span", {class: "raw-kind"}, event.kind),
+    h("span", {class: "raw-text"}, firstLine(event.text)),
+  ]);
 }
 
 function renderRaw(m) {
@@ -1509,7 +1547,11 @@ function selectRun(name) {
 
 function jump(id) {
   pauseFollow();
-  showView("conversation");
+  if (ui.view === "inspect") showView("raw");
+  if (ui.view === "raw" && !$(id)) {
+    $("roleFilter").value = $("rawSearch").value = "";
+    renderRaw(modelOf(ui.run));
+  }
   const node = $(id);
   if (!node) return;
   ui.ignoreScrollUntil = performance.now() + 200;
@@ -1530,7 +1572,7 @@ function revealTool(tool) {
 }
 
 function jumpLatest() {
-  if (ui.view === "inspect") showView("conversation");
+  if (ui.view === "inspect") showView("raw");
   toBottom();
   ui.unread = 0;
   if (ui.autoPaused) resumeFollow();
@@ -1542,7 +1584,7 @@ function jumpLatest() {
 const store = new Map();
 const offsets = {};
 const ui = {
-  run: null, view: "conversation", open: new Map(), scroll: {}, unread: 0, autoPaused: false,
+  run: null, view: "raw", open: new Map(), scroll: {}, unread: 0, autoPaused: false,
   ignoreScrollUntil: 0, lastY: 0, announced: "", connectionError: "", drawError: "",
 };
 let emptyModel = null;

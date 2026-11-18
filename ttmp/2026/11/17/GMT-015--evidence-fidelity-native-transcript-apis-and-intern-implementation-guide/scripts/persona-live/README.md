@@ -50,7 +50,7 @@ The guidance command reruns the opening analyst turn with the pinned inputs and 
 
 ## Read the evidence
 
-The viewer polls local append-only logs. **Conversation** groups the stakeholder requests, analyst replies, host checks and judge verdict. **Errors and code** surfaces saved scripts and command diagnostics. **Chronology** follows event order with public replies inline and expandable tool starts and results. It shows thinking start and end markers, plus elapsed time when captured live. It filters by role. Switch models with the run picker and enable **Follow latest** when you want new events to scroll into view.
+The viewer polls local append-only logs. **Conversation summary** groups the stakeholder requests, analyst replies, host checks and judge verdict. **Errors and code** surfaces saved scripts and command diagnostics. **Timeline** opens by default and follows event order with public replies and tool result previews inline. Expand a tool event for its full recorded arguments or result. It shows thinking start and end markers, plus elapsed time when captured live. It filters by role. Switch models with the run picker and enable **Follow latest** when you want new events to scroll into view.
 
 For a completed batch created before the chronology markers were added, project the saved Pi event order into a fresh viewer directory:
 

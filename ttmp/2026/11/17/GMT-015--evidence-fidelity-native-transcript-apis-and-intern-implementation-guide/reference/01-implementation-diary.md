@@ -1714,3 +1714,60 @@ Open the viewer, use Conversation to read the result, Errors and code to inspect
 ### Technical details
 
 The server on port 8795 reads `/private/tmp/gmt015-live-historical-chronology`, derived from the original `/private/tmp/gmt015-live-historical-v2`. The new timeline is ordered by event position and does not infer timestamps for imported thinking metadata.
+
+## Step 34: Make the interleaved timeline the reading view and trace the archive flag error
+
+The first redesign kept chronological detail behind a separate tab. The user expected to see the sequence when opening the viewer. I made Timeline the default and gave the main view the stakeholder turns, model replies, inline tool result previews, independent replays and judge verdict. The summary and filtered inspection views are still available.
+
+### Prompt Context
+
+> I don't see interleaved tools and thinking and output? i still see tool calls grouped at the end?
+
+> oh nvm, that's fine i think? i kind of wanted a merge of both. what is that --archive-glob repeated failure about? where is it coming from?
+
+**Previous code checkpoint.** `ec2812f` — Redesign the persona viewer with an ordered activity trace.
+
+### What I did
+
+- Promoted the ordered view to the default. Kept the run summary and turn navigation next to the timeline.
+- Rendered a bounded preview on every tool result row, with complete recorded content behind a disclosure. Turn jumps and the judge shortcut now stay in the timeline when viewing it.
+- Matched every repeated `unknown flag: --archive-glob` diagnostic to its Pi tool request and inspected the script registration preceding each attempt.
+- Reproduced the diagnostic with the same binary and a scratch repository. A nonexistent command or group-only path failed. The valid literal path resolved its leaf and accepted the identical flag and archive glob.
+
+### Why
+
+The user wanted the readable narrative and exact sequence on the same surface. Investigating the flag error required seeing the dispatched command name, not only the final error card.
+
+### What worked
+
+Chromium verified default Timeline, thinking/tool/result/reply order, a visible output preview, complete result disclosure, verdict focus and the summary view at widths 1440 and 390.
+
+The direct reproduction succeeded with `probe_sandbox probe-sandbox` for file `probe_sandbox.js` and exported name `probe-sandbox`. Renaming the file to `probe-sandbox.js` collapsed the path to root verb `probe-sandbox`; the same archive flag succeeded there too.
+
+### What didn't work
+
+The corrected pilot logged 19 instances of `Error: unknown flag: --archive-glob`, 15 for GLM and four for DeepSeek. They occurred on exploratory JS command calls whose command did not resolve to an executable leaf. Some scripts were absent or lacked scanner-valid registration. Others exposed a grouped path and the Pi wrapper only accepted one root verb. The wrapper appends `--archive-glob` for the leaf, but Cobra reported that switch when parsing an unresolved root or group.
+
+### What I learned
+
+The error is a command resolution diagnostic. Retrying the same archive selector cannot make a missing or incorrectly named JS verb appear. The registered leaf owns the flag. The working `ledger` command exercises it in ordinary pilot runs.
+
+### What was tricky to build
+
+The user-visible symptom combines three layers: dynamic JS command discovery, Cobra flag declaration on the leaf, and the analyst wrapper's root-only invocation. The trace has enough evidence to distinguish the trigger from the misleading message.
+
+### What warrants a second pair of eyes
+
+An API improvement could report the unresolved command path and available verbs before flag parsing. A separate harness improvement could allow catalog discovery and invocation of valid grouped paths. Neither is needed to explain this pilot's flag errors.
+
+### What should be done in the future
+
+Track the diagnostic and wrapper constraints as independent follow-up work if the exploratory harness expands.
+
+### Code review instructions
+
+Compare the Pi wrapper's `kind === "js"` arguments in `analyst.ts` with the catalog's Cobra command construction and runtime flag section. Use a one-verb `probe_sandbox.js` to reproduce the literal group path.
+
+### Technical details
+
+The fixture handler was `function probe_sandbox() { return [{ ok: true }]; }` with `__verb__("probe_sandbox", { name: "probe-sandbox" });`. The failing and successful invocations used the same binary and archive glob.
