@@ -603,3 +603,60 @@ Read design04 and compare its current-state claims to module.go, query_view_sess
 The first grammar is table/filter/project/order/scalar count. Parameters, raw SQL and portable plans follow; fragments/runtime stages have later acceptance gates. Historical ticket scripts remain versioned evidence, while supported callers must migrate atomically before release. Commit and doc validation precede reMarkable upload.
 
 Independent design review corrections: moved tagged SQL support ahead of built-in migration; defined orderBy replacement and tie behavior; specified unbound SQL source adoption of a single database binding; separated lexical correlation scope from relational DAG ancestry; and distinguished clean-cut release gates from later runtime/portability extension gates. These are design clarifications, not implemented behavior.
+
+## Step 14: Remove transport assumptions and review existing JS scripts
+
+The frontend/backend requirement was about alternative hosts for executing scripts, not shipping plans between them. Design04 now removes transport, import/export, rebinding, function registries and scheduler machinery while retaining local fragments, closures and a small query representation. The subsequent script inventory expanded the guide with concrete migration evidence rather than hypothetical API examples alone.
+
+### Prompt Context
+**User prompt (verbatim):**
+> no that's not it, in this case it doesn't apply right now, in general it means we can implement the API in a sandbox in the frontend, or in a sandbox in the backend. For example, in the future we could run scripts in the browser to do frontend side transcript analysis, say in a ZDR webapp.
+>
+> Ok, anyway, cut that out which should dramatically reduce complexity, keep fragments.
+
+**User steering (verbatim):**
+> in the design doc, also go through all the existing js scripts you can find, and show a before / after.
+
+**Assistant interpretation:** Simplify the existing design and review actual repository scripts, retaining capabilities and documenting faithful migrations, deliberate corrections and unchanged fixtures.
+
+**Inferred user intent:** A practical composable API with demonstrated coverage of present workflows and no speculative distributed execution architecture.
+
+**Prior design commit:** 456d035.
+
+### What I did
+- Rewrote design04's scope, API inventory, Go model, runtime callback and fragment sections, milestones and acceptance matrix.
+- Added sections 19–20: ten before/after migration families, a 28-script maintained-code review table, and a complete 267-file path index.
+- Saved scripts/04-inventory-js-api-migration.py and sources/js-api-migration-inventory.json with SHA256, method/import tokens, dispositions and migration-family indexing.
+- Delegated read-only review of maintained core/skill/examples, showcase scripts and historical persona scripts to three existing subagents; checked consequential findings against current source.
+- Preserved all historical JS files and all product source. After examples are proposed contracts, not executed implementations.
+
+### Why
+A narrower local execution model eliminates requirements for serializing closures and rebinding resources. Existing scripts provide a stronger capability checklist than an abstract grammar alone: they exercise imports, native evidence, diagnostics, multiquery reductions and host behavior as well as SQL.
+
+### What worked
+The corrected inventory covers 267 repository-visible JS/MJS/CJS files, 530,212 bytes and 240 unique content hashes. Counts are 28 maintained module/example scripts, 232 historical files and seven web/generated files. The historical JS-only subreview covered 227 files; the additional five older MJS probes explain the difference from 232. Independent reviewers identified capabilities omitted from the initial design, now restored explicitly.
+
+### What didn't work
+The first inventory script used a fixed parent index and scanned ttmp/2026 rather than the repository. Its reported groups were 04/09/11 and total 232. Replaced that assumption with git rev-parse --show-toplevel and regenerated the inventory. A draft Python replacement command failed before writes with SyntaxError: unterminated string literal; corrected quoting and reran once. Exploratory reads also named nonexistent importer.go/query_components.go files and an unmatched source* glob; actual paths were located through rg. These were inspection errors, not product failures.
+
+The initial migration prose incorrectly treated CellChars as a character limit. Source review of QueryOptions shows it is a deprecated byte-limit alias; the design now maps it to maxCellBytes. A reviewer raised a possible missing position_in_session column; schema.go confirms the nullable REAL tool_calls column exists, so the guide preserves it rather than recording a false bug.
+
+### What I learned
+Raw SQL-only execution should not force duplicate output-schema declarations; symbolic composition does need them. QueryCommandDefaults enables raw conversion and strict import, not query strictness. SQLiteMemory is not synonymous with shared memory caching. LIKE is not interchangeable with literal contains. Whole-result calculations and nested command output remain ordinary JS outside terminal one-to-one mapRows.
+
+### What was tricky to build
+Immutable builders invalidate mutation loops that ignore return values. Current SQL queries rely on predicate placement, direct ordering and explicit LIMIT. Recipe projections include derived provenance; replacing them with bare tables loses behavior. Distinct showcase files with similar names have different rounding, filtering and schemas. The inventory indexes these differences without rewriting evidence.
+
+### What warrants a second pair of eyes
+Review JSON list binding against the SQLite engine/authorizer before implementation, each token/tool recipe projection, and completeness checks for every input to multiquery reductions. The existing session-activity framework predicate references s.agent_framework outside a CTE that exposes framework; this is a concrete migration bug fix to implement with a regression, not silently preserve.
+
+### What should be done in the future
+Implement the revised local API milestones and maintained-call-site parity fixtures. Browser execution remains future host work, not plan-transport work. Add fixtures for imports/saves, source/cache diagnostics, async host handlers and the inventory's semantic differences. No implementation was requested in this revision.
+
+### Code review instructions
+Start with design04 sections 2, 4, 9–13 and 19–20. Reproduce the inventory with python3 scripts/04-inventory-js-api-migration.py from this ticket (or invoke its full path from the repository root). Its lexical method tags index the manual review; they are not AST analysis or proof that scripts ran. Compare the maintained table against the source and JSON hashes. Validate frontmatter, ticket health and git diff --check before committing.
+
+### Technical details
+Scope is rg-visible standalone JS/MJS/CJS, excluding dependencies/build output. Inline JS in Go/Markdown remains part of the future implementation call-site search, not this 267-file count. The reMarkable revision will use a new document name to preserve earlier annotations. Commit and validation precede upload; cloud delivery is reported only from the upload receipt.
+
+Validation checkpoint: docmgr frontmatter validation and doctor pass; git diff --check passes. All 267 inventory SHA256 values match current source files, every discovered filename is indexed, Markdown fences balance, and removed transport API examples are absent. No Go/JS implementation changed, so product tests were not rerun for this documentation revision.

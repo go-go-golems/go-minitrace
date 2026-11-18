@@ -31,3 +31,7 @@ Completed v2 matrix and independent review: 31/32 final answers, 818 passing exe
 ## 2026-11-17
 
 Added design04: clean-cut composable JS grammar and Go restructuring, with intern guide, explicit scope/callback contracts and staged migration; independent design review incorporated.
+
+## 2026-11-17
+
+Simplify design04 to local script execution with scoped fragments; add existing-script before/after review, 267-file reproducible inventory, and source-verified migration corrections.

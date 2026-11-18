@@ -66,4 +66,6 @@ Final v2 implementation results: [current review](reference/13-review-followup-i
 
 ## Composable API replacement design
 
-[Design04: composable JavaScript query grammar and Go architecture](design-doc/04-composable-javascript-query-grammar-architecture-api-and-intern-implementation-guide.md) specifies the next clean-cut API. It deliberately removes legacy exports and aliases, replaces domain preset switches with a small typed grammar, and describes Go package restructuring, callback phases, portability and staged implementation. This is proposed work; the persona-tested implementation above remains the current code.
+[Design04: composable JavaScript query grammar and Go architecture](design-doc/04-composable-javascript-query-grammar-architecture-api-and-intern-implementation-guide.md) specifies the next clean-cut API. It deliberately removes legacy exports and aliases, replaces domain preset switches with a small typed grammar, and describes Go package restructuring, callback phases, local execution, scoped fragments and staged implementation. This is proposed work; the persona-tested implementation above remains the current code.
+
+Design04 now includes a before/after review of all 28 maintained JS scripts and an index of all 267 discovered JS/MJS/CJS files. The local-execution revision retains fragments and ordinary callbacks; it excludes plan transport and function registries. Reproduce the inventory with `scripts/04-inventory-js-api-migration.py`; hashes and lexical method evidence are in `sources/js-api-migration-inventory.json`.
