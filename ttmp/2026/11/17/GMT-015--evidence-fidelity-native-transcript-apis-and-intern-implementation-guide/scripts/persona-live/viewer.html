@@ -1414,7 +1414,9 @@ function renderTabs(m) {
 
 function setMeta(meta) {
   const source = record(meta);
-  const entries = [["Scenario", source.scenario], ["Mode", source.mode], ["Thinking", source.thinking]]
+  const judge = record(source.judge);
+  const judgeLabel = judge.model ? [judge.model, judge.thinking].filter(Boolean).join(" · ") : source.stakeholder_and_judge;
+  const entries = [["Scenario", source.scenario], ["Mode", source.mode], ["Analyst thinking", source.thinking], ["Judge", judgeLabel]]
     .filter(([, value]) => value !== null && value !== undefined && value !== "");
   const sig = JSON.stringify(entries);
   const node = $("meta");

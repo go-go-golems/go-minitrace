@@ -28,7 +28,7 @@ WhenToUse: ""
 
 go-minitrace turns recorded Claude Code, Codex, Pi and other coding-agent sessions into a common archive format. Its query engine materializes the archives into SQLite. An analyst can use SQL directly or write a reusable JavaScript command that reads the same tables. The evaluation measures whether another coding agent can use those capabilities to answer a real question, support its answer with records, and deliver a script a colleague can rerun.
 
-The first scenario is a file-change handoff. A maintainer asks which sessions recorded write-like file targets and how strongly those records support changes. An analyst writes a ledger and cites examples. A stakeholder model asks one adaptive follow-up. A third turn narrows the archive selection to Codex. The host tests the submitted command against an independent SQL baseline on every turn. A judge reviews the conversation and the test results after the three turns.
+The first scenario is a file-change handoff. A maintainer asks which sessions recorded write-like file targets and how strongly those records support changes. An analyst writes a ledger and cites examples. A stakeholder model asks one adaptive follow-up. A third turn narrows the archive selection to Codex. The host tests the submitted command against an independent SQL baseline on every turn. A judge reviews categorized tool friction and exact host checks after the three turns.
 
 This guide uses the Playback Asset Studio separation between an adaptive persona, the agent being evaluated, executable checks and a qualitative judge. Our scenario uses a CLI and a set of archives. The evidence a stakeholder sees is an answer with a small ledger preview and replay error when present.
 
@@ -67,18 +67,18 @@ scenario  -->  host  -->  stakeholder Pi (follow-up)
                +---------> replay candidate ledger
                |          compare with host SQL
                |
-               +---------> judge Pi (conversation + replay facts)
+               +---------> Codex judge (API friction + replay facts)
                |
                +---------> per-run JSONL timeline --> local viewer
 ```
 
-The host schedules the conversation and owns dataset selection. It is the only component that reads the expected answers. The analyst sees a scenario contract and a small tool surface. The stakeholder sees the delivered conversation for its follow-up. The judge sees executable check results as well. The viewer reads projected events and has no authority to run scripts.
+The host schedules the conversation and owns dataset selection. It is the only component that reads the expected answers. The analyst sees a scenario contract and a small tool surface. The stakeholder sees the delivered conversation for its follow-up. The API judge sees categorized tool events and exact executable checks. If a separate narrative review is needed, supply the claims and corresponding evidence. The viewer reads projected events and has no authority to run scripts.
 
 Keep scenario content in [scenario.json](../scripts/persona-live/scenario.json), the experiment coordinator in [run.py](../scripts/persona-live/run.py), the Pi adapter in [analyst.ts](../scripts/persona-live/analyst.ts), independent SQL in [oracle.sql](../scripts/persona-live/oracle.sql), and the viewer in [serve.py](../scripts/persona-live/serve.py) and [viewer.html](../scripts/persona-live/viewer.html). Each can be read and exercised on its own. Extending to a second task only earns another verifier when it introduces a different evidence contract.
 
 ## 4. Follow one run
 
-Each model run gets a separate directory and a Pi session. The binary and normalized inputs are copied into an immutable selection for the batch. The manifest stores archive and binary hashes so a repeat can detect a change in input. The model and thinking setting are experimental inputs. A reviewer model plays both stakeholder and judge in separate, tool-free calls. Analyst turns retain the ongoing Pi session and its scripts.
+Each model run gets a separate directory and a Pi session. The binary and normalized inputs are copied into an immutable selection for the batch. The manifest stores archive and binary hashes so a repeat can detect a change in input. The model and thinking setting are experimental inputs. A Lunaroute model plays the stakeholder. The Codex CLI runs the API judge with `gpt-6.2-sol` at medium thinking by default. Analyst turns retain the ongoing Pi session and its scripts.
 
 ```text
 for scope in [all archives, all archives, Codex archives]:
@@ -92,7 +92,7 @@ for scope in [all archives, all archives, Codex archives]:
     pick the next request
         turn 1 -> ask stakeholder for one evidence challenge
         turn 2 -> use the fixed archive-scope change
-judge the delivered conversation and host checks
+judge the categorized tool friction and host checks
 ```
 
 The host's SQL runs on the same normalized database implementation through a different query path. This tests the candidate script's ledger calculation and handling of the scope change. A materialization defect could affect both paths. A fixture with authored expectations tests the comparison further upstream. Use native records or repository evidence for a broader audit.
@@ -124,7 +124,7 @@ The fixture initially used lower-case edit and write verbs. The first historical
 
 For this scenario, keep the operation selection explicit and exclude Codex legacy scalar fallbacks. Preserve legacy reported evidence for other frameworks and explain what it supports in prose. Check the adapter evidence on representative cases before treating the resulting counts as a benchmark. The approved nine historical archives are a small, fixed exercise corpus. They cannot establish framework-wide differences or model rankings.
 
-For each scope, compare the multiset of five-field keys. Equal lengths alone miss substitutions. A multiset also exposes duplicate rows introduced by a mistaken join. Record missing and unexpected counts with limited key samples. A correct script can still accompany a weak conclusion. A qualitative judge assesses grounding, usefulness, uncertainty and efficiency against the transcript evidence it received.
+For each scope, compare the multiset of five-field keys. Equal lengths alone miss substitutions. A multiset also exposes duplicate rows introduced by a mistaken join. Record missing and unexpected counts with limited key samples. A correct script can still accompany a weak conclusion. The API judge prioritizes developer-facing friction using bounded summaries and exact host checks. A narrative judge needs the claims and corresponding evidence.
 
 ## 7. Read the timeline and diagnose a run
 

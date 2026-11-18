@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 from tempfile import TemporaryDirectory
 
+from judge import evidence_prompt, tool_evidence
 from run import HERE, command_json, fixture, input_glob, verify
 from serve import timeline
 from trace import Thinking, project_run
@@ -98,6 +99,27 @@ def test_trace(root):
     assert rows[1]["time"] is None and "private body" not in json.dumps(rows)
 
 
+def test_judge_evidence(root):
+    work = root / "judge-test"
+    work.mkdir()
+    result = {"exit": 1, "stderr": "query catalog: skipped script\nError: unknown flag: --archive-glob",
+              "stdout": "private archive row", "deliveryTruncated": True}
+    events = [
+        {"type": "tool_execution_start", "toolName": "minitrace", "toolCallId": "example",
+         "args": {"kind": "js", "text": "private command argument"}},
+        {"type": "tool_execution_end", "toolName": "minitrace", "toolCallId": "example",
+         "result": {"content": [{"text": json.dumps(result)}]}},
+    ]
+    (work / "analyst-1.pi.jsonl").write_text("".join(json.dumps(event) + "\n" for event in events))
+    summary = tool_evidence(work)
+    assert summary["signals"] == {
+        "delivery preview shortened": 1, "nonzero or interrupted CLI invocation": 1,
+        "unresolved command reported as --archive-glob": 1, "scanner skipped invalid command declaration": 1,
+    }
+    prompt = evidence_prompt("sample", summary, [{"scope": "all", "passed": True, "preview": "private sample"}])
+    assert "private" not in prompt
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True, type=Path)
@@ -109,4 +131,5 @@ if __name__ == "__main__":
         test_ledger(binary, root)
         test_cursor(root)
         test_trace(root)
+        test_judge_evidence(root)
     print("Ledger, partial-event cursor and chronology checks passed")

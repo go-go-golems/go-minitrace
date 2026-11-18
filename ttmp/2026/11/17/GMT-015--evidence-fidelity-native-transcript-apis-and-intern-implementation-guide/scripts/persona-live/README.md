@@ -6,7 +6,7 @@ This lab adds a stakeholder conversation to the file-attribution [brief](../../r
 2. The Pi analyst writes JS and SQL, queries the pinned go-minitrace executable, and submits a reusable `ledger.js` command.
 3. The host replays the self-contained submission in its own command directory and compares a multiset of file-target evidence rows against an independent SQL query.
 4. A separate stakeholder model asks a follow-up based on the reply and bounded ledger preview. A third analyst turn applies a fixed scope change to Codex-only. All three analyst turns use the same Pi session.
-5. The judge receives the conversation and host results and assesses grounding, usefulness, uncertainty and efficiency. Replays check the ledger contract. The judge assesses the narrative against the evidence it was shown.
+5. The Codex judge receives a bounded tool-friction summary and exact host replay receipts. It distinguishes CLI, documentation, script and harness friction. Replays independently check the ledger contract.
 
 ## Start the viewer and run a pilot
 
@@ -24,7 +24,7 @@ open http://127.0.0.1:8794/
 python3 "$lab/run.py" --binary "$binary" --batch "$batch"
 ```
 
-This uses the synthetic fixtures with real Pi models. It requires macOS Seatbelt (`sandbox-exec`), the Lunaroute extension, and working Lunaroute authentication for Pi. The models default to GLM-5.3 Flash and DeepSeek 4.1 Flash at low thinking. GLM-5.3 Flash also plays the stakeholder and judge. Set `--models`, `--reviewer` and `--thinking` to run a specific configuration.
+This uses the synthetic fixtures with real Pi models. It requires macOS Seatbelt (`sandbox-exec`), Lunaroute authentication for Pi and ChatGPT login for the Codex CLI judge. The models default to GLM-5.3 Flash and DeepSeek 4.1 Flash at low thinking. GLM-5.3 Flash plays the stakeholder. The judge defaults to `openai-codex/gpt-6.2-sol` with medium thinking. Set `--models`, `--reviewer`, `--thinking`, `--judge-model`, and `--judge-thinking` to run a specific configuration.
 
 Use `--offline` for a fresh batch with a scripted analyst and no model calls. The fixture asserts two write-like targets across all archives and one within Codex, including a failed attempted edit. Use `--corpus /path/to/approved/manifest.json` for the frozen nine-session corpus. Use a fresh batch directory each time. The manifest format comes from [the corpus selection script](../persona-testing/select_corpus.py). Only normalized archive copies are staged and their hashes are checked. Historical runs can send selected archive evidence to Lunaroute through analyst tool outputs and conversation previews, so use corpus material cleared for that provider.
 
@@ -47,6 +47,14 @@ python3 "$lab/replay.py" "$batch" glm-5.3-flash \
 The recheck uses the ledger saved at the specified turn and the original input hashes. It loads only that command, so duplicate scratch verbs in other artifacts cannot affect the result.
 
 The guidance command reruns the opening analyst turn with the pinned inputs and saved prompt. Omit guidance for a repeat. Use a second viewer for the second batch. Later-turn and provider-request replay require recording additional state. Treat differences between single model responses as observations and repeat before attributing them to a prompt change.
+
+## Rejudge a completed batch
+
+```sh
+python3 "$lab/rejudge.py" "$batch" --output /private/tmp/gmt015-persona-api-rejudge
+```
+
+The rejudge copies the timeline to a fresh viewer directory and appends a separate Codex verdict. It sends only categorized tool counts and the exact replay checks. Command text, archive rows, paths and analyst prose stay local. Use `--timeline` to copy an existing chronological projection and `--recheck` to include an isolated opening-ledger recheck as separate evidence.
 
 ## Read the evidence
 

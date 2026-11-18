@@ -52,6 +52,11 @@ def projected_phase(raw_path):
 
 
 def project_run(directory):
+    log = directory / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines()]
+    if any("tool_call_id" in event or event["kind"] in ("thinking start", "thinking end") for event in events):
+        yield from events
+        return
     phase = None
     role = None
     template = None
@@ -60,8 +65,7 @@ def project_run(directory):
         kind, text, data = payload
         return dict(time=None, run=template["run"], role=role, kind=kind, text=text, data=data)
 
-    for line in (directory / "events.jsonl").read_text().splitlines():
-        event = json.loads(line)
+    for event in events:
         kind = event["kind"]
         if kind in {"waiting", "replay", "failure", "verdict", "finish"} and phase is not None:
             for origin, payload in phase:
@@ -73,7 +77,9 @@ def project_run(directory):
             template = event
             role = event["role"]
             name = event["text"].split(" · ")[-1]
-            phase = projected_phase(directory / (name + ".pi.jsonl"))
+            raw_path = directory / (name + ".pi.jsonl")
+            if raw_path.is_file():
+                phase = projected_phase(raw_path)
         elif phase is not None and event["role"] == role and kind in {"message", "tool call", "tool result", "tool failure"}:
             for origin, payload in phase:
                 if origin == "thinking":

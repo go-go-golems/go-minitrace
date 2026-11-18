@@ -1833,3 +1833,65 @@ Read `explainUnresolvedQueryCommand` and its regression, then run `node test_ana
 ### Technical details
 
 The Pi command is `{kind: "js", path: ["probe_sandbox", "probe-sandbox"]}`. Discovery uses `{kind: "help", path: ["probe_sandbox"]}`. The forecast error for a missing leaf is based on the selected Cobra group and its actual loaded children. There is no Glazed or Cobra dependency change.
+
+## Step 36: Rejudge API friction with Codex and compare Asset Studio
+
+The judge now runs independently of the analysts and the stakeholder. I rejudged the two saved investigations using the requested model and summarized the developer-facing findings against the Asset Studio work.
+
+### Prompt Context
+
+> use openai-codex/gpt-6.2-sol medium as judge .
+>
+> Also, our focus is on minitrace's API, docs, etc... What did you find so far?
+
+> yes, and look at the referenced work i showed you around the p3d asset agent and what lesson were learned there
+
+**Previous code checkpoint.** `91e81f7` — Discover and invoke grouped verbs in the persona harness.
+
+### What I did
+
+- Implemented `judge.py` and `rejudge.py`. Future runs default to the authenticated Codex CLI with `gpt-6.2-sol` at medium effort. The stakeholder stays on Lunaroute.
+- Rejudged the two saved historical runs into a fresh local batch at port 8797. The judge input contains categorized tool signals and exact replay checks. Raw archives, SQL text and analyst prose stay local.
+- Re-read the Asset Studio playbook, structural API design and its diaries on a one-step replay and judge visibility. Mapped their lessons to command discovery, schema help, output delivery and the design of our next rerun.
+- Filed reference 17 and preserved the two judge receipts and verdicts in `sources/live-persona-codex-api-review.json`.
+
+### Why
+
+Changing the judge independently preserves the original analyst behavior. Reviewing exact replay checks and measured tool friction keeps the assessment tied to the CLI/API and documentation. Asset Studio showed that changes in the judge's input can change what it measures.
+
+### What worked
+
+- `codex -a never exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --sandbox read-only --model gpt-6.2-sol -c 'model_reasoning_effort="medium"'` returned the expected synthetic probe response.
+- Both historical rejudgments completed with no tool actions recorded. Both prioritized command discovery and scanner guidance. The preserved host replay counts distinguish GLM's initial scratch-file collision from its later isolated pass.
+- Fixture tests verified the bounded judge input excludes raw query text, stdout and preview rows. Node dispatch and the ledger, cursor and chronology regressions passed.
+
+### What didn't work
+
+- Pi model discovery first hit `EPERM` creating its authentication lock in the outer sandbox. With access to its ordinary provider configuration, both model-list queries returned `No models matching` for the requested model. The authenticated Codex CLI supported it directly.
+- The two saved conversations contain four and fifteen historical flag errors. Their rejudgment cannot establish whether the already-implemented routing and diagnostic changes reduce retries, because the analyst traces predate the change.
+
+### What I learned
+
+The API concern is the path from query script to discovered executable command. The fluent ledger worked on the scoped evaluation. Both agents reached for SQLite schema introspection despite the supported catalog. Tool preview limits and native visibility are harness constraints and should get separate metrics.
+
+Asset Studio's strongest transferable test is a specific failing step replayed with one change. Its experiment moved a state block without improving the response, then got four of four correct responses after the tool result quoted the exact outstanding user request. For minitrace, make the discovery diagnostic immediately actionable and measure the next attempted command.
+
+### What was tricky to build
+
+Historical logs can be projected without overwriting them. The rejudged viewer carries both the old chronology and the new verdict. Modern timelines already contain Pi event order, so the projection passes them through instead of trying to open a nonexistent Pi judge event stream.
+
+### What warrants a second pair of eyes
+
+The API judge has bounded evidence and cannot independently grade the analyst's prose claims about files. For a later narrative review, carry the specific cited records into a separately scoped judge task.
+
+### What should be done in the future
+
+Rerun the same case against the corrected binary and harness. Measure time and calls to the first valid JS script, repeated resolution errors, and exact ledger parity after the scope change. Preserve the original live results and rechecks separately.
+
+### Code review instructions
+
+Read reference 17, then run `rejudge.py --help` and inspect `judge.py` for the evidence contract. The viewer is at `http://127.0.0.1:8797/`.
+
+### Technical details
+
+The correct historical oracle contains 34 targets across all archives and one for the Codex scope. Signal counts may overlap. The combined 25 shortened delivery previews do not establish query-level truncation.
