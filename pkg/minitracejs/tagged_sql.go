@@ -17,18 +17,18 @@ func (b *relationalBinding) sql(call goja.FunctionCall) goja.Value {
 		panic(b.vm.NewTypeError("invalid SQL template"))
 	}
 	statement, err := minitracedb.TaggedSQL(parts)
-	b.check(err)
+	b.checkBuild(err, "E_SQL", "sql")
 	args := make([]*queryplan.Expr, len(parts)-1)
 	for i, value := range call.Arguments[1:] {
 		args[i] = b.expression(value)
 	}
 	q, err := queryplan.SQL(statement, args, nil)
-	b.check(err)
+	b.checkBuild(err, "E_SQL", "sql")
 	obj := b.vm.NewObject()
 	_ = obj.Set("build", func() *goja.Object { return b.planObject(q, nil) })
 	_ = obj.Set("columns", func(shape *goja.Object) *goja.Object {
 		q, err := queryplan.SQL(statement, args, b.columnTypes(shape))
-		b.check(err)
+		b.checkBuild(err, "E_SQL_COLUMNS", "sql.columns")
 		return b.queryObject(q)
 	})
 	return obj

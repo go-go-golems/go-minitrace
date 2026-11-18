@@ -71,7 +71,7 @@ Source builders are immutable. Keep the returned value when composing.
 
 `mt.from(db.table(name))` begins a fluent query. `where`, `select` and `orderBy` receive symbolic rows when the method is called. Use `.eq(value)`, `.gte(value)`, `.and(expr)`, `.contains(text)`, and `.isNull()` to construct expressions. JS operators and conditionals evaluate immediately and cannot build SQL expressions. `select` establishes new field names. Supply one order array for several keys. A later `orderBy` replaces the previous order.
 
-Use tagged SQL for grouping, window functions, or existing SQL. Interpolate scalar values and named parameters. Keep statement text and identifiers in the template. SQL sources can execute directly with inferred SQLite columns. Declare columns using `.columns({name: mt.type.string()})` when composing with fluent methods, and specify the final order on the outer query.
+Use tagged SQL for grouping, window functions, or existing SQL. Interpolate scalar values and named parameters. Keep statement text and identifiers in the template. SQL sources can execute directly with inferred SQLite columns. Declare columns using `.columns({name: mt.type.string()})` when composing with fluent methods, in SQLite output order, and specify the final order on the outer query. At execution, the SQLite runner checks declared names and scalar values. For composed SQL it reads each distinct declared input under the same read policy and timeout before evaluating the outer query. Use deterministic projections for declared input types, since composed inputs are evaluated again as part of the final statement.
 
 ```js
 const framework = mt.param.string("framework").default("pi");

@@ -111,6 +111,10 @@ func TestMapRows(t *testing.T) {
 	runRelationalFixture(t, "map_rows.js")
 }
 
+func TestSQLDeclarations(t *testing.T) {
+	runRelationalFixture(t, "sql_declarations.js")
+}
+
 func runRelationalFixture(t *testing.T, fixture string) {
 	t.Helper()
 	source, err := os.ReadFile("testdata/" + fixture)

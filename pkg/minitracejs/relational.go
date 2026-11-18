@@ -62,9 +62,9 @@ func (b *relationalBinding) expression(value goja.Value) *queryplan.Expr {
 		return expr
 	}
 	raw, err := scalarValue(value)
-	b.check(err)
+	b.checkBuild(err, "E_EXPRESSION", "literal")
 	expr, err := queryplan.Literal(raw)
-	b.check(err)
+	b.checkBuild(err, "E_EXPRESSION", "literal")
 	return expr
 }
 
@@ -73,14 +73,14 @@ func (b *relationalBinding) exprObject(expr *queryplan.Expr) *goja.Object {
 	for _, op := range []string{"eq", "ne", "gt", "gte", "lt", "lte", "and", "or", "contains"} {
 		_ = obj.Set(op, func(value goja.Value) *goja.Object {
 			next, err := queryplan.Operation(op, expr, b.expression(value))
-			b.check(err)
+			b.checkBuild(err, "E_EXPRESSION", op)
 			return b.exprObject(next)
 		})
 	}
 	for _, op := range []string{"not", "isNull", "isNotNull"} {
 		_ = obj.Set(op, func() *goja.Object {
 			next, err := queryplan.Operation(op, expr)
-			b.check(err)
+			b.checkBuild(err, "E_EXPRESSION", op)
 			return b.exprObject(next)
 		})
 	}
@@ -89,7 +89,7 @@ func (b *relationalBinding) exprObject(expr *queryplan.Expr) *goja.Object {
 	return obj
 }
 
-func (b *relationalBinding) row(q *queryplan.Query) goja.Value {
+func (b *relationalBinding) row(q *queryplan.Query, method string) goja.Value {
 	target := b.vm.NewObject()
 	_ = target.SetPrototype(nil)
 	proxy := b.vm.NewProxy(target, &goja.ProxyTrapConfig{
@@ -98,7 +98,7 @@ func (b *relationalBinding) row(q *queryplan.Query) goja.Value {
 			if err != nil && name == "then" {
 				return goja.Undefined()
 			}
-			b.check(err)
+			b.checkBuild(err, "E_UNKNOWN_COLUMN", method+"."+name)
 			return b.exprObject(column)
 		},
 	})
@@ -108,13 +108,16 @@ func (b *relationalBinding) row(q *queryplan.Query) goja.Value {
 func (b *relationalBinding) callback(method string, value, arg goja.Value) goja.Value {
 	fn, ok := goja.AssertFunction(value)
 	if !ok {
-		panic(b.vm.NewTypeError("%s requires a callback", method))
+		b.buildError("E_CALLBACK", method, method+" requires a callback")
 	}
 	result, err := fn(goja.Undefined(), arg)
+	if exception, ok := err.(*goja.Exception); ok {
+		panic(exception)
+	}
 	b.check(err)
 	if obj, ok := result.(*goja.Object); ok {
 		if obj.ExportType() == promiseType {
-			panic(b.vm.NewTypeError("%s callback must return synchronously", method))
+			b.buildError("E_CALLBACK", method, method+" callback must return synchronously")
 		}
 	}
 	return result
@@ -140,30 +143,30 @@ type queryValue struct {
 func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragment) *goja.Object {
 	obj := b.remember(queryValue{q, fragments})
 	_ = obj.Set("where", func(fn goja.Value) *goja.Object {
-		value := b.callback("where", fn, b.row(q))
+		value := b.callback("where", fn, b.row(q, "where"))
 		predicate, ok := b.lookup(value).(*queryplan.Expr)
 		if !ok {
-			panic(b.vm.NewTypeError("where expects a symbolic predicate, use .eq() instead of ==="))
+			b.buildError("E_EXPECTED_PREDICATE", "where", "where expects a symbolic predicate, use .eq() instead of ===")
 		}
 		next, err := q.Where(predicate)
-		b.check(err)
+		b.checkBuild(err, "E_EXPECTED_PREDICATE", "where")
 		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("select", func(fn goja.Value) *goja.Object {
-		value, ok := b.callback("select", fn, b.row(q)).(*goja.Object)
+		value, ok := b.callback("select", fn, b.row(q, "select")).(*goja.Object)
 		if !ok || value.ClassName() != "Object" || b.lookup(value) != nil {
-			panic(b.vm.NewTypeError("select expects an object mapping output names to expressions"))
+			b.buildError("E_PROJECTION", "select", "select expects an object mapping output names to expressions")
 		}
 		fields := make([]queryplan.Field, 0, len(value.Keys()))
 		for _, name := range value.Keys() {
 			fields = append(fields, queryplan.Field{Name: name, Value: b.expression(value.Get(name))})
 		}
 		next, err := q.Select(fields)
-		b.check(err)
+		b.checkBuild(err, "E_PROJECTION", "select")
 		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("orderBy", func(fn goja.Value) *goja.Object {
-		value := b.callback("orderBy", fn, b.row(q))
+		value := b.callback("orderBy", fn, b.row(q, "orderBy"))
 		values := []goja.Value{value}
 		if array, ok := value.(*goja.Object); ok && array.ClassName() == "Array" {
 			b.check(b.vm.ExportTo(array, &values))
@@ -172,12 +175,12 @@ func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragme
 		for i, item := range values {
 			key, ok := b.lookup(item).(queryplan.Order)
 			if !ok {
-				panic(b.vm.NewTypeError("orderBy expects .asc() or .desc() keys"))
+				b.buildError("E_ORDER", "orderBy", "orderBy expects .asc() or .desc() keys")
 			}
 			keys[i] = key
 		}
 		next, err := q.OrderBy(keys...)
-		b.check(err)
+		b.checkBuild(err, "E_ORDER", "orderBy")
 		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("use", func(fn goja.Value) goja.Value {
@@ -198,7 +201,7 @@ func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragme
 
 func (b *relationalBinding) planObject(q *queryplan.Query, mapper *runtimeMapper) *goja.Object {
 	plan, err := q.Build()
-	b.check(err)
+	b.checkBuild(err, "E_QUERY_BUILD", "build")
 	obj := b.remember(executablePlan{plan, mapper})
 	_ = obj.Set("explain", func() map[string]any { return map[string]any{"sql": plan.SQL(), "mapRows": mapper != nil} })
 	_ = obj.Set("parameters", func() []map[string]any { return toPlainSlice(plan.Parameters()) })
@@ -247,11 +250,7 @@ func (b *relationalBinding) execute(ctx context.Context, h *DBHandle, executable
 	if err != nil {
 		return b.executionError(err.Error())
 	}
-	args, err := plan.Bind(params)
-	if err != nil {
-		return b.executionError(err.Error())
-	}
-	result, err := h.QueryResult(ctx, plan.SQL(), args...)
+	result, err := h.runner.QueryPlanResult(ctx, plan, params)
 	if err != nil {
 		return b.executionError(err.Error())
 	}

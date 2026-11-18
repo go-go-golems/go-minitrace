@@ -35,7 +35,7 @@ func (b *relationalBinding) parameterBuilders() *goja.Object {
 
 func (b *relationalBinding) parameterObject(descriptor queryplan.Parameter) *goja.Object {
 	expr, err := queryplan.ParameterExpression(descriptor)
-	b.check(err)
+	b.checkBuild(err, "E_PARAMETER", descriptor.Name)
 	obj := b.exprObject(expr)
 	_ = obj.Set("default", func(value goja.Value) *goja.Object {
 		next := descriptor

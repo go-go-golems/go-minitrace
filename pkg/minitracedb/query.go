@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/go-go-golems/go-minitrace/pkg/queryplan"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
@@ -118,6 +119,22 @@ func queryErrorResult(message string) QueryResult {
 }
 
 func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...any) (QueryResult, error) {
+	return r.queryResult(ctx, sqlText, args, nil, nil, nil)
+}
+
+// QueryPlanResult executes the compiler's statement and verifies SQL source contracts.
+func (r *QueryRunner) QueryPlanResult(ctx context.Context, plan *queryplan.Plan, params map[string]any) (QueryResult, error) {
+	args, err := plan.Bind(params)
+	if err != nil {
+		return queryErrorResult(err.Error()), nil
+	}
+	columns, checks := plan.SQLDeclarations(args)
+	return r.queryResult(ctx, plan.SQL(), args, columns, checks, plan.Columns())
+}
+
+func (r *QueryRunner) queryResult(ctx context.Context, sqlText string, args []any,
+	declared []queryplan.Column, checks []queryplan.DeclaredSource, output []queryplan.Column,
+) (QueryResult, error) {
 	if r == nil || r.db == nil {
 		return queryErrorResult("db is not initialized"), nil
 	}
@@ -150,6 +167,15 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	}
 	defer func() { _ = setSQLiteAuthorizer(conn, nil) }()
 
+	for _, source := range checks {
+		if err := checkSQLDeclaration(qctx, conn, source, r.opts.MaxColumns); err != nil {
+			if authErr := authState.err(); authErr != nil {
+				return queryErrorResult(authErr.Error()), nil
+			}
+			return queryErrorResult(err.Error()), nil
+		}
+	}
+
 	if err := ensureReadonlyPreparedQuery(conn, normalized); err != nil {
 		if authErr := authState.err(); authErr != nil {
 			return queryErrorResult(authErr.Error()), nil
@@ -172,6 +198,12 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 	if len(cols) > r.opts.MaxColumns {
 		return queryErrorResult(fmt.Sprintf("query returns %d columns; max is %d", len(cols), r.opts.MaxColumns)), nil
 	}
+	if len(declared) > 0 {
+		if err := checkDeclaredNames(cols, declared); err != nil {
+			return queryErrorResult(err.Error()), nil
+		}
+	}
+
 	out := QueryResult{Columns: cols, Rows: make([]map[string]any, 0), Complete: true}
 	for rows.Next() {
 		if out.Count >= r.opts.MaxRows {
@@ -187,6 +219,18 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 		}
 		if err := rows.Scan(ptrs...); err != nil {
 			return queryErrorResult(err.Error()), nil
+		}
+		if len(declared) > 0 {
+			if err := checkDeclaredValues(values, declared); err != nil {
+				return queryErrorResult(err.Error()), nil
+			}
+		}
+		for i, column := range output {
+			if column.Type.Kind == queryplan.Boolean && i < len(cols) && column.Name == cols[i] {
+				if n, ok := values[i].(int64); ok && (n == 0 || n == 1) {
+					values[i] = n == 1
+				}
+			}
 		}
 		r.appendResultRow(&out, values)
 	}

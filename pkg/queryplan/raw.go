@@ -27,3 +27,34 @@ func SQL(sql string, args []*Expr, columns []Column) (*Query, error) {
 	q.raw = &rawSource{sql: sql, args: append([]*Expr(nil), args...)}
 	return q, nil
 }
+
+type declaredSource struct {
+	sql        string
+	columns    []Column
+	start, end int
+}
+
+// DeclaredSource describes an opaque input's contract and its local bindings.
+type DeclaredSource struct {
+	SQL     string
+	Columns []Column
+	Args    []any
+}
+
+// SQLDeclarations returns the direct output declaration or the declarations
+// of composed inputs that must be checked before running the outer statement.
+// Call with the positional values returned by Bind.
+func (p *Plan) SQLDeclarations(args []any) ([]Column, []DeclaredSource) {
+	if p.directSQL {
+		return p.Columns(), nil
+	}
+	sources := make([]DeclaredSource, len(p.sources))
+	for i, source := range p.sources {
+		sources[i] = DeclaredSource{
+			SQL:     source.sql,
+			Columns: append([]Column(nil), source.columns...),
+			Args:    append([]any(nil), args[source.start:source.end]...),
+		}
+	}
+	return nil, sources
+}

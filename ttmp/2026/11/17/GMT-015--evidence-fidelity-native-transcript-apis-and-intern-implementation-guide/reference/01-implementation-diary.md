@@ -1162,3 +1162,57 @@ Start with `pkg/minitracejs/local_resources.go`, `handleObject` and `minitrace.d
 ### Technical details
 
 The runtime exposes one `sql` tag and one `execute(plan, options)` method. The Go SQL runner remains the shared read-only execution layer for the CLI and web, independent of JS builder syntax.
+
+## Step 24: Check declared SQL schemas and expose build diagnostics
+
+The plan now carries declarations for opaque SQL sources. The SQLite runner verifies their names, scalar types and nullability before returning results. It also converts typed Boolean outputs to JavaScript Booleans.
+
+### Prompt Context
+
+See Steps 15 and 23 for the active implementation goal and documentation steering.
+
+**JS API and documentation cutover commit:** `395d27a`.
+
+### What I did
+
+- Recorded each distinct typed SQL source and the positional binding interval it owns during compilation.
+- Added `QueryRunner.QueryPlanResult` so binding and source verification use the same read-only connection and timeout as final execution.
+- Checked a direct typed SQL statement as its results are read. For composed inputs, checked the source independently before evaluating the outer statement, so filtering, projection or counting cannot mask a bad declaration.
+- Added structured JS build errors with `code` and `path` for symbolic field lookup, callback shape, scope, expression construction, parameters and tagged SQL validation.
+- Documented declaration order and the read cost of composed declarations in embedded help.
+
+### Why
+
+SQLite expressions have dynamic result types. Preparation can expose output names even for an empty result, while validating scalar types requires looking at actual values. A symbolic column description must not let an outer projection conceal a misspelled or mistyped SQL source column.
+
+### What worked
+
+`go test ./pkg/minitracejs/... ./pkg/queryplan ./pkg/minitracedb` passed. A focused CLI run also passed migrated command and showcase checks. The new Goja fixture verifies empty-input name mismatches, type errors hidden by filters and counts, nullable values, bound argument order across composition, actual Boolean output and structured predicate and scope errors.
+
+### What didn't work
+
+No product or test failures occurred in this checkpoint.
+
+### What I learned
+
+The position of a typed source's bindings can be captured while emitting SQL, even when a projection's parameters precede the source. Distinct references to the same source can share a declaration check because their scalar binding expressions are immutable.
+
+### What was tricky to build
+
+The source scan avoids applying an outer delivery row cap to validation. The total deadline still bounds both validation and final execution. Direct SQL validates within the delivery loop so it need not run the statement twice. Composed SQL sources are evaluated again in the final statement. Type declarations therefore assume deterministic column types across those evaluations.
+
+### What warrants a second pair of eyes
+
+Review performance for expensive composed sources and consider a single-evaluation strategy only if the cost becomes material. Verify TypeScript expressions and parameter declarations with a standalone compiler.
+
+### What should be done in the future
+
+Complete the baseline and acceptance checks, exercise the published examples, and run representative persona workflows on the final API.
+
+### Code review instructions
+
+Start with `Plan.SQLDeclarations`, `QueryRunner.QueryPlanResult` and `sql_declarations.js`. Run `go test ./pkg/minitracejs -run TestSQLDeclarations` and the package command above.
+
+### Technical details
+
+Declarations use exact SQLite column names and output order. The composed validation scan uses the read-only authorizer and no separate storage. Untyped SQL continues to use SQLite's inferred output columns.

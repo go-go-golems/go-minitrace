@@ -12,11 +12,18 @@ type Plan struct {
 	parameters map[string]Parameter
 	paramOrder []string
 	columns    []Column
+	sources    []declaredSource
+	directSQL  bool
 }
 
 func (p *Plan) Owner() *Owner     { return p.owner }
 func (p *Plan) SQL() string       { return p.sql }
 func (p *Plan) Columns() []Column { return append([]Column(nil), p.columns...) }
+
+// ScopeError reports a reference outside a query's lexical row or database scope.
+type ScopeError struct{ Message string }
+
+func (e *ScopeError) Error() string { return e.Message }
 
 func (q *Query) Build() (*Plan, error) {
 	c := compiler{owner: q.owner}
@@ -45,16 +52,18 @@ func (q *Query) Build() (*Plan, error) {
 	if len(sql) > 1<<20 {
 		return nil, fmt.Errorf("compiled SQL exceeds 1 MiB")
 	}
-	return &Plan{owner: c.owner, sql: sql, bindings: c.bindings, parameters: c.parameters, paramOrder: c.paramOrder, columns: q.Columns()}, nil
+	return &Plan{owner: c.owner, sql: sql, bindings: c.bindings, parameters: c.parameters, paramOrder: c.paramOrder, columns: q.Columns(), sources: c.sources, directSQL: q.raw != nil}, nil
 }
 
 type compiler struct {
-	owner      *Owner
-	aliases    int
-	nodes      int
-	bindings   []binding
-	parameters map[string]Parameter
-	paramOrder []string
+	owner       *Owner
+	aliases     int
+	nodes       int
+	bindings    []binding
+	parameters  map[string]Parameter
+	paramOrder  []string
+	sources     []declaredSource
+	seenSources map[*rawSource]bool
 }
 
 type scope struct {
@@ -85,15 +94,25 @@ func (c *compiler) query(q *Query, outer *scope, depth int) (string, error) {
 	}
 	if q.owner != nil {
 		if c.owner != nil && q.owner != c.owner {
-			return "", fmt.Errorf("query references a different database")
+			return "", &ScopeError{Message: "query references a different database"}
 		}
 		c.owner = q.owner
 	}
 	if q.raw != nil {
+		start := len(c.bindings)
 		for _, expr := range q.raw.args {
 			if err := c.bind(expr); err != nil {
 				return "", err
 			}
+		}
+		if len(q.columns) > 0 && !c.seenSources[q.raw] {
+			if c.seenSources == nil {
+				c.seenSources = make(map[*rawSource]bool)
+			}
+			c.seenSources[q.raw] = true
+			c.sources = append(c.sources, declaredSource{
+				sql: q.raw.sql, columns: q.columns, start: start, end: len(c.bindings),
+			})
 		}
 		// A trailing line comment must end before a surrounding ')' is emitted.
 		return q.raw.sql + "\n", nil
@@ -150,7 +169,7 @@ func (c *compiler) expr(e *Expr, visible *scope, depth int) (string, error) {
 				return s.alias + "." + quote(e.name), nil
 			}
 		}
-		return "", fmt.Errorf("column %q is outside its row scope", e.name)
+		return "", &ScopeError{Message: fmt.Sprintf("column %q is outside its row scope", e.name)}
 	case "literal", "parameter":
 		return "?", c.bind(e)
 	case "count":
