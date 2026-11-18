@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>go-minitrace · Persona lab</title>
+<style>
+:root { color-scheme: light; font: 16px/1.55 system-ui, sans-serif; color: #1e2828; background: #f5f4ee; }
+* { box-sizing: border-box; }
+body { max-width: 1030px; padding: 35px 24px 70px; margin: auto; }
+header { border-bottom: 2px solid #223433; margin-bottom: 20px; padding-bottom: 15px; }
+h1 { font: 600 clamp(2rem, 5vw, 3.2rem)/1.12 Georgia, serif; margin: .25em 0 .33em; }
+small, #status, #meta, time { color: #53625b; }
+.controls { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: 1rem 0; }
+select, button { font: inherit; background: #fff; color: inherit; border: 1px solid #859590; border-radius: 5px; padding: .4rem .65rem; }
+button { cursor: pointer; }
+article { background: #fff; border: 1px solid #d9dfd7; border-left: 5px solid #3c665c; padding: .75rem 1rem; border-radius: 6px; margin: .7rem 0; }
+article[data-role="analyst"] { border-left-color: #285e99; }
+article[data-role="judge"] { border-left-color: #77478c; }
+article[data-role="host"] { border-left-color: #8c632f; }
+article[data-kind="failure"] { border-left-color: #a43528; }
+.label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; font-size: .85rem; }
+p { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; }
+details { margin: .5rem 0 .1rem; }
+summary { cursor: pointer; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: .7rem; background: #f3f5f2; max-height: 33rem; overflow: auto; }
+</style>
+<header>
+  <small>go-minitrace</small>
+  <h1>Persona lab</h1>
+  <div id="meta">Waiting for a batch</div>
+</header>
+<div class="controls">
+  <label>Run <select id="run"></select></label>
+  <label>Role <select id="role"><option value="">All roles</option><option>stakeholder</option><option>analyst</option><option>host</option><option>judge</option></select></label>
+  <label><input type="checkbox" id="follow" checked> Follow latest</label>
+  <button type="button" id="latest">Jump to latest</button>
+</div>
+<p id="status" role="status">Connecting</p>
+<main id="events" aria-label="Run timeline"></main>
+<script>
+const run = document.querySelector("#run");
+const role = document.querySelector("#role");
+const list = document.querySelector("#events");
+const status = document.querySelector("#status");
+const follow = document.querySelector("#follow");
+const events = new Map();
+const offsets = {};
+const bottom = () => window.scrollTo(0, document.body.scrollHeight);
+document.querySelector("#latest").onclick = bottom;
+function el(tag, text) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function card(event) {
+  const node = el("article");
+  node.dataset.role = event.role;
+  node.dataset.kind = event.kind;
+  const label = el("div");
+  label.className = "label";
+  label.append(el("strong", event.role + " · " + event.kind), el("time", new Date(event.time * 1000).toLocaleTimeString()));
+  node.append(label, el("p", event.text));
+  if (event.data !== null) {
+    const details = el("details");
+    let artifact = event.data;
+    if (typeof artifact === "string") {
+      try { artifact = JSON.parse(artifact); } catch {}
+    }
+    details.append(el("summary", "Details"), el("pre", typeof artifact === "string" ? artifact : JSON.stringify(artifact, null, 2)));
+    node.append(details);
+  }
+  return node;
+}
+function append(rows) {
+  for (const event of rows) if (!role.value || event.role === role.value) list.append(card(event));
+}
+function render() {
+  list.replaceChildren();
+  append(events.get(run.value) ?? []);
+}
+run.onchange = role.onchange = render;
+async function poll() {
+  try {
+    const response = await fetch("/events?after=" + encodeURIComponent(JSON.stringify(offsets)), {cache: "no-store"});
+    if (!response.ok) throw Error(response.statusText);
+    const {meta, runs} = await response.json();
+    document.querySelector("#meta").textContent = [meta.scenario, meta.mode, meta.thinking].filter(Boolean).join(" · ") || "Waiting for a batch";
+    for (const [name, update] of Object.entries(runs)) {
+      if (!events.has(name)) {
+        events.set(name, []);
+        run.append(new Option(name, name));
+      }
+      offsets[name] = update.offset;
+      events.get(name).push(...update.events);
+      if (run.value === name && update.events.length) {
+        append(update.events);
+        if (follow.checked) bottom();
+      }
+    }
+    const rows = events.get(run.value) ?? [];
+    const last = rows.at(-1);
+    status.textContent = !last ? "Waiting for the first event" :
+      (last.kind === "finish" || last.kind === "failure" ? last.text : "Live · " + last.role + " · " + last.kind) + " · " + rows.length + " events";
+  } catch (error) {
+    status.textContent = "Viewer connection interrupted. Retrying. " + error.message;
+  } finally {
+    setTimeout(poll, 1000);
+  }
+}
+poll();
+</script>
+</html>

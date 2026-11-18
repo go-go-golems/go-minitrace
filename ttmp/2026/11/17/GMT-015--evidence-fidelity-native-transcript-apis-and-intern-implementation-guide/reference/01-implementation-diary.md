@@ -1431,3 +1431,65 @@ Read reference 16 for the shared prompt, four briefs and host checks. Reference 
 ### Technical details
 
 Only corpus presence and framework counts were checked. No model runs were launched for this prompt-writing step.
+
+## Step 29: Build the live persona pilot and publish the intern guide
+
+I implemented a three-turn file-change investigation with Pi, an independent SQL comparison and a loopback timeline. The initial historical batch was already running when the user added a design-first requirement. I paused further implementation, wrote and uploaded the guide, and recorded an evaluator defect from the early batch before correcting it.
+
+### Prompt Context
+
+> ok, can we set this up in the same manner, and also provide a live viewer of the cosplay persona judge process?
+
+> btw commit at appropriate intervals and keep a detailed diary as you work
+>     (using the diary format from the skill).
+>
+> Before starting, Create a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet points and pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and upload to remarkable. (The document is detailed, the design is simple, elegant, robust, modular, composable)
+
+**Assistant interpretation.** Set up the Asset Studio-style stakeholder and judge around an open-ended transcript task. Provide a live timeline and a guide explaining how to run and extend it.
+
+### What I did
+
+- Added the runner, Pi tools, first scenario, SQL oracle, known-answer fixture, local viewer and opening-turn replay helper under `scripts/persona-live/`.
+- Built the worktree with `go build -o /tmp/gmt015-persona-live-bin/go-minitrace ./cmd/go-minitrace`.
+- Started `serve.py` in tmux at `127.0.0.1:8794`. Started GLM-5.3 Flash and DeepSeek 4.1 Flash with low thinking across the nine frozen historical archives. GLM also plays the stakeholder and judge.
+- Created design doc 05 with docmgr and related the key implementation files. Uploaded it with remarquee after checking its frontmatter.
+
+### Why
+
+The CLI experiment should let analysts write scripts and respond to changing requirements, with a host replay checking evidence separately from the model judge. Restricting the tested agent to three scoped tools also keeps the evaluation focused on go-minitrace.
+
+### What worked
+
+- `run.py --offline` passed all three fixture checks with two, two and one rows. The fixture distinguishes one attempted record from one confirmed record.
+- A partial JSONL record was deferred and delivered exactly once when its newline appeared. The live HTTP endpoint returned both model runs.
+- reMarkable returned `OK: uploaded GMT-015 Live Persona Evaluation Intern Guide.pdf -> /ai/2026/11/18/GMT-015`.
+
+### What didn't work
+
+- Under the outer tool sandbox, `sandbox-exec -p '(version 1)(allow default)' /usr/bin/true` returned `sandbox-exec: sandbox_apply: Operation not permitted`. The live run used escalated launch with its own inner Seatbelt policy for queries.
+- The first historical oracle returned zero rows. The fixture tested English operation verbs, while the adapters use `NEW`, `MODIFY` and `DELETE`. DeepSeek's initial script returned 34 rows and was graded against that faulty oracle. That comparison cannot be used as a model grade.
+- GLM's first historical analyst turn reached the 180-second limit (`timeout=True, exit=-9`). The timeline preserved the attempted queries and tools.
+
+### What I learned
+
+A smoke fixture built with the same incorrect operation glossary as the scenario can pass while the historical checker is wrong. The fixture must represent adapter values and the host must inspect scope coverage before sending prompts.
+
+### What was tricky to build
+
+The reviewer needs the result the stakeholder could see. The host needs independent expected rows and retains them locally. The judge receives a summary of the comparison with the delivered conversation.
+
+### What warrants a second pair of eyes
+
+Review the operation taxonomy, archive inputs and independent SQL before using the pilot to compare models.
+
+### What should be done in the future
+
+Correct the contract and verify the real corpus before a second run. Page and turn observations from the first run remain evidence about the harness.
+
+### Code review instructions
+
+Start with design doc 05, then read `scenario.json`, `run.py` and `oracle.sql` in `scripts/persona-live/`. Use `--offline` from the runner README to reproduce the fixture.
+
+### Technical details
+
+The viewer serves only `/` and `/events` over loopback. The latter takes per-run byte offsets and returns complete projected JSONL records. Raw transcripts, local prompts and oracle rows remain in the batch directory.
