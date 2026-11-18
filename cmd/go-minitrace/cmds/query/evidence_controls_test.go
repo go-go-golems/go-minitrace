@@ -169,3 +169,51 @@ func TestResultEnvelopePreservesRowOverflow(t *testing.T) {
 		t.Fatalf("overflow envelope: %+v", rows)
 	}
 }
+
+func TestMigratedEmbeddedJavaScriptCommands(t *testing.T) {
+	setIsolatedConfigHome(t)
+	archive := writeAdvancedFixtureArchive(t)
+	cases := []struct {
+		group, command string
+		flags          []string
+	}{
+		{"overview", "session-activity", []string{"--framework", "pi,codex", "--limit", "2"}},
+		{"files", "file-activity", []string{"--framework", "pi,codex", "--limit", "2"}},
+		{"history", "file-history", []string{"--path", "unmatched'path"}},
+		{"history", "ticket-timeline", []string{"--ticket", "unmatched'ticket"}},
+		{"history", "context-window", []string{"--session", "fixture-alpha-1", "--turn", "4"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.command, func(t *testing.T) {
+			root, err := NewCommandsCommand(nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			root.SetArgs(append([]string{tc.group, tc.command, "--archive-glob", archive, "--output", "json"}, tc.flags...))
+			if err := root.Execute(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestMigratedDocmetricsCommands(t *testing.T) {
+	setIsolatedConfigHome(t)
+	archive := writeAdvancedFixtureArchive(t)
+	repo, err := filepath.Abs("../../../../skills/transcript-doc-friction-analysis/query-commands")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"api-calls", "doc-consumption", "episodes", "failure-triage", "source-probes"} {
+		t.Run(name, func(t *testing.T) {
+			root, err := NewCommandsCommand([]string{repo})
+			if err != nil {
+				t.Fatal(err)
+			}
+			root.SetArgs([]string{"docmetrics", name, "--archive-glob", archive, "--output", "json"})
+			if err := root.Execute(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

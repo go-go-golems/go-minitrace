@@ -9,11 +9,19 @@
 // "changelog" classification means the command ran or the file was touched —
 // not that the edit succeeded; verify against the actual file/git history.
 
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    .Limits(mt.limits().Rows(200000).CellChars(4000).Build())
-    .Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    .limits({maxRows: 200000, maxCellBytes: 4000})
+    .build();
 }
 
 const effectiveCommands = function(row) {
@@ -65,10 +73,10 @@ function ticketTimeline(tickettimelineopts) {
   const mt = require("minitrace");
   const frag = tickettimelineopts.ticket;
   if (!frag) throw new Error("--ticket is required");
-  const like = mt.sql.like(frag);
+  const like = "%" + frag + "%";
   const db = openDb();
   try {
-    const cmdRows = db.query(`
+    const cmdRows = completeRows(db.execute(mt.sql`
       SELECT tc.session_id, s.agent_framework AS framework, emitting_turn_index AS turn_index, timestamp, tool_name,
              substr(COALESCE(command,''),1,400) AS command,
              substr(COALESCE(arguments_json,''),1,2000) AS arguments_json
@@ -78,9 +86,9 @@ function ticketTimeline(tickettimelineopts) {
         AND (COALESCE(command,'') LIKE ${like} OR COALESCE(arguments_json,'') LIKE ${like})
       ORDER BY timestamp
       LIMIT ${tickettimelineopts.limit || 500}
-    `);
+    `.build()));
 
-    const fileRows = db.query(`
+    const fileRows = completeRows(db.execute(mt.sql`
       SELECT tc.session_id, emitting_turn_index AS turn_index, timestamp, tc.tool_name,
              f.operation_type, f.path AS file_path, f.evidence_status, f.success
       FROM files f JOIN tool_calls tc ON f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id
@@ -88,7 +96,7 @@ function ticketTimeline(tickettimelineopts) {
       WHERE f.path LIKE ${like} AND (COALESCE(s.agent_framework,'')!='codex' OR f.evidence_kind!='legacy_scalar')
       ORDER BY timestamp
       LIMIT ${tickettimelineopts.limit || 500}
-    `);
+    `.build()));
 
     const events = [];
     for (const r of cmdRows) {

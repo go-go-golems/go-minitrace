@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 // docmetrics failure-triage — root-cause classification of failed tool calls.
 //
 // Classifier rules derived from adversarial verification of a real session
@@ -20,9 +27,9 @@
 
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    .Limits(mt.limits().Rows(200000).CellChars(4000).Build())
-    .Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    .limits({maxRows: 200000, maxCellBytes: 4000}).build();
 }
 
 const classify = function(row, lastCd) {
@@ -64,13 +71,14 @@ const classify = function(row, lastCd) {
 }
 
 function failureTriage() {
+  const mt = require("minitrace");
   const db = openDb();
   try {
     // Pull all Bash commands to track persistent-shell cd state per session.
-    const allBash = db.query(`
+    const allBash = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, substr(command,1,300) AS command
       FROM tool_calls WHERE tool_name IN ('Bash','bash','shell','exec') ORDER BY session_id, timestamp
-    `);
+    `.build()));
     const cdState = {}; // session -> [{turn, dir}]
     for (const r of allBash) {
       const m = /(?:^|;|&&)\s*cd\s+([^\s;|&]+)\s*$/.exec(r.command) || /(?:^|;|&&)\s*cd\s+([^\s;|&]+)\s*(?:;|&&)/.exec(r.command);
@@ -83,14 +91,14 @@ function failureTriage() {
       return last;
     };
 
-    const rows = db.query(`
+    const rows = completeRows(db.execute(mt.sql`
       SELECT session_id, tool_call_id, emitting_turn_index AS turn, timestamp,
              tool_name, exit_code, substr(command,1,400) AS command,
              file_path,
              substr(COALESCE(error,''),1,500) AS error,
              substr(COALESCE(result,''),1,500) AS result
       FROM tool_calls WHERE success = 0 ORDER BY session_id, timestamp
-    `);
+    `.build()));
 
     const byCategory = {};
     const out = rows.map((r) => {

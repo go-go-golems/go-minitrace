@@ -822,3 +822,66 @@ go test ./pkg/minitracejs ./pkg/minitracedb ./pkg/queryplan ./cmd/go-minitrace/c
 ### Technical details
 
 This checkpoint leaves old entry points in place while callers migrate. The SQL tag currently binds scalar constants and rejects handwritten bind markers. The design's suggested `json_each` list predicate requires revision based on the observed read policy.
+
+## Step 18: Migrate embedded commands and docmetrics scripts
+
+The five built-in JS commands and five docmetrics commands now use the lower camel case resource builders and tagged SQL execution. Their command metadata, result processing, archive conversion rules and evidence collection limits remain in their existing roles.
+
+### Prompt Context
+
+See Step 15 for the active implementation goal.
+
+**Tagged SQL and first CLI migration commit:** `014e98f`.
+
+### What I did
+
+- Migrated file activity, session activity, file history, ticket timeline and context window under `pkg/minitracecmd/core`.
+- Migrated all five docmetrics commands under `skills/transcript-doc-friction-analysis/query-commands/docmetrics`.
+- Bound strings, timestamps and limits through the SQL tag. Moved activity predicates into static SQL while preserving their placement relative to ranking and window counts.
+- Fixed session activity's framework filter to use the CTE's output alias `framework`.
+- Checked each query envelope before processing results. Preserved SQLite LIKE wildcard behavior and the historical numeric byte limits.
+- Added CLI fixture coverage for each migrated command and updated the focused episode classification fixture to use the new execution shape.
+
+### Why
+
+These SQL-heavy commands use joins, windows, aggregates and multiple contributing queries. Keeping their SQL and ordinary JS reducers makes the migration directly reviewable. Propagating incomplete result errors prevents the reducers from silently building summaries from clipped inputs.
+
+### What worked
+
+The following focused tests passed in both packages:
+
+```sh
+go test ./pkg/minitracecmd ./cmd/go-minitrace/cmds/query -run 'Test(LoadEmbeddedCatalog|MigratedEmbeddedJavaScriptCommands|MigratedDocmetricsCommands|EvidenceWorkflowNestedExample|EpisodesDistinguishesUnknownOutcomesAndUnassociatedCalls)$'
+```
+
+The CLI tests exercised both activity commands with a framework list, history queries with apostrophes in the input, the context-window boundary queries and each docmetrics verb. The existing episode fixture still distinguishes unknown outcomes from failures and verifies the handle closes.
+
+### What didn't work
+
+- The first broad package test reported `embedded catalog missing history/file-history path`. The command scanner had treated the new top-level helper declaration as another verb. Changed it to a function expression assigned to a const, matching existing helper conventions. The focused catalog and CLI tests then passed.
+- The first episode fixture reported `ReferenceError: mt is not defined at episodes (<eval>:50:43(9))`. The script had previously loaded the module only inside its DB opener. Added a local module binding in each docmetrics handler that constructs tagged SQL and verified all five through the CLI.
+- The broad package test also reported `TestResolveAppConfigPaths_IncludesGitRootAndWorkingDirLocalConfig` comparing `/private/var/folders` with `/var/folders`, plus application and XDG config override failures in `TestNewCommandsCommand_LoadsConfiguredRepositoryFromAppConfig` and `TestNewCommandsCommand_XDGConfigOverridesHomeConfig`. The migration-focused rerun does not cover those configuration tests.
+
+### What I learned
+
+Command discovery is affected by how a helper is declared. The catalog path test caught a user-visible change that a direct Goja evaluation would have missed. The scalar list predicate works with the existing authorizer and keeps list members exact by comparing framed hexadecimal UTF-8 keys.
+
+### What was tricky to build
+
+The activity queries must distinguish absent filters from filters that fail to match. File activity applies path and time predicates before the window counts and retains the Codex-specific file evidence join. A null framework cannot match an empty string, even though SQLite hex produces the empty string for both.
+
+### What warrants a second pair of eyes
+
+Check archive sizes that exceed configured row or cell limits and assess the now-explicit command errors. Compare matched file activity operations and list filter outputs against representative archives during parity validation. The new CLI smoke fixtures verify execution and command wiring.
+
+### What should be done in the future
+
+Migrate the remaining showcases, provider examples, maintained documentation and API tests. Then remove the old API, add the planned remaining fluent capabilities and verify the full cutover. Replace outdated JSON table function examples in Design04 with the supported list form.
+
+### Code review instructions
+
+Start with the activity SQL predicates and the history result wrapper. Run the focused command above. The episode-specific fixture checks behavior beyond the new CLI smoke coverage.
+
+### Technical details
+
+Source probes previously stored literal NUL bytes as grouping-key separators. The migrated source spells them as JS Unicode escapes with the same runtime value. Historical ticket scripts were outside this migration.

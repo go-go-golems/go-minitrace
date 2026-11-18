@@ -10,11 +10,19 @@
 // heuristic). In `auto` mode the LATER of the two candidate boundaries wins
 // — the most recent compaction is what is actually still live.
 
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    .Limits(mt.limits().Rows(200000).CellChars(4000).Build())
-    .Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    .limits({maxRows: 200000, maxCellBytes: 4000})
+    .build();
 }
 
 const effectiveCommands = function(row) {
@@ -73,31 +81,30 @@ function contextWindow(contextwindowopts) {
   const method = contextwindowopts.boundaryMethod || "auto";
   if (!sid) throw new Error("--session is required");
   if (target === undefined || target === null) throw new Error("--turn is required");
-  const sidLit = mt.sql.string(sid);
   const db = openDb();
   try {
     let summaryBoundary = null;
     if (method === "auto" || method === "summary-only") {
-      const rows = db.query(`
+      const rows = completeRows(db.execute(mt.sql`
         SELECT turn_index, timestamp FROM turns
-        WHERE session_id = ${sidLit} AND role = 'user'
+        WHERE session_id = ${sid} AND role = 'user'
           AND COALESCE(content,'') LIKE 'This session is being continued%'
           AND turn_index < ${target}
         ORDER BY turn_index DESC
         LIMIT 1
-      `);
+      `.build()));
       if (rows.length) summaryBoundary = rows[0].turn_index;
     }
 
     let collapseBoundary = null;
     if (method === "auto" || method === "cache-collapse-only") {
-      const assistantRows = db.query(`
+      const assistantRows = completeRows(db.execute(mt.sql`
         SELECT turn_index, COALESCE(output_tokens,0) AS out, COALESCE(cache_read_tokens,0) AS cr,
                COALESCE(cache_creation_tokens,0) AS cc
         FROM turns
-        WHERE session_id = ${sidLit} AND role = 'assistant' AND turn_index < ${target}
+        WHERE session_id = ${sid} AND role = 'assistant' AND turn_index < ${target}
         ORDER BY turn_index
-      `);
+      `.build()));
       const calls = collapseApiCalls(assistantRows);
       for (let i = 1; i < calls.length; i++) {
         const prev = calls[i - 1], cur = calls[i];
@@ -118,16 +125,16 @@ function contextWindow(contextwindowopts) {
       }
     }
 
-    const calls = db.query(`
+    const calls = completeRows(db.execute(mt.sql`
       SELECT emitting_turn_index AS turn_index, timestamp, tc.tool_call_id, tool_name, operation_type,
              success, file_path, s.agent_framework AS framework, tc.record_kind,
              (SELECT json_group_array(json_object('path',f.path,'operation',f.operation_type,'status',f.evidence_status)) FROM files f WHERE f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id AND f.evidence_kind!='legacy_scalar') AS file_targets_json,
              substr(COALESCE(command,''),1,300) AS command,
              substr(COALESCE(arguments_json,''),1,1500) AS arguments_json
       FROM tool_calls tc JOIN sessions s USING(session_id)
-      WHERE tc.session_id = ${sidLit} AND emitting_turn_index BETWEEN ${boundary} AND ${target}
+      WHERE tc.session_id = ${sid} AND emitting_turn_index BETWEEN ${boundary} AND ${target}
       ORDER BY timestamp
-    `);
+    `.build()));
 
     const filesMap = {};
     for (const c of calls) {

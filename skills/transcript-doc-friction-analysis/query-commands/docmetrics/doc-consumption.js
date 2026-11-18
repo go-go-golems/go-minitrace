@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 // docmetrics doc-consumption — per-session documentation-consumption profile.
 //
 // Measures how a coding session consumed documentation: Skill tool loads,
@@ -30,9 +37,9 @@ const effectiveCommands = function(row) {
 
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    .Limits(mt.limits().Rows(200000).CellChars(4000).Build())
-    .Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    .limits({maxRows: 200000, maxCellBytes: 4000}).build();
 }
 
 const parseSkillName = function(argsJson) {
@@ -64,19 +71,20 @@ const extractHelpInvocations = function(cmd) {
 }
 
 function docConsumption() {
+  const mt = require("minitrace");
   const db = openDb();
   try {
-    const sessions = db.query(`
+    const sessions = completeRows(db.execute(mt.sql`
       SELECT session_id, title, working_directory, started_at, tool_call_count
       FROM sessions ORDER BY started_at
-    `);
+    `.build()));
 
-    const skillCalls = db.query(`
+    const skillCalls = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, arguments_json
       FROM tool_calls WHERE tool_name = 'Skill' ORDER BY timestamp
-    `);
+    `.build()));
 
-    const sideloads = db.query(`
+    const sideloads = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, substr(COALESCE(command,''),1,200) AS command,
              substr(COALESCE(arguments_json,''),1,1500) AS arguments_json
       FROM tool_calls
@@ -84,18 +92,18 @@ function docConsumption() {
         AND (command LIKE '%.claude/skills%' OR command LIKE '%.codex/skills%' OR command LIKE '%.pi/skills%'
              OR arguments_json LIKE '%.claude/skills%' OR arguments_json LIKE '%.codex/skills%' OR arguments_json LIKE '%.pi/skills%')
       ORDER BY timestamp
-    `);
+    `.build()));
 
-    const helpCandidates = db.query(`
+    const helpCandidates = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, substr(COALESCE(command,''),1,400) AS command,
              substr(COALESCE(arguments_json,''),1,2000) AS arguments_json
       FROM tool_calls
       WHERE tool_name IN ('Bash','bash','shell','exec')
         AND (command LIKE '% help %' OR arguments_json LIKE '% help %')
       ORDER BY timestamp
-    `);
+    `.build()));
 
-    const embeddedDocReads = db.query(`
+    const embeddedDocReads = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, tool_name,
              COALESCE(file_path, substr(command,1,200)) AS what
       FROM tool_calls
@@ -106,33 +114,33 @@ function docConsumption() {
              AND (COALESCE(command,arguments_json,'') LIKE '%cat %' OR COALESCE(command,arguments_json,'') LIKE '%head %'
                   OR COALESCE(command,arguments_json,'') LIKE '%sed -n%' OR COALESCE(command,arguments_json,'') LIKE '%ls %'))
       ORDER BY timestamp
-    `);
+    `.build()));
 
-    const mdReads = db.query(`
+    const mdReads = completeRows(db.execute(mt.sql`
       SELECT session_id, file_path FROM tool_calls
       WHERE tool_name IN ('Read','read') AND COALESCE(file_path,'') LIKE '%.md'
-    `);
+    `.build()));
 
     // Skill files consumed via the Read tool (Pi reads ~/.pi/agent/skills/...,
     // Claude sometimes Reads SKILL.md directly) — invisible to Bash-sideload
     // and Skill-tool counting.
-    const skillFileReads = db.query(`
+    const skillFileReads = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, file_path
       FROM tool_calls
       WHERE tool_name IN ('Read','read')
         AND (file_path LIKE '%/skills/%' OR file_path LIKE '%SKILL.md%')
       ORDER BY timestamp
-    `);
+    `.build()));
 
     // Codex md reads: sed/cat/head of *.md inside JS-embedded exec commands.
-    const codexMdReads = db.query(`
+    const codexMdReads = completeRows(db.execute(mt.sql`
       SELECT session_id, COUNT(*) AS n
       FROM tool_calls
       WHERE tool_name = 'exec' AND COALESCE(command,'') = ''
         AND arguments_json LIKE '%.md%'
         AND (arguments_json LIKE '%sed -n%' OR arguments_json LIKE '%cat %' OR arguments_json LIKE '%head %')
       GROUP BY session_id
-    `);
+    `.build()));
 
     const profiles = {};
     for (const s of sessions) {

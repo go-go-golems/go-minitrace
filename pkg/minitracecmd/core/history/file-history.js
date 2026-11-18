@@ -8,15 +8,23 @@
 // A NEW classification is a target operation, not proof of prior nonexistence;
 // evidence_status distinguishes attempted targets from confirmed effects.
 
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    // CellChars must exceed the arguments_json substr window below, otherwise
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    // maxCellBytes must exceed the arguments_json substr window below, otherwise
     // the runtime truncates the payload before extractCandidatePaths ever sees
     // it and every file after the truncation point in a multi-file patch is
     // lost — the exact bug this command exists to avoid.
-    .Limits(mt.limits().Rows(200000).CellChars(100000).Build())
-    .Build();
+    .limits({maxRows: 200000, maxCellBytes: 100000})
+    .build();
 }
 
 // Legacy non-Codex command extraction. Codex never enters this inference path.
@@ -136,10 +144,10 @@ function fileHistory(filehistoryopts) {
   const mt = require("minitrace");
   const frag = filehistoryopts.path;
   if (!frag) throw new Error("--path is required");
-  const like = mt.sql.like(frag);
+  const like = "%" + frag + "%";
   const db = openDb();
   try {
-    const rows = db.query(`
+    const rows = completeRows(db.execute(mt.sql`
       SELECT tc.session_id, s.agent_framework AS framework, s.working_directory,
              s.started_at AS session_started_at,
              tc.emitting_turn_index AS turn_index, tc.timestamp, tc.tool_name,
@@ -158,15 +166,15 @@ function fileHistory(filehistoryopts) {
          OR COALESCE(tc.arguments_json,'') LIKE ${like}))
       ORDER BY tc.timestamp
       LIMIT ${filehistoryopts.limit || 500}
-    `);
+    `.build()));
 
     // Preceding real user instruction, per session, for context enrichment.
-    const userTurns = db.query(`
+    const userTurns = completeRows(db.execute(mt.sql`
       SELECT session_id, turn_index, substr(COALESCE(content,''),1,200) AS content
       FROM turns
       WHERE role = 'user' AND COALESCE(content_type,'') != 'tool_result'
       ORDER BY session_id, turn_index
-    `);
+    `.build()));
     const bySession = {};
     for (const u of userTurns) {
       if (!isRealInstruction(u.content)) continue;
