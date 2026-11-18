@@ -62,3 +62,8 @@ The follow-up design is [design03](design-doc/03-persona-review-followups-result
 
 
 Final v2 implementation results: [current review](reference/13-review-followup-implementation-and-v2-validation-results.md) and [independent transcript review](reference/14-v2-persona-transcript-review.md). The 32-slot matrix produced 31 final answers, 818 passing executed checks and 14 unassessed checks after one timeout. Separate zero-tool probes pass 4/7 finalized generated commands. Post-cohort host-output read hardening is locally tested and explicitly distinguished from the frozen experiment. The pedagogical report is published in playback-vault, commit ccac298.
+
+
+## Composable API replacement design
+
+[Design04: composable JavaScript query grammar and Go architecture](design-doc/04-composable-javascript-query-grammar-architecture-api-and-intern-implementation-guide.md) specifies the next clean-cut API. It deliberately removes legacy exports and aliases, replaces domain preset switches with a small typed grammar, and describes Go package restructuring, callback phases, portability and staged implementation. This is proposed work; the persona-tested implementation above remains the current code.

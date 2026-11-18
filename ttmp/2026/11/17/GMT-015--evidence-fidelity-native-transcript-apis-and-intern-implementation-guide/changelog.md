@@ -27,3 +27,7 @@ Implemented review follow-ups in acac40b and enforced v2 harness in a709fe7; fre
 ## 2026-11-17
 
 Completed v2 matrix and independent review: 31/32 final answers, 818 passing executed checks, 14 unassessed; preserved zero-tool edge failures and private evidence. Wrote textbook-style playback-vault report in ccac298.
+
+## 2026-11-17
+
+Added design04: clean-cut composable JS grammar and Go restructuring, with intern guide, explicit scope/callback contracts and staged migration; independent design review incorporated.

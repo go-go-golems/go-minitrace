@@ -550,3 +550,56 @@ Read design03, reference13 and reference14. The vault article is Projects/2026/1
 
 ### Technical details
 The recorded matrix binary is 14363bf439063edaf4006e5cf5ea434f10db5cd1c0a5674dd65350e2a579d01c from 7a7c0c6. Current harness policies add control/agent-analysis read denial afterward. Final source commits and vault push precede reMarkable delivery; successful cloud upload will be reported only after its receipt.
+
+## Step 13: Design a clean-cut composable JS grammar and Go architecture
+
+The user stepped back from incremental recipe additions and requested a full intern-oriented design for the intended fluent composition model. This step produces a new design, not implementation of the proposed API. It incorporates the explicit clean-cut requirement and permission to restructure Go internals.
+
+### Prompt Context
+**User prompt (verbatim):**
+> ok, create a new design doc, and write this out in full. Remember, simple composable elegant robust streamlined modular with all the guidelines . Create a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet points and pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and upload to remarkable.
+>
+> The document is detailed, the JS API is on point.
+
+**User steering (verbatim):**
+> no backwards compatibility either, this is a clean cut!
+
+> you can even mold the go btw, it's been such a long time since we started this project that there might be some work to be done there too. What do you think?
+
+**Assistant interpretation:** Specify one replacement public surface and a direct Go representation/compiler/execution structure; explain how to implement it without maintaining legacy aliases or wrapping the preset selector.
+
+### What I did
+- Read AGENT.md and inspected module exports, recipe builder implementation, declarations and query execution functions.
+- Created design04 through docmgr and related primary source files.
+- Specified immutable builders, typed symbolic expressions, scopes/correlation, parameters, SQL lowering and a single execution envelope.
+- Designed ordinary-function recipes, scoped fragments and explicit later runtime stages; documented portable IR versus local closures.
+- Included clean-cut migration/deletion inventory, compiler pseudocode, source references, architecture diagram and acceptance milestones.
+
+### Why
+The present fluent API selects a hardcoded SQL kind and shares mutable state. Replacing it with composable nodes addresses the architectural mismatch rather than adding more domain-specific cases.
+
+### What worked
+Current package boundaries expose a clear split between Goja bindings, normalized schema/execution and native inspection. Existing completeness and read-only guarantees can remain requirements while exported APIs and Go types change.
+
+### What didn't work
+No code execution failure in this documentation step. The earlier informal sketch omitted important contracts: projected alias scope, final ordering through nested SQL, runtime output schema, portability binding and callback truthiness. The full design makes these explicit instead of treating fluent syntax as sufficient.
+
+### What I learned
+A clean cut permits removing overlapping execute/query/view/session surfaces and SQL quoting helpers. Keeping proven storage/adapter behavior is independent of keeping old public JS APIs.
+
+### What was tricky to build
+Build-time callbacks operate on symbolic expressions, runtime callbacks on values; neither arbitrary JS operators nor closures can be transparently compiled or serialized. Correlated counts require lexical scope ownership, and terminal runtime mapping requires complete input plus final-output limits.
+
+### What warrants a second pair of eyes
+Compiler scope/order preservation, nullable SQL semantics, imported-plan validation, callback cancellation and the completeness contract across runtime transformations.
+
+### What should be done in the future
+Implement the documented milestones beginning with call-site inventory and pure-Go query nodes. No compatibility phase or automatic old-recipe conversion should be introduced.
+
+### Code review instructions
+Read design04 and compare its current-state claims to module.go, query_view_session.go, typescript.go and minitracedb/query.go. Treat every new API example and proposed package path as a design contract, not existing functionality.
+
+### Technical details
+The first grammar is table/filter/project/order/scalar count. Parameters, raw SQL and portable plans follow; fragments/runtime stages have later acceptance gates. Historical ticket scripts remain versioned evidence, while supported callers must migrate atomically before release. Commit and doc validation precede reMarkable upload.
+
+Independent design review corrections: moved tagged SQL support ahead of built-in migration; defined orderBy replacement and tie behavior; specified unbound SQL source adoption of a single database binding; separated lexical correlation scope from relational DAG ancestry; and distinguished clean-cut release gates from later runtime/portability extension gates. These are design clarifications, not implemented behavior.
