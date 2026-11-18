@@ -39,3 +39,12 @@ Simplify design04 to local script execution with scoped fragments; add existing-
 ## 2026-11-18
 
 Completed Design04 local JavaScript API and documentation cutover. Full Go gates, generated declarations and xgoja smoke pass. Frozen persona matrix 6/8 and separate mapped report retest 2/2.
+
+## 2026-11-18
+
+Built the live three-turn persona pilot, corrected its historical operation taxonomy, and rechecked a valid ledger independently of duplicate scratch commands.
+
+### Related Files
+
+- /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-live/run.py — Live runner and isolated evidence replay
+- /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/sources/live-persona-pilot.json — Compact receipts for both historical batches and the isolated recheck

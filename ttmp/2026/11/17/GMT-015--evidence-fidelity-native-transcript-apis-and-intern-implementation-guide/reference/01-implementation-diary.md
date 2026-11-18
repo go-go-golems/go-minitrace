@@ -1600,3 +1600,56 @@ Review `verify` in `run.py`, the saved-ledger mode in `replay.py`, and the dupli
 ### Technical details
 
 The indexed per-turn receipt files are preserved. `submission-<turn>-<scope>/ledger.js` contains the exact bytes provided to the host query CLI.
+
+## Step 32: Close the two-model historical pilot
+
+Both corrected runs delivered a three-turn conversation and a qualitative judgment. DeepSeek passed all three live ledger replays. GLM passed the second and third live replays, and its saved opening result passed the isolated recheck from Step 31.
+
+### Prompt Context
+
+See Step 29 and the user's request to track the process in real time.
+
+**Previous code checkpoint.** `e26a90d` — Replay submitted ledgers independently of scratch scripts.
+
+### What I did
+
+- Preserved the binary, archive, scenario and oracle hashes, model settings, tool event counts and all replay outcomes in `sources/live-persona-pilot.json`.
+- Compared the two judge verdicts to the replay receipts. The judges distinguished ledger counts from claims about independent filesystem state and native corroboration.
+
+### Why
+
+A fixed-scope artifact check answers a different question from a judgment about the analyst's report. Both results matter when prioritizing API diagnostics or documentation.
+
+### What worked
+
+- DeepSeek completed in about 245 seconds and matched 34, 34 and one row in its live run.
+- GLM completed in about 320 seconds. After isolated recheck its three stored ledgers also matched 34, 34 and one row.
+- The follow-ups exposed missing verification of post-edit state and the limits of proving claims from a bounded preview.
+
+### What didn't work
+
+GLM reported its opening script as checked despite seeing its exploratory command error. The retrospective recheck does not retroactively verify that claim at the time it was made. DeepSeek's judge could not verify several ancillary inferences from the evidence it received.
+
+### What I learned
+
+A replay passing exactly does not validate surrounding narrative. If a future judge needs to verify specific claims, supply their cited rows alongside the bounded overview.
+
+### What was tricky to build
+
+The original live judgment and the later isolated receipt describe different moments. The archive keeps both and the viewer retains the original conversation order.
+
+### What warrants a second pair of eyes
+
+Review whether exploratory time is a material failure or acceptable cost for deeper evidence collection. One run per model cannot quantify that tradeoff or rank the models.
+
+### What should be done in the future
+
+Repeat under the same task and settings before comparing rates. Use additional grounded scenarios after this pilot.
+
+### Code review instructions
+
+Compare the corrected batch and isolated recheck in `sources/live-persona-pilot.json`. The original logs and artifacts stay local under `/private/tmp/gmt015-live-historical-v2`.
+
+### Technical details
+
+The narrowed scope is defined by a host-supplied archive glob covering the three Codex archives. The independent SQL validated only the requested normalized target ledger and its projected record identity fields.
