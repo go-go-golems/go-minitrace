@@ -4,7 +4,7 @@ This lab adds a stakeholder conversation to the file-attribution [brief](../../r
 
 1. The stakeholder opens with the scenario's file-change request.
 2. The Pi analyst writes JS and SQL, queries the pinned go-minitrace executable, and submits a reusable `ledger.js` command.
-3. The host replays the command and compares a multiset of file-target evidence rows against an independent SQL query.
+3. The host replays the self-contained submission in its own command directory and compares a multiset of file-target evidence rows against an independent SQL query.
 4. A separate stakeholder model asks a follow-up based on the reply and bounded ledger preview. A third analyst turn applies a fixed scope change to Codex-only. All three analyst turns use the same Pi session.
 5. The judge receives the conversation and host results and assesses grounding, usefulness, uncertainty and efficiency. Replays check the ledger contract. The judge assesses the narrative against the evidence it was shown.
 
@@ -37,7 +37,16 @@ python3 "$lab/replay.py" "$batch" glm-5.3-flash \
   --batch /private/tmp/gmt015-persona-prompt-variant --guidance /path/to/guidance.md
 ```
 
-This reruns the opening analyst turn with the pinned inputs and saved prompt. Omit guidance for a repeat. Use a second viewer for the second batch. Later-turn and provider-request replay require recording additional state. Treat differences between single model responses as observations and repeat before attributing them to a prompt change.
+Recheck a ledger without a provider call when you want to isolate a harness problem:
+
+```sh
+python3 "$lab/replay.py" "$batch" glm-5.3-flash \
+  --ledger-turn 1 --batch /private/tmp/gmt015-persona-ledger-recheck
+```
+
+The recheck uses the ledger saved at the specified turn and the original input hashes. It loads only that command, so duplicate scratch verbs in other artifacts cannot affect the result.
+
+The guidance command reruns the opening analyst turn with the pinned inputs and saved prompt. Omit guidance for a repeat. Use a second viewer for the second batch. Later-turn and provider-request replay require recording additional state. Treat differences between single model responses as observations and repeat before attributing them to a prompt change.
 
 ## Read the evidence
 

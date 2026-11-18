@@ -1548,3 +1548,55 @@ Run `python3 test_lab.py --binary /path/to/go-minitrace` from `scripts/persona-l
 ### Technical details
 
 The corrected pilot changes the scenario text, taxonomy, preflight and timeout together. It is a replacement run for a faulty pilot. It does not isolate the causal impact of any individual prompt edit.
+
+## Step 31: Isolate a valid submission from exploratory command collisions
+
+The corrected batch found a second evaluator issue. GLM's opening ledger query was blocked by duplicate names registered by scratch scripts. The submitted ledger itself was valid. I preserved the original run and used a fresh host recheck with the same saved ledger and inputs to isolate the failure.
+
+### Prompt Context
+
+See Step 29. The user asked to watch the pilot live while it ran.
+
+**Previous code checkpoint.** `577b30a` — Correct the historical ledger oracle and preserve turn evidence.
+
+### What I did
+
+- Changed host replay to stage a copy of just the self-contained `ledger.js` per turn. The analyst still queries its full exploratory directory as it works.
+- Added `replay.py --ledger-turn` to recheck a stored ledger with original corpus and binary hashes, without calling the model.
+- Added a fixture that reproduces a duplicate command collision in the exploratory directory and passes when the grader isolates the submission.
+
+### Why
+
+The agent may experiment with multiple scripts. The grader evaluates the submitted command and the defined input scope, so unrelated exploratory files should not prevent that check.
+
+### What worked
+
+`replay.py /private/tmp/gmt015-live-historical-v2 glm-5.3-flash --ledger-turn 1 --batch /private/tmp/gmt015-glm-ledger-recheck` matched 34 expected rows with no missing or unexpected targets. GLM's recorded turns two and three matched independently during the original corrected batch.
+
+### What didn't work
+
+The original turn-one replay exited 1 with `Error: duplicate js verb path "probe-sandbox probe-sandbox" (probe_sandbox.js#probe_sandbox)`. The original timeline preserves this evaluator failure. The isolated recheck is a separate receipt.
+
+### What I learned
+
+One command directory can fail to load even when the intended command works. This is a meaningful exploratory CLI diagnostic and a poor basis for scoring another script.
+
+### What was tricky to build
+
+The isolated replay must retain the same bytes and the same archive scope while omitting the scratch repository. A new Seatbelt profile gives the replay read access to its submitted script directory and the pinned inputs.
+
+### What warrants a second pair of eyes
+
+The contract explicitly requires a self-contained ledger. If future scenarios expect reusable command modules with dependencies, define which submitted files travel with the entry point.
+
+### What should be done in the future
+
+Use this isolated replay for future batches and preserve the original exploratory errors as diagnostic evidence.
+
+### Code review instructions
+
+Review `verify` in `run.py`, the saved-ledger mode in `replay.py`, and the duplicate-verb regression in `test_lab.py`.
+
+### Technical details
+
+The indexed per-turn receipt files are preserved. `submission-<turn>-<scope>/ledger.js` contains the exact bytes provided to the host query CLI.

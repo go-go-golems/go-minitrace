@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 from tempfile import TemporaryDirectory
 
-from run import HERE, fixture, query_policy, verify
+from run import HERE, command_json, fixture, input_glob, verify
 from serve import timeline
 
 
@@ -18,22 +18,30 @@ def test_ledger(binary, root):
     source = (HERE / "fixture-ledger.js").read_text()
     command = artifacts / "ledger.js"
     command.write_text(source)
-    policy = query_policy(root, work, binary)
-    original = verify(root, work, binary, policy, "all", offline=True)
+    for name in ("probe_test.js", "probe-test.js"):
+        (artifacts / name).write_text('function probe() { return []; } __verb__("probe", {name:"probe"});')
+    try:
+        command_json([str(binary), "query", "commands", "--query-repository", str(artifacts),
+            "ledger", "--archive-glob", input_glob(root, "all"), "--output", "json"], work)
+    except RuntimeError as error:
+        assert "duplicate js verb path" in str(error), error
+    else:
+        raise AssertionError("Scratch command collision did not reproduce")
+    original = verify(root, work, binary, "all", offline=True)
     assert original["passed"] and original["observed_rows"] == 2, original
 
     # Preserve the row count while replacing a genuine record with a duplicate.
     command.write_text(source.replace("return result.rows;", "return [result.rows[0], result.rows[0]];"))
-    duplicate = verify(root, work, binary, policy, "all", offline=True)
+    duplicate = verify(root, work, binary, "all", offline=True)
     assert duplicate["observed_rows"] == 2 and not duplicate["passed"], duplicate
     assert duplicate["unexpected_count"] == duplicate["missing_count"] == 1, duplicate
 
     command.write_text(source.replace("return result.rows;", "return result.rows.slice(0, 1);"))
-    missing = verify(root, work, binary, policy, "all", offline=True)
+    missing = verify(root, work, binary, "all", offline=True)
     assert not missing["passed"] and missing["missing_count"] == 1, missing
 
     command.write_text(source)
-    narrowed = verify(root, work, binary, policy, "codex", offline=True)
+    narrowed = verify(root, work, binary, "codex", offline=True)
     assert narrowed["passed"] and narrowed["observed_rows"] == 1, narrowed
     assert narrowed["preview"][0]["evidence_status"] == "attempted", narrowed
 

@@ -93,7 +93,7 @@ def prepare(args):
     return binary
 
 
-def query_policy(batch, work, binary):
+def query_policy(batch, work, binary, candidate_dir=None):
     def rule(action, capability, matcher, path):
         return f"({action} {capability} ({matcher} {dump(str(path))}))"
 
@@ -103,8 +103,8 @@ def query_policy(batch, work, binary):
     rules += [rule("deny", "file-read-data", "subpath", path)
               for path in ("/Users", "/Volumes", "/private/tmp", "/private/var/folders")]
     rules += [rule("allow", "file-read-data", "subpath", path)
-              for path in (binary, batch / "input/archives", work / "artifacts")]
-    policy = work / "query.sb"
+              for path in (binary, batch / "input/archives", candidate_dir or work / "artifacts")]
+    policy = candidate_dir / "query.sb" if candidate_dir is not None else work / "query.sb"
     policy.write_text("\n".join(rules) + "\n")
     return policy
 
@@ -126,17 +126,23 @@ def oracle(batch, work, binary, scope):
     return expected
 
 
-def verify(batch, work, binary, policy, scope, offline, stage=None):
+def verify(batch, work, binary, scope, offline, stage=None):
     """Compare an independent SQL result with host-controlled candidate replay."""
     expected = oracle(batch, work, binary, scope)
     archive_glob = input_glob(batch, scope)
     label = f"{stage}-{scope}" if stage is not None else scope
     (work / f"expected-{label}.json").write_text(dump(expected))
-    cmd = [str(binary), "query", "commands", "--query-repository", str(work / "artifacts"),
-           "ledger", "--archive-glob", archive_glob, "--output", "json"]
-    if not offline:
-        cmd = ["/usr/bin/sandbox-exec", "-f", str(policy), *cmd]
     try:
+        # Verify the submission only. Exploratory JS can register arbitrary
+        # sibling commands, including two names that normalize to the same path.
+        candidate_dir = work / f"submission-{label}"
+        candidate_dir.mkdir(exist_ok=True)
+        shutil.copyfile(work / "artifacts/ledger.js", candidate_dir / "ledger.js")
+        cmd = [str(binary), "query", "commands", "--query-repository", str(candidate_dir),
+               "ledger", "--archive-glob", archive_glob, "--output", "json"]
+        if not offline:
+            policy = query_policy(batch, work, binary, candidate_dir)
+            cmd = ["/usr/bin/sandbox-exec", "-f", str(policy), *cmd]
         actual = command_json(cmd, work)
         if not isinstance(actual, list):
             raise ValueError("Expected a JSON row array")
@@ -264,7 +270,7 @@ def run(args, binary, model):
             else:
                 answer = turn("analyst", f"{introduction}\n\nStakeholder request: {question}" if index == 1 else question,
                               f"analyst-{index}")
-            check = verify(args.batch, work, binary, policy, scope, args.offline, stage=index)
+            check = verify(args.batch, work, binary, scope, args.offline, stage=index)
             check["turn"] = index
             check["artifact_sha256"] = sha(work / "artifacts/ledger.js") if (work / "artifacts/ledger.js").is_file() else None
             if check["artifact_sha256"]:
