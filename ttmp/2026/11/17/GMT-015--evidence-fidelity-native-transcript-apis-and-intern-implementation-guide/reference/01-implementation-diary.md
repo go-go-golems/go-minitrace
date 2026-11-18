@@ -1493,3 +1493,58 @@ Start with design doc 05, then read `scenario.json`, `run.py` and `oracle.sql` i
 ### Technical details
 
 The viewer serves only `/` and `/events` over loopback. The latter takes per-run byte offsets and returns complete projected JSONL records. Raw transcripts, local prompts and oracle rows remain in the batch directory.
+
+## Step 30: Correct the historical oracle and start the matched rerun
+
+The historical adapters emit `NEW`, `MODIFY` and `DELETE` for write-like targets. I corrected the scenario, oracle and fixture to use those labels, and added a preflight to stop this particular scenario if the historical scope loses all matching targets or the narrowing makes no measurable difference. I started a fresh batch on the same nine archives and gave each turn up to 300 seconds so the first pilot's GLM timeout would not cut off the same investigation.
+
+### Prompt Context
+
+See Step 29. The user also asked, “can I track them in realtime and see what's going on?”
+
+**Previous code checkpoint.** `bf5a098` — Add live persona evaluation pilot and intern guide.
+
+### What I did
+
+- Updated `scenario.json`, `oracle.sql`, the scripted candidate and the synthetic archives. The opening now points analysts to the normalized `files` table, root verb invocation and an early runnable artifact.
+- Made turn receipts distinct and saved a copy of the submitted ledger after each replay.
+- Added `test_lab.py` to prove that the grader rejects a missing row and a same-size result containing the wrong duplicate. It also probes partial JSONL delivery.
+- Started the corrected batch under `/private/tmp/gmt015-live-historical-v2` and its loopback viewer at `http://127.0.0.1:8795/`. Opened that viewer in the browser.
+
+### Why
+
+The adaptive follow-up can evolve from the analyst's observations, while the final scope change must produce an observable difference. Per-turn artifacts let a reviewer tell whether a repair changed the script or only the prose.
+
+### What worked
+
+- The corrected corpus preflight observed 34 targets across all archives and one under Codex, independently of model scripts.
+- The offline fixture again produced two, two and one rows. The separate regression probe caught an equal-cardinality substitution.
+- Playwright loaded the live viewer, selected DeepSeek and filtered to host cards with no page errors.
+
+### What didn't work
+
+The initial DeepSeek run completed three turns and a judge verdict. It returned 34, 34 and one row, while the incorrect oracle expected zero each time. Those grades are discarded. The first GLM run timed out in the opening turn and had no judge verdict.
+
+### What I learned
+
+Corpus preflight and row-identity tests catch different failure modes. The former detects an implausible oracle before spending model time. The latter detects candidates that accidentally preserve the aggregate.
+
+### What was tricky to build
+
+The two all-archive turns originally overwrote the same filenames. Including the turn number preserves both results and lets the host tie the published hash to stored JavaScript.
+
+### What warrants a second pair of eyes
+
+Review the visible preview when a judge flags an evidentiary claim. It can omit the specific cited candidate, even when the ledger comparison passes.
+
+### What should be done in the future
+
+Record the corrected model and judge outcomes after both runs reach a terminal event.
+
+### Code review instructions
+
+Run `python3 test_lab.py --binary /path/to/go-minitrace` from `scripts/persona-live`. Compare the corrected timeline's `baseline` event to the first batch before interpreting the model results.
+
+### Technical details
+
+The corrected pilot changes the scenario text, taxonomy, preflight and timeout together. It is a replacement run for a faulty pilot. It does not isolate the causal impact of any individual prompt edit.
