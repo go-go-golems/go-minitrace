@@ -528,8 +528,9 @@ function makeTool(event, turn, seq) {
     const name = data.name === null || data.name === undefined ? "" : String(data.name);
     return {...tool, kind: "script", label: "Script", name, title: name || "Unnamed script", code: data.content};
   }
-  if (typeof data.text === "string") {
-    return {...tool, kind: "query", label: humanise(data.kind) || "Query", title: firstLine(data.text) || "Empty query", code: data.text, scope: data.scope ?? null};
+  if (typeof data.text === "string" || Array.isArray(data.path)) {
+    const command = Array.isArray(data.path) ? data.path.join(" ") : data.text;
+    return {...tool, kind: "query", label: humanise(data.kind) || "Query", title: firstLine(command) || "Command catalog", code: command, scope: data.scope ?? null};
   }
   return {...tool, title: firstLine(event.text) || humanise(event.kind) || "Tool call", code: event.data === null ? "" : asText(event.data)};
 }
@@ -1268,7 +1269,7 @@ function toolTimelineRow(event) {
     args.kind === "help" ? "Help" : event.text;
   const title = call ? "Tool call · " + method : "Tool result · " + event.text;
   const status = call ? null : toolOutcome({output, result: event}, false);
-  const full = call ? args.text ?? args.name ?? asText(event.data) :
+  const full = call ? args.text ?? (Array.isArray(args.path) ? args.path.join(" ") : args.name ?? asText(event.data)) :
     output.saved !== undefined ? "Saved " + output.saved :
     [output.stderr, output.error, output.stdout].filter(Boolean).join("\n");
   const lines = String(full ?? "").trim().split("\n");

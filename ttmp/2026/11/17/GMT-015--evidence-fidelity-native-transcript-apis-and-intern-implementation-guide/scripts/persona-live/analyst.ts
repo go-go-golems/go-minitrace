@@ -47,24 +47,37 @@ export default function (pi: any) {
   });
   pi.registerTool({
     name: "minitrace", label: "Run go-minitrace",
-    description: "Run pinned go-minitrace. Use help for CLI and API help, sql for a result-envelope query, or js for a verb from the saved JS artifact directory. Scope defaults to all. Returns exit, stdout, stderr and deliveryTruncated.",
+    description: "Run pinned go-minitrace. Use help with text for API help or with path to list JS command groups and verbs. Use sql with text, or js with a path array such as [\"ledger\"] or [\"report\", \"summary\"]. Scope defaults to all. Returns exit, stdout, stderr and deliveryTruncated.",
     parameters: schema({ kind: { enum: ["help", "sql", "js"] }, text: string,
-      scope: { enum: ["all", "codex", "claude-code", "pi"] } }, ["kind", "text"]),
-    async execute(_id: string, { kind, text, scope = "all" }: { kind: string; text: string; scope?: string }) {
+      path: { type: "array", maxItems: 8, items: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$" } },
+      scope: { enum: ["all", "codex", "claude-code", "pi"] } }, ["kind"]),
+    async execute(_id: string, { kind, text, path, scope = "all" }: {
+      kind: string; text?: string; path?: string[]; scope?: string;
+    }) {
       if (!["all", "codex", "claude-code", "pi"].includes(scope)) throw Error("Invalid scope");
       const archives = join(root, "input", "archives", (scope === "all" ? "*" : scope + "-*") + ".minitrace.json");
+      const catalog = ["query", "commands", "--query-repository", join(work, "artifacts")];
+      if (path !== undefined && (!Array.isArray(path) || path.length > 8 ||
+          !path.every(word => typeof word === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(word)))) {
+        throw Error("Pass path as an array of command words without flags or file extensions");
+      }
       let args: string[];
-      if (kind === "help") {
-        if (!/^[a-z0-9 -]{0,100}$/.test(text)) throw Error("Pass a help topic or command path");
-        args = text.startsWith("query ") ? [...text.split(" "), "--help"] : ["help", ...text.split(" ").filter(Boolean)];
-        if (args.some(x => x.startsWith("-") && x !== "--help")) throw Error("Help flags are supplied by the runner");
+      if (kind === "js") {
+        if (!path?.length || text !== undefined) throw Error('Use path, for example ["ledger"] or ["report", "summary"]');
+        args = [...catalog, ...path, "--archive-glob", archives, "--output", "json"];
       } else if (kind === "sql") {
+        if (typeof text !== "string" || !text.trim() || path !== undefined) throw Error("Pass SQL in text");
         args = ["query", "run", "--sql", text, "--archive-glob", archives, "--cache-mode", "memory",
           "--max-rows", "200", "--max-cell-bytes", "2048", "--result-envelope", "--output", "json"];
+      } else if (kind === "help" && path !== undefined) {
+        if (text !== undefined) throw Error("Pass path for command help or text for a help topic");
+        args = [...catalog, ...path, "--help"];
       } else {
-        if (!/^[a-z][a-z0-9_-]{0,45}$/.test(text)) throw Error("Pass one root verb name");
-        args = ["query", "commands", "--query-repository", join(work, "artifacts"), text,
-          "--archive-glob", archives, "--output", "json"];
+        if (kind !== "help" || typeof text !== "string" || !/^[a-z0-9 -]{0,100}$/.test(text)) {
+          throw Error("Pass a help topic in text or command words in path");
+        }
+        args = text.startsWith("query ") ? [...text.split(" "), "--help"] : ["help", ...text.split(" ").filter(Boolean)];
+        if (args.some(x => x.startsWith("-") && x !== "--help")) throw Error("Help flags are supplied by the runner");
       }
       return result(await run(args));
     },

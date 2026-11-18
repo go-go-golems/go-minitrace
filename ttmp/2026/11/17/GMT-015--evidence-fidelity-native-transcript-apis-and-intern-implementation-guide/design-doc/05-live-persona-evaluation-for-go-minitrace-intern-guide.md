@@ -103,9 +103,9 @@ The host's SQL runs on the same normalized database implementation through a dif
 | --- | --- | --- |
 | `save_artifact` | `{name, content}` for a flat JS, SQL or Markdown file | Save a workspace artifact. |
 | `read_artifact` | `{name}` | Read a saved artifact. |
-| `minitrace` | `{kind, text, scope?}` | Run help, a read-only SQL query or a saved JS verb. Returns exit, stdout, stderr and deliveryTruncated. |
+| `minitrace` | `{kind, text?, path?, scope?}` | Run help, a read-only SQL query or a saved JS verb. Returns exit, stdout, stderr and deliveryTruncated. |
 
-Start with the `minitrace-schema` and `js-api-reference` help topics. For SQL, inspect the query envelope's `complete` field and diagnostics. The tool's `deliveryTruncated` flag denotes a shortened transport preview. These are independent checks. A complete query can still produce a clipped preview, and an empty result needs a completeness check before it becomes evidence of zero matches.
+Start with the `minitrace-schema` and `js-api-reference` help topics. Use a command path array for JS, for example `["ledger"]` or `["group", "verb"]`. Use `kind: "help"` and `path: []` to list commands in the same repository the analyst uses. For SQL, inspect the query envelope's `complete` field and diagnostics. The tool's `deliveryTruncated` flag denotes a shortened transport preview. These are independent checks. A complete query can still produce a clipped preview, and an empty result needs a completeness check before it becomes evidence of zero matches.
 
 The analyst saves a file named `ledger.js` which registers a root verb named `ledger`. The root command syntax follows the project convention where identical verb and filename names collapse to one command. The host selects the archives on the command line.
 

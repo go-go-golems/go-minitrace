@@ -1771,3 +1771,65 @@ Compare the Pi wrapper's `kind === "js"` arguments in `analyst.ts` with the cata
 ### Technical details
 
 The fixture handler was `function probe_sandbox() { return [{ ok: true }]; }` with `__verb__("probe_sandbox", { name: "probe-sandbox" });`. The failing and successful invocations used the same binary and archive glob.
+
+## Step 35: Explain unresolved JS commands before blaming the archive flag
+
+The repeated diagnostic came from a group receiving a flag defined on its executable children. I added a handler to the go-minitrace Cobra command tree and extended the Pi tool to pass multi-part command paths. These changes address different layers. The CLI explains unresolved paths, and the wrapper can now invoke a command it discovers under a group.
+
+### Prompt Context
+
+> ok do it. what does "probe_sandbox" "probe-sandbox" do?
+
+> i see, good. btw commit at appropriate intervals and keep a detailed diary as you work
+>     (using the diary format from the skill).
+
+**Previous code checkpoint.** `ef84b7d` — Open the interleaved persona timeline by default.
+
+**CLI commit.** `6572462` — Explain missing query verbs before reporting archive flags.
+
+### What I did
+
+- Added `explainUnresolvedQueryCommand` to `cmd/go-minitrace/cmds/query/commands.go`. The inherited Cobra hook checks the selected node, the typed pflag error and the exact flag name before replacing the message with command path information and visible children.
+- Added end-to-end command-tree cases for a nonexistent verb, a group without its leaf, a typo in a nested verb, unrelated flags on both kinds of node and the valid grouped invocation.
+- Changed the Pi tool to take a `path` array for JS execution. Help takes the same path array, including an empty array to list the catalog. Paths are arrays of validated tokens and remain separate subprocess arguments.
+- Updated the analyst prompt, viewer call preview, reproduction README and local intern guide. Added a Node regression that checks catalog help, grouped and root dispatch, scope and rejected path tokens.
+- Checked the original pilot's `probe_sandbox.js`. It used the runtime archives to inventory session IDs, frameworks, source formats, titles and start times. It also sampled tool calls reporting `success = 0`. The reproducer uses a small stand-in handler returning `ok: true` to isolate command routing.
+
+### Why
+
+The selected Cobra node is known when flag parsing fails. A local typed hook can identify the misplaced leaf flag and show a working next step. That keeps normal runnable-command options in Glazed and avoids a separate parser. The Pi wrapper can discover names from the exact repository it later invokes.
+
+### What worked
+
+The Go query and catalog suites passed. A fresh CLI build emitted the available verb for both the direct group and nested typo, and the full grouped path returned `[{"ok":true}]` with the same archive glob. The ledger, cursor and chronology smoke suite passed against that binary.
+
+The Node harness test verified that `["probe_sandbox", "probe-sandbox"]` reaches the CLI as two words after the repository argument, followed by the same scope flag. Flag-like path inputs and combined command strings were rejected before process launch.
+
+### What didn't work
+
+- The first `go test ./cmd/go-minitrace/cmds/query -run TestNewCommandsCommand_ArchiveFlagOnUnresolvedPath -count=1` was blocked while opening the existing Go build cache under `~/Library/Caches/go-build` with `operation not permitted`. Retried with access to the existing cache.
+- The first running Go test named siblings of `probe_sandbox` instead of its child. The helper accepted a selected child and moved up to its parent. I changed the helper to accept the parent directly and preserved the previous caller's sibling behavior.
+
+### What I learned
+
+The first string is the literal filename-derived group. The second is the CLI name registered by the JS metadata. The function name is independent and can use underscores. When a file and its sole CLI verb have the same name, the catalog collapses them to one command word.
+
+### What was tricky to build
+
+Cobra inherits the flag hook at descendants, so the code must explicitly pass through errors from runnable commands. It also passes through unrelated unknown flags. In the wrapper, command help must use the artifact repository to show the same children JS execution can resolve.
+
+### What warrants a second pair of eyes
+
+Check that future runtime flags do not silently broaden the diagnostic. This change handles only the observed `--archive-glob` failure on unresolved catalog paths.
+
+### What should be done in the future
+
+Use the new help and path contract on the next model batch. Historical pilot receipts retain their original failure events.
+
+### Code review instructions
+
+Read `explainUnresolvedQueryCommand` and its regression, then run `node test_analyst.mjs` from `scripts/persona-live/`.
+
+### Technical details
+
+The Pi command is `{kind: "js", path: ["probe_sandbox", "probe-sandbox"]}`. Discovery uses `{kind: "help", path: ["probe_sandbox"]}`. The forecast error for a missing leaf is based on the selected Cobra group and its actual loaded children. There is no Glazed or Cobra dependency change.
