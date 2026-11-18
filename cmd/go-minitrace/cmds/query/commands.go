@@ -39,6 +39,33 @@ When a JS file defines exactly one verb and that verb has the same name as the f
 with a single verb named research-summary becomes:
   go-minitrace query commands hardware-research research-summary
 
+Minimal JavaScript commands (create these files in ./commands).
+
+ledger.js
+
+~~~js
+function ledger() { return [{ ok: true }]; }
+__verb__("ledger", { name: "ledger" });
+~~~
+
+~~~sh
+go-minitrace query commands --query-repository ./commands ledger --output json
+~~~
+
+report.js
+
+~~~js
+function summarize() { return [{ ok: true }]; }
+__verb__("summarize", { name: "summary" });
+~~~
+
+~~~sh
+go-minitrace query commands --query-repository ./commands report summary --output json
+~~~
+
+The first \_\_verb\_\_ argument names a top-level JavaScript function. The name
+property sets the CLI verb. See go-minitrace help structured-query-commands.
+
 The nightly review commands live under the nightly subverb, so a file like
 pkg/minitracecmd/core/nightly/session-inventory.sql becomes:
   go-minitrace query commands nightly session-inventory

@@ -41,8 +41,10 @@ def tool_evidence(work):
                 continue
             if not isinstance(result, dict):
                 continue
-            if result.get("deliveryTruncated"):
+            if result.get("previewTruncated", result.get("deliveryTruncated")):
                 phase["delivery preview shortened"] += 1
+            if result.get("queryComplete") is False:
+                phase["query envelope incomplete"] += 1
             status = result.get("exit")
             if status == 0:
                 phase[f"successful {calls.get(event.get('toolCallId')) or 'query'} invocation"] += 1
@@ -60,7 +62,7 @@ def tool_evidence(work):
             ):
                 if pattern in text:
                     phase[label] += 1
-            if status == "ERR_CHILD_PROCESS_STDIO_MAXBUFFER":
+            if status == "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" or result.get("processError") == "capture_limit":
                 phase["tool subprocess output exceeded cap"] += 1
         signals.update(phase)
         by_phase[path.stem] = dict(phase)
@@ -73,7 +75,7 @@ def evidence_prompt(analyst, tools, checks):
         "analyst": analyst,
         "observed_tool_evidence": tools,
         "host_checks": [{key: check[key] for key in (
-            "turn", "scope", "passed", "expected_rows", "observed_rows", "missing_count", "unexpected_count", "check_type",
+            "turn", "scope", "passed", "expected_rows", "observed_rows", "missing_count", "unexpected_count", "check_type", "cited_targets",
         ) if key in check} for check in checks],
     }
     return """Judge the go-minitrace developer experience in this transcript-analysis task. Use only the supplied

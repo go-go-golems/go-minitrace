@@ -1,23 +1,49 @@
 // Loaded explicitly only in the analyst's Pi session.
+import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export default function (pi: any) {
   const root = process.env.GMT_EVAL_ROOT!;
   const work = process.cwd();
   const binary = join(root, "input", "go-minitrace");
-  const run = (args: string[]) => new Promise((resolve) => {
-    execFile("/usr/bin/sandbox-exec", ["-f", join(work, "query.sb"), binary, ...args], {
-      cwd: work, timeout: 25000, maxBuffer: 512 * 1024, env: {
-        PATH: "/usr/bin:/bin", HOME: work, TMPDIR: work,
-      },
-    }, (error, stdout, stderr) => {
-      resolve({ exit: error ? (error.code ?? error.message) : 0,
-        stdout: stdout.slice(0, 22000), stderr: stderr.slice(0, 3000),
-        deliveryTruncated: stdout.length > 22000 || stderr.length > 3000 || error?.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" });
+  const run = async (args: string[], kind: string) => {
+    const captured = await new Promise<{ error: any; stdout: string; stderr: string }>((resolve) => {
+      execFile("/usr/bin/sandbox-exec", ["-f", join(work, "query.sb"), binary, ...args], {
+        cwd: work, timeout: 25000, maxBuffer: 2 * 1024 * 1024, env: {
+          PATH: "/usr/bin:/bin", HOME: work, TMPDIR: work,
+        },
+      }, (error, stdout, stderr) => resolve({ error, stdout, stderr }));
     });
-  });
+    const { error, stdout, stderr } = captured;
+    const exit = error ? (typeof error.code === "number" ? error.code : null) : 0;
+    const processError = error?.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" ? "capture_limit" :
+      error?.killed ? "timeout_or_signal" : error && exit === null ? "execution_failed" :
+      exit ? "nonzero_exit" : null;
+    const captureComplete = !processError || processError === "nonzero_exit";
+    const receipt = join("tool-results", randomUUID());
+    const folder = join(work, receipt);
+    const previewTruncated = stdout.length > 22000 || stderr.length > 3000;
+    let queryComplete: boolean | null = null;
+    if (exit === 0 && captureComplete && kind !== "help") {
+      try {
+        const output = JSON.parse(stdout);
+        const envelope = Array.isArray(output) && output.length === 1 ? output[0] : output;
+        if (typeof envelope?.complete === "boolean" && Array.isArray(envelope.rows)) {
+          queryComplete = envelope.complete;
+        }
+      } catch { /* Plain output carries no query envelope. */ }
+    }
+    const status = { exit, processError, captureComplete, queryComplete, previewTruncated, receipt };
+    await mkdir(folder, { recursive: true, mode: 0o700 });
+    await Promise.all([
+      writeFile(join(folder, "stdout"), stdout),
+      writeFile(join(folder, "stderr"), stderr),
+      writeFile(join(folder, "receipt.json"), JSON.stringify(status) + "\n"),
+    ]);
+    return { ...status, stdout: stdout.slice(0, 22000), stderr: stderr.slice(0, 3000) };
+  };
   const string = { type: "string" };
   const schema = (properties: Record<string, unknown>, required = Object.keys(properties)) =>
     ({ type: "object", properties, required, additionalProperties: false });
@@ -47,7 +73,7 @@ export default function (pi: any) {
   });
   pi.registerTool({
     name: "minitrace", label: "Run go-minitrace",
-    description: "Run pinned go-minitrace. Use help with text for API help or with path to list JS command groups and verbs. Use sql with text, or js with a path array such as [\"ledger\"] or [\"report\", \"summary\"]. Scope defaults to all. Returns exit, stdout, stderr and deliveryTruncated.",
+    description: "Run pinned go-minitrace. Use help with text for API help or with path to list JS command groups and verbs. Use sql with text, or js with a path array such as [\"ledger\"] or [\"report\", \"summary\"]. Scope defaults to all. Returns stdout/stderr previews, queryComplete when an envelope declares it, previewTruncated, captureComplete, processError, and a local receipt.",
     parameters: schema({ kind: { enum: ["help", "sql", "js"] }, text: string,
       path: { type: "array", maxItems: 8, items: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$" } },
       scope: { enum: ["all", "codex", "claude-code", "pi"] } }, ["kind"]),
@@ -79,7 +105,7 @@ export default function (pi: any) {
         args = text.startsWith("query ") ? [...text.split(" "), "--help"] : ["help", ...text.split(" ").filter(Boolean)];
         if (args.some(x => x.startsWith("-") && x !== "--help")) throw Error("Help flags are supplied by the runner");
       }
-      return result(await run(args));
+      return result(await run(args, kind));
     },
   });
 }

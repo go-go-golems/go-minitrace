@@ -569,7 +569,7 @@ func (s *queryAuthorizationState) err() error {
 	}
 	if s.deniedOp == sqlite3.SQLITE_READ {
 		if strings.HasPrefix(s.deniedObject, "sqlite_") {
-			return fmt.Errorf("query references disallowed table/view %q; use db.schema() or db.tables() from JS to introspect the schema", display)
+			return fmt.Errorf("query references disallowed table/view %q; run go-minitrace help minitrace-schema for SQL tables and columns, or use db.schema() or db.tables() from JS", display)
 		}
 		return fmt.Errorf("query references disallowed table/view %q", display)
 	}

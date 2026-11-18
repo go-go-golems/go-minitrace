@@ -21,7 +21,7 @@ func ParseJSCommandSpecs(path string, contents []byte) ([]ParsedCommandSpec, err
 		Source: contents,
 	}})
 	if err != nil {
-		return nil, fmt.Errorf("scan js command %s: %w", path, err)
+		return nil, fmt.Errorf("scan js command %s: %w\n  declare a top-level function, then register it with __verb__(\"functionName\", { name: \"cli-verb\" }); see go-minitrace help structured-query-commands", path, err)
 	}
 
 	verbs := registry.Verbs()

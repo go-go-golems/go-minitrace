@@ -1895,3 +1895,64 @@ Read reference 17, then run `rejudge.py --help` and inspect `judge.py` for the e
 ### Technical details
 
 The correct historical oracle contains 34 targets across all archives and one for the Codex scope. Signal counts may overlap. The combined 25 shortened delivery previews do not establish query-level truncation.
+
+## Step 37: Update discovery, schema help and evidence delivery together
+
+I wrote the short design and task list before implementing the three changes together. The lab now sends a bounded result preview to Pi while saving the captured text and status in each local run directory. The CLI examples and direct schema help are available at the points where the first pilot failed.
+
+### Prompt Context
+
+> ok. add a short design doc / review writeup, with the tasks, and then implement. Then run cosplay personas again
+
+> do all at once. no need to be cautious moving forward, the real test is the personas
+
+> an incomplete query, a shortened preview, and a subprocess output failure <- what is this? why do we shorten stuff? to whom?
+
+**Previous code checkpoint.** `8a9d695` — Judge persona API friction with Codex and record Asset Studio lessons.
+
+### What I did
+
+- Created design doc 06 with the review, tasks and validation approach.
+- Added copyable root and grouped JS commands to catalog help. Extended scanner errors with a static `__verb__` form and help topic while preserving the original reason.
+- Added the CLI schema topic to the SQLite policy error and first SQL example. Put `db.schema()` in the first JS walkthrough.
+- Implemented explicit query envelope completeness, model preview truncation, captured output completeness and subprocess failure. Local receipts preserve captured stdout and stderr up to 2 MiB per stream. Successful host checks offer the judge at most four analyst-cited target IDs per turn, with ordinal and evidence status.
+- Started both historical personas at low thinking with the same baseline and the Codex judge. Added `compare.py` to compare first successful JS and ledger tool-call ordinals and replay results.
+
+### Why
+
+The three states identify different corrections. Query incompleteness calls for a smaller projection or a limit change. A shortened delivery preview calls for inspecting the local capture or asking for less data. A subprocess failure needs a process or capture diagnosis. The human viewer and judge should not confuse them.
+
+### What worked
+
+- The affected Go query, catalog and normalized database suites passed.
+- `node test_analyst.mjs` verified that a clipped model preview can have full local output and that a subprocess cap can leave a partial capture with no known query completeness.
+- The ledger, cursor and chronology smoke tests passed against the rebuilt binary.
+- The final help check exposed both literal `__verb__` declarations in the actual terminal help.
+
+### What didn't work
+
+The first terminal help render represented bare `__verb__` as `**verb**`. The first rerun was already active. I made the examples fenced code and verified the rendered text. A second batch uses the final binary and the same complete set of changes. The earlier batch remains separate evidence.
+
+### What I learned
+
+Examples must survive terminal rendering before being considered executable instructions. Output completeness also requires checking the envelope before truncating the delivery copy.
+
+### What was tricky to build
+
+An arbitrary JS verb can return any shape. The harness infers query completeness only when there is an explicit boolean and row array. Report other JS results as unknown. Capture paths are for local inspection and replay. The raw text is not passed through to the tool-judging prompt.
+
+### What warrants a second pair of eyes
+
+Check a case that mixes a wide JSON cell with a strict query rejection. The process receipt and the query diagnostics may both be relevant. The current file-target task chiefly tests delivery through short projected columns.
+
+### What should be done in the future
+
+Record both historical reruns and compare the final one with the earlier baseline. One run per model and a combined change do not isolate the impact of any single intervention.
+
+### Code review instructions
+
+Read design doc 06, then the CLI help and the receipt logic in `analyst.ts`. Inspect `test_analyst.mjs` for the difference between envelope incompleteness, preview shortening and capture failure.
+
+### Technical details
+
+The rendered-help checkpoint serves on port 8799. The initial combined rerun serves on 8798. Both use the nine frozen normalized archives and the independent 34-target all-archive and one-target Codex baseline.

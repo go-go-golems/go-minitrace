@@ -479,7 +479,8 @@ function readResult(event) {
     stdout: data.stdout === null || data.stdout === undefined ? "" : asText(data.stdout),
     stderr: data.stderr === null || data.stderr === undefined ? "" : asText(data.stderr),
     error: data.error ? asText(data.error) : "",
-    truncated: Boolean(data.deliveryTruncated),
+    truncated: Boolean(data.previewTruncated ?? data.deliveryTruncated),
+    processError: data.processError, queryComplete: data.queryComplete,
   };
 }
 
@@ -510,6 +511,8 @@ function toolOutcome(tool, ended) {
   if (tool.kind === "thinking") return {label: "Note", tone: "neutral"};
   if (!out) return ended ? {label: "No result recorded", tone: "warn"} : {label: "Running", tone: "live"};
   if (out.saved !== undefined) return {label: "Saved", tone: "neutral"};
+  if (out.processError && out.processError !== "nonzero_exit") return {label: humanise(out.processError), tone: "fail"};
+  if (out.queryComplete === false) return {label: "Incomplete query evidence", tone: "warn"};
   if (out.error || tool.result?.kind === "tool failure") return {label: "Error", tone: "fail"};
   if (out.exit !== null && out.exit !== undefined && out.exit !== 0) return {label: `Exit ${out.exit}`, tone: "fail"};
   if (out.hasExit && out.exit === null) return {label: "No exit code", tone: "warn"};

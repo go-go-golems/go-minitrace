@@ -1,17 +1,23 @@
 import assert from "node:assert/strict";
 import childProcess from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
 
 const calls = [];
 const original = childProcess.execFile;
+const originalCwd = process.cwd();
+const work = await mkdtemp(join(tmpdir(), "persona-tool-test-"));
+let next = {error: null, stdout: "[]", stderr: ""};
 childProcess.execFile = (executable, argv, options, callback) => {
   calls.push({ executable, argv, options });
-  callback(null, "[]", "");
+  callback(next.error, next.stdout, next.stderr);
 };
 syncBuiltinESMExports();
 
 try {
+  process.chdir(work);
   process.env.GMT_EVAL_ROOT = "/fixture";
   const { default: register } = await import("./analyst.ts");
   const tools = new Map();
@@ -40,8 +46,28 @@ try {
     await assert.rejects(invoke(params), /path/);
   }
   assert.equal(calls.length, dispatched);
-  console.log("Pi command discovery, grouped invocation and argument validation passed");
+  const decode = value => JSON.parse(value.content[0].text);
+  const long = JSON.stringify([{complete: false, rows: [{value: "x".repeat(23000)}]}]);
+  next = {error: null, stdout: long, stderr: ""};
+  const incomplete = decode(await invoke({kind: "sql", text: "select 1"}));
+  assert.equal(incomplete.queryComplete, false);
+  assert.equal(incomplete.previewTruncated, true);
+  assert.equal(incomplete.captureComplete, true);
+  assert.equal(incomplete.processError, null);
+  assert.equal(incomplete.stdout.length, 22000);
+  assert.equal(await readFile(join(work, incomplete.receipt, "stdout"), "utf8"), long);
+
+  next = {error: {code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER", killed: true}, stdout: "partial", stderr: ""};
+  const capped = decode(await invoke({kind: "js", path: ["ledger"]}));
+  assert.equal(capped.queryComplete, null);
+  assert.equal(capped.previewTruncated, false);
+  assert.equal(capped.captureComplete, false);
+  assert.equal(capped.processError, "capture_limit");
+  assert.equal(await readFile(join(work, capped.receipt, "stdout"), "utf8"), "partial");
+  console.log("Pi discovery, dispatch, completeness, preview and capture receipts passed");
 } finally {
+  process.chdir(originalCwd);
+  await rm(work, {recursive: true, force: true});
   childProcess.execFile = original;
   syncBuiltinESMExports();
 }

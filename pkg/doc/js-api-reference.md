@@ -28,6 +28,8 @@ Load the local module with `require("minitrace")`. A source builder describes in
 
 ```js
 const mt = require("minitrace");
+// For schema discovery, open the handle below and return db.schema()
+// from your handler instead of executing the query.
 const sources = mt.sources().runtimeArchives().build();
 const db = mt.db().sources(sources)
   .import({autoConvert: true, strict: true})
