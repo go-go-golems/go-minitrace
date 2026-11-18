@@ -660,3 +660,53 @@ Start with design04 sections 2, 4, 9–13 and 19–20. Reproduce the inventory w
 Scope is rg-visible standalone JS/MJS/CJS, excluding dependencies/build output. Inline JS in Go/Markdown remains part of the future implementation call-site search, not this 267-file count. The reMarkable revision will use a new document name to preserve earlier annotations. Commit and validation precede upload; cloud delivery is reported only from the upload receipt.
 
 Validation checkpoint: docmgr frontmatter validation and doctor pass; git diff --check passes. All 267 inventory SHA256 values match current source files, every discovered filename is indexed, Markdown fences balance, and removed transport API examples are absent. No Go/JS implementation changed, so product tests were not rerun for this documentation revision.
+
+## Step 15: Compile the relational core and verify it against SQLite
+
+The implementation starts with immutable Go query descriptions and the existing read-only SQLite runner. The first executable fixture models three sessions, including a session with zero tools and stored counts that disagree with actual rows.
+
+### Prompt Context
+
+The active goal requests step-by-step implementation of Design04, commits at appropriate intervals, and a detailed diary using the diary skill.
+
+### What I did
+
+- Added `pkg/queryplan/model.go` for immutable table, projection, filter, ordering and correlated count descriptions.
+- Added `pkg/queryplan/compile.go` to lower descriptions to SQL, bound arguments and output columns.
+- Added semantic fixtures in `pkg/queryplan/compile_test.go` for alias filters, branch isolation, sort replacement, correlation and local database ownership.
+
+### Why
+
+The compiler can be checked directly against SQLite before introducing Goja callback and object lifetimes. The test uses the production read-only runner and asserts per-session counts, identity and order.
+
+### What worked
+
+`go test ./pkg/queryplan` passed. The fixture evaluates a bound string containing a quote and a question mark alongside nested SQL and returns counts of one, zero and two in the requested order. An escaped correlation and a cross-database count both fail before execution.
+
+### What didn't work
+
+No command failures occurred in this checkpoint.
+
+### What I learned
+
+SQLite accepts the nested derived-table shape used for a correlated count. It resolves projected aliases through a derived query when filtering the output.
+
+### What was tricky to build
+
+The compiler emits ordering only at the final query boundary since this grammar has no relational limit. Filters preserve visible sort columns. Projections rebind exposed ordering expressions to their projected names. The compiler collects arguments in textual SQL order, including projections before nested input statements.
+
+### What warrants a second pair of eyes
+
+Review lexical alias resolution and the projection restriction for sort expressions. Complex order expressions can be projected and sorted by their aliases to keep the intended order explicit.
+
+### What should be done in the future
+
+Expose the model through Goja, add tagged SQL and parameters, then migrate supported command scripts and exercise their normal CLI entry points.
+
+### Code review instructions
+
+Read `Query.Select`, `Query.Build` and `compiler.expr` together. Run `go test ./pkg/queryplan` to check the first semantic fixtures.
+
+### Technical details
+
+Queries share immutable child pointers. Each query pointer identifies its callback row scope and each owner identifies a database handle. The compiler bounds nesting and node count and the existing runner retains authority over execution.
