@@ -1653,3 +1653,64 @@ Compare the corrected batch and isolated recheck in `sources/live-persona-pilot.
 ### Technical details
 
 The narrowed scope is defined by a host-supplied archive glob covering the three Codex archives. The independent SQL validated only the requested normalized target ledger and its projected record identity fields.
+
+## Step 33: Redesign the viewer and reconstruct the event chronology
+
+Claude Code, running `claude-opus-5-5` at high effort in tmux, redesigned the viewer around the conversation and its evidence. I integrated the draft, corrected event classification and correlation, and added the requested chronological view of thinking activity, public text, tool calls and results, host checks and the judge.
+
+### Prompt Context
+
+> this is pretty hard to read. Launch a claude code subagent with opus 5.5 high to make it pretty and nice to read for a human.
+
+> run it in a tmux if needed or so
+
+> tell opus I want to be able to see the thinking trace interleaved with the tool calls with the normal response, so I can really see in what order what happened.
+
+**Previous code checkpoint.** `958c388` — Record the historical persona pilot and recheck results.
+
+### What I did
+
+- Sent the existing HTML and a synthetic event protocol to a restricted Claude Code session in staging. No historical transcripts or live events were part of the design prompt. Verified the completed job's model usage listed `claude-opus-5-5`.
+- Sent the chronology request to a second Opus 5.5 high session. Incorporated its recommendations to sort by stream position, render tool starts and results as separate events, and use an ordered list with native disclosures.
+- Captured thinking start and end metadata and exact tool call IDs from Pi. Added `trace.py` to build a separate viewer projection from a completed batch without modifying the original raw logs.
+- Served the redesigned viewer with the historical chronology projection at `http://127.0.0.1:8795/`.
+
+### Why
+
+The conversation is the main reading surface. A second view preserves the causal ordering needed to see when an analyst thought, called a tool, acted on a result and replied. Separating those views keeps each readable.
+
+### What worked
+
+- Historical projection preserved 42 thinking pairs and 73 tool calls for DeepSeek, and 46 thinking pairs and 70 tool calls for GLM. Every displayed tool start and result in the projection carries its Pi call ID.
+- The regression suite verified a thinking/tool/message sequence, confirmed that reasoning text stays out of the viewer projection, and reran the ledger and partial-cursor checks.
+- Headless Chromium at desktop and phone sizes exercised all three turns, the judge verdict, event ordering, tool disclosures, role filtering and the two-model switch.
+
+### What didn't work
+
+- The initial non-streaming Claude Code job took several minutes without visible progress. A separate streaming launch confirmed Opus was active. The initial job produced the accepted design. The spare pane was repurposed for the user's follow-up.
+- The staged viewer treated some tool failure events as tool requests and initially attempted to pair results by arrival order. I mapped the concrete event types and paired by Pi call ID. When older logs leave an ID ambiguous, the viewer displays the result independently.
+- The first browser check read a disclosure immediately after its click. Its content is created by the native toggle event. I made the check wait for the rendered disclosure control and verified both screen sizes.
+
+### What I learned
+
+Inherited run logs carry a stable sequence but their raw Pi thinking notifications have no wall-clock timestamp. Reconstruct sequence from the stream and leave the time empty. Future runs record arrival times and calculate elapsed thinking time when both markers exist.
+
+### What was tricky to build
+
+The raw protocol includes reasoning bodies and deltas alongside marker events. The projection uses event types to preserve order and emits only timing metadata. The original snapshots remain available locally so a later investigator can verify the mapping.
+
+### What warrants a second pair of eyes
+
+Check the chronology if a future Pi release changes its stream events. Event order and tool correlation are evidence properties.
+
+### What should be done in the future
+
+No further design change is required for this pilot. An additional test scenario can reuse the same viewer and projection.
+
+### Code review instructions
+
+Open the viewer, use Conversation to read the result, Errors and code to inspect scripts and diagnostics, and Chronology to inspect exact order. Review `trace.py`, `run.py`, and `viewer.html` for projection, event capture and presentation respectively.
+
+### Technical details
+
+The server on port 8795 reads `/private/tmp/gmt015-live-historical-chronology`, derived from the original `/private/tmp/gmt015-live-historical-v2`. The new timeline is ordered by event position and does not infer timestamps for imported thinking metadata.

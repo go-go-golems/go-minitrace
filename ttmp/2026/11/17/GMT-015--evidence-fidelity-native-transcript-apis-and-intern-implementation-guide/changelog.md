@@ -48,3 +48,12 @@ Built the live three-turn persona pilot, corrected its historical operation taxo
 
 - /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-live/run.py — Live runner and isolated evidence replay
 - /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/sources/live-persona-pilot.json — Compact receipts for both historical batches and the isolated recheck
+
+## 2026-11-18
+
+Redesigned the live persona viewer with Claude Code and added an ordered thinking activity, tool, response and judge chronology.
+
+### Related Files
+
+- /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-live/trace.py — Historical phase projection and thinking metadata
+- /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-live/viewer.html — Conversation, errors and event chronology

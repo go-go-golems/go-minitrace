@@ -50,6 +50,15 @@ The guidance command reruns the opening analyst turn with the pinned inputs and 
 
 ## Read the evidence
 
-The viewer polls local append-only logs and displays role, turn, tool call, generated script, result, replay and verdict. Switch model runs or filter by role. The viewer listens on loopback and serves only the timeline, so private raw receipts stay on disk. A batch directory contains model stdout, prompts, Pi session history, scripts, expected rows and candidate rows. Keep these artifacts local. End the viewer with `tmux kill-session -t minitrace-persona-viewer`.
+The viewer polls local append-only logs. **Conversation** groups the stakeholder requests, analyst replies, host checks and judge verdict. **Errors and code** surfaces saved scripts and command diagnostics. **Chronology** follows event order with public replies inline and expandable tool starts and results. It shows thinking start and end markers, plus elapsed time when captured live. It filters by role. Switch models with the run picker and enable **Follow latest** when you want new events to scroll into view.
+
+For a completed batch created before the chronology markers were added, project the saved Pi event order into a fresh viewer directory:
+
+```sh
+python3 "$lab/trace.py" "$batch" /private/tmp/gmt015-persona-chronology
+python3 "$lab/serve.py" /private/tmp/gmt015-persona-chronology --port 8795
+```
+
+The historical projection preserves sequence and tool call IDs. Its thinking markers have no wall-clock timestamps. The viewer listens on loopback and serves only the timeline, so private raw receipts stay on disk. A batch directory contains model stdout, prompts, Pi session history, scripts, expected rows and candidate rows. Keep these artifacts local. End the viewer with `tmux kill-session -t minitrace-persona-viewer`.
 
 If the host shows missing or unexpected rows, inspect the row-key samples and replay the script with the same archive selection. Identical counts can still conceal wrong rows. A failed model request or tool transport is recorded separately from a ledger disagreement.

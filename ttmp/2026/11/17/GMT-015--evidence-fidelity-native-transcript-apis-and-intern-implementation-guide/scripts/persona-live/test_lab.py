@@ -1,11 +1,13 @@
 """Regression probes for the ledger comparison and incremental viewer cursor."""
 import argparse
+import json
 from pathlib import Path
 import shutil
 from tempfile import TemporaryDirectory
 
 from run import HERE, command_json, fixture, input_glob, verify
 from serve import timeline
+from trace import Thinking, project_run
 
 
 def test_ledger(binary, root):
@@ -60,6 +62,42 @@ def test_cursor(root):
     assert not timeline(root, {"events-test": second["offset"]})["events-test"]["events"]
 
 
+def test_trace(root):
+    work = root / "trace-test"
+    work.mkdir()
+    begin = {"type": "message_update", "assistantMessageEvent": {"type": "thinking_start", "contentIndex": 0}}
+    delta = {"type": "message_update", "assistantMessageEvent": {"type": "thinking_delta", "delta": "private body"}}
+    end = {"type": "message_update", "assistantMessageEvent": {"type": "thinking_end", "contentIndex": 0,
+                                                                    "content": "private body"}}
+    thinking = Thinking()
+    assert thinking.event(begin, 2.0) == ("thinking start", "Thinking started", None)
+    assert thinking.event(delta, 2.2) is None
+    assert thinking.event(end, 2.8) == ("thinking end", "Thinking ended", {"elapsed_seconds": 0.8})
+    tool_open = {"type": "tool_execution_start", "toolName": "minitrace", "toolCallId": "example"}
+    tool_close = {**tool_open, "type": "tool_execution_end"}
+    message = {"type": "message_end", "message": {"role": "assistant",
+                 "content": [{"type": "thinking", "thinking": "private body"},
+                             {"type": "text", "text": "Public reply"}]}}
+
+    def write(name, rows):
+        (work / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    def observed(kind, text):
+        return {"role": "analyst", "run": "example", "kind": kind, "text": text, "time": 10, "data": None}
+
+    write("analyst-1.pi.jsonl", [begin, delta, end, tool_open, tool_close, begin, end, message])
+    write("events.jsonl", [observed("waiting", "model · analyst-1"), observed("tool call", "minitrace"),
+                         observed("tool result", "minitrace"), observed("message", "Public reply"),
+                         observed("replay", "Host result")])
+    rows = list(project_run(work))
+    assert [row["kind"] for row in rows] == [
+        "waiting", "thinking start", "thinking end", "tool call", "tool result",
+        "thinking start", "thinking end", "message", "replay",
+    ]
+    assert rows[3]["tool_call_id"] == rows[4]["tool_call_id"] == "example"
+    assert rows[1]["time"] is None and "private body" not in json.dumps(rows)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", required=True, type=Path)
@@ -70,4 +108,5 @@ if __name__ == "__main__":
         shutil.copy2(args.binary, binary)
         test_ledger(binary, root)
         test_cursor(root)
-    print("Ledger contract and partial-event cursor checks passed")
+        test_trace(root)
+    print("Ledger, partial-event cursor and chronology checks passed")

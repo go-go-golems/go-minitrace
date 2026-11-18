@@ -13,6 +13,8 @@ import subprocess
 import threading
 import time
 
+from trace import Thinking, public_message
+
 HERE = Path(__file__).resolve().parent
 SCENARIO = json.loads((HERE / "scenario.json").read_text())
 FIELDS = ("session_id", "tool_call_id", "target_ordinal", "path", "evidence_status")
@@ -34,8 +36,10 @@ class Timeline:
         self.path = root / "events.jsonl"
         self.run = run
 
-    def __call__(self, role, kind, text, data=None):
+    def __call__(self, role, kind, text, data=None, tool_call_id=None):
         event = dict(time=time.time(), run=self.run, role=role, kind=kind, text=text, data=data)
+        if tool_call_id:
+            event["tool_call_id"] = tool_call_id
         # Each writer owns its log. The viewer reads complete newline-delimited records.
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(dump(event) + "\n")
@@ -182,6 +186,7 @@ def pi_turn(args, work, emit, role, prompt, phase, model):
     reply = ""
     error = ""
     timed_out = threading.Event()
+    thinking = Thinking()
     with (work / f"{phase}.pi.jsonl").open("w") as raw, (work / f"{phase}.stderr").open("w") as stderr:
         child = subprocess.Popen([*cmd, "--", prompt], cwd=work, env=env, stdout=subprocess.PIPE,
                                  stderr=stderr, text=True, errors="replace", start_new_session=True)
@@ -203,16 +208,19 @@ def pi_turn(args, work, emit, role, prompt, phase, model):
                 except ValueError:
                     continue
                 kind = event.get("type")
-                if kind == "tool_execution_start":
-                    emit(role, "tool call", event["toolName"], event.get("args"))
+                activity = thinking.event(event, time.time())
+                if activity:
+                    emit(role, *activity)
+                elif kind == "tool_execution_start":
+                    emit(role, "tool call", event["toolName"], event.get("args"), event.get("toolCallId"))
                 elif kind == "tool_execution_end":
                     output = reply_text(event.get("result") or {})[:27000]
                     emit(role, "tool failure" if event.get("isError") else "tool result",
-                         event["toolName"], output)
+                         event["toolName"], output, event.get("toolCallId"))
                 elif kind == "message_end" and event.get("message", {}).get("role") == "assistant":
                     message = event["message"]
                     error = message.get("errorMessage") or ""
-                    current = reply_text(message)
+                    current = public_message(event)
                     reply = current
                     if current:
                         emit(role, "message", current, {"model": message.get("model"), "usage": message.get("usage")})
