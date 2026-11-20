@@ -12,7 +12,11 @@ func TestMemorySettingsOnEveryConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close db: %v", err)
+		}
+	})
 
 	// Holding both connections forces database/sql to establish a second one.
 	for i := 0; i < 2; i++ {
@@ -20,7 +24,11 @@ func TestMemorySettingsOnEveryConnection(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer conn.Close()
+		t.Cleanup(func() {
+			if err := conn.Close(); err != nil {
+				t.Errorf("close conn: %v", err)
+			}
+		})
 		checkPragma(t, conn, "PRAGMA temp_store", 2)
 		checkPragma(t, conn, "PRAGMA foreign_keys", 1)
 	}

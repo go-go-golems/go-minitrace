@@ -51,17 +51,20 @@ query run instead.`,
 	}
 
 	root.AddCommand(runCmd)
-	root.AddCommand(commandsCmd, newCatalogCommand(flagPaths, catalog), newSchemaCommand())
+	catalogCmd := newCatalogCommand(catalog)
+	// Catalog discovery and command execution use the same repository selection.
+	catalogCmd.Flags().AddFlag(commandsCmd.PersistentFlags().Lookup(minitracecmd.QueryRepositoryFlagName))
+	root.AddCommand(commandsCmd, catalogCmd, newSchemaCommand())
 	return root, nil
 }
 
-func newCatalogCommand(flagPaths []string, catalog *minitracecmd.Catalog) *cobra.Command {
+func newCatalogCommand(catalog *minitracecmd.Catalog) *cobra.Command {
 	type entry struct {
 		Path       []string `json:"path"`
 		SourceRoot string   `json:"sourceRoot"`
 		SourcePath string   `json:"sourcePath"`
 	}
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use: "catalog [source-file]", Short: "List registered command paths and scanner diagnostics as JSON",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -85,8 +88,6 @@ func newCatalogCommand(flagPaths []string, catalog *minitracecmd.Catalog) *cobra
 			return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]any{"commands": entries, "diagnostics": diagnostics})
 		},
 	}
-	cmd.Flags().StringSlice(minitracecmd.QueryRepositoryFlagName, flagPaths, "Additional query-command repository roots")
-	return cmd
 }
 
 func newSchemaCommand() *cobra.Command {
