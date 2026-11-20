@@ -22,7 +22,7 @@ FIELDS = ("session_id", "tool_call_id", "target_ordinal", "path", "evidence_stat
 SCENARIOS = {
     "file-change-ledger": (SCENARIO | {"fields": FIELDS}, HERE / "scenario.json", HERE / "oracle.sql"),
     **{name: (json.loads((HERE / f"{name}.json").read_text()), HERE / f"{name}.json", HERE / f"{name}.sql")
-       for name in ("recovery", "efficiency", "coverage")},
+       for name in ("recovery", "efficiency", "coverage", "composition")},
 }
 MODELS = ("glm-5.3-flash", "deepseek-4.1-flash")
 EXTENSION = Path.home() / ".pi/agent/npm/node_modules/@lunaroute/pi-extension/src/index.ts"

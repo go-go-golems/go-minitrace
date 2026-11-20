@@ -2302,3 +2302,35 @@ All opening submissions selected tagged SQL. The fluent table calls in one submi
 ### Future work and code review instructions
 
 Inspect reference 20 and `sources/four-task-persona-matrix.json` for the denominators and first-success ordinals. For targeted follow-up, exercise a reusable fluent builder on two scopes and trace SQLite temporary file access during the grouped-query failure.
+
+## Step 46: Keep in-memory SQLite scratch data off disk and exercise a fluent extension
+
+The previous matrix exposed two independent questions. An aggregate over a payload column failed in Seatbelt, and all sixteen opening ledgers selected tagged SQL. I repeated the original permission controls on both binaries and launched a focused fluent-composition scenario.
+
+### Prompt Context
+
+**User prompt (verbatim)** “ok, do it”
+
+**Assistant interpretation and inferred user intent** Address both findings in the previous handoff. Test actual query composition at both thinking levels and correct the sandbox-only failure while preserving its read/write policy.
+
+### What I did and why
+
+- Read the memory opener, SQLite query target and previous reproduction. A named shared in-memory database controls primary storage. SQLite has a separate connection-level temporary storage policy. Configured a dedicated in-memory driver to set that policy on every new connection. Moved foreign-key activation into the connection DSN so the second connection receives it too.
+- Repeated all three grouped predicates with and without Seatbelt using the original and candidate binaries and the same nine archives. Added row-set hashes to the existing reproduction. Added a two-connection regression test and documented the memory tradeoff.
+- Extended the harness with a fifth, targeted brief. Each analyst starts from a real session/count query and is asked to extend it with a reusable success filter, executed twice for success and failure. Both models and both thinking levels use the same binary and corpus. The final scope is Claude Code.
+
+### What worked
+
+The old binary again returned `Error: disk I/O error: operation not permitted` for the two result-column queries in Seatbelt. The new binary returned 27 complete rows for each predicate with and without the sandbox. Every successful result matched its original ordinary-CLI control by SHA-256. The sandbox policy template and write restrictions are unchanged.
+
+### What didn't work and what I learned
+
+Earlier judge signals described generic permission errors as attempts to access raw sources. Updated the signal label to describe the actual denial. The A/B control establishes a working SQLite configuration for this repro. It does not identify a specific denied filename.
+
+### What was tricky and what warrants a second pair of eyes
+
+A one-off PRAGMA on a pooled database would configure only the connection that handled the statement. Holding two connections simultaneously exercises the boundary. Keeping the sorter's working data in RAM can increase peak memory for large queries.
+
+### Follow-up and review
+
+Inspect `pkg/minitracedb/open.go`, its memory connection test and the before/after receipts. For the persona submissions, inspect the executed plan and flip the reusable helper’s success argument in an isolated copy to check that the two output columns exchange values.

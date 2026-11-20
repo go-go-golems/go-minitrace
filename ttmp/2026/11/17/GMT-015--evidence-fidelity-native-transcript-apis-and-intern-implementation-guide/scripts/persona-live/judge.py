@@ -67,7 +67,7 @@ def tool_evidence(work):
                 ("SQLite schema introspection denied", 'disallowed table/view "sqlite_master"'),
                 ("duplicate command registration", "duplicate js verb path"),
                 ("strict query incomplete", "strict evidence"),
-                ("raw source outside allowed inputs", "operation not permitted"),
+                ("operation denied by environment", "operation not permitted"),
             ):
                 if pattern in text:
                     phase[label] += 1

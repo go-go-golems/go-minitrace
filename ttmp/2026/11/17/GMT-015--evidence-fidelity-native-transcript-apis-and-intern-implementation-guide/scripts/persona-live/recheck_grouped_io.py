@@ -1,5 +1,6 @@
 """Check a grouped aggregate under the saved Seatbelt policy and normal local CLI."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -25,7 +26,9 @@ def main():
                 result["error"] = proc.stderr.strip()
             else:
                 envelope, = json.loads(proc.stdout)
-                result.update(count=envelope["count"], complete=envelope["complete"])
+                rows = sorted(json.dumps(row, sort_keys=True) for row in envelope["rows"])
+                digest = hashlib.sha256(json.dumps(rows).encode()).hexdigest()
+                result.update(count=envelope["count"], complete=envelope["complete"], rows_sha256=digest)
             print(json.dumps(result))
 
 
