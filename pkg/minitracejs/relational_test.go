@@ -103,6 +103,10 @@ func TestTaggedSQLBinding(t *testing.T) {
 	}
 }
 
+func TestSelfCorrelatedRows(t *testing.T) {
+	runRelationalFixture(t, "self_correlation.js")
+}
+
 func TestParametersAndFragments(t *testing.T) {
 	runRelationalFixture(t, "parameters_fragments.js")
 }

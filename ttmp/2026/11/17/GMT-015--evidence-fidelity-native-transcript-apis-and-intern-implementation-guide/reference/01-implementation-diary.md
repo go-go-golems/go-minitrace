@@ -2363,3 +2363,28 @@ An ordinary reusable JS function can filter an immutable builder before or after
 ### Future work and review instructions
 
 Use reference 21 and its attached evidence to review the SQL controls, corpus, helper substitution and observed friction. Memory consumption on workloads larger than this corpus was not measured. The four successful conversations establish feasibility for the directed task; they do not estimate the likelihood of choosing the builder in open-ended work.
+
+## Step 48: Fix CI lint and self-correlated row bindings in PR 35
+
+The user requested the full local lint target and Lefthook installation after CI reported two unchecked cleanup errors, then asked to address the PR. The automated review on commit `64263ed` showed a separate silent result error when a nested callback reused its outer query builder.
+
+### Prompt context
+
+The follow-up was “https://github.com/go-go-golems/go-minitrace/pull/35
+
+address I guess?” The intended result is a tested correction on the existing PR.
+
+### Implementation and validation
+
+- Commit `d91071e` checks database and connection cleanup errors and shares the repository selector between catalog discovery and command execution. The full Glazed policy linter had flagged the duplicate raw flag definition after golangci-lint passed.
+- Each JS row callback now binds its input to a fresh pass-through query node. Outer and inner column expressions retain distinct identities even if their table or projected builder is the same object. The compiler emits the same SQL for a pass-through relation and counts expression depth only when descending into a SQL-producing stage.
+- Added a Goja execution regression over three rows in two groups. It asserts peer counts of 2, 2 and 1. The query-plan and JS suites passed. The existing fragment ancestry checks still pass.
+- Installed both Lefthook hooks. Ran lint with Go 1.26.6 and the pinned golangci-lint v2.11.2. The system Go 1.27.1 initially produced an export-format version error. Both linters and the pre-commit test suite passed using the repository toolchain.
+
+### Local snapshot constraints
+
+The installed GoReleaser rejects `release --single-target`, so the Darwin snapshot uses a temporary config containing the repository's arm64 Darwin build. Dagger timed out downloading the engine. Built the frontend in a temporary directory using its frozen pnpm lockfile and production build for embedding in the snapshot.
+
+### Review instructions
+
+Inspect `relationalBinding.queryObject`, `Query.RowScope`, and `testdata/self_correlation.js`. Run `make lint` and `make test` with the repository toolchain. Confirm the changed SQL behavior using the executable fixture.

@@ -127,7 +127,7 @@ func (c *compiler) query(q *Query, outer *scope, depth int) (string, error) {
 	// With no row-selection limit, sort nodes can be omitted from subqueries.
 	// Build emits the effective order once, at the outermost level.
 	if q.fields == nil && q.predicate == nil {
-		return c.query(q.input, outer, depth+1)
+		return c.query(q.input, outer, depth)
 	}
 	alias := c.alias()
 	visible := &scope{row: q.input, alias: alias, parent: outer}

@@ -149,17 +149,19 @@ type queryValue struct {
 func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragment) *goja.Object {
 	obj := b.remember(queryValue{q, fragments})
 	_ = obj.Set("where", func(fn goja.Value) *goja.Object {
-		value := b.callback("where", fn, b.row(q, "where"))
+		input := q.RowScope()
+		value := b.callback("where", fn, b.row(input, "where"))
 		predicate, ok := b.lookup(value).(*queryplan.Expr)
 		if !ok {
 			b.buildError("E_EXPECTED_PREDICATE", "where", "where expects a symbolic predicate, use .eq() instead of ===")
 		}
-		next, err := q.Where(predicate)
+		next, err := input.Where(predicate)
 		b.checkBuild(err, "E_EXPECTED_PREDICATE", "where")
 		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("select", func(fn goja.Value) *goja.Object {
-		value, ok := b.callback("select", fn, b.row(q, "select")).(*goja.Object)
+		input := q.RowScope()
+		value, ok := b.callback("select", fn, b.row(input, "select")).(*goja.Object)
 		if !ok || value.ClassName() != "Object" || b.lookup(value) != nil {
 			b.buildError("E_PROJECTION", "select", "select expects an object mapping output names to expressions")
 		}
@@ -167,12 +169,13 @@ func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragme
 		for _, name := range value.Keys() {
 			fields = append(fields, queryplan.Field{Name: name, Value: b.expression(value.Get(name))})
 		}
-		next, err := q.Select(fields)
+		next, err := input.Select(fields)
 		b.checkBuild(err, "E_PROJECTION", "select")
 		return b.queryObject(next, fragments...)
 	})
 	_ = obj.Set("orderBy", func(fn goja.Value) *goja.Object {
-		value := b.callback("orderBy", fn, b.row(q, "orderBy"))
+		input := q.RowScope()
+		value := b.callback("orderBy", fn, b.row(input, "orderBy"))
 		values := []goja.Value{value}
 		if array, ok := value.(*goja.Object); ok && array.ClassName() == "Array" {
 			b.check(b.vm.ExportTo(array, &values))
@@ -185,7 +188,7 @@ func (b *relationalBinding) queryObject(q *queryplan.Query, fragments ...*fragme
 			}
 			keys[i] = key
 		}
-		next, err := q.OrderBy(keys...)
+		next, err := input.OrderBy(keys...)
 		b.checkBuild(err, "E_ORDER", "orderBy")
 		return b.queryObject(next, fragments...)
 	})

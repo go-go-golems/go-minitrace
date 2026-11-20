@@ -98,6 +98,12 @@ func validName(name string) bool {
 
 func (q *Query) Columns() []Column { return append([]Column(nil), q.columns...) }
 
+// RowScope gives a callback its own row identity for this input. It preserves
+// the visible columns, ordering and ancestry without changing the SQL relation.
+func (q *Query) RowScope() *Query {
+	return &Query{owner: q.owner, input: q, columns: q.columns, order: q.order}
+}
+
 func (q *Query) Column(name string) (*Expr, error) {
 	for _, column := range q.columns {
 		if column.Name == name {
