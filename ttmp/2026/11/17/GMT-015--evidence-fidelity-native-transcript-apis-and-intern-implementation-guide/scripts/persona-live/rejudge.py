@@ -26,7 +26,7 @@ def rejudge(args, source):
     (work / "api-evidence.json").write_text(json.dumps(tools, indent=2) + "\n")
     emit = Timeline(work, model)
     try:
-        verdict = codex_judge(args, work, evidence_prompt(model, tools, checks), emit)
+        verdict = codex_judge(args, work, evidence_prompt(model, tools, checks, args.scenario), emit)
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         emit("judge", "failure", str(error))
         return False
@@ -51,6 +51,7 @@ def main():
     args.output = args.output.resolve()
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     original_meta = json.loads((args.original / "batch.json").read_text())
+    args.scenario = original_meta["scenario"]
     original_meta.update(mode="API and documentation rejudge", original_batch=args.original.name,
                          judge={"provider": "openai-codex", "model": args.judge_model,
                                 "thinking": args.judge_thinking})

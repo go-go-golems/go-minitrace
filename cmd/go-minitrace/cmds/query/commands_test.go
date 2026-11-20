@@ -2,6 +2,7 @@ package query
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +14,46 @@ import (
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
 	"github.com/spf13/cobra"
 )
+
+func TestQueryMetadataReportsRegisteredPathsAndSchema(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	for name, source := range map[string]string{
+		"report.js": `function summarize() { return []; } __verb__("summarize", {name:"summary"});`,
+		"broken.js": `__verb__("unknown", {name:"broken"});`,
+	} {
+		if err := os.WriteFile(filepath.Join(repo, name), []byte(source), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	invoke := func(args ...string) map[string]json.RawMessage {
+		t.Helper()
+		cmd, err := NewCommand([]string{repo})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out bytes.Buffer
+		cmd.SetArgs(args)
+		cmd.SetOut(&out)
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		var result map[string]json.RawMessage
+		if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		return result
+	}
+	if got := string(invoke("catalog", "report.js")["commands"]); !strings.Contains(got, `"path":["report","summary"]`) {
+		t.Fatalf("unexpected catalog paths: %s", got)
+	}
+	if got := string(invoke("catalog", "broken.js")["diagnostics"]); !strings.Contains(got, "references unknown function") {
+		t.Fatalf("missing scanner diagnostic: %s", got)
+	}
+	if got := string(invoke("schema", "tool_calls")["columns"]); !strings.Contains(got, `"name":"source_ordinal"`) {
+		t.Fatalf("missing tool call schema: %s", got)
+	}
+}
 
 func TestNewCommandsCommand_ArchiveFlagOnUnresolvedPath(t *testing.T) {
 	setIsolatedConfigHome(t)

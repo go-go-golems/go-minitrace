@@ -53,14 +53,24 @@ export default function (pi: any) {
     return join(work, "artifacts", name);
   };
 
+  const catalogArgs = ["--query-repository", join(work, "artifacts")];
+  type Catalog = { commands: { path: string[]; sourceRoot: string }[]; diagnostics: unknown[] };
+  const registrations = async (name?: string) => {
+    const output = await run(["query", "catalog", ...catalogArgs, ...(name ? [name] : [])], "help");
+    if (output.exit !== 0) return { paths: [], diagnostics: [output.stderr || output.processError], receipt: output.receipt };
+    const catalog: Catalog = JSON.parse(output.stdout);
+    return { paths: catalog.commands.filter(command => !name || command.sourceRoot === join(work, "artifacts"))
+      .map(command => command.path), diagnostics: catalog.diagnostics };
+  };
+
   pi.registerTool({
     name: "save_artifact", label: "Save artifact",
-    description: "Write or replace a flat .js, .sql or .md artifact in the run workspace.",
+    description: "Write or replace a flat .js, .sql or .md artifact. For a JS command, returns its registered paths and scanner diagnostics.",
     parameters: schema({ name: string, content: string }),
     async execute(_id: string, { name, content }: { name: string; content: string }) {
       if (Buffer.byteLength(content) > 100_000) throw Error("Artifact exceeds 100 kB");
       await writeFile(artifact(name), content);
-      return result({ saved: name });
+      return result({ saved: name, ...(name.endsWith(".js") ? await registrations(name) : {}) });
     },
   });
   pi.registerTool({
@@ -73,8 +83,8 @@ export default function (pi: any) {
   });
   pi.registerTool({
     name: "minitrace", label: "Run go-minitrace",
-    description: "Run pinned go-minitrace. Use help with text for API help or with path to list JS command groups and verbs. Use sql with text, or js with a path array such as [\"ledger\"] or [\"report\", \"summary\"]. Scope defaults to all. Returns stdout/stderr previews, queryComplete when an envelope declares it, previewTruncated, captureComplete, processError, and a local receipt.",
-    parameters: schema({ kind: { enum: ["help", "sql", "js"] }, text: string,
+    description: "Run pinned go-minitrace. Use help with text for API help or with path to list JS command groups and verbs. Use schema with optional text for normalized tables or one table’s columns. Use sql with text, or js with a path array such as [\"ledger\"] or [\"report\", \"summary\"]. Scope defaults to all. Returns stdout/stderr previews, queryComplete when an envelope declares it, previewTruncated, captureComplete, processError, and a local receipt.",
+    parameters: schema({ kind: { enum: ["help", "schema", "sql", "js"] }, text: string,
       path: { type: "array", maxItems: 8, items: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$" } },
       scope: { enum: ["all", "codex", "claude-code", "pi"] } }, ["kind"]),
     async execute(_id: string, { kind, text, path, scope = "all" }: {
@@ -82,7 +92,7 @@ export default function (pi: any) {
     }) {
       if (!["all", "codex", "claude-code", "pi"].includes(scope)) throw Error("Invalid scope");
       const archives = join(root, "input", "archives", (scope === "all" ? "*" : scope + "-*") + ".minitrace.json");
-      const catalog = ["query", "commands", "--query-repository", join(work, "artifacts")];
+      const catalog = ["query", "commands", ...catalogArgs];
       if (path !== undefined && (!Array.isArray(path) || path.length > 8 ||
           !path.every(word => typeof word === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(word)))) {
         throw Error("Pass path as an array of command words without flags or file extensions");
@@ -91,6 +101,12 @@ export default function (pi: any) {
       if (kind === "js") {
         if (!path?.length || text !== undefined) throw Error('Use path, for example ["ledger"] or ["report", "summary"]');
         args = [...catalog, ...path, "--archive-glob", archives, "--output", "json"];
+      } else if (kind === "schema") {
+        if (path !== undefined || (text !== undefined && !/^[a-z][a-z0-9_]*$/.test(text))) {
+          throw Error("Omit text to list tables, or pass a normalized table name in text");
+        }
+        const output = await run(["query", "schema", ...(text ? [text] : [])], "help");
+        return result(output.exit === 0 ? JSON.parse(output.stdout) : output);
       } else if (kind === "sql") {
         if (typeof text !== "string" || !text.trim() || path !== undefined) throw Error("Pass SQL in text");
         args = ["query", "run", "--sql", text, "--archive-glob", archives, "--cache-mode", "memory",
@@ -105,7 +121,14 @@ export default function (pi: any) {
         args = text.startsWith("query ") ? [...text.split(" "), "--help"] : ["help", ...text.split(" ").filter(Boolean)];
         if (args.some(x => x.startsWith("-") && x !== "--help")) throw Error("Help flags are supplied by the runner");
       }
-      return result(await run(args, kind));
+      const output = await run(args, kind);
+      if (kind === "js" && output.exit !== 0 && output.stderr.includes("available commands:")) {
+        const listed = await registrations();
+        const parent = path!.slice(0, -1);
+        const matches = listed.paths.filter(words => parent.every((word, index) => words[index] === word));
+        return result({ ...output, availablePaths: (matches.length ? matches : listed.paths).slice(0, 20) });
+      }
+      return result(output);
     },
   });
 }

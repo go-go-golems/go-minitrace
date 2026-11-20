@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import childProcess from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
@@ -64,6 +64,20 @@ try {
   assert.equal(capped.captureComplete, false);
   assert.equal(capped.processError, "capture_limit");
   assert.equal(await readFile(join(work, capped.receipt, "stdout"), "utf8"), "partial");
+  const artifacts = join(process.cwd(), "artifacts");
+  await mkdir(artifacts);
+  next = {error: null, stdout: JSON.stringify({
+    commands: [{path: ["report", "summary"], sourceRoot: artifacts}], diagnostics: [],
+  }), stderr: ""};
+  const saved = decode(await tools.get("save_artifact").execute("test", {name: "report.js", content: "// checked by catalog"}));
+  assert.deepEqual(saved.paths, [["report", "summary"]]);
+  assert.deepEqual(calls.at(-1).argv.slice(3), ["query", "catalog", "--query-repository", artifacts, "report.js"]);
+  assert.equal(await readFile(join(artifacts, "report.js"), "utf8"), "// checked by catalog");
+
+  next = {error: null, stdout: JSON.stringify({table: "files", columns: [{name: "path"}]}), stderr: ""};
+  const schema = decode(await invoke({kind: "schema", text: "files"}));
+  assert.deepEqual(schema.columns, [{name: "path"}]);
+  assert.deepEqual(calls.at(-1).argv.slice(3), ["query", "schema", "files"]);
   console.log("Pi discovery, dispatch, completeness, preview and capture receipts passed");
 } finally {
   process.chdir(originalCwd);

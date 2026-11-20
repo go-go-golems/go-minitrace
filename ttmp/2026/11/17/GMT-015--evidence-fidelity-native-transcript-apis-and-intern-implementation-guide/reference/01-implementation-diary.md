@@ -2065,3 +2065,59 @@ Start at reference 18. The README still has the terse runner reference and links
 ### Technical details
 
 The playbook's scripted fixture expected two rows across all archives and one within Codex. This verification exercises the actual binary and verifier and makes no external model calls.
+
+## Step 40: Return registered paths and expand the persona cases
+
+I connected both discovery operations to the pinned CLI and added recovery and efficiency as alternative three-turn scenarios. Both use the original normalized archive selection and preserve the analyst's choice of query method and evidence to discuss.
+
+### Prompt Context
+
+> Ok, do it.
+
+This follows the status checkpoint proposing registered paths on save, compact schema discovery and recovery and efficiency runs.
+
+**Previous checkpoint.** `89c7305` — Document the persona evaluation handoff playbook.
+
+### What I did
+
+- Added `query catalog [source-file]` on the same catalog used to register runnable commands. It reports path words and scanner diagnostics as JSON.
+- Added `query schema [table]` from the existing normalized schema descriptors. Pi exposes it through `kind: "schema"`.
+- Updated the save receipt to carry registered paths and scanner errors. Unresolved JS invocations can return available path arrays from the same catalog.
+- Added the recovery and efficiency JSON briefs and their independent SQL oracles. The host verifies each brief's output fields, with the same isolated candidate replay and Codex-only scope change. Recheck and rejudge read the selected scenario from the batch.
+- Launched both cases with GLM and DeepSeek at low thinking, using the Codex medium judge.
+
+### Why
+
+A command path supplied by the actual catalog eliminates the need to reconstruct names from text. Schema discovery should reveal only table names or the columns the analyst asked for. Two different workloads reveal friction that a repeated file-target ledger could miss.
+
+### What worked
+
+The Go query, catalog and database suites passed. The Pi wrapper regression verified a saved grouped path and targeted schema lookup. Ledger, cursor and chronology regression checks passed. Independent preflight found 26 failure records across all archives and six in Codex. Efficiency has nine sessions across all archives and three in Codex.
+
+### What didn't work
+
+Early recovery and efficiency traces still showed malformed static declarations; the save responses identified the failure before invocation. A recovery opening submission returned a shape missing `session_id` and the live host replay rejected it.
+
+### What I learned
+
+The recovery oracle uses source order and the first later successful call with the same tool name. That relationship is measurable and does not establish causation. Efficiency preserves null usage totals and counts observed inputs and outputs separately from the total turns.
+
+### What was tricky to build
+
+The CLI already loads a configured catalog to build the command tree. Reusing it keeps registered paths and invocation in sync. The verifier checks a multiset of the selected scenario's actual output fields.
+
+### What warrants a second pair of eyes
+
+Review how the analyst interprets a later success and where token coverage differs by archive. Exact SQL parity cannot settle narrative causation.
+
+### What should be done in the future
+
+Record each completed run and grade outcome. Keep interrupted provider attempts separate from API findings.
+
+### Code review instructions
+
+Read the metadata commands in `cmd/go-minitrace/cmds/query/root.go` and the two briefs beside `run.py`. The live recovery and efficiency viewers are on ports 8801 and 8802.
+
+### Technical details
+
+Recovery grades exact failure IDs, ordinals and the earliest qualifying later ordinal. Efficiency grades turn totals and their denominators, including sessions with zero turns. The judge receives summaries and exact host checks.

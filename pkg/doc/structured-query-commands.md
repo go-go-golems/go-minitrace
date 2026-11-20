@@ -356,6 +356,12 @@ AND id IN ({{ .session_ids | sqlStringIn }})
 
 ## Writing a scanner-first JS command file
 
+After saving a file, inspect its exact registered CLI path and any scanner diagnostics.
+
+```sh
+go-minitrace query catalog --query-repository ./commands report.js
+```
+
 A structured JS command is a `.js` or `.cjs` file that exposes command metadata through static scanner markers and executes only when the command is invoked.
 
 A minimal example looks like this:

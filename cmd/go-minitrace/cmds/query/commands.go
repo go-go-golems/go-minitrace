@@ -20,7 +20,10 @@ func NewCommandsCommand(flagPaths []string) (*cobra.Command, error) {
 	if err != nil {
 		return nil, err
 	}
+	return newCommandsCommand(flagPaths, catalog)
+}
 
+func newCommandsCommand(flagPaths []string, catalog *minitracecmd.Catalog) (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:   "commands",
 		Short: "Run repository-backed MinitraceCommand queries",

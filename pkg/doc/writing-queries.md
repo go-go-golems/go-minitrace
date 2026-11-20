@@ -16,7 +16,8 @@ This tutorial teaches you how to write SQL queries against converted minitrace a
 All examples use the `query run` command with `--sql`:
 
 ```bash
-go-minitrace help minitrace-schema
+go-minitrace query schema
+go-minitrace query schema tool_calls
 go-minitrace query run \
   --archive-glob './output/active/*/*.minitrace.json' \
   --sql 'SELECT COUNT(*) AS sessions FROM sessions'

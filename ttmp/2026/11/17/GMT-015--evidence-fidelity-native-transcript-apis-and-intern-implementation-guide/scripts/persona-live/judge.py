@@ -30,7 +30,7 @@ def tool_evidence(work):
                 tool_counts[tool] += 1
                 calls[event.get("toolCallId")] = (event.get("args") or {}).get("kind")
                 continue
-            if event.get("type") != "tool_execution_end" or event.get("toolName") != "minitrace":
+            if event.get("type") != "tool_execution_end" or event.get("toolName") not in ("minitrace", "save_artifact"):
                 continue
             blocks = (event.get("result") or {}).get("content", [])
             try:
@@ -40,6 +40,15 @@ def tool_evidence(work):
                     phase["Pi tool validation failure"] += 1
                 continue
             if not isinstance(result, dict):
+                continue
+            if event.get("toolName") == "save_artifact":
+                if result.get("paths"):
+                    phase["save returned registered command paths"] += 1
+                if result.get("diagnostics"):
+                    phase["save returned catalog diagnostics"] += 1
+                continue
+            if "exit" not in result and ("tables" in result or "columns" in result):
+                phase["successful schema lookup"] += 1
                 continue
             if result.get("previewTruncated", result.get("deliveryTruncated")):
                 phase["delivery preview shortened"] += 1
@@ -69,18 +78,19 @@ def tool_evidence(work):
     return {"tool_calls": dict(tool_counts), "signals": dict(signals), "by_phase": by_phase}
 
 
-def evidence_prompt(analyst, tools, checks):
+def evidence_prompt(analyst, tools, checks, scenario="file-change-ledger"):
     # Full archive rows, command strings, and free-form analyst outputs stay local.
     payload = {
         "analyst": analyst,
+        "scenario": scenario,
         "observed_tool_evidence": tools,
         "host_checks": [{key: check[key] for key in (
             "turn", "scope", "passed", "expected_rows", "observed_rows", "missing_count", "unexpected_count", "check_type", "cited_targets",
         ) if key in check} for check in checks],
     }
     return """Judge the go-minitrace developer experience in this transcript-analysis task. Use only the supplied
-evidence and return under 230 words. The analyst wrote a reusable JS ledger of recorded file targets, answered a
-stakeholder follow-up, and reran it on Codex-only archives. The host independently checked exact ledger rows.
+evidence and return under 230 words. The analyst investigated the scenario, submitted a reusable JS command, answered a
+stakeholder follow-up, and reran it on Codex-only archives. The host independently checked exact returned rows.
 
 Distinguish CLI/API defects, documentation or discoverability problems, analyst script mistakes, and harness
 limitations. Prioritize at most three specific improvements and identify what needs a rerun. Repeated attempts
@@ -91,7 +101,8 @@ Product contracts: go-minitrace scans static __verb__(functionName, {name: cliNa
 top-level function. A matching JS filename and sole verb collapse to one CLI word. A grouped leaf takes two
 or more words. For the historical runs the wrapper accepted a single word and supplied --archive-glob.
 The CLI has since gained missing-command diagnostics and the wrapper accepts grouped paths and catalog help.
-Normalized SQLite denies sqlite_master; supported alternatives include the schema help and JS db.schema().
+Normalized SQLite denies sqlite_master. Supported alternatives include schema help and JS db.schema().
+Current batches have structured schema lookups and return registered paths when saving JS artifacts.
 The harness has preview and subprocess output caps. Historical trials staged normalized archives only.
 Use no tools. Do not infer rows or claims that are absent from the supplied evidence.
 

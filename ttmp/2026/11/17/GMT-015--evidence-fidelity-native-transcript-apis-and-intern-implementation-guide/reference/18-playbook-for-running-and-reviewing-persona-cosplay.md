@@ -127,7 +127,7 @@ The same role split works with a browser UI or another CLI. Give the analyst the
 
 Start with a job the stakeholder can explain in one paragraph. Pick an opening that leaves the analyst free to choose its method. Give the stakeholder room to challenge one claim. Include a fixed scope shift and one executable artifact. Define the artifact's objective checks before writing the persona prompt.
 
-The runner currently loads the file-change scenario from [scenario.json](../scripts/persona-live/scenario.json) and verifies a specific ledger contract with [oracle.sql](../scripts/persona-live/oracle.sql). Adding a different scenario requires a compatible prompt and a task-specific verifier. The [open-ended briefs](16-open-ended-persona-briefs-for-real-transcript-analysis.md) provide starting points for recovery, efficiency and handoff.
+The default file-change scenario lives in [scenario.json](../scripts/persona-live/scenario.json) and [oracle.sql](../scripts/persona-live/oracle.sql). Use `--scenario recovery` or `--scenario efficiency` with a historical corpus to run two additional cases. Each pairs a prompt and output field list with independent SQL. The [open-ended briefs](16-open-ended-persona-briefs-for-real-transcript-analysis.md) include a handoff scenario you can add using the same pattern.
 
 Give the next reviewer the revision, archived-input hashes, scenario and oracle hashes, analyst and judge settings, run status, comparison receipt and the best traces for each proposed fix. Raw private archives and receipts can stay with the authorized operator. The [latest compact results](../sources/live-persona-discovery-follow-up.json) show the intended handoff size.
 

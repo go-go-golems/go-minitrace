@@ -1,0 +1,9 @@
+{
+  "id": "recovery",
+  "stakeholder": "You are a reliability reviewer. Challenge one claim that a later successful call proves an earlier failure was resolved. Ask for references or a counterexample.",
+  "opening": "Investigate how agents responded to failed tool calls. Choose contrasting examples across frameworks and explain when a later success is meaningful and when the evidence is ambiguous.",
+  "shift": "Rerun the same command on just the Codex archives. Explain how the narrower evidence changes one claim.",
+  "scope": "codex",
+  "fields": ["session_id", "tool_call_id", "source_ordinal", "next_success_ordinal"],
+  "contract": "Save a self-contained ledger.js with a single root verb ledger and use runtimeArchives. Emit session_id, tool_call_id, source_ordinal, and next_success_ordinal for each normalized tool call where success = 0 OR exit_code != 0. The last field is the smallest later source_ordinal in the same session with an equal tool_name, success = 1, and exit_code zero or null, or null if none. This is an observable comparison, not a causal retry. Use JS or SQL as you prefer. Ground claims in specific calls and preserve unknown outcomes in your interpretation."
+}

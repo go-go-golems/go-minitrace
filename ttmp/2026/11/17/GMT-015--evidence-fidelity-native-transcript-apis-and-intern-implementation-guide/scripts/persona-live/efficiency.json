@@ -1,0 +1,9 @@
+{
+  "id": "efficiency",
+  "stakeholder": "You are a maintainer reviewing agent cost. Challenge one comparison where recorded usage coverage, cache, or workload differences could change the interpretation.",
+  "opening": "Find an unusually expensive session by a defensible measure, choose a comparison, and explain what the records support about likely contributors. Include one alternative explanation.",
+  "shift": "Rerun the command on just the Codex archives. Tell me how the comparison changes and where coverage limits what you can claim.",
+  "scope": "codex",
+  "fields": ["session_id", "input_tokens", "output_tokens", "input_turns", "output_turns", "turns"],
+  "contract": "Save a self-contained ledger.js with a single root verb ledger and use runtimeArchives. Emit one row per session, with session_id and recorded normalized turns totals: SUM(input_tokens) as input_tokens, SUM(output_tokens) as output_tokens, COUNT(input_tokens) as input_turns, COUNT(output_tokens) as output_turns, and the actual number of turns as turns. Preserve null totals when no value was recorded and keep sessions with no turns. Use JS or SQL as you prefer and cite actual evidence when interpreting the totals. Distinguish recorded usage from estimates and avoid treating any association as causal."
+}
