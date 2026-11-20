@@ -2246,3 +2246,29 @@ Timeouts occur at the model-turn boundary. Report their location and keep unfini
 ### Future work and code review instructions
 
 Use `scripts/persona-live/matrix.py` to reproduce the matrix. Inspect the terminal events, exact-row checks and judge availability in the final results, then review representative failures at their first affected tool call.
+
+## Step 44: Recover interrupted runs without replacing their evidence
+
+The server restart disconnected the matrix launcher's stdout. Eleven conversations had ended with judge verdicts. Five timelines ended in `[Errno 32] Broken pipe` following a write to progress output. The latest successful replays in those partial traces remained on disk.
+
+### Prompt Context
+
+The recovery notification was system-generated. The user’s matrix and diary instructions are recorded in Step 43. The launcher checkpoint was `37f87d7`.
+
+### What I did and why
+
+- Inspected every terminal timeline event before restarting any cell. Kept all five partial conversations, with 5 completed exact replays among them. Ran fresh conversations for both high-effort coverage and recovery analysts, and for high-effort DeepSeek efficiency.
+- Used detached tmux sessions with stdout redirected to per-batch files. Original batches and the five fresh attempts appear separately in the loopback viewer.
+- Updated the timeline writer to tolerate a disappearing stdout reader after writing its durable event. Added explicit retry inputs to the summary. Each retry must have a corresponding failed original, whose receipt stays visible separately.
+
+### What worked and what didn't work
+
+The original commands produced durable events up to the restart. Their console progress output blocked further progress when its reader disappeared. Eleven completed cells needed no rerun. Fresh attempts use the original binary, archive hashes, effort level, model and timeout.
+
+### What I learned and what was tricky
+
+Five retries are five additional attempts, not five additional task/model combinations. The final matrix denominator is sixteen. Preserve the earlier five passed checks separately from the 48 planned checks.
+
+### Review instructions and follow-up
+
+Compare the prior failure receipts with the recovered cells in the final JSON. The corpus and CLI binary hashes must match in all attempts. The judge sees each fresh conversation independently.

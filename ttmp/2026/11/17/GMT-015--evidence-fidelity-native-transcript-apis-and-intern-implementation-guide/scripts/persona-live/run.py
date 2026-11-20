@@ -49,7 +49,11 @@ class Timeline:
         # Each writer owns its log. The viewer reads complete newline-delimited records.
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(dump(event) + "\n")
-        print(f"[{self.run}] {role} · {kind}", flush=True)
+        try:
+            print(f"[{self.run}] {role} · {kind}", flush=True)
+        except BrokenPipeError:
+            # A detached console reader may disappear. The durable timeline is already written.
+            pass
 
 
 def input_glob(batch, scope):
