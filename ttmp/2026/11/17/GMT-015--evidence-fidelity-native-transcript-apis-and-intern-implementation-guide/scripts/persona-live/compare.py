@@ -9,14 +9,25 @@ from judge import records, tool_evidence
 
 def milestones(work):
     calls = {}
+    ledger_saves = set()
+    registrations = []
     ordinal = 0
     first_js = first_ledger = None
     for phase in sorted(work.glob("analyst-*.pi.jsonl")):
         for event in records(phase):
             if event["type"] == "tool_execution_start":
                 ordinal += 1
+                if event.get("toolName") == "save_artifact" and (event.get("args") or {}).get("name") == "ledger.js":
+                    ledger_saves.add(event["toolCallId"])
                 if event.get("toolName") == "minitrace":
                     calls[event["toolCallId"]] = (ordinal, event.get("args") or {})
+            elif event["type"] == "tool_execution_end" and event.get("toolCallId") in ledger_saves:
+                try:
+                    receipt = json.loads(event["result"]["content"][0]["text"])
+                except (ValueError, IndexError, KeyError, TypeError):
+                    receipt = {}
+                registered = isinstance(receipt, dict) and ["ledger"] in receipt.get("paths", [])
+                registrations.append(registered)
             elif event["type"] == "tool_execution_end" and event.get("toolName") == "minitrace":
                 call = calls.get(event["toolCallId"])
                 if not call or call[1].get("kind") != "js":
@@ -30,7 +41,8 @@ def milestones(work):
                 first_js = call[0] if first_js is None else min(first_js, call[0])
                 if call[1].get("path") == ["ledger"] or call[1].get("text") == "ledger":
                     first_ledger = call[0] if first_ledger is None else min(first_ledger, call[0])
-    return {"first_successful_js_call_ordinal": first_js, "first_successful_ledger_call_ordinal": first_ledger}
+    return {"first_ledger_save_registered": registrations[0] if registrations else None,
+            "ledger_save_receipts": len(registrations), "first_successful_js_call_ordinal": first_js, "first_successful_ledger_call_ordinal": first_ledger}
 
 
 def batch_summary(batch):

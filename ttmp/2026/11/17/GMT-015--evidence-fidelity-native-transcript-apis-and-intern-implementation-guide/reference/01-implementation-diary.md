@@ -2177,3 +2177,39 @@ Read reference 19 and `sources/recovery-efficiency-persona-results.json`, then i
 ### Technical details
 
 The original run logs and rechecks were saved separately. Successful schema lookups and saves are counted from matched tool result records, not agent claims.
+
+## Step 42: Make the registration correction executable and widen the live matrix
+
+The previous run showed analysts retrying inline handler syntax. The analyst prompt itself showed unquoted placeholders. I updated the shipped help and scanner correction to show an entire runnable two-line file and aligned the persona prompt with its real registration syntax.
+
+### Prompt Context
+
+**User prompt (verbatim)** “ok, can you think of a slightly more expansive testing? and do the update.”
+
+**Assistant interpretation and inferred user intent** Implement the authoring correction and test it with independent live analysts on a familiar task and a new one.
+
+### What I did and why
+
+- Added a runnable command to both CLI help topics and the repository skill reference. Kept scanner error details and appended a concrete correction.
+- Retained the efficiency task for comparison. Added a missing-outcome coverage task with a Pi-only scope change. Two different analysts do both tasks against the same pinned nine archives.
+- Extended the comparison report to distinguish registration on the first ledger save from eventual command invocation and correct rows.
+
+### What worked
+
+The documented file returned the root ledger path from the catalog and emitted one row with ok=true. Catalog and CLI Go tests passed, including malformed inline and unresolved function regressions. The Python and Node harness checks passed. Both loopback viewers served their pages.
+
+### What didn't work
+
+The sandboxed Go test command initially failed with `open …/Library/Caches/go-build/…: operation not permitted`. The same tests passed with cache access. Loopback verification also required sandbox approval.
+
+### What I learned and what was tricky
+
+The API reference previously opened with a handler body. Someone copying it still needed separate instructions to expose the function. The scanner and a real invocation now exercise the example at both boundaries.
+
+### What warrants a second pair of eyes
+
+The help, diagnostics and persona prompt changed together. A repeated run measures their combined behavior and stochastic model variation. It cannot isolate the effect of any single sentence.
+
+### Future work and code review instructions
+
+Inspect `ParseJSCommandSpecs`, the opening JS reference example, and `coverage.json` alongside its independent SQL. The live comparison results follow in Step 43.

@@ -22,7 +22,7 @@ FIELDS = ("session_id", "tool_call_id", "target_ordinal", "path", "evidence_stat
 SCENARIOS = {
     "file-change-ledger": (SCENARIO | {"fields": FIELDS}, HERE / "scenario.json", HERE / "oracle.sql"),
     **{name: (json.loads((HERE / f"{name}.json").read_text()), HERE / f"{name}.json", HERE / f"{name}.sql")
-       for name in ("recovery", "efficiency")},
+       for name in ("recovery", "efficiency", "coverage")},
 }
 MODELS = ("glm-5.3-flash", "deepseek-4.1-flash")
 EXTENSION = Path.home() / ".pi/agent/npm/node_modules/@lunaroute/pi-extension/src/index.ts"
@@ -308,7 +308,7 @@ def run(args, binary, model):
                         'Use kind "schema" to list normalized tables, or text with a table name for columns. '
                         'A saved JS artifact returns its catalog paths and diagnostics. Submit the runnable ledger early. '
                         'Use help with text "js-api-reference" for the API or path [] to list saved commands. '
-                        'Register a top-level function with __verb__(functionName, {name: cliName}). '
+                        'Register a top-level function with __verb__("ledger", {name: "ledger", short: "Run the ledger"}). '
                         'Run the ledger with kind "js" and path ["ledger"]. If a file creates a command group, '
                         'use help with path [group] and pass path [group, verb] to run its leaf. '
                         f"Deliverable: {scenario['contract']}")
@@ -377,7 +377,7 @@ def main():
     args.batch = args.batch.resolve()
     args.extension = args.extension.resolve()
     if args.scenario != "file-change-ledger" and not args.corpus:
-        parser.error("Recovery and efficiency require an archive corpus")
+        parser.error("This scenario requires an archive corpus")
     if args.offline and args.corpus:
         parser.error("--offline is for the scripted fixture only")
     if not args.offline and not args.extension.is_file():

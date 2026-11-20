@@ -10,6 +10,9 @@ import (
 	"github.com/go-go-golems/go-go-goja/pkg/jsverbs"
 )
 
+const registrationExample = `function ledger() { return [{ok: true}]; }
+__verb__("ledger", {name: "ledger", short: "Run the ledger"});`
+
 type ParsedCommandSpec struct {
 	Spec *MinitraceCommandSpec
 	Path string
@@ -21,7 +24,7 @@ func ParseJSCommandSpecs(path string, contents []byte) ([]ParsedCommandSpec, err
 		Source: contents,
 	}})
 	if err != nil {
-		return nil, fmt.Errorf("scan js command %s: %w\n  declare a top-level function, then register it with __verb__(\"functionName\", { name: \"cli-verb\" }); see go-minitrace help structured-query-commands", path, err)
+		return nil, fmt.Errorf("scan js command %s: %w\nExample command (ledger.js):\n%s\nSee go-minitrace help structured-query-commands", path, err, registrationExample)
 	}
 
 	verbs := registry.Verbs()

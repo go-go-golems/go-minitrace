@@ -2,9 +2,26 @@ package minitracecmd
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"testing/fstest"
 )
+
+func TestJSRegistrationDiagnosticExample(t *testing.T) {
+	for _, source := range []string{
+		`__verb__("ledger", () => [{ok: true}]);`,
+		`__verb__("ledger", {name: "ledger"});`,
+	} {
+		_, err := ParseJSCommandSpecs("ledger.js", []byte(source))
+		if err == nil || !strings.Contains(err.Error(), registrationExample) {
+			t.Fatalf("expected a runnable correction for %s, got %v", source, err)
+		}
+	}
+	parsed, err := ParseJSCommandSpecs("ledger.js", []byte(registrationExample))
+	if err != nil || len(parsed) != 1 || parsed[0].Path != "ledger" {
+		t.Fatalf("diagnostic example registered %v, error %v", parsed, err)
+	}
+}
 
 func TestParseJSCommandSpecs(t *testing.T) {
 	parsed, err := ParseJSCommandSpecs("overview/tools.js", []byte(`

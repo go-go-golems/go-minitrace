@@ -27,6 +27,18 @@ Structured query commands add a metadata layer on top of raw SQL and JavaScript-
 
 This matters when a query or analysis script becomes part of your team's repeatable workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
 
+Save this minimal command as `queries/ledger.js`. The scanner reads the quoted function name and the metadata object before the handler runs.
+
+```js
+function ledger() { return [{ok: true}]; }
+__verb__("ledger", {name: "ledger", short: "Run the ledger"});
+```
+
+```sh
+go-minitrace query catalog --query-repository ./queries ledger.js
+go-minitrace query commands --query-repository ./queries ledger --output json
+```
+
 ## What gets loaded
 
 The `query commands` subgroup loads a catalog from two places:

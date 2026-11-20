@@ -24,6 +24,18 @@ SectionType: GeneralTopic
 
 # JavaScript API reference
 
+Save this minimal command as `queries/ledger.js`. The scanner reads the quoted function name and the metadata object before the handler runs.
+
+```js
+function ledger() { return [{ok: true}]; }
+__verb__("ledger", {name: "ledger", short: "Run the ledger"});
+```
+
+```sh
+go-minitrace query catalog --query-repository ./queries ledger.js
+go-minitrace query commands --query-repository ./queries ledger --output json
+```
+
 Load the local module with `require("minitrace")`. A source builder describes input, a database builder opens it, and a query builder describes the work. Call `db.execute(plan)` to run the query. Close the database in `finally`.
 
 ```js

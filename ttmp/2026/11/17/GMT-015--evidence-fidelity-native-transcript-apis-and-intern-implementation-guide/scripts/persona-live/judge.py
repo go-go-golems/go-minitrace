@@ -90,14 +90,14 @@ def evidence_prompt(analyst, tools, checks, scenario="file-change-ledger"):
     }
     return """Judge the go-minitrace developer experience in this transcript-analysis task. Use only the supplied
 evidence and return under 230 words. The analyst investigated the scenario, submitted a reusable JS command, answered a
-stakeholder follow-up, and reran it on Codex-only archives. The host independently checked exact returned rows.
+stakeholder follow-up, and reran it on a narrower archive selection. The host independently checked exact returned rows.
 
 Distinguish CLI/API defects, documentation or discoverability problems, analyst script mistakes, and harness
 limitations. Prioritize at most three specific improvements and identify what needs a rerun. Repeated attempts
 in one run do not establish prevalence. Signal counts may overlap for one tool result. Successful execution
 does not imply complete evidence. A later isolated check does not change the original live check.
 
-Product contracts: go-minitrace scans static __verb__(functionName, {name: cliName}) metadata and binds a
+Product contracts: go-minitrace scans static __verb__("ledger", {name: "ledger", short: "Run the ledger"}) metadata and binds a
 top-level function. A matching JS filename and sole verb collapse to one CLI word. A grouped leaf takes two
 or more words. For the historical runs the wrapper accepted a single word and supplied --archive-glob.
 The CLI has since gained missing-command diagnostics and the wrapper accepts grouped paths and catalog help.

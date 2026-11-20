@@ -2,6 +2,18 @@
 
 For a one-off investigation, prefer saved SQL and `go-minitrace query run`. Use a JavaScript command for reusable typed flags, several queries, ordinary JS analysis, or scoped domain vocabulary. Check the installed binary with `go-minitrace help js-api-reference` and `go-minitrace help structured-query-commands`.
 
+Save this minimal command as `queries/ledger.js`. The scanner reads the quoted function name and the metadata object before the handler runs.
+
+```js
+function ledger() { return [{ok: true}]; }
+__verb__("ledger", {name: "ledger", short: "Run the ledger"});
+```
+
+```sh
+go-minitrace query catalog --query-repository ./queries ledger.js
+go-minitrace query commands --query-repository ./queries ledger --output json
+```
+
 ```js
 __section__("filters", {
   fields: {

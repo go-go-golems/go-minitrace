@@ -76,3 +76,9 @@ python3 "$lab/serve.py" /private/tmp/gmt015-persona-chronology --port 8795
 The historical projection preserves sequence and tool call IDs. Its thinking markers have no wall-clock timestamps. The viewer listens on loopback and serves only the timeline, so private raw receipts stay on disk. A batch directory contains model stdout, prompts, Pi session history, scripts, expected rows and candidate rows. Keep these artifacts local. End the viewer with `tmux kill-session -t minitrace-persona-viewer`.
 
 If the host shows missing or unexpected rows, inspect the row-key samples and replay the script with the same archive selection. Identical counts can still conceal wrong rows. A failed model request or tool transport is recorded separately from a ledger disagreement.
+
+## Test command authoring across workloads
+
+Repeat `--scenario efficiency` against the same nine-archive manifest and add `--scenario coverage` in a separate batch. Run both analysts in each. Coverage asks the analyst to prioritize missing outcome evidence and defend the choice, then narrow to Pi. Its SQL checks four counts per session and tool, including zero counts. The judge sees tool-use signals and exact replay receipts. Review the analyst's final answer separately for overclaims about missing outcomes.
+
+Run `compare.py BASELINE CANDIDATE` for efficiency. Inspect `first_ledger_save_registered` (whether the first completed save returned the root ledger path), first successful ledger call ordinal, and exact replay at every turn. A first-save success alone says nothing about what the command calculates.
