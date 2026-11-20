@@ -2213,3 +2213,36 @@ The help, diagnostics and persona prompt changed together. A repeated run measur
 ### Future work and code review instructions
 
 Inspect `ParseJSCommandSpecs`, the opening JS reference example, and `coverage.json` alongside its independent SQL. The live comparison results follow in Step 43.
+
+## Step 43: Expand the live experiment to sixteen conversations
+
+The initial pair of tasks varied the analysis job but held analyst effort fixed. I launched the two original models at both supported effort levels on four jobs. The stakeholder and judge settings stay fixed so the requested analyst effort is the deliberate per-model difference within each task.
+
+### Prompt Context
+
+**User prompts (verbatim)** “how many tasks / personas?” and “i think we could do 2 models different levels of thinking and then 4-8 tasks?” and “btw commit at appropriate intervals and keep a detailed diary as you work
+    (using the diary format from the skill).”
+
+**Assistant interpretation and inferred user intent** Use a moderately sized crossed experiment, run it, and record successes and failures in a colleague-reproducible form. The implementation checkpoint was `1a22d0a`.
+
+### What I did and why
+
+- Ran both models on file attribution, recovery, cost and coverage at low and high thinking. Reused the two already launched low-effort batches. One conversation per cell gives breadth while preserving matched comparisons.
+- Used `matrix.py --omit efficiency-low coverage-low --jobs 3 --timeout 360` with the binary and nine archives used for the initial batches. The two initial low-effort batches used 240 seconds per turn. Preserve this difference when interpreting timeouts.
+- Wrote a receipt summarizer which rejects missing or duplicate cells and differing binary/archive hashes, judges or within-task scenario/oracle hashes.
+
+### What worked and what didn't work
+
+All initial preflights found evidence at full and narrowed scope. The first four analysts registered a root ledger on their first save. The prior efficiency pair both needed another save. Other errors remained during exploration, including a nonexistent column and disk I/O denial. A permission-denied tool signal alone does not identify the disk access that failed.
+
+### What I learned and what was tricky
+
+Both analyst models receive the same role for each task. The four stakeholder briefs provide the job-specific roles. Distinguish that from sixteen independent persona designs. Historical archive evidence remains the same across all cells.
+
+### What warrants a second pair of eyes
+
+Timeouts occur at the model-turn boundary. Report their location and keep unfinished checks in the denominator. One trial per combination and concurrent execution limit inference about speed or comparative model quality.
+
+### Future work and code review instructions
+
+Use `scripts/persona-live/matrix.py` to reproduce the matrix. Inspect the terminal events, exact-row checks and judge availability in the final results, then review representative failures at their first affected tool call.

@@ -82,3 +82,14 @@ If the host shows missing or unexpected rows, inspect the row-key samples and re
 Repeat `--scenario efficiency` against the same nine-archive manifest and add `--scenario coverage` in a separate batch. Run both analysts in each. Coverage asks the analyst to prioritize missing outcome evidence and defend the choice, then narrow to Pi. Its SQL checks four counts per session and tool, including zero counts. The judge sees tool-use signals and exact replay receipts. Review the analyst's final answer separately for overclaims about missing outcomes.
 
 Run `compare.py BASELINE CANDIDATE` for efficiency. Inspect `first_ledger_save_registered` (whether the first completed save returned the root ledger path), first successful ledger call ordinal, and exact replay at every turn. A first-save success alone says nothing about what the command calculates.
+
+### Run the full thinking-level matrix
+
+From the repository root, with the lab, scratch, binary and corpus paths set:
+
+```sh
+python3 "$lab/matrix.py" --root "$scratch/matrix" --binary "$binary" --corpus "$corpus"
+python3 "$lab/matrix_results.py" "$scratch"/matrix/* > "$scratch/matrix-summary.json"
+```
+
+The launcher pairs both Lunaroute analysts at low and high thinking on file-change attribution, recovery, cost and coverage. The stakeholder stays at low thinking. The judge stays at medium. Each batch contains two conversations. The default runs two batches concurrently. Use a fresh root for each full repetition. If some cells already exist from the same revision and inputs, pass their task-effort names to `--omit` and give their batch directories to the summarizer alongside the new ones. The summary checks input hashes, per-task prompt-definition and oracle hashes, judge configuration, terminal state and matrix membership. Separate timeouts from row mismatches when comparing outcomes.
