@@ -1,0 +1,14 @@
+{
+  "id": "composition",
+  "opening": "Extend our session-level query to compare known successes with known failures. Which sessions deserve closer review, and what can we infer about calls whose outcome was unrecorded?",
+  "stakeholder": "You maintain the shared query library. Challenge one interpretation of the ledger using a concrete session and its denominator.",
+  "shift": "Use exactly the same command on Claude Code archives only. Explain whether the conclusion survives that change of scope.",
+  "scope": "claude-code",
+  "fields": [
+    "session_id",
+    "calls",
+    "successful",
+    "failed"
+  ],
+  "contract": "Save a self-contained ledger.js registered as the root verb ledger, using runtimeArchives. Extend the starter below. Keep one row for every session including zero calls. calls counts all tool_calls for that session; successful and failed count success = 1 and success = 0 respectively. Unknowns count only in calls. Implement a named top-level composition helper withSuccess(query, value) returning a filtered fluent query. Use that helper for both branches of the actual executed plan. Keep the starter query fluent from table sources through projection and build. Exploration can use SQL. The host will compare rows and review whether changing the helper changes the result. Starter:\nfunction sessionLedger(mt, db) {\n  const sessions = mt.from(db.table(\"sessions\"));\n  const tools = mt.from(db.table(\"tool_calls\"));\n  return sessions.select(s => ({\n    session_id: s.session_id,\n    calls: tools.where(t => t.session_id.eq(s.session_id)).count()\n  }));\n}"
+}

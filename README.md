@@ -173,7 +173,8 @@ Migration checklist for pre-single-engine users:
 - replace `go-minitrace query duckdb ...` with `go-minitrace query run ...`;
 - remove `--db-path`, `--table-name`, and `--persist-loaded` from SQL command invocations;
 - rewrite `UNNEST(turns/tool_calls)` queries against the `turns` and `tool_calls` tables;
-- in JS commands, build a handle with `mt.db().RuntimeArchives().QueryCommandDefaults().Build()` and call `db.query(sql)`.
+- inspect normalized columns with `go-minitrace query schema tool_calls` and check a saved command’s registered path with `go-minitrace query catalog --query-repository ./queries ledger.js`.
+- in JS commands, build a handle with `mt.db().sources(mt.sources().runtimeArchives().build()).import({autoConvert: true, strict: true}).build()` and call `db.execute(plan)`.
 
 Output formats: `--output table` (default), `--output json`, `--output csv`.
 
@@ -253,7 +254,7 @@ For analysis tasks that go beyond what SQL can express conveniently — multi-qu
 
 JS handlers run in a Goja-powered runtime with access to:
 
-- `require("minitrace")` — normalized SQLite databases through `mt.db()` and `db.query()`
+- `require("minitrace")` — normalized SQLite databases through `mt.db()` and `db.execute(plan)`
 - `require("timer")` — `setTimeout`, `setInterval` for async commands
 - `require("fs")`, `require("exec")`, `require("path")` — file system and shell access
 - `require("console")` — debug output to server logs
@@ -264,7 +265,7 @@ __section__("filters", {
   title: "Filters",
   fields: {
     framework: {
-      type: "stringList",
+      type: "string",
       help: "Filter by agent framework",
     },
     limit: {
@@ -277,11 +278,12 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
 
   try {
     // Run SQL against normalized SQLite tables and post-process in JS.
-    const rows = db.query(`
+    const result = db.execute(mt.sql`
       SELECT
         session_id,
         title,
@@ -289,15 +291,13 @@ function sessionList(filters) {
         tool_call_count AS tools,
         turn_count AS turns
       FROM sessions
-      WHERE 1=1
-      ${filters.framework?.length
-        ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})`
-        : ""}
-      ORDER BY started_at DESC
+      WHERE (${filters.framework || null} IS NULL OR agent_framework = ${filters.framework || null})
+      ORDER BY started_at DESC, session_id
       LIMIT ${filters.limit}
-    `);
+    `.build());
+    if (result.error || !result.complete) throw Error(result.error || "Incomplete result");
 
-    return rows.map(row => ({
+    return result.rows.map(row => ({
       ...row,
       density: row.turns > 0 ? (row.tools / row.turns).toFixed(2) : 0,
       type: row.tools / row.turns > 2 ? "tool-heavy" : "balanced",
@@ -377,19 +377,23 @@ func main() {
 			const template = require("template");
 			const fs = require("fs");
 
-			const session = mt.session()
-				.File("./output/active/example/session.minitrace.json")
-				.InteractiveCache("./.cache/minitrace")
-				.Open();
+			const inputs = mt.sources().files(["./output/active/example/session.minitrace.json"]).build();
+			const db = mt.db().sources(inputs).cache({mode: "auto", dir: "./.cache/minitrace"}).build();
 
 			try {
+				const plan = mt.from(db.table("sessions"))
+					.select(s => ({id: s.session_id})).orderBy(s => s.id.asc()).build();
+				const result = db.execute(plan);
+				if (result.error || !result.complete || !result.rows.length) {
+					throw Error(result.error || "No complete session result");
+				}
 				const markdown = template.renderText("# {{ .Title }}\n\nSession: {{ .SessionID }}\n", {
 					Title: "Embedded minitrace report",
-					SessionID: session.id(),
+					SessionID: result.rows[0].id,
 				}).Text;
 				fs.writeFileSync("./dist/minitrace-report.md", markdown);
 			} finally {
-				session.close();
+				db.close();
 			}
 		`)
 	})
@@ -403,8 +407,8 @@ Important details:
 
 - Go does not dynamically discover modules by JavaScript name. The blank import of `pkg/minitracejs` links the package into the binary and runs its `init()` registration.
 - `require("fs")` comes from go-go-goja's default registry. `require("template")` comes from the optional `goja-text` side-effect import shown above.
-- The default minitrace module has empty runtime settings. In embedded hosts, prefer explicit sources such as `.File(...)`, `.Files(...)`, `.Glob(...)`, `.Dir(...)`, or `.Content(...)`.
-- Generated query-command runtimes still use a command-scoped loader so `.RuntimeArchives()` can read `--archive-glob` and related runtime settings.
+- The default minitrace module has empty runtime settings. In embedded hosts, prefer explicit sources such as `files(paths)`, `glob(pattern)`, `directory(path)`, or `content(text)` on `mt.sources()`.
+- Generated query-command runtimes still use a command-scoped loader so `runtimeArchives()` can read `--archive-glob` and related runtime settings.
 - If you call `WithModules(...)` directly, you are choosing an explicit module set and must register every module that JavaScript should be able to require.
 
 ---

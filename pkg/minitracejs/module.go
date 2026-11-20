@@ -3,8 +3,6 @@ package minitracejs
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"strings"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
@@ -26,32 +24,23 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 	}
 	return func(vm *goja.Runtime, moduleObj *goja.Object) {
 		exports := moduleObj.Get("exports").(*goja.Object)
+		relation := newRelationalBinding(vm)
+		_ = exports.Set("from", relation.from)
+		_ = exports.Set("param", relation.parameterBuilders())
+		_ = exports.Set("fragment", relation.newFragment)
+		_ = exports.Set("native", func() *goja.Object { return nativeEvidenceBuilderObject(ctx, vm) })
+		_ = exports.Set("corpusManifest", func(paths []string) map[string]any { return corpusManifest(vm, paths) })
+		_ = exports.Set("utf8ByteLength", func(text string) int { return len(text) })
 		_ = exports.Set("importer", func() *goja.Object {
 			return importBuilderObject(vm, NewImportBuilder())
 		})
 		_ = exports.Set("db", func() *goja.Object {
-			return builderObject(vm, NewDBBuilderWithRuntime(ctx, runtimeSettings))
+			builder := NewDBBuilderWithRuntime(ctx, runtimeSettings)
+			builder.relation = relation
+			return builderObject(vm, builder)
 		})
 		_ = exports.Set("sources", func() *goja.Object {
-			return sourcesBuilderObject(vm, NewSourceSetBuilder())
-		})
-		_ = exports.Set("importPolicy", func() *goja.Object {
-			return importPolicyBuilderObject(vm, NewImportPolicyBuilder())
-		})
-		_ = exports.Set("cache", func() *goja.Object {
-			return cachePolicyBuilderObject(vm, NewCachePolicyBuilder())
-		})
-		_ = exports.Set("limits", func() *goja.Object {
-			return queryLimitsBuilderObject(vm, NewQueryLimitsBuilder())
-		})
-		_ = exports.Set("query", func() *goja.Object {
-			return queryRecipeBuilderObject(vm, NewQueryRecipeBuilder())
-		})
-		_ = exports.Set("view", func() *goja.Object {
-			return viewPlanBuilderObject(vm, NewViewPlanBuilder())
-		})
-		_ = exports.Set("session", func() *goja.Object {
-			return sessionBuilderObject(vm, NewSessionBuilder(ctx, runtimeSettings))
+			return relation.sourcesBuilder(&SourceSetBuilder{})
 		})
 
 		runtimeObj := vm.NewObject()
@@ -62,53 +51,7 @@ func NewLoader(ctx context.Context, conn *sql.Conn, commandName string, runtimeS
 		_ = runtimeObj.Set("commandName", commandName)
 		_ = exports.Set("runtime", runtimeObj)
 
-		sqlObj := vm.NewObject()
-		_ = sqlObj.Set("string", func(value any) (string, error) { return SQLString(value) })
-		_ = sqlObj.Set("stringIn", func(value any) (string, error) { return SQLStringIn(value) })
-		_ = sqlObj.Set("like", func(value any) (string, error) { return SQLLike(value) })
-		_ = exports.Set("sql", sqlObj)
-	}
-}
-
-func SQLString(value any) (string, error) {
-	s, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("sql.string expects string, got %T", value)
-	}
-	return "'" + strings.ReplaceAll(s, "'", "''") + "'", nil
-}
-
-func SQLLike(value any) (string, error) {
-	s, ok := value.(string)
-	if !ok {
-		return "", fmt.Errorf("sql.like expects string, got %T", value)
-	}
-	return "'%" + strings.ReplaceAll(s, "'", "''") + "%'", nil
-}
-
-func SQLStringIn(value any) (string, error) {
-	switch typed := value.(type) {
-	case nil:
-		return "", nil
-	case []string:
-		parts := make([]string, 0, len(typed))
-		for _, item := range typed {
-			parts = append(parts, "'"+strings.ReplaceAll(item, "'", "''")+"'")
-		}
-		return strings.Join(parts, ", "), nil
-	case []any:
-		parts := make([]string, 0, len(typed))
-		for _, item := range typed {
-			s, ok := item.(string)
-			if !ok {
-				return "", fmt.Errorf("sql.stringIn expects string items, got %T", item)
-			}
-			parts = append(parts, "'"+strings.ReplaceAll(s, "'", "''")+"'")
-		}
-		return strings.Join(parts, ", "), nil
-	case string:
-		return "'" + strings.ReplaceAll(typed, "'", "''") + "'", nil
-	default:
-		return "", fmt.Errorf("sql.stringIn expects string or []string, got %T", value)
+		_ = exports.Set("type", relation.typeBuilders())
+		_ = exports.Set("sql", relation.sql)
 	}
 }

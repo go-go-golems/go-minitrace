@@ -7,24 +7,45 @@ import (
 	"math/big"
 	"strings"
 	"time"
+	"unicode/utf8"
 
+	"github.com/go-go-golems/go-minitrace/pkg/queryplan"
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 type QueryOptions struct {
-	MaxRows        int           `json:"maxRows"`
-	MaxColumns     int           `json:"maxColumns"`
+	MaxRows    int `json:"maxRows"`
+	MaxColumns int `json:"maxColumns"`
+	// MaxCellChars is a deprecated byte-limit alias. MaxCellBytes takes precedence when positive.
 	MaxCellChars   int           `json:"maxCellChars"`
+	MaxCellBytes   int           `json:"maxCellBytes,omitempty"`
+	StrictEvidence bool          `json:"strictEvidence,omitempty"`
 	Timeout        time.Duration `json:"timeout"`
 	RequireOrderBy bool          `json:"requireOrderBy"`
 }
 
+// CellDiagnostic describes a lossy text conversion at a zero-based output coordinate.
+// Bytes refer to the source string/blob and the emitted valid UTF-8 string.
+type CellDiagnostic struct {
+	RowIndex      int    `json:"rowIndex"`
+	ColumnIndex   int    `json:"columnIndex"`
+	Column        string `json:"column"`
+	OriginalBytes int    `json:"originalBytes"`
+	EmittedBytes  int    `json:"emittedBytes"`
+	Truncated     bool   `json:"truncated"`
+	InvalidUTF8   bool   `json:"invalidUtf8,omitempty"`
+}
+
 type QueryResult struct {
-	Columns   []string         `json:"columns"`
-	Rows      []map[string]any `json:"rows"`
-	Count     int              `json:"count"`
-	Truncated bool             `json:"truncated,omitempty"`
-	Error     string           `json:"error,omitempty"`
+	Columns []string         `json:"columns"`
+	Rows    []map[string]any `json:"rows"`
+	Count   int              `json:"count"`
+	// Truncated reports row overflow or any lossy cell conversion.
+	Truncated       bool             `json:"truncated,omitempty"`
+	RowsTruncated   bool             `json:"rowsTruncated,omitempty"`
+	Complete        bool             `json:"complete"`
+	CellDiagnostics []CellDiagnostic `json:"cellDiagnostics,omitempty"`
+	Error           string           `json:"error,omitempty"`
 }
 
 type QueryRunner struct {
@@ -48,6 +69,9 @@ func WithDefaultQueryOptions(opts QueryOptions) QueryOptions {
 	}
 	if ret.MaxCellChars <= 0 {
 		ret.MaxCellChars = def.MaxCellChars
+	}
+	if ret.MaxCellBytes <= 0 {
+		ret.MaxCellBytes = ret.MaxCellChars
 	}
 	if ret.Timeout <= 0 {
 		ret.Timeout = def.Timeout
@@ -88,9 +112,31 @@ func (r *QueryRunner) QueryOne(ctx context.Context, sqlText string, args ...any)
 	return rows[0], nil
 }
 
+// queryErrorResult keeps error envelopes consistent with the JS QueryResult contract.
+// Errors never imply a complete empty result set.
+func queryErrorResult(message string) QueryResult {
+	return QueryResult{Columns: []string{}, Rows: []map[string]any{}, Error: message}
+}
+
 func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...any) (QueryResult, error) {
+	return r.queryResult(ctx, sqlText, args, nil, nil, nil)
+}
+
+// QueryPlanResult executes the compiler's statement and verifies SQL source contracts.
+func (r *QueryRunner) QueryPlanResult(ctx context.Context, plan *queryplan.Plan, params map[string]any) (QueryResult, error) {
+	args, err := plan.Bind(params)
+	if err != nil {
+		return queryErrorResult(err.Error()), nil
+	}
+	columns, checks := plan.SQLDeclarations(args)
+	return r.queryResult(ctx, plan.SQL(), args, columns, checks, plan.Columns())
+}
+
+func (r *QueryRunner) queryResult(ctx context.Context, sqlText string, args []any,
+	declared []queryplan.Column, checks []queryplan.DeclaredSource, output []queryplan.Column,
+) (QueryResult, error) {
 	if r == nil || r.db == nil {
-		return QueryResult{Error: "db is not initialized"}, nil
+		return queryErrorResult("db is not initialized"), nil
 	}
 	normalized, err := validateReadOnlySQLiteQuery(sqlText, r.opts)
 	if err != nil {
@@ -99,9 +145,9 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 			preview = preview[:160]
 		}
 		if preview != "" {
-			return QueryResult{Error: err.Error() + ": " + preview}, nil
+			return queryErrorResult(err.Error() + ": " + preview), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -111,42 +157,59 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 
 	conn, err := r.db.Conn(qctx)
 	if err != nil {
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	defer func() { _ = conn.Close() }()
 
 	authState := &queryAuthorizationState{}
 	if err := setSQLiteAuthorizer(conn, newReadOnlyAuthorizer(r.allowedReads, authState)); err != nil {
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	defer func() { _ = setSQLiteAuthorizer(conn, nil) }()
 
+	for _, source := range checks {
+		if err := checkSQLDeclaration(qctx, conn, source, r.opts.MaxColumns); err != nil {
+			if authErr := authState.err(); authErr != nil {
+				return queryErrorResult(authErr.Error()), nil
+			}
+			return queryErrorResult(err.Error()), nil
+		}
+	}
+
 	if err := ensureReadonlyPreparedQuery(conn, normalized); err != nil {
 		if authErr := authState.err(); authErr != nil {
-			return QueryResult{Error: authErr.Error()}, nil
+			return queryErrorResult(authErr.Error()), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 
 	rows, err := conn.QueryContext(qctx, normalized, flattenArgs(args)...)
 	if err != nil {
 		if authErr := authState.err(); authErr != nil {
-			return QueryResult{Error: authErr.Error()}, nil
+			return queryErrorResult(authErr.Error()), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	defer func() { _ = rows.Close() }()
 	cols, err := rows.Columns()
 	if err != nil {
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
 	if len(cols) > r.opts.MaxColumns {
-		return QueryResult{Error: fmt.Sprintf("query returns %d columns; max is %d", len(cols), r.opts.MaxColumns)}, nil
+		return queryErrorResult(fmt.Sprintf("query returns %d columns; max is %d", len(cols), r.opts.MaxColumns)), nil
 	}
-	out := QueryResult{Columns: cols, Rows: make([]map[string]any, 0)}
+	if len(declared) > 0 {
+		if err := checkDeclaredNames(cols, declared); err != nil {
+			return queryErrorResult(err.Error()), nil
+		}
+	}
+
+	out := QueryResult{Columns: cols, Rows: make([]map[string]any, 0), Complete: true}
 	for rows.Next() {
 		if out.Count >= r.opts.MaxRows {
 			out.Truncated = true
+			out.RowsTruncated = true
+			out.Complete = false
 			break
 		}
 		values := make([]any, len(cols))
@@ -155,48 +218,104 @@ func (r *QueryRunner) QueryResult(ctx context.Context, sqlText string, args ...a
 			ptrs[i] = &values[i]
 		}
 		if err := rows.Scan(ptrs...); err != nil {
-			return QueryResult{Error: err.Error()}, nil
+			return queryErrorResult(err.Error()), nil
 		}
-		row := map[string]any{}
-		for i, col := range cols {
-			row[col] = NormalizeCell(values[i], r.opts.MaxCellChars)
+		if len(declared) > 0 {
+			if err := checkDeclaredValues(values, declared); err != nil {
+				return queryErrorResult(err.Error()), nil
+			}
 		}
-		out.Rows = append(out.Rows, row)
-		out.Count++
+		for i, column := range output {
+			if column.Type.Kind == queryplan.Boolean && i < len(cols) && column.Name == cols[i] {
+				if n, ok := values[i].(int64); ok && (n == 0 || n == 1) {
+					values[i] = n == 1
+				}
+			}
+		}
+		r.appendResultRow(&out, values)
 	}
 	if err := rows.Err(); err != nil {
 		if authErr := authState.err(); authErr != nil {
-			return QueryResult{Error: authErr.Error()}, nil
+			return queryErrorResult(authErr.Error()), nil
 		}
-		return QueryResult{Error: err.Error()}, nil
+		return queryErrorResult(err.Error()), nil
 	}
+	r.finishResult(&out, "query")
 	return out, nil
 }
 
-func NormalizeCell(value any, maxChars int) any {
-	switch typed := value.(type) {
-	case nil:
-		return nil
-	case []byte:
-		return truncateString(string(typed), maxChars)
-	case string:
-		return truncateString(typed, maxChars)
-	case time.Time:
-		return typed.UTC().Format(time.RFC3339Nano)
-	case *big.Int:
-		if typed.IsInt64() {
-			return typed.Int64()
+func (r *QueryRunner) appendResultRow(out *QueryResult, values []any) {
+	row := make(map[string]any, len(out.Columns))
+	for i, col := range out.Columns {
+		value, diagnostic := normalizeCellWithDiagnostic(values[i], r.opts.MaxCellBytes)
+		row[col] = value
+		if diagnostic != nil {
+			diagnostic.RowIndex, diagnostic.ColumnIndex, diagnostic.Column = out.Count, i, col
+			out.CellDiagnostics = append(out.CellDiagnostics, *diagnostic)
+			out.Truncated, out.Complete = true, false
 		}
-		f, _ := new(big.Float).SetInt(typed).Float64()
-		return f
-	default:
-		return typed
+	}
+	out.Rows = append(out.Rows, row)
+	out.Count++
+}
+
+func (r *QueryRunner) finishResult(out *QueryResult, stage string) {
+	if r.opts.StrictEvidence && !out.Complete {
+		out.Error = "strict evidence: " + stage + " result is incomplete"
+		out.Rows = make([]map[string]any, 0)
+		out.Count = 0
 	}
 }
 
-func truncateString(s string, maxChars int) string {
-	if maxChars > 0 && len(s) > maxChars {
-		return s[:maxChars]
+// NormalizeCell retains the legacy byte-limit behavior, but never splits UTF-8.
+// Use QueryResult for completeness metadata rather than this display helper.
+func NormalizeCell(value any, maxBytes int) any {
+	normalized, _ := normalizeCellWithDiagnostic(value, maxBytes)
+	return normalized
+}
+
+func normalizeCellWithDiagnostic(value any, maxBytes int) (any, *CellDiagnostic) {
+	var text string
+	switch typed := value.(type) {
+	case nil:
+		return nil, nil
+	case []byte:
+		text = string(typed)
+	case string:
+		text = typed
+	case time.Time:
+		return typed.UTC().Format(time.RFC3339Nano), nil
+	case *big.Int:
+		if typed.IsInt64() {
+			return typed.Int64(), nil
+		}
+		f, _ := new(big.Float).SetInt(typed).Float64()
+		return f, nil
+	default:
+		return typed, nil
+	}
+	originalBytes := len(text)
+	invalid := !utf8.ValidString(text)
+	if invalid {
+		text = strings.ToValidUTF8(text, "\uFFFD")
+	}
+	clipped := maxBytes > 0 && len(text) > maxBytes
+	emitted := truncateString(text, maxBytes)
+	if !invalid && !clipped {
+		return emitted, nil
+	}
+	return emitted, &CellDiagnostic{OriginalBytes: originalBytes, EmittedBytes: len(emitted), Truncated: clipped, InvalidUTF8: invalid}
+}
+
+// truncateString assumes valid UTF-8 and emits the longest whole-rune prefix
+// within the byte budget. A zero/negative limit retains the historical unlimited behavior.
+func truncateString(s string, maxBytes int) string {
+	if maxBytes > 0 && len(s) > maxBytes {
+		end := maxBytes
+		for end > 0 && !utf8.RuneStart(s[end]) {
+			end--
+		}
+		return s[:end]
 	}
 	return s
 }
@@ -450,7 +569,7 @@ func (s *queryAuthorizationState) err() error {
 	}
 	if s.deniedOp == sqlite3.SQLITE_READ {
 		if strings.HasPrefix(s.deniedObject, "sqlite_") {
-			return fmt.Errorf("query references disallowed table/view %q; use db.schema() or db.tables() from JS to introspect the schema", display)
+			return fmt.Errorf("query references disallowed table/view %q; run go-minitrace help minitrace-schema for SQL tables and columns, or use db.schema() or db.tables() from JS", display)
 		}
 		return fmt.Errorf("query references disallowed table/view %q", display)
 	}

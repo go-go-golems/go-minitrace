@@ -1,3 +1,12 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
+const {queryFilters} = require("../lib/query-filters");
+
 const cookbook = require("./lib/cookbook");
 
 __section__("filters", {
@@ -9,7 +18,8 @@ __section__("filters", {
   }
 });
 
-function _db(mt) { return mt.db().RuntimeArchives().QueryCommandDefaults().Build(); }
+function _db(mt) { return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build(); }
 
 function _withDB(mt, fn) {
   const db = _db(mt);
@@ -20,42 +30,38 @@ function _withDB(mt, fn) {
   }
 }
 
-function _toolWhere(mt, filters) {
-  const clauses = ["1=1"];
-  if (filters.framework?.length) clauses.push(`s.agent_framework IN (${mt.sql.stringIn(filters.framework)})`);
-  if (filters.working_directory_like) clauses.push(`COALESCE(s.working_directory, '') LIKE ${mt.sql.like(filters.working_directory_like)}`);
-  return clauses.join("\n    AND ");
-}
-
 function toolboxOverview(filters) {
   const mt = require("minitrace");
-  const whereSql = _toolWhere(mt, filters);
+  const {frameworkKeys, cwd} = queryFilters(filters);
   return _withDB(mt, (db) => {
 
-  const toolRows = db.query(`
+  const toolRows = completeRows(db.execute(mt.sql`
     SELECT t.tool_name, COUNT(*) AS tool_uses, COUNT(DISTINCT t.session_id) AS session_count
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
-    WHERE ${whereSql} AND t.tool_name IS NOT NULL
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd}) AND t.tool_name IS NOT NULL
     GROUP BY 1
     ORDER BY tool_uses DESC, tool_name ASC
     LIMIT ${filters.limit}
-  `);
+  `.build()));
 
-  const operationRows = db.query(`
+  const operationRows = completeRows(db.execute(mt.sql`
     SELECT t.tool_name, t.operation_type, COUNT(*) AS use_count
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
-    WHERE ${whereSql} AND t.tool_name IS NOT NULL
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd}) AND t.tool_name IS NOT NULL
     GROUP BY 1, 2
     ORDER BY tool_name ASC, use_count DESC, operation_type ASC
-  `);
+  `.build()));
 
-  const workspaceRows = db.query(`
+  const workspaceRows = completeRows(db.execute(mt.sql`
     SELECT t.tool_name, COALESCE(s.working_directory, '(none)') AS working_directory, COUNT(*) AS tool_uses
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
-    WHERE ${whereSql} AND t.tool_name IS NOT NULL
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd}) AND t.tool_name IS NOT NULL
     GROUP BY 1, 2
     ORDER BY tool_name ASC, tool_uses DESC, working_directory ASC
-  `);
+  `.build()));
 
   const topOperationByTool = cookbook.firstBy(operationRows, "tool_name");
   const topWorkspaceByTool = cookbook.firstBy(workspaceRows, "tool_name");
@@ -79,14 +85,15 @@ function toolboxOverview(filters) {
 
 function toolPairMatrix(filters) {
   const mt = require("minitrace");
-  const whereSql = _toolWhere(mt, filters);
+  const {frameworkKeys, cwd} = queryFilters(filters);
   return _withDB(mt, (db) => {
-  const sessionToolRows = db.query(`
+  const sessionToolRows = completeRows(db.execute(mt.sql`
     SELECT DISTINCT t.session_id AS id, t.tool_name
     FROM tool_calls t JOIN sessions s ON s.session_id = t.session_id
-    WHERE ${whereSql} AND t.tool_name IS NOT NULL
+    WHERE (${frameworkKeys} IS NULL OR (s.agent_framework IS NOT NULL AND instr(${frameworkKeys}, '|' || hex(s.agent_framework) || '|') > 0))
+    AND (${cwd} IS NULL OR COALESCE(s.working_directory, '') LIKE ${cwd}) AND t.tool_name IS NOT NULL
     ORDER BY id ASC, tool_name ASC
-  `);
+  `.build()));
 
   return cookbook.pairCounts(sessionToolRows)
     .slice(0, filters.limit)

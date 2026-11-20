@@ -1,0 +1,126 @@
+{
+  "before": {
+    "inputs": {
+      "input/go-minitrace": "2bbb8eda8feb943cee1187f0f4f9cd1b22f4a7b1c4bd2ffae408fb236c9d53e9",
+      "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+    },
+    "cases": [
+      {
+        "predicate": "success IS NULL",
+        "seatbelt": true,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "44b3c2d5edfdef1698ff832c286e048c0ff627fb69cad8160a95d70d1eda117f"
+      },
+      {
+        "predicate": "success IS NULL",
+        "seatbelt": false,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "44b3c2d5edfdef1698ff832c286e048c0ff627fb69cad8160a95d70d1eda117f"
+      },
+      {
+        "predicate": "result IS NULL",
+        "seatbelt": true,
+        "exit": 1,
+        "error": "Error: disk I/O error: operation not permitted"
+      },
+      {
+        "predicate": "result IS NULL",
+        "seatbelt": false,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "5b8bd853fa725e4fb81f7238eadd2e80cdd3bff67927cbe642a83341d15c8ad5"
+      },
+      {
+        "predicate": "COALESCE(result,'')=''",
+        "seatbelt": true,
+        "exit": 1,
+        "error": "Error: disk I/O error: operation not permitted"
+      },
+      {
+        "predicate": "COALESCE(result,'')=''",
+        "seatbelt": false,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "5b8bd853fa725e4fb81f7238eadd2e80cdd3bff67927cbe642a83341d15c8ad5"
+      }
+    ]
+  },
+  "after": {
+    "inputs": {
+      "input/go-minitrace": "59e0486f1a69dde4635b8574f8012b78a847ec567083b0939d76df9aa4a482c2",
+      "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+    },
+    "cases": [
+      {
+        "predicate": "success IS NULL",
+        "seatbelt": true,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "44b3c2d5edfdef1698ff832c286e048c0ff627fb69cad8160a95d70d1eda117f"
+      },
+      {
+        "predicate": "success IS NULL",
+        "seatbelt": false,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "44b3c2d5edfdef1698ff832c286e048c0ff627fb69cad8160a95d70d1eda117f"
+      },
+      {
+        "predicate": "result IS NULL",
+        "seatbelt": true,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "5b8bd853fa725e4fb81f7238eadd2e80cdd3bff67927cbe642a83341d15c8ad5"
+      },
+      {
+        "predicate": "result IS NULL",
+        "seatbelt": false,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "5b8bd853fa725e4fb81f7238eadd2e80cdd3bff67927cbe642a83341d15c8ad5"
+      },
+      {
+        "predicate": "COALESCE(result,'')=''",
+        "seatbelt": true,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "5b8bd853fa725e4fb81f7238eadd2e80cdd3bff67927cbe642a83341d15c8ad5"
+      },
+      {
+        "predicate": "COALESCE(result,'')=''",
+        "seatbelt": false,
+        "exit": 0,
+        "count": 27,
+        "complete": true,
+        "rows_sha256": "5b8bd853fa725e4fb81f7238eadd2e80cdd3bff67927cbe642a83341d15c8ad5"
+      }
+    ]
+  }
+}

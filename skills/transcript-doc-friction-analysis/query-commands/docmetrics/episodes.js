@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 // docmetrics episodes — slice sessions into episodes at real user
 // instructions; per-episode tool mix, failures, wall time and idle gaps.
 //
@@ -9,9 +16,9 @@
 
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    .Limits(mt.limits().Rows(200000).CellChars(4000).Build())
-    .Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    .limits({maxRows: 200000, maxCellBytes: 4000}).build();
 }
 
 const isRealInstruction = function(content) {
@@ -26,18 +33,19 @@ const isRealInstruction = function(content) {
 }
 
 function episodes() {
+  const mt = require("minitrace");
   const db = openDb();
   try {
-    const users = db.query(`
+    const users = completeRows(db.execute(mt.sql`
       SELECT session_id, turn_index, timestamp, substr(COALESCE(content,''),1,300) AS content
       FROM turns
       WHERE role = 'user' AND COALESCE(content_type,'') != 'tool_result'
       ORDER BY session_id, turn_index
-    `);
-    const calls = db.query(`
+    `.build()));
+    const calls = completeRows(db.execute(mt.sql`
       SELECT session_id, emitting_turn_index AS turn, timestamp, tool_name, success
       FROM tool_calls ORDER BY session_id, timestamp
-    `);
+    `.build()));
 
     const boundaries = {}; // session -> [{turn, timestamp, content}]
     for (const u of users) {

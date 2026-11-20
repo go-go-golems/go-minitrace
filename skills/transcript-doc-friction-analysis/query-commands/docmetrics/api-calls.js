@@ -1,3 +1,10 @@
+const completeRows = function(result) {
+  if (result.error || !result.complete) {
+    throw new Error(result.error || "Incomplete query result");
+  }
+  return result.rows;
+};
+
 // docmetrics api-calls — deduplicated token accounting + context trajectory.
 //
 // CRITICAL CAVEAT this verb exists to fix: the claude-code adapter stores one
@@ -10,15 +17,16 @@
 
 const openDb = function() {
   const mt = require("minitrace");
-  return mt.db().RuntimeArchives().QueryCommandDefaults()
-    .Limits(mt.limits().Rows(200000).CellChars(4000).Build())
-    .Build();
+  return mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true})
+    .limits({maxRows: 200000, maxCellBytes: 4000}).build();
 }
 
 function apiCalls() {
+  const mt = require("minitrace");
   const db = openDb();
   try {
-    const rows = db.query(`
+    const rows = completeRows(db.execute(mt.sql`
       SELECT session_id, turn_index,
              COALESCE(output_tokens,0) AS out,
              COALESCE(cache_read_tokens,0) AS cr,
@@ -27,7 +35,7 @@ function apiCalls() {
       FROM turns
       WHERE role = 'assistant'
       ORDER BY session_id, turn_index
-    `);
+    `.build()));
 
     const bySession = {};
     for (const r of rows) {

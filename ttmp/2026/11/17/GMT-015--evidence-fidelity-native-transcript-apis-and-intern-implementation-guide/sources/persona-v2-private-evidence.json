@@ -1,0 +1,10 @@
+{
+  "archive": "/Users/manuel.odendahl/.local/share/go-minitrace/experiments/GMT-015/persona-v2-evidence-2026-11-17.tar.gz",
+  "bytes": 98078694,
+  "sha256": "42af92b65ac7367356a39dbd0b33c2048a28848ab8ec52c9915a2ee45add7c32",
+  "bundles": [
+    "/private/tmp/gmt015-persona-v2",
+    "/private/tmp/gmt015-persona-v2-matrix"
+  ],
+  "private": true
+}

@@ -2,6 +2,7 @@ package query
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,7 +12,99 @@ import (
 	"time"
 
 	"github.com/go-go-golems/go-minitrace/pkg/minitrace"
+	"github.com/spf13/cobra"
 )
+
+func TestQueryMetadataReportsRegisteredPathsAndSchema(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	for name, source := range map[string]string{
+		"report.js": `function summarize() { return []; } __verb__("summarize", {name:"summary"});`,
+		"broken.js": `__verb__("unknown", {name:"broken"});`,
+	} {
+		if err := os.WriteFile(filepath.Join(repo, name), []byte(source), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	invoke := func(args ...string) map[string]json.RawMessage {
+		t.Helper()
+		cmd, err := NewCommand([]string{repo})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out bytes.Buffer
+		cmd.SetArgs(args)
+		cmd.SetOut(&out)
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		var result map[string]json.RawMessage
+		if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		return result
+	}
+	if got := string(invoke("catalog", "report.js")["commands"]); !strings.Contains(got, `"path":["report","summary"]`) {
+		t.Fatalf("unexpected catalog paths: %s", got)
+	}
+	if got := string(invoke("catalog", "broken.js")["diagnostics"]); !strings.Contains(got, "references unknown function") {
+		t.Fatalf("missing scanner diagnostic: %s", got)
+	}
+	if got := string(invoke("schema", "tool_calls")["columns"]); !strings.Contains(got, `"name":"source_ordinal"`) {
+		t.Fatalf("missing tool call schema: %s", got)
+	}
+}
+
+func TestNewCommandsCommand_ArchiveFlagOnUnresolvedPath(t *testing.T) {
+	setIsolatedConfigHome(t)
+	repo := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repo, "probe_sandbox.js"), []byte(`
+function probe_sandbox() { return [{ ok: true }]; }
+__verb__("probe_sandbox", { name: "probe-sandbox" });
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(t.TempDir(), "sample.minitrace.json")
+	if err := os.WriteFile(archive, []byte(`{"id":"sample","profile":"organic","turns":[],"tool_calls":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{"unknown root verb", []string{"missing", "--archive-glob", archive}, []string{`unknown query command "missing"`, "available commands:"}},
+		{"group only", []string{"probe_sandbox", "--archive-glob", archive}, []string{"choose a runnable query command", "available commands: probe-sandbox"}},
+		{"unknown nested verb", []string{"probe_sandbox", "typo", "--archive-glob=" + archive}, []string{`unknown query command "typo"`, "available commands: probe-sandbox"}},
+		{"unrelated flag on group", []string{"probe_sandbox", "--bogus"}, []string{"unknown flag: --bogus"}},
+		{"unrelated flag on leaf", []string{"probe_sandbox", "probe-sandbox", "--bogus"}, []string{"unknown flag: --bogus"}},
+		{"complete command", []string{"probe_sandbox", "probe-sandbox", "--archive-glob", archive, "--output", "json"}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			queryCmd, err := NewCommand([]string{repo})
+			if err != nil {
+				t.Fatal(err)
+			}
+			root := &cobra.Command{Use: "go-minitrace", SilenceErrors: true, SilenceUsage: true}
+			root.AddCommand(queryCmd)
+			root.SetArgs(append([]string{"query", "commands"}, tc.args...))
+			if err := root.Execute(); len(tc.want) == 0 {
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if err == nil {
+					t.Fatal("expected a command error")
+				}
+				for _, want := range tc.want {
+					if !strings.Contains(err.Error(), want) {
+						t.Errorf("error %q is missing %q", err, want)
+					}
+				}
+			}
+		})
+	}
+}
 
 func TestNewCommandsCommand_IncludesEmbeddedCommandsAsFolderGroups(t *testing.T) {
 	setIsolatedConfigHome(t)
@@ -152,7 +245,11 @@ SELECT 42 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("WriteFile returned error: %v", err)
 	}
 
-	configDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "go-minitrace")
+	userConfig, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	configDir := filepath.Join(userConfig, "go-minitrace")
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll returned error: %v", err)
 	}
@@ -243,8 +340,8 @@ SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
 	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.js"), []byte(`
 function sessionList() {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`SELECT session_id AS id FROM sessions LIMIT 1`+"`"+`);
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`SELECT session_id AS id FROM sessions LIMIT 1`+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {
@@ -309,8 +406,8 @@ __section__("filters", {
 
 function researchSummary(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`SELECT session_id AS id FROM sessions LIMIT ${filters.limit}`+"`"+`);
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`SELECT session_id AS id FROM sessions LIMIT ${filters.limit}`+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("researchSummary", {
@@ -356,8 +453,8 @@ func TestNewCommandsCommand_SelfNamedSingleVerbJSCommandKeepsExpandedPathWhenSib
 	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
 function researchSummary() {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`SELECT session_id AS id FROM sessions LIMIT 1`+"`"+`);
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`SELECT session_id AS id FROM sessions LIMIT 1`+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("researchSummary", {
@@ -408,8 +505,8 @@ func TestNewCommandsCommand_SelfNamedSingleChildGroupHelpShowsRuntimeFlags(t *te
 	if err := os.WriteFile(filepath.Join(repo, "hardware-research", "research-summary.js"), []byte(`
 function researchSummary() {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`SELECT 1 AS ok FROM sessions LIMIT 1`+"`"+`);
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`SELECT 1 AS ok FROM sessions LIMIT 1`+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("researchSummary", {
@@ -455,8 +552,8 @@ SELECT 1 AS answer FROM {{TABLE_NAME}};`), 0o644); err != nil {
 	if err := os.WriteFile(filepath.Join(repo, "overview", "session-tools.js"), []byte(`
 function sessionList() {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(`+"`"+`SELECT session_id AS id FROM sessions LIMIT 1`+"`"+`);
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql`+"`"+`SELECT session_id AS id FROM sessions LIMIT 1`+"`"+`.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {
@@ -476,31 +573,31 @@ __verb__("sessionList", {
 	}
 }
 
-func TestNewCommandsCommand_XDGConfigOverridesHomeConfig(t *testing.T) {
+func TestNewCommandsCommand_UserConfigOverridesHomeConfig(t *testing.T) {
 	setIsolatedConfigHome(t)
 	homeRepo := t.TempDir()
-	xdgRepo := t.TempDir()
+	userRepo := t.TempDir()
 	homeContent := `/* sqleton
 name: session-list
 short: Home config override session list
 */
 SELECT 1 AS answer FROM {{TABLE_NAME}};`
-	xdgContent := `/* sqleton
+	userContent := `/* sqleton
 name: session-list
-short: XDG config override session list
+short: User config override session list
 */
 SELECT 2 AS answer FROM {{TABLE_NAME}};`
 	if err := os.MkdirAll(filepath.Join(homeRepo, "overview"), 0o755); err != nil {
 		t.Fatalf("MkdirAll(home repo) returned error: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(xdgRepo, "overview"), 0o755); err != nil {
-		t.Fatalf("MkdirAll(xdg repo) returned error: %v", err)
+	if err := os.MkdirAll(filepath.Join(userRepo, "overview"), 0o755); err != nil {
+		t.Fatalf("MkdirAll(user repo) returned error: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(homeRepo, "overview", "session-list.sql"), []byte(homeContent), 0o644); err != nil {
 		t.Fatalf("WriteFile(home repo) returned error: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(xdgRepo, "overview", "session-list.sql"), []byte(xdgContent), 0o644); err != nil {
-		t.Fatalf("WriteFile(xdg repo) returned error: %v", err)
+	if err := os.WriteFile(filepath.Join(userRepo, "overview", "session-list.sql"), []byte(userContent), 0o644); err != nil {
+		t.Fatalf("WriteFile(user repo) returned error: %v", err)
 	}
 
 	homeConfigDir := filepath.Join(os.Getenv("HOME"), ".go-minitrace")
@@ -511,12 +608,16 @@ SELECT 2 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("WriteFile(home config) returned error: %v", err)
 	}
 
-	xdgConfigDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "go-minitrace")
-	if err := os.MkdirAll(xdgConfigDir, 0o755); err != nil {
-		t.Fatalf("MkdirAll(xdg config) returned error: %v", err)
+	userConfig, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(xdgConfigDir, "config.yaml"), []byte("queryRepositories:\n  - "+xdgRepo+"\n"), 0o644); err != nil {
-		t.Fatalf("WriteFile(xdg config) returned error: %v", err)
+	userConfigDir := filepath.Join(userConfig, "go-minitrace")
+	if err := os.MkdirAll(userConfigDir, 0o755); err != nil {
+		t.Fatalf("MkdirAll(user config) returned error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(userConfigDir, "config.yaml"), []byte("queryRepositories:\n  - "+userRepo+"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(user config) returned error: %v", err)
 	}
 
 	cmd, err := NewCommandsCommand(nil)
@@ -529,10 +630,10 @@ SELECT 2 AS answer FROM {{TABLE_NAME}};`
 		t.Fatalf("Find returned error: %v", err)
 	}
 	if found == nil || found.Name() != "session-list" {
-		t.Fatalf("expected XDG-config overridden overview/session-list command, got %#v", found)
+		t.Fatalf("expected user-config overridden overview/session-list command, got %#v", found)
 	}
-	if found.Short != "XDG config override session list" {
-		t.Fatalf("found.Short = %q, want XDG config override short description", found.Short)
+	if found.Short != "User config override session list" {
+		t.Fatalf("found.Short = %q, want User config override short description", found.Short)
 	}
 }
 

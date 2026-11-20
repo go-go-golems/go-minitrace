@@ -29,10 +29,11 @@ func TestDefaultBuilderCanRequireMinitrace(t *testing.T) {
 			const mt = require("minitrace");
 			const fs = require("fs");
 			JSON.stringify({
-				hasSession: typeof mt.session === "function",
+				hasFluentQueries: typeof mt.from === "function" && typeof mt.sql === "function",
 				hasDB: typeof mt.db === "function",
 				hasSources: typeof mt.sources === "function",
 				hasRuntime: typeof mt.runtime === "object",
+				legacyQueryExports: ["query", "view", "session"].filter(key => key in mt),
 				hasFS: typeof fs === "object" && typeof fs.writeFileSync === "function"
 			});
 		`)
@@ -45,7 +46,7 @@ func TestDefaultBuilderCanRequireMinitrace(t *testing.T) {
 		t.Fatalf("run require smoke: %v", err)
 	}
 
-	const want = `{"hasSession":true,"hasDB":true,"hasSources":true,"hasRuntime":true,"hasFS":true}`
+	const want = `{"hasFluentQueries":true,"hasDB":true,"hasSources":true,"hasRuntime":true,"legacyQueryExports":[],"hasFS":true}`
 	if ret != want {
 		t.Fatalf("module availability = %v, want %s", ret, want)
 	}

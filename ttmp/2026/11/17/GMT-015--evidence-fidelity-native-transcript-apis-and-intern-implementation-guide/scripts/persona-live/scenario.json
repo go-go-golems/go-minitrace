@@ -1,0 +1,9 @@
+{
+  "id": "file-change-ledger",
+  "stakeholder": "You are a Playback maintainer preparing a handoff. You can read the ledger and cited records. You care about which file effects the evidence supports and what someone should check next.",
+  "opening": "Which sessions recorded file changes? Give me a reusable ledger of write-like file targets across the supplied sessions, and highlight one example where we can substantiate less than the tool output might suggest.",
+  "shift": "Now rerun the same command just for the Codex archives. Tell me what changed in the findings and what you can still substantiate.",
+  "scope": "codex",
+  "operations": ["NEW", "MODIFY", "DELETE"],
+  "contract": "Save a self-contained ledger.js with a single root verb ledger. Use runtimeArchives so the host can rerun it on different archive selections. Emit one row per recorded file target in the normalized files table whose operation_type is one of the specified values, excluding evidence_kind legacy_scalar for Codex. Return these fields: session_id, tool_call_id, target_ordinal, path, evidence_status. Sort as you see fit. In your reply, ground findings in session/tool/target references. Distinguish recorded attempts, tool-reported success and confirmed effects. Save your investigation scripts too."
+}

@@ -117,8 +117,8 @@ func TestLoadCatalog_PreservesDistinctRootsWhenNamesCollide(t *testing.T) {
 				"queries/overview/session-tools.js": &fstest.MapFile{Data: []byte(`
 function sessionList() {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().Build();
-  return db.query(` + "`" + `SELECT 1 AS answer FROM sessions LIMIT 1` + "`" + `);
+  const db = mt.db().sources(mt.sources().runtimeArchives().build()).build();
+  try { return db.execute(mt.sql` + "`" + `SELECT 1 AS answer FROM sessions LIMIT 1` + "`" + `.build()).rows; } finally { db.close(); }
 }
 
 __verb__("sessionList", {

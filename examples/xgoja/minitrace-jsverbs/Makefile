@@ -1,11 +1,10 @@
 .DEFAULT_GOAL := smoke
 
-WORKSPACE_ROOT := $(abspath ../../../..)
-XGOJA_ROOT := $(WORKSPACE_ROOT)/go-go-goja
 BIN := $(CURDIR)/dist/minitrace-jsverbs
 SAMPLE := $(CURDIR)/data/session-a.minitrace.json
 RAW_SAMPLE := $(CURDIR)/data/session-pi.jsonl
-XGOJA := cd $(XGOJA_ROOT) && GOWORK=off go run ./cmd/xgoja
+XGOJA ?= xgoja
+XGOJA_VERSION ?= v0.10.7
 
 .PHONY: smoke doctor list build run clean
 
@@ -18,7 +17,7 @@ list:
 	$(XGOJA) list-modules -f $(CURDIR)/xgoja.yaml
 
 build:
-	$(XGOJA) build -f $(CURDIR)/xgoja.yaml --output $(BIN) --xgoja-replace $(XGOJA_ROOT) --keep-work
+	$(XGOJA) build -f $(CURDIR)/xgoja.yaml --output $(BIN) --xgoja-version $(XGOJA_VERSION)
 
 run:
 	mkdir -p $(CURDIR)/dist

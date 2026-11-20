@@ -6,11 +6,13 @@ It demonstrates the lightweight path for generated binaries that do not need the
 
 - `verbs inspect summary <file>` reads one `.minitrace.json` archive and prints session metadata.
 - `verbs inspect tools <file>` reads the same archive and prints grouped tool-call counts.
-- `verbs inspect preview <raw-jsonl>` uses `mt.importer().File(...).AutoDetect().Preview()` to inspect a raw export before saving it.
-- `verbs inspect auto-convert <raw-jsonl>` uses `mt.sources()`, `mt.importPolicy()`, `mt.cache()`, `mt.limits()`, and `mt.db().Sources(...).Import(...).Cache(...).Limits(...)` to auto-convert and query a raw export.
-- `verbs inspect save-converted <raw-jsonl>` uses `mt.importer().File(...).AutoDetect().Into(...).Save()` to write a converted archive directory.
+- `verbs inspect preview <raw-jsonl>` uses `mt.importer().file(path).autoDetect().convert().preview()` to inspect a raw export before saving it.
+- `verbs inspect auto-convert <raw-jsonl>` uses `mt.sources().files([path])` and `mt.db().sources(selection).import(importOptions).cache(cacheOptions).limits(queryLimits)` to auto-convert and query a raw export.
+- `verbs inspect save-converted <raw-jsonl>` uses `mt.importer().file(path).autoDetect().into(directory).convert().save()` to write a converted archive directory.
 
 Run:
+
+With `xgoja` on PATH, run the smoke target. It builds with go-go-goja v0.10.7 by default.
 
 ```bash
 make smoke

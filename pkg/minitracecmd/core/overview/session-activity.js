@@ -32,17 +32,17 @@ __section__("filters", {
 
 function sessionActivity(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
   try {
-    const framework = filters.framework?.length
-      ? `AND s.agent_framework IN (${mt.sql.stringIn(filters.framework)})`
-      : "";
-    const cwd = filters.cwd_contains
-      ? `AND s.working_directory LIKE ${mt.sql.like(`%${filters.cwd_contains}%`)}`
-      : "";
-    const since = filters.since
-      ? `AND last_activity_at >= ${mt.sql.string(filters.since)}`
-      : "";
+    const frameworks = filters.framework || [];
+    // Frame UTF-8 hex keys for exact membership with a single bound value.
+    const keys = "|" + frameworks.map(value => encodeURIComponent(value)
+      .replace(/%[0-9A-F]{2}|./g, token => token[0] === "%"
+        ? token.slice(1)
+        : token.charCodeAt(0).toString(16).padStart(2, "0").toUpperCase())).join("|") + "|";
+    const cwd = filters.cwd_contains ? "%" + filters.cwd_contains + "%" : null;
+    const since = filters.since || null;
 
     // Last activity is the max timestamp over turns AND tool_calls, computed
     // by unioning the two timestamp streams and aggregating once per session.
@@ -56,7 +56,7 @@ function sessionActivity(filters) {
     // Joining both tables also built a turns x tool_calls cross product per
     // session: 500 turns and 800 tool calls meant 400,000 rows scanned to
     // compute a single maximum.
-    return db.query(`
+    const result = db.execute(mt.sql`
       WITH stamps AS (
         SELECT session_id, timestamp FROM turns
         UNION ALL
@@ -86,12 +86,14 @@ function sessionActivity(filters) {
       SELECT *
       FROM activity s
       WHERE 1=1
-        ${framework}
-        ${cwd}
-        ${since}
+        AND (${frameworks.length === 0} OR (s.framework IS NOT NULL AND instr(${keys}, '|' || hex(s.framework) || '|') > 0))
+        AND (${cwd} IS NULL OR s.working_directory LIKE ${cwd})
+        AND (${since} IS NULL OR last_activity_at >= ${since})
       ORDER BY last_activity_at DESC
       LIMIT ${filters.limit ?? 100}
-    `);
+    `.build());
+    if (result.error || !result.complete) throw new Error(result.error || "Incomplete query result");
+    return result.rows;
   } finally {
     db.close();
   }

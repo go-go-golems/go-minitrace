@@ -17,7 +17,14 @@ type SourceRoot struct {
 	Readonly bool
 }
 
+type CatalogDiagnostic struct {
+	SourceRoot string `json:"sourceRoot"`
+	SourcePath string `json:"sourcePath"`
+	Error      string `json:"error"`
+}
+
 type Catalog struct {
+	Diagnostics []CatalogDiagnostic
 	Commands    []*MinitraceCommand
 	ByPath      map[string]*MinitraceCommand
 	ByName      map[string]*MinitraceCommand
@@ -25,6 +32,16 @@ type Catalog struct {
 }
 
 func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
+	return loadCatalog(roots, false)
+}
+
+// LoadCatalogWithDiagnostics isolates malformed source files; structural collisions
+// and broken aliases still fail closed. Strict LoadCatalog remains available.
+func LoadCatalogWithDiagnostics(roots []SourceRoot) (*Catalog, error) {
+	return loadCatalog(roots, true)
+}
+
+func loadCatalog(roots []SourceRoot, isolate bool) (*Catalog, error) {
 	compiler := &Compiler{}
 	catalog := &Catalog{
 		Commands:    []*MinitraceCommand{},
@@ -72,7 +89,13 @@ func LoadCatalog(roots []SourceRoot) (*Catalog, error) {
 
 			parsed, err := parseSourceSpecs(path, rel, kind, contents)
 			if err != nil {
-				return err
+				if !isolate {
+					return err
+				}
+				// A broken override must not silently fall through to a lower-priority source.
+				seenSourcePaths[rel] = struct{}{}
+				catalog.Diagnostics = append(catalog.Diagnostics, CatalogDiagnostic{SourceRoot: rootKey, SourcePath: path, Error: err.Error()})
+				return nil
 			}
 			if kind == SourceJSCommand {
 				parsed = expandCollapsedSelfNamedJSPathIfNestedSources(root.FS, path, rel, parsed)

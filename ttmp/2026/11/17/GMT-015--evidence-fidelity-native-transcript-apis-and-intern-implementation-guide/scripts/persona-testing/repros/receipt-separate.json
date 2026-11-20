@@ -1,0 +1,84 @@
+[
+  {
+    "verb": "inline",
+    "mode": "help",
+    "command": [
+      "go",
+      "run",
+      "./cmd/go-minitrace",
+      "query",
+      "commands",
+      "runtime-archives-inline",
+      "inline",
+      "--query-repository",
+      "/private/tmp/gmt015-helper-repro",
+      "--help"
+    ],
+    "exit": 0,
+    "archive_flag_present": true,
+    "excerpt": ""
+  },
+  {
+    "verb": "inline",
+    "mode": "execute",
+    "command": [
+      "go",
+      "run",
+      "./cmd/go-minitrace",
+      "query",
+      "commands",
+      "runtime-archives-inline",
+      "inline",
+      "--query-repository",
+      "/private/tmp/gmt015-helper-repro",
+      "--archive-glob",
+      "/private/tmp/gmt015-persona/corpus/archives/*/active/*/*.minitrace.json",
+      "--output",
+      "json"
+    ],
+    "exit": 0,
+    "archive_flag_present": false,
+    "excerpt": "[\n{\n  \"sessions\": 9\n}\n]\n"
+  },
+  {
+    "verb": "helper",
+    "mode": "help",
+    "command": [
+      "go",
+      "run",
+      "./cmd/go-minitrace",
+      "query",
+      "commands",
+      "runtime-archives-helper",
+      "helper",
+      "--query-repository",
+      "/private/tmp/gmt015-helper-repro",
+      "--help"
+    ],
+    "exit": 0,
+    "archive_flag_present": true,
+    "excerpt": ""
+  },
+  {
+    "verb": "helper",
+    "mode": "execute",
+    "command": [
+      "go",
+      "run",
+      "./cmd/go-minitrace",
+      "query",
+      "commands",
+      "runtime-archives-helper",
+      "helper",
+      "--query-repository",
+      "/private/tmp/gmt015-helper-repro",
+      "--archive-glob",
+      "/private/tmp/gmt015-persona/corpus/archives/*/active/*/*.minitrace.json",
+      "--output",
+      "json"
+    ],
+    "exit": 0,
+    "archive_flag_present": false,
+    "excerpt": "[\n{\n  \"sessions\": 9\n}\n]\n"
+  }
+]

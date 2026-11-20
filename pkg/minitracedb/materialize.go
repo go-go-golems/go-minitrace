@@ -66,8 +66,8 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 			}
 		}
 	}
-	for _, toolCall := range session.ToolCalls {
-		if err := insertToolCall(ctx, tx, session.ID, toolCall); err != nil {
+	for ordinal, toolCall := range session.ToolCalls {
+		if err := insertToolCall(ctx, tx, session.ID, toolCall, ordinal); err != nil {
 			return err
 		}
 		if err := insertToolCallEvent(ctx, tx, session.ID, toolCall); err != nil {
@@ -168,18 +168,18 @@ func insertTurn(ctx context.Context, tx *sql.Tx, sessionID string, turn minitrac
 	return nil
 }
 
-func insertToolCall(ctx context.Context, tx *sql.Tx, sessionID string, toolCall minitrace.ToolCall) error {
+func insertToolCall(ctx context.Context, tx *sql.Tx, sessionID string, toolCall minitrace.ToolCall, ordinal int) error {
 	columns := []string{
 		"session_id", "tool_call_id", "emitting_turn_index", "timestamp", "tool_name", "operation_type", "file_path",
 		"command", "justification", "arguments_json", "success", "outcome_status", "result", "error", "exit_code", "duration_ms", "truncated",
 		"full_bytes", "full_hash", "full_reference", "redacted", "content_origin", "position_in_session", "tools_before_json", "time_since_last_user",
-		"framework_metadata_json", "spawned_agent_type", "spawned_agent_task_scope", "spawned_agent_sub_session_id", "spawned_agent_outcome_summary", "raw_json", "record_kind",
+		"framework_metadata_json", "spawned_agent_type", "spawned_agent_task_scope", "spawned_agent_sub_session_id", "spawned_agent_outcome_summary", "raw_json", "record_kind", "source_ordinal", "output_status",
 	}
 	args := []any{
 		sessionID, toolCall.ID, nullableIntPointer(toolCall.EmittingTurnIndex), nullableString(toolCall.Timestamp), toolCall.ToolName, toolCall.OperationType, nullableString(toolCall.Input.FilePath),
 		nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), jsonNullable(toolCall.Input.Arguments), nullableBoolPointer(toolCall.Output.Success), string(toolCall.Output.OutcomeStatus()), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated),
 		nullableIntPointer(toolCall.Output.FullBytes), nullableString(toolCall.Output.FullHash), nullableString(toolCall.Output.FullReference), nullableBoolPointer(toolCall.Output.Redacted), nullableString(toolCall.Output.ContentOrigin), nullableFloat(toolCall.Context.PositionInSession), jsonNullable(toolCall.Context.ToolsBefore), nullableFloat(toolCall.Context.TimeSinceLastUser),
-		jsonNullable(toolCall.FrameworkMetadata), spawnedAgentString(toolCall.SpawnedAgent, "type"), spawnedAgentString(toolCall.SpawnedAgent, "scope"), spawnedAgentString(toolCall.SpawnedAgent, "sub_session"), spawnedAgentString(toolCall.SpawnedAgent, "outcome"), mustJSON(toolCall), toolCall.EffectiveRecordKind(),
+		jsonNullable(toolCall.FrameworkMetadata), spawnedAgentString(toolCall.SpawnedAgent, "type"), spawnedAgentString(toolCall.SpawnedAgent, "scope"), spawnedAgentString(toolCall.SpawnedAgent, "sub_session"), spawnedAgentString(toolCall.SpawnedAgent, "outcome"), mustJSON(toolCall), toolCall.EffectiveRecordKind(), ordinal, nullableStringValue(string(toolCall.Output.Status)),
 	}
 	if err := insertRow(ctx, tx, "tool_calls", columns, args...); err != nil {
 		return fmt.Errorf("insert tool call %s/%s: %w", sessionID, toolCall.ID, err)

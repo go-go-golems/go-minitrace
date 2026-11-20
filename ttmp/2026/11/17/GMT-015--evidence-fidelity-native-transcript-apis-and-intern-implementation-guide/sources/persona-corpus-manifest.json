@@ -1,0 +1,684 @@
+{
+  "schema": "gmt015-persona-corpus/v1",
+  "selection": "Explicit historical sources nearest small/medium/large size strata; Claude includes one child and two parents; no current experiment logs. Not a representative random sample.",
+  "rows": [
+    {
+      "framework": "claude-code",
+      "source_path": "/Users/manuel.odendahl/.claude/projects/-Users-manuel-odendahl-code-tulip-playback/4db0e19b-4e9e-4b6a-9979-9036c370eb7c/subagents/agent-ae7076749749daca0.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/claude-code/agent-ae7076749749daca0.jsonl",
+      "native_sha256": "44d3639b32f19768354e836d1afe878591b7d7580020afd1c6f07f42a41c11cf",
+      "native_bytes": 174606,
+      "native_records": 35,
+      "native_type_counts": {
+        "fork-context-ref": 1,
+        "assistant": 19,
+        "user": 15
+      },
+      "first_native_timestamp": "2026-11-12T20:11:11.842Z",
+      "last_native_timestamp": "2026-11-12T20:13:37.589Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/claude-code/active/2026-11/agent-ae7076749749daca0.minitrace.json",
+      "archive_sha256": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "session_id": "agent-ae7076749749daca0",
+      "source_format": "claude-code-jsonl-v2",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 145.747,
+        "active_duration_seconds": 145.74699999999999,
+        "started_at": "2026-11-12T20:11:11Z",
+        "ended_at": "2026-11-12T20:13:37Z",
+        "hour_of_day": 20,
+        "day_of_week": 3
+      },
+      "turn_count": 19,
+      "tool_count": 15,
+      "tool_names": {
+        "Agent": 1,
+        "Write": 13,
+        "Bash": 1
+      },
+      "tool_success_counts": {
+        "True": 15
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 0
+    },
+    {
+      "framework": "claude-code",
+      "source_path": "/Users/manuel.odendahl/.claude/projects/-Users-manuel-odendahl-code-tulip-playback/d047a697-35c0-460c-8fda-541799b5b5b0.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/claude-code/d047a697-35c0-460c-8fda-541799b5b5b0.jsonl",
+      "native_sha256": "4ab8202602bb2cf6465c827433ab39ec8976033ffa5fce9ba3ea4d8dd97e2f0d",
+      "native_bytes": 1070484,
+      "native_records": 68,
+      "native_type_counts": {
+        "mode": 5,
+        "permission-mode": 5,
+        "atis-latch": 5,
+        "file-history-snapshot": 2,
+        "user": 6,
+        "attachment": 18,
+        "last-prompt": 5,
+        "api-request-shape": 1,
+        "api-request-blob": 5,
+        "api-request": 7,
+        "ai-title": 3,
+        "queue-operation": 2,
+        "assistant": 2,
+        "cost-state": 2
+      },
+      "first_native_timestamp": "2026-10-21T14:13:14.787Z",
+      "last_native_timestamp": "2026-10-21T14:15:03.932Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/claude-code/active/2026-10/d047a697-35c0-460c-8fda-541799b5b5b0.minitrace.json",
+      "archive_sha256": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "session_id": "d047a697-35c0-460c-8fda-541799b5b5b0",
+      "source_format": "claude-code-jsonl-v2",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 109.145,
+        "active_duration_seconds": 109.14499999999997,
+        "started_at": "2026-10-21T14:13:14Z",
+        "ended_at": "2026-10-21T14:15:03Z",
+        "hour_of_day": 14,
+        "day_of_week": 2
+      },
+      "turn_count": 7,
+      "tool_count": 1,
+      "tool_names": {
+        "Skill": 1
+      },
+      "tool_success_counts": {
+        "True": 1
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 0
+    },
+    {
+      "framework": "claude-code",
+      "source_path": "/Users/manuel.odendahl/.claude/projects/-Users-manuel-odendahl-code-tulip-experiments-2026-09-14--factory-videos/7dce992c-7793-4e1a-950c-4db92cef2502.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/claude-code/7dce992c-7793-4e1a-950c-4db92cef2502.jsonl",
+      "native_sha256": "9216fa6ed19757b97903e2feb7c4748e0844d1d3f17cf39ea2766d75ae494a3f",
+      "native_bytes": 3779472,
+      "native_records": 985,
+      "native_type_counts": {
+        "mode": 63,
+        "permission-mode": 63,
+        "file-history-snapshot": 13,
+        "user": 131,
+        "attachment": 94,
+        "atis-latch": 63,
+        "last-prompt": 63,
+        "api-request-shape": 1,
+        "api-request-blob": 83,
+        "api-request": 107,
+        "ai-title": 61,
+        "tools-used": 6,
+        "assistant": 208,
+        "system": 15,
+        "file-history-delta": 4,
+        "queue-operation": 8,
+        "cost-state": 2
+      },
+      "first_native_timestamp": "2026-10-30T15:35:03.967Z",
+      "last_native_timestamp": "2026-10-30T17:42:06.252Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/claude-code/active/2026-10/7dce992c-7793-4e1a-950c-4db92cef2502.minitrace.json",
+      "archive_sha256": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "session_id": "7dce992c-7793-4e1a-950c-4db92cef2502",
+      "source_format": "claude-code-jsonl-v2",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 7622.285,
+        "active_duration_seconds": 3274.987,
+        "started_at": "2026-10-30T15:35:03Z",
+        "ended_at": "2026-10-30T17:42:06Z",
+        "hour_of_day": 15,
+        "day_of_week": 4
+      },
+      "turn_count": 246,
+      "tool_count": 108,
+      "tool_names": {
+        "Artifact": 9,
+        "Bash": 86,
+        "Read": 2,
+        "Skill": 3,
+        "Write": 4,
+        "Edit": 4
+      },
+      "tool_success_counts": {
+        "True": 105,
+        "False": 3
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 13
+    },
+    {
+      "framework": "codex",
+      "source_path": "/Users/manuel.odendahl/.codex/sessions/2026/10/13/rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/codex/rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl",
+      "native_sha256": "923151d00d903cdfb40e3316a19ee0930042cea456a20f8f3832cea63e86cdbe",
+      "native_bytes": 150747,
+      "native_records": 29,
+      "native_type_counts": {
+        "session_meta": 1,
+        "response_item": 10,
+        "event_msg": 13,
+        "world_state": 1,
+        "turn_context": 2,
+        "token_usage_record": 2
+      },
+      "first_native_timestamp": "2026-10-13T17:24:04.758Z",
+      "last_native_timestamp": "2026-10-13T17:24:33.738Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/codex/active/2026-10/01a1364a-f58a-7ce3-8460-a856dacc8a1a.minitrace.json",
+      "archive_sha256": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "session_id": "01a1364a-f58a-7ce3-8460-a856dacc8a1a",
+      "source_format": "codex-session-jsonl-v1",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 28.98,
+        "active_duration_seconds": 28.980000000000004,
+        "started_at": "2026-10-13T17:24:04Z",
+        "ended_at": "2026-10-13T17:24:33Z",
+        "hour_of_day": 17,
+        "day_of_week": 1
+      },
+      "turn_count": 7,
+      "tool_count": 0,
+      "tool_names": {},
+      "tool_success_counts": {},
+      "file_target_count": 0,
+      "truncated_tool_outputs": 0
+    },
+    {
+      "framework": "codex",
+      "source_path": "/Users/manuel.odendahl/.codex/sessions/2026/10/12/rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/codex/rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl",
+      "native_sha256": "b21bec35a3f232d574a8d3eedc2dde3d250033d43f88e73598b057ad1a190149",
+      "native_bytes": 783921,
+      "native_records": 97,
+      "native_type_counts": {
+        "session_meta": 2,
+        "compacted": 1,
+        "world_state": 2,
+        "turn_context": 9,
+        "response_item": 37,
+        "event_msg": 37,
+        "inter_agent_communication_metadata": 1,
+        "token_usage_record": 8
+      },
+      "first_native_timestamp": "2026-10-12T18:20:10.806Z",
+      "last_native_timestamp": "2026-10-12T18:21:08.813Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/codex/active/2026-10/01a13157-f631-7cd3-8f84-e2666b24af01.minitrace.json",
+      "archive_sha256": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "session_id": "01a13157-f631-7cd3-8f84-e2666b24af01",
+      "source_format": "codex-session-jsonl-v1",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 58.007,
+        "active_duration_seconds": 58.007000000000005,
+        "started_at": "2026-10-12T18:20:10Z",
+        "ended_at": "2026-10-12T18:21:08Z",
+        "hour_of_day": 18,
+        "day_of_week": 0
+      },
+      "turn_count": 18,
+      "tool_count": 13,
+      "tool_names": {
+        "exec": 6,
+        "exec_command": 6,
+        "send_message": 1
+      },
+      "tool_success_counts": {
+        "None": 7,
+        "True": 6
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 10
+    },
+    {
+      "framework": "codex",
+      "source_path": "/Users/manuel.odendahl/.codex/sessions/2026/11/10/rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/codex/rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl",
+      "native_sha256": "4605c3343a8ffda0a6a6e57c7e36f97c14b94adac659bd0b7f1af1e880cbca16",
+      "native_bytes": 3968125,
+      "native_records": 606,
+      "native_type_counts": {
+        "session_meta": 1,
+        "event_msg": 275,
+        "response_item": 243,
+        "world_state": 2,
+        "turn_context": 4,
+        "token_usage_record": 80,
+        "compacted": 1
+      },
+      "first_native_timestamp": "2026-11-10T16:59:34.484Z",
+      "last_native_timestamp": "2026-11-10T17:44:24.332Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/codex/active/2026-11/01a1c666-5f02-7b92-984e-99a27afd7a94.minitrace.json",
+      "archive_sha256": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "session_id": "01a1c666-5f02-7b92-984e-99a27afd7a94",
+      "source_format": "codex-session-jsonl-v1",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 2689.848,
+        "active_duration_seconds": 2689.848000000003,
+        "started_at": "2026-11-10T16:59:34Z",
+        "ended_at": "2026-11-10T17:44:24Z",
+        "hour_of_day": 16,
+        "day_of_week": 1
+      },
+      "turn_count": 30,
+      "tool_count": 165,
+      "tool_names": {
+        "exec": 74,
+        "exec_command": 90,
+        "apply_patch": 1
+      },
+      "tool_success_counts": {
+        "None": 74,
+        "True": 85,
+        "False": 6
+      },
+      "file_target_count": 1,
+      "truncated_tool_outputs": 64
+    },
+    {
+      "framework": "pi",
+      "source_path": "/Users/manuel.odendahl/.pi/agent/sessions/--Users-manuel.odendahl-code-tulip-playback--/2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/pi/2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl",
+      "native_sha256": "facc5c8fb127ba227d96fa3a9b9176665fe0b2a3c5adaea854cbb498628fc615",
+      "native_bytes": 150185,
+      "native_records": 42,
+      "native_type_counts": {
+        "session": 1,
+        "model_change": 2,
+        "thinking_level_change": 6,
+        "custom": 5,
+        "message": 28
+      },
+      "first_native_timestamp": "2026-09-29T17:08:34.793Z",
+      "last_native_timestamp": "2026-09-29T17:41:49.650Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/pi/active/2026-09/01a0ee23-bd68-75c1-a81f-2c43771fc216.minitrace.json",
+      "archive_sha256": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "session_id": "01a0ee23-bd68-75c1-a81f-2c43771fc216",
+      "source_format": "pi-agent-jsonl-v3",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 1994.857,
+        "active_duration_seconds": 375.0799999999999,
+        "started_at": "2026-09-29T17:08:34Z",
+        "ended_at": "2026-09-29T17:41:49Z",
+        "hour_of_day": 17,
+        "day_of_week": 1
+      },
+      "turn_count": 19,
+      "tool_count": 9,
+      "tool_names": {
+        "read": 2,
+        "bash": 7
+      },
+      "tool_success_counts": {
+        "True": 8,
+        "False": 1
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 2
+    },
+    {
+      "framework": "pi",
+      "source_path": "/Users/manuel.odendahl/.pi/agent/sessions/--Users-manuel.odendahl-code-tulip-playback--/2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/pi/2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl",
+      "native_sha256": "019af5f05b45978851eaf74d115d3408dc07221123e4b1ac468747677238f0c9",
+      "native_bytes": 769209,
+      "native_records": 90,
+      "native_type_counts": {
+        "session": 1,
+        "model_change": 1,
+        "thinking_level_change": 3,
+        "custom": 6,
+        "message": 79
+      },
+      "first_native_timestamp": "2026-09-17T17:19:05.437Z",
+      "last_native_timestamp": "2026-09-17T17:43:11.206Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/pi/active/2026-09/01a0b061-0cdd-7557-a80a-96802d3d02c5.minitrace.json",
+      "archive_sha256": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "session_id": "01a0b061-0cdd-7557-a80a-96802d3d02c5",
+      "source_format": "pi-agent-jsonl-v3",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 1445.769,
+        "active_duration_seconds": 738.5559999999997,
+        "started_at": "2026-09-17T17:19:05Z",
+        "ended_at": "2026-09-17T17:43:11Z",
+        "hour_of_day": 17,
+        "day_of_week": 3
+      },
+      "turn_count": 29,
+      "tool_count": 50,
+      "tool_names": {
+        "read": 23,
+        "bash": 25,
+        "write": 1,
+        "edit": 1
+      },
+      "tool_success_counts": {
+        "True": 48,
+        "False": 2
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 16
+    },
+    {
+      "framework": "pi",
+      "source_path": "/Users/manuel.odendahl/.pi/agent/sessions/--Users-manuel.odendahl-code-tulip-tulip--/2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl",
+      "native_path": "/private/tmp/gmt015-persona/corpus/raw/pi/2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl",
+      "native_sha256": "bf72c170961ee635a31e290cbcd8ee37debe35a9c0160cc93afa7b9d7b8525a4",
+      "native_bytes": 3969769,
+      "native_records": 811,
+      "native_type_counts": {
+        "session": 1,
+        "model_change": 2,
+        "thinking_level_change": 2,
+        "custom": 44,
+        "message": 762
+      },
+      "first_native_timestamp": "2026-09-15T15:50:28.655Z",
+      "last_native_timestamp": "2026-09-17T16:11:02.231Z",
+      "archive_path": "/private/tmp/gmt015-persona/corpus/archives/pi/active/2026-09/01a0a5c3-342f-7447-be74-b6c35f542ff7.minitrace.json",
+      "archive_sha256": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4",
+      "session_id": "01a0a5c3-342f-7447-be74-b6c35f542ff7",
+      "source_format": "pi-agent-jsonl-v3",
+      "cwd": null,
+      "timing": {
+        "privacy_level": "full",
+        "duration_seconds": 174033.576,
+        "active_duration_seconds": 6355.604000000001,
+        "started_at": "2026-09-15T15:50:28Z",
+        "ended_at": "2026-09-17T16:11:02Z",
+        "hour_of_day": 15,
+        "day_of_week": 1
+      },
+      "turn_count": 418,
+      "tool_count": 345,
+      "tool_names": {
+        "bash": 324,
+        "read": 9,
+        "write": 9,
+        "edit": 1,
+        "web_search": 2
+      },
+      "tool_success_counts": {
+        "True": 331,
+        "False": 14
+      },
+      "file_target_count": 0,
+      "truncated_tool_outputs": 6
+    }
+  ],
+  "sql_baseline": [
+    {
+      "agent_framework": "claude-code",
+      "max_source_ordinal": 107,
+      "min_source_ordinal": 0,
+      "session_id": "7dce992c-7793-4e1a-950c-4db92cef2502",
+      "tool_count": 108,
+      "turn_count": 246,
+      "unknown_tool_success_count": 0
+    },
+    {
+      "agent_framework": "claude-code",
+      "max_source_ordinal": 14,
+      "min_source_ordinal": 0,
+      "session_id": "agent-ae7076749749daca0",
+      "tool_count": 15,
+      "turn_count": 19,
+      "unknown_tool_success_count": 0
+    },
+    {
+      "agent_framework": "claude-code",
+      "max_source_ordinal": 0,
+      "min_source_ordinal": 0,
+      "session_id": "d047a697-35c0-460c-8fda-541799b5b5b0",
+      "tool_count": 1,
+      "turn_count": 7,
+      "unknown_tool_success_count": 0
+    },
+    {
+      "agent_framework": "codex",
+      "max_source_ordinal": 12,
+      "min_source_ordinal": 0,
+      "session_id": "01a13157-f631-7cd3-8f84-e2666b24af01",
+      "tool_count": 13,
+      "turn_count": 18,
+      "unknown_tool_success_count": 7
+    },
+    {
+      "agent_framework": "codex",
+      "max_source_ordinal": null,
+      "min_source_ordinal": null,
+      "session_id": "01a1364a-f58a-7ce3-8460-a856dacc8a1a",
+      "tool_count": 0,
+      "turn_count": 7,
+      "unknown_tool_success_count": 0
+    },
+    {
+      "agent_framework": "codex",
+      "max_source_ordinal": 164,
+      "min_source_ordinal": 0,
+      "session_id": "01a1c666-5f02-7b92-984e-99a27afd7a94",
+      "tool_count": 165,
+      "turn_count": 30,
+      "unknown_tool_success_count": 74
+    },
+    {
+      "agent_framework": "pi",
+      "max_source_ordinal": 344,
+      "min_source_ordinal": 0,
+      "session_id": "01a0a5c3-342f-7447-be74-b6c35f542ff7",
+      "tool_count": 345,
+      "turn_count": 418,
+      "unknown_tool_success_count": 0
+    },
+    {
+      "agent_framework": "pi",
+      "max_source_ordinal": 49,
+      "min_source_ordinal": 0,
+      "session_id": "01a0b061-0cdd-7557-a80a-96802d3d02c5",
+      "tool_count": 50,
+      "turn_count": 29,
+      "unknown_tool_success_count": 0
+    },
+    {
+      "agent_framework": "pi",
+      "max_source_ordinal": 8,
+      "min_source_ordinal": 0,
+      "session_id": "01a0ee23-bd68-75c1-a81f-2c43771fc216",
+      "tool_count": 9,
+      "turn_count": 19,
+      "unknown_tool_success_count": 0
+    }
+  ],
+  "sql_parity": "PASS",
+  "commands": [
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "discover",
+        "claude-code",
+        "--source-dir",
+        "/private/tmp/gmt015-persona/corpus/raw/claude-code",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/discover-claude-code.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/discover-claude-code.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "convert",
+        "claude-code",
+        "--source-list",
+        "/private/tmp/gmt015-persona/corpus/claude-code-sources.txt",
+        "--output-dir",
+        "/private/tmp/gmt015-persona/corpus/archives/claude-code",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/convert-claude-code.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/convert-claude-code.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "validate",
+        "--path",
+        "/private/tmp/gmt015-persona/corpus/archives/claude-code",
+        "--archive",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/validate-claude-code.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/validate-claude-code.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "discover",
+        "codex",
+        "--source-dir",
+        "/private/tmp/gmt015-persona/corpus/raw/codex",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/discover-codex.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/discover-codex.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "convert",
+        "codex",
+        "--source-list",
+        "/private/tmp/gmt015-persona/corpus/codex-sources.txt",
+        "--output-dir",
+        "/private/tmp/gmt015-persona/corpus/archives/codex",
+        "--output",
+        "json",
+        "--run-record",
+        "/private/tmp/gmt015-persona/corpus/codex-conversion-run.json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/convert-codex.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/convert-codex.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "validate",
+        "--path",
+        "/private/tmp/gmt015-persona/corpus/archives/codex",
+        "--archive",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/validate-codex.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/validate-codex.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "discover",
+        "pi",
+        "--source-dir",
+        "/private/tmp/gmt015-persona/corpus/raw/pi",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/discover-pi.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/discover-pi.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "convert",
+        "pi",
+        "--source-list",
+        "/private/tmp/gmt015-persona/corpus/pi-sources.txt",
+        "--output-dir",
+        "/private/tmp/gmt015-persona/corpus/archives/pi",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/convert-pi.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/convert-pi.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "validate",
+        "--path",
+        "/private/tmp/gmt015-persona/corpus/archives/pi",
+        "--archive",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/validate-pi.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/validate-pi.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "query",
+        "run",
+        "--archive-glob",
+        "/private/tmp/gmt015-persona/corpus/archives/*/active/*/*.minitrace.json",
+        "--sql-file",
+        "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/baseline.sql",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout": "/private/tmp/gmt015-persona/corpus/sql-baseline.stdout",
+      "stderr": "/private/tmp/gmt015-persona/corpus/sql-baseline.stderr"
+    }
+  ],
+  "limits": [
+    "Native and normalized counts are different units; normalization may merge/split source records.",
+    "Tool success null is unknown; estimates and counts do not establish task correctness.",
+    "Sources selected by size/activity metadata, not claims of implementation authorship.",
+    "Raw sources and normalized bodies are private scratch only."
+  ]
+}

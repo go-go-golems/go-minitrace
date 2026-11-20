@@ -1,0 +1,127 @@
+{
+  "deepseek-4.1-flash": {
+    "receipt": {
+      "requested": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      },
+      "exit": 0,
+      "turn_completed": true,
+      "tool_items": [],
+      "usage": {
+        "input_tokens": 27668,
+        "cached_input_tokens": 13696,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 377,
+        "reasoning_output_tokens": 65
+      }
+    },
+    "evidence": {
+      "tool_calls": {
+        "minitrace": 38,
+        "save_artifact": 35
+      },
+      "signals": {
+        "successful help invocation": 5,
+        "delivery preview shortened": 13,
+        "nonzero or interrupted CLI invocation": 7,
+        "SQLite schema introspection denied": 1,
+        "unresolved command reported as --archive-glob": 4,
+        "scanner skipped invalid command declaration": 2,
+        "successful js invocation": 24,
+        "Pi tool validation failure": 2,
+        "raw source outside allowed inputs": 1,
+        "tool subprocess output exceeded cap": 1
+      },
+      "by_phase": {
+        "analyst-1.pi": {
+          "successful help invocation": 5,
+          "delivery preview shortened": 12,
+          "nonzero or interrupted CLI invocation": 6,
+          "SQLite schema introspection denied": 1,
+          "unresolved command reported as --archive-glob": 4,
+          "scanner skipped invalid command declaration": 2,
+          "successful js invocation": 10,
+          "Pi tool validation failure": 2,
+          "raw source outside allowed inputs": 1
+        },
+        "analyst-2.pi": {
+          "successful js invocation": 10,
+          "delivery preview shortened": 1,
+          "nonzero or interrupted CLI invocation": 1,
+          "tool subprocess output exceeded cap": 1
+        },
+        "analyst-3.pi": {
+          "successful js invocation": 4
+        }
+      }
+    },
+    "verdict": "The analyst delivered a reusable JS ledger, answered the stakeholder follow-up, and reran the ledger on Codex-only archives. The host matched all 34 rows on each all-archive turn and the single row on the Codex-only turn, with zero missing or unexpected rows. Those checks validate the ledger rows. The 24 successful JS invocations alone establish neither evidence completeness nor follow-up accuracy.\n\n- **CLI and wrapper.** Reporting `--archive-glob` as the unresolved command was a diagnostic defect. The historical wrapper\u2019s single-word limit prevented grouped paths. Four reports in one phase show repeated friction in that run. Signal counts can overlap.\n- **Script and discoverability.** The scanner skipped two invalid declarations. Static `__verb__` metadata must bind a top-level function. The filename shortcut and grouped-path rules warrant clearer examples. Denial of `sqlite_master` was by design, with schema help and `db.schema()` available.\n- **Harness.** Pi validation failures, shortened previews, the subprocess output cap, and unstaged raw sources limited what the analyst could inspect. A later isolated check leaves the original live result unchanged.\n\n**Priorities**\n\n1. Rerun command discovery through the current wrapper to verify missing-command diagnostics, grouped paths, and catalog help.\n2. Document minimal working examples for both command shapes and supported schema inspection.\n3. Rerun evidence checks affected by output caps with full capture, staging raw sources if the check requires them. The exact-row checks already passed."
+  },
+  "glm-5.3-flash": {
+    "receipt": {
+      "requested": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      },
+      "exit": 0,
+      "turn_completed": true,
+      "tool_items": [],
+      "usage": {
+        "input_tokens": 27418,
+        "cached_input_tokens": 13696,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 368,
+        "reasoning_output_tokens": 57
+      }
+    },
+    "evidence": {
+      "tool_calls": {
+        "minitrace": 47,
+        "save_artifact": 23
+      },
+      "signals": {
+        "successful help invocation": 7,
+        "successful sql invocation": 14,
+        "delivery preview shortened": 12,
+        "nonzero or interrupted CLI invocation": 17,
+        "unresolved command reported as --archive-glob": 15,
+        "Pi tool validation failure": 3,
+        "scanner skipped invalid command declaration": 6,
+        "successful js invocation": 6,
+        "SQLite schema introspection denied": 1,
+        "duplicate command registration": 1
+      },
+      "by_phase": {
+        "analyst-1.pi": {
+          "successful help invocation": 6,
+          "successful sql invocation": 6,
+          "delivery preview shortened": 11,
+          "nonzero or interrupted CLI invocation": 13,
+          "unresolved command reported as --archive-glob": 13,
+          "Pi tool validation failure": 2,
+          "scanner skipped invalid command declaration": 6,
+          "successful js invocation": 1
+        },
+        "analyst-2.pi": {
+          "successful help invocation": 1,
+          "nonzero or interrupted CLI invocation": 4,
+          "SQLite schema introspection denied": 1,
+          "unresolved command reported as --archive-glob": 2,
+          "duplicate command registration": 1,
+          "successful js invocation": 3,
+          "Pi tool validation failure": 1,
+          "delivery preview shortened": 1,
+          "successful sql invocation": 5
+        },
+        "analyst-3.pi": {
+          "successful js invocation": 2,
+          "successful sql invocation": 3
+        }
+      }
+    },
+    "verdict": "The reusable JS ledger produced exact matches on the stakeholder follow-up (34 rows across all staged archives) and the Codex-only rerun (1 row). The original live check failed with no row count. A later isolated replay matched all 34 rows, leaving the original live result unresolved.\n\n- **CLI defect:** Unresolved commands were reported as `--archive-glob`, the flag supplied by the wrapper. Missing-command diagnostics have since been added.\n- **Discoverability:** The workflow required knowing about static `__verb__` metadata, top-level binding, single-word collapse, and grouped paths. SQLite\u2019s `sqlite_master` denial is intentional. Schema help and `db.schema()` are supported.\n- **Analyst mistakes:** Invalid declarations were skipped. Duplicate registration surfaced once, with its cause unverified.\n- **Harness limits:** The historical wrapper accepted one command word, Pi validation failed on three calls, and preview and subprocess caps limited evidence delivery. Successful calls alone cannot establish completeness. Only normalized archives were staged. Signal counts can overlap, and retries within one run do not establish prevalence.\n\n**Priorities**\n\n1. Surface catalog help with runnable examples for collapsed and grouped commands and both supported schema lookups.\n2. Make scanner diagnostics identify the declaration or collision and explain the required correction.\n3. Expose truncation and preserve complete ledger output for host verification.\n\nRerun turn 1\u2019s live end-to-end workflow with the current CLI and wrapper, then compare the complete output against all 34 expected rows."
+  }
+}

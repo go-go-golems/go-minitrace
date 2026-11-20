@@ -56,6 +56,8 @@ func LoadSessionContentAuto(payload []byte, opts LoadOptions) (*LoadedSession, e
 	source := firstNonEmpty(opts.SourceName, opts.SourcePath, "<content>")
 	if session, err := decodeNativeSession(payload); err == nil {
 		return &LoadedSession{Session: session, Format: "minitrace-json", Adapter: "native", Diagnostics: []ConversionDiagnostic{{Source: source, Severity: "info", Format: "minitrace-json", Adapter: "native", Message: "loaded native minitrace session"}}}, nil
+	} else if looksLikeNormalizedSession(payload) {
+		return nil, fmt.Errorf("decode normalized minitrace session %s: %w", source, err)
 	}
 	if !opts.AutoConvert {
 		return nil, fmt.Errorf("%s is not native minitrace JSON and AutoConvert is disabled", source)
@@ -119,6 +121,31 @@ func DetectJSONLFormat(records []map[string]any) string {
 		}
 	}
 	return "unknown-jsonl"
+}
+
+// looksLikeNormalizedSession is only used after decoding has failed. It keeps
+// typed archive errors without rerouting recognized native records into the
+// archive decoder merely because they happen to carry id/turns-like metadata.
+func looksLikeNormalizedSession(payload []byte) bool {
+	var fields map[string]any
+	if err := json.Unmarshal(payload, &fields); err != nil || fields == nil {
+		return false
+	}
+	if DetectJSONLFormat([]map[string]any{fields}) != "unknown-jsonl" {
+		return false
+	}
+	if _, ok := fields["id"]; !ok {
+		return false
+	}
+	if _, ok := fields["turns"]; !ok {
+		return false
+	}
+	for _, key := range []string{"schema_version", "profile", "provenance", "tool_calls", "metrics"} {
+		if _, ok := fields[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func decodeNativeSession(payload []byte) (*minitrace.Session, error) {

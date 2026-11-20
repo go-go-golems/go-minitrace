@@ -40,28 +40,24 @@ __section__("filters", {
 
 function fileActivity(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
   try {
-    const framework = filters.framework?.length
-      ? `AND s.agent_framework IN (${mt.sql.stringIn(filters.framework)})`
-      : "";
-    const cwd = filters.cwd_contains
-      ? `AND s.working_directory LIKE ${mt.sql.like(`%${filters.cwd_contains}%`)}`
-      : "";
-    const path = filters.path_contains
-      ? `AND file_path LIKE ${mt.sql.like(`%${filters.path_contains}%`)}`
-      : "";
-    const since = filters.since
-      ? `AND timestamp >= ${mt.sql.string(filters.since)}`
-      : "";
-    const writes = filters.write_only !== false
-      ? "AND (CASE WHEN s.agent_framework='codex' THEN f.operation_type ELSE tc.operation_type END) IN ('NEW', 'MODIFY', 'DELETE')"
-      : "";
+    const frameworks = filters.framework || [];
+    // Frame UTF-8 hex keys for exact membership with a single bound value.
+    const keys = "|" + frameworks.map(value => encodeURIComponent(value)
+      .replace(/%[0-9A-F]{2}|./g, token => token[0] === "%"
+        ? token.slice(1)
+        : token.charCodeAt(0).toString(16).padStart(2, "0").toUpperCase())).join("|") + "|";
+    const cwd = filters.cwd_contains ? "%" + filters.cwd_contains + "%" : null;
+    const since = filters.since || null;
+    const path = filters.path_contains ? "%" + filters.path_contains + "%" : null;
+    const writesOnly = filters.write_only !== false;
 
     // `operations` counts rows surviving the ranked WHERE, so narrowing with
     // --since or --path-contains narrows the count too: it reports operations
     // within the requested window, not the file's lifetime total.
-    return db.query(`
+    const result = db.execute(mt.sql`
       WITH calls AS (
         SELECT
           tc.session_id,
@@ -78,9 +74,9 @@ function fileActivity(filters) {
         JOIN sessions s USING (session_id)
         LEFT JOIN files f ON s.agent_framework='codex' AND f.session_id=tc.session_id AND f.tool_call_id=tc.tool_call_id AND f.evidence_kind!='legacy_scalar'
         WHERE 1=1
-          ${framework}
-          ${cwd}
-          ${writes}
+          AND (${frameworks.length === 0} OR (s.agent_framework IS NOT NULL AND instr(${keys}, '|' || hex(s.agent_framework) || '|') > 0))
+          AND (${cwd} IS NULL OR s.working_directory LIKE ${cwd})
+          AND (NOT ${writesOnly} OR (CASE WHEN s.agent_framework='codex' THEN f.operation_type ELSE tc.operation_type END) IN ('NEW', 'MODIFY', 'DELETE'))
       )
       , ranked AS (
         SELECT
@@ -98,8 +94,8 @@ function fileActivity(filters) {
         FROM calls
         WHERE file_path IS NOT NULL
           AND file_path <> ''
-          ${path}
-          ${since}
+          AND (${path} IS NULL OR file_path LIKE ${path})
+          AND (${since} IS NULL OR timestamp >= ${since})
       )
       SELECT session_id, file_path, last_activity_at, operations,
              latest_operation, latest_tool, latest_evidence_status
@@ -107,7 +103,9 @@ function fileActivity(filters) {
       WHERE row_number = 1
       ORDER BY last_activity_at DESC
       LIMIT ${filters.limit ?? 100}
-    `);
+    `.build());
+    if (result.error || !result.complete) throw new Error(result.error || "Incomplete query result");
+    return result.rows;
   } finally {
     db.close();
   }

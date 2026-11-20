@@ -1,0 +1,488 @@
+{
+  "scope": "local file hashes and Pi session settings, not backend wire behavior or OS sandbox proof",
+  "input_checks": 324,
+  "input_failures": [],
+  "settings": [
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-glm-5.3-flash-low-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "A-glm-5.3-flash-low-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r2",
+      "requested_model": "deepseek-4.1-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "deepseek-4.1-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "high",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "high"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r1",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r2",
+      "requested_model": "glm-5.3-flash",
+      "requested_thinking": "low",
+      "observed_models": [
+        {
+          "provider": "lunaroute",
+          "model": "glm-5.3-flash"
+        }
+      ],
+      "observed_thinking": [
+        "low"
+      ],
+      "passed": true
+    }
+  ],
+  "passed": true
+}

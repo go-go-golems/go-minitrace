@@ -1,0 +1,16 @@
+{
+  "id": "coverage",
+  "stakeholder": "You audit observability. Challenge an inference about whether a tool actually succeeded when its result is missing.",
+  "opening": "Which tools or sessions would you investigate first for missing outcome evidence? Choose a prioritization rule, defend it, and give one alternative interpretation.",
+  "shift": "Repeat on just Pi archives. Identify one conclusion you would revise or retain, with the relevant denominator.",
+  "scope": "pi",
+  "fields": [
+    "session_id",
+    "tool_name",
+    "calls",
+    "unknown_success",
+    "missing_exit",
+    "marked_truncated"
+  ],
+  "contract": "Submit ledger.js registering the root verb ledger and use runtimeArchives. Return one row per distinct (session_id, tool_name) in tool_calls, retaining null tool names. Report calls (all rows), unknown_success (success IS NULL), missing_exit (exit_code IS NULL), and marked_truncated (truncated = 1). Keep zero counts. Choose your own exploratory JS or SQL. Explain which fields support your judgment."
+}

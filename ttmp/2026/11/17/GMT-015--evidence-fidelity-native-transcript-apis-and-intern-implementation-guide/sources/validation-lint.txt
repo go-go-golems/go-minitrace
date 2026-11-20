@@ -1,0 +1,5 @@
+Building glazed-lint from pinned tool module...
+Installing github.com/go-go-golems/glazed/cmd/tools/glazed-lint@v1.3.5
+golangci-lint run -v
+make: golangci-lint: No such file or directory
+make: *** [lint] Error 1

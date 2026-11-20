@@ -1,0 +1,2 @@
+function good(v) { return [{source: (v && v.source) || null}]; }
+__verb__("good", { name: "good", short: "Good", options: { source: { type: "string", required: true, help: "Source path" } } });

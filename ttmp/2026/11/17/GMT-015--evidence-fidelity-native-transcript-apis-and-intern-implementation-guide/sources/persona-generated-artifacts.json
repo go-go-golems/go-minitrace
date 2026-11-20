@@ -1,0 +1,894 @@
+{
+  "scope": "model-authored source only; no claim every script succeeded; inspect the run receipts and independent grades",
+  "artifacts": [
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/out/counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/out/counts.sql",
+      "bytes": 375,
+      "sha256": "88e17289b0f9ebad6c3ab901119688ce9d194f264dc19f1918834b4f9ae73d79"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/out/failures.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/out/failures.sql",
+      "bytes": 265,
+      "sha256": "4f0be264cf5781e1d62f8a0f1a7b6a89a345485417f63b8ccb93e2d492fe63cd"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/out/range.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/out/range.sql",
+      "bytes": 136,
+      "sha256": "c5aa6b28ba82159b7f5dc69dbe93325e71995280b4bb5e9a5b3c769660c6e830"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/out/query-counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/out/query-counts.sql",
+      "bytes": 913,
+      "sha256": "628b23ef91e68a98db19f1b11b8d618616c97b233b856234aa3f6e956f4f407c"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/out/top-tools.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/out/top-tools.sql",
+      "bytes": 302,
+      "sha256": "615096087bc520e888e8bef9838ac835e995554fc994a676dcc50b4adf3efae4"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/jsq/overview/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/jsq/overview/session-counts.js",
+      "bytes": 754,
+      "sha256": "d537333f7e022203d3efe74e948b8561c456912b98b10a57033a1e6ba812b481"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/per_session_counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r2/per_session_counts.sql",
+      "bytes": 872,
+      "sha256": "bb3c97bf009601ddb0d420212c227f1dfb68692ddc047166e05385a79b8bb069"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/t2.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r2/t2.sql",
+      "bytes": 241,
+      "sha256": "30dce74407c6270c4a259d5316dee7ce51b32f110724b390762deb79a4fd1ce4"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/top_tools.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r2/top_tools.sql",
+      "bytes": 495,
+      "sha256": "e0daf4340d7f9ec04a6ad12f4e9e50268caef632c7f10df24f7e6f98778453ab"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/query-commands/discovery/schema.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r2/query-commands/discovery/schema.js",
+      "bytes": 284,
+      "sha256": "e6d6fb9e56f501221c17c24aeb5932e4568389fa558ded889a0354de24afeeac"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/query-commands/counts/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r2/query-commands/counts/session-counts.js",
+      "bytes": 1668,
+      "sha256": "3d01ef3ae3df725498df9a6abe471fac8eb725e609f622777ab226dc23f67993"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r1/out/counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r1/out/counts.sql",
+      "bytes": 384,
+      "sha256": "f94a164e12e7988523cbe0ca55aff291fa8f4257f71c53103e622fd4512276ed"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r1/out/tools-dates.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r1/out/tools-dates.sql",
+      "bytes": 1130,
+      "sha256": "e422a590e70337ebc970d017e668e531f94f7704265e1f243eeeb1e3895b03a7"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r1/out/failures.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r1/out/failures.sql",
+      "bytes": 391,
+      "sha256": "4102a078d8db3262e99540c5200a528624e980133aac5d419364d342d7cff797"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r1/out/qrepo/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r1/out/qrepo/session-counts.js",
+      "bytes": 951,
+      "sha256": "dfa7d31fc8f4202caed9fa5991e811cf5d6bf2951bfc756a63286e6fa6f07c5d"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r2/commands.sh",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r2/commands.sh",
+      "bytes": 2593,
+      "sha256": "ef695fc224f341ed2c991e6d8799c22bbda629005c0fe8d00f44fb5e50f13bd4"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r2/query-commands/evidence/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r2/query-commands/evidence/session-counts.js",
+      "bytes": 775,
+      "sha256": "79be7f5ecdc0c7be2126ab5d28146b7eae7158534f7d735a516acdb920700805"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r2/sql/date-range.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r2/sql/date-range.sql",
+      "bytes": 230,
+      "sha256": "523a279fee2024c5ac82312585ab530280291f9160dac4145c732d0164f02e4a"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r2/sql/session-counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r2/sql/session-counts.sql",
+      "bytes": 480,
+      "sha256": "04541e00493edd59612b5dd8fbf51e6dae1a8a0aa03109ce77c8915f4ed9a5a5"
+    },
+    {
+      "run": "A-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r2/sql/top-tools.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r2/sql/top-tools.sql",
+      "bytes": 295,
+      "sha256": "514bbec053dbed53e7b98ace849e261657dc795533b015b778b39f45159023f2"
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r1/session-counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r1/session-counts.sql",
+      "bytes": 413,
+      "sha256": "82903a8b7e70dda06422744e9e90ba4054484e75bff3d61a691083a1737ae129"
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r1/qc/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r1/qc/session-counts.js",
+      "bytes": 735,
+      "sha256": "6b0a5bdef272f5c0f4bb0fa98545e5e726744b8b00464bd5c873a4ab9a2f9220"
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r2/work/session_counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r2/work/session_counts.sql",
+      "bytes": 347,
+      "sha256": "a72ab71a22945ad5426628038cb2ea12a30b7732ac84f5505ded529f6d8e0ac7"
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r2/work/top_tools.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r2/work/top_tools.sql",
+      "bytes": 131,
+      "sha256": "626ee8c2e538c7638bd01d4626d4867ce2c88288761fef3177bde07b5df447fb"
+    },
+    {
+      "run": "A-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r2/work/commands/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r2/work/commands/session-counts.js",
+      "bytes": 636,
+      "sha256": "c80f389091b696c7ccbcc2658e1e309bbbf3292c1b25920730230c3ee4523461"
+    },
+    {
+      "run": "A-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-low-r1/queries/per-session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-low-r1/queries/per-session-counts.js",
+      "bytes": 1281,
+      "sha256": "7d95a829fcad15027b7e5ebceaac03e8039186dfeea06ba7395d9a56e9ccc44b"
+    },
+    {
+      "run": "A-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-low-r1/queries/per-session-counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-low-r1/queries/per-session-counts.sql",
+      "bytes": 557,
+      "sha256": "e655a6ebb877310c973259959b576b10f4f943747128c913dae343f158ef1935"
+    },
+    {
+      "run": "A-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-low-r2/session-counts.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-low-r2/session-counts.sql",
+      "bytes": 443,
+      "sha256": "fcc3b8513de05f16bb7f9907754b29bbcb1e2090f66a546d65f3875be1e9c859"
+    },
+    {
+      "run": "A-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-low-r2/qc/session-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-low-r2/qc/session-counts.js",
+      "bytes": 828,
+      "sha256": "f94e133c34f2d7104bb52a03f2e0f013595c45b3d1ab232d3012321f3499349a"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/run.sh",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r1/run.sh",
+      "bytes": 2874,
+      "sha256": "365816b18b96202ab21de8ef7ccfcd3f3f9f99d64bbe39ae951c7faf4d2729f4"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/qrepo/probe/unicode.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r1/qrepo/probe/unicode.js",
+      "bytes": 351,
+      "sha256": "a0722a84efd39d44bca19937cf7e008e144a9f462353043610cfb9048a19a99b"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/qrepo/probe/corpus.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r1/qrepo/probe/corpus.js",
+      "bytes": 2926,
+      "sha256": "26902d61009dc36a5ca8356392421d5864116e022c5849c1109dbfcfe2829137"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/qrepo/probe/fidelity.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r1/qrepo/probe/fidelity.js",
+      "bytes": 8646,
+      "sha256": "d7cfd30a93e5bd18181c5de2087927c738b141e5883b360d56d9d6a875d6f879"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/unicode/unicode.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/unicode/unicode.js",
+      "bytes": 4601,
+      "sha256": "5d0d8629ce05ed3aaa36cf13d53a76655845b044b9d20e38f6270d47889fd4d7"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/manifest/manifest.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/manifest/manifest.js",
+      "bytes": 1842,
+      "sha256": "c98447e4d323b1566da4a125532a39c6bd702475aaeaefbb177d86f34c48b8f7"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/fidelity/fidelity.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/fidelity/fidelity.js",
+      "bytes": 5765,
+      "sha256": "72a1dcdce7500a6255daef8821938fa4675ddca5fbe67d951390576b79d21547"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/tokens/tokens.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/tokens/tokens.js",
+      "bytes": 5895,
+      "sha256": "f993f3bc50da65e32208326955214d588b3e56b2b89ecc7d411f6267e7a24917"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/probe/p3.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/probe/p3.js",
+      "bytes": 430,
+      "sha256": "cfe73682afb3cea9a75957550bc09569f731db62dbc67f5ff680617286c2a93e"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/probe/p2.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/probe/p2.js",
+      "bytes": 502,
+      "sha256": "fb572a94f70ae4e32136cc16c003c6c749eec5f77d488e49340368f827c3e3d0"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/probe/probe.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/js/probe/probe.js",
+      "bytes": 789,
+      "sha256": "842e6a85b45d6f5539881728cb334d57072f611e871e0290920a15c095f029e0"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/run-all.sh",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/run-all.sh",
+      "bytes": 1598,
+      "sha256": "e64c1b325788749435c2905998cbaaa3dcd11886e7302c7dde219fbb65c86349"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe1.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe1.js",
+      "bytes": 794,
+      "sha256": "b2eaf8cbd16184c9f0a908ff0ddd51b62a4b5006eb45e8999665d54d93b2bc77"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/main.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/main.js",
+      "bytes": 12381,
+      "sha256": "06d3a29b5cb8b19f0c613eb7229bd8b19e920a70e990947f3e549bde9ec43f09"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe2.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe2.js",
+      "bytes": 664,
+      "sha256": "10f9af7b8be6d16f80f628999d6b465609313d99acc93f200f88a6f9636031c0"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe3.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe3.js",
+      "bytes": 451,
+      "sha256": "f209efcd7f35f2acca6df6d2b81495f2d96b702b6b60eb6b38fb42c9c52c8115"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/sql/tool_evidence_bound.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/sql/tool_evidence_bound.sql",
+      "bytes": 404,
+      "sha256": "fe57e91640941649ee3da9ec0e14c8083073442b80cad1ce860821736444c119"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/sql/token_provenance.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/sql/token_provenance.sql",
+      "bytes": 906,
+      "sha256": "782d083067f77cb324a9e9a81fba1e39d0ecc6e0cfbe76754d601c282ee4fc3d"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r2/queries/fid/limits.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r2/queries/fid/limits.js",
+      "bytes": 2757,
+      "sha256": "d94ce44cbe8bc32f28d7998f1c6b094d62f20f75ba0d49340b3a0cb46dc489da"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r2/queries/fid/recipes.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r2/queries/fid/recipes.sql",
+      "bytes": 1390,
+      "sha256": "914db2ba441099afb7a823e7434afd114c2d4e7ca5601b4890280926fb70475a"
+    },
+    {
+      "run": "B-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r2/queries/fid/fidelity.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r2/queries/fid/fidelity.js",
+      "bytes": 7771,
+      "sha256": "b3172c6bdfc7e05bf923f8787ef37fd74b40e65689c38b214be8bae35c1dc713"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r1/out/tool-token-summary.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r1/out/tool-token-summary.sql",
+      "bytes": 430,
+      "sha256": "fd7b57543c666d5881bb07c8a8df410418b2c9b8a7c8ca334493a6cb75426874"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r1/qrepo/evidence/fidelity.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r1/qrepo/evidence/fidelity.js",
+      "bytes": 8823,
+      "sha256": "8209251b5709f0c6189583a89cbafc475a3514f57429a0c76bcdd2fc409a9ff6"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-envelope-contrast.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-envelope-contrast.js",
+      "bytes": 2319,
+      "sha256": "62d24406db50ca6600635664ac27ac9c5b5172a947d1f31f531864710e4cba04"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-provenance.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-provenance.js",
+      "bytes": 1944,
+      "sha256": "571bc4e6e82f01c9b6187fc2b08cd0cffd6e4a21419c5f1b14187eb63746cbff"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-provenance-tools.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-provenance-tools.js",
+      "bytes": 1816,
+      "sha256": "9706914fa56ec48892afcd6c920a0fb918101b6fa3ba7c7ee6603bc200289124"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-strict-checks.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-strict-checks.js",
+      "bytes": 879,
+      "sha256": "793afb1d35b12b44c439b56322d3ac6b1d84a8990df419f3d946c4c294a510e9"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-unicode-checks.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-unicode-checks.js",
+      "bytes": 1041,
+      "sha256": "17cc484c19046a58cfd6f5acdaf534b7f71acb932447f2b5da76963f17ff77e8"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-corpus-manifest.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-corpus-manifest.js",
+      "bytes": 829,
+      "sha256": "6ac281b4fd1a0885fc40aac1239f288cf2b891b4398067f3aed52f5fdb7ecf27"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/tool-ordinal-order.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/tool-ordinal-order.sql",
+      "bytes": 368,
+      "sha256": "626e1016878ace32acac3348954da76c441b40371a6f1cd218a6c53c28b0d812"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/lab.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/lab.js",
+      "bytes": 11773,
+      "sha256": "b969f5b4426ae7ad343ab6d8f4eb517d116a8b108afa6adf678557ed7354f7fe"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-row-overflow.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-row-overflow.js",
+      "bytes": 915,
+      "sha256": "4c0a6d05f43557effdfbedcc1d956430fb8dee11ef76e38a67e12cd2e0eac0c1"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-zero-vs-missing.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-zero-vs-missing.js",
+      "bytes": 1022,
+      "sha256": "3ac28289f627a52844345307ec6547dd3a106168f81077087075afc1cc2169a5"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-tool-fidelity.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-tool-fidelity.js",
+      "bytes": 2275,
+      "sha256": "6af345821ab89f405e90e8d1a7aa69654ac273adc0ba2be0bb18934f06ccaf09"
+    },
+    {
+      "run": "B-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-framework-summary.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/qclab/analysis/v-framework-summary.js",
+      "bytes": 1416,
+      "sha256": "d3859a69837c3fd9a9eec70463c69b7431c177dab9539c994bb9d280736c2f1e"
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r1/commands/archive-summary.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r1/commands/archive-summary.js",
+      "bytes": 1587,
+      "sha256": "0e5bdb8ee05ed2038f2fe9185ba518214229aa09cd8ed37c8868d88911d69562"
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r1/commands/fidelity-lab.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r1/commands/fidelity-lab.js",
+      "bytes": 4009,
+      "sha256": "ddaeca35f7aa6e85f2c5d6c1b88af9ce7231c4d045022d6bab69542954036eb4"
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r2/qrepo/fidelity/summary.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r2/qrepo/fidelity/summary.js",
+      "bytes": 1537,
+      "sha256": "03327e7c7faadc37ee06519a4e4c04d4ffa5da5fb7858aa2d49af8304b5962e9"
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r2/qrepo/fidelity/tables.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r2/qrepo/fidelity/tables.js",
+      "bytes": 366,
+      "sha256": "f09035ab129f6f3c5b8a4feb1acef1c52e280d047d725a89ea516b86f4620983"
+    },
+    {
+      "run": "B-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r2/qrepo/fidelity/fidelity.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r2/qrepo/fidelity/fidelity.js",
+      "bytes": 4841,
+      "sha256": "6c45f3c0639819c67e04fbd9c3d6228829cad2e42576db5ea8954623237ff30c"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r1/repos/native-scan/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r1/repos/native-scan/native-scan.js",
+      "bytes": 12079,
+      "sha256": "a4bcc355ec51a3632d437ad40b799226562892f1b2083fa6f1943c382762eebb"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r1/sql/instruction-read-candidates.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r1/sql/instruction-read-candidates.sql",
+      "bytes": 1396,
+      "sha256": "5ac4866ad42ed5f96d2f389869b5b01d9a4f35330dd227dceaddf1fb222bf563"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/run.sh",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/run.sh",
+      "bytes": 2790,
+      "sha256": "db2f48b28fee5fb917498908bc59b97a3ba4e880407292d15bd8285ef8ebcac2"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-inspect.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/qrepo/native/native-inspect.js",
+      "bytes": 2335,
+      "sha256": "816bdf42431b8a6d6a0cf8c4078066e8fe086670d91157c5a8ccff82f0d2c740"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-bounds.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/qrepo/native/native-bounds.js",
+      "bytes": 1850,
+      "sha256": "3c352b1b5308016998b44ada5c70b81045bc032a048e569a64aa44c590488acc"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/qrepo/native/native-scan.js",
+      "bytes": 1533,
+      "sha256": "4205e7112f8e1e642fa7773fce5066eb73902482c0d7c3fb61e1f50e9e6a19e7"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-detail.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/qrepo/native/native-detail.js",
+      "bytes": 2531,
+      "sha256": "7076ce71e1c3ce74354e8d251ce08f2b31e0083a6cb2baad6f345eba1a29e894"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/sql/02a-read-evidence.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/sql/02a-read-evidence.sql",
+      "bytes": 405,
+      "sha256": "28816e8cd15362ecd054a9f4a070561adbca5116ef1e8a596921afb6d5167c36"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/sql/03-coverage.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/sql/03-coverage.sql",
+      "bytes": 230,
+      "sha256": "201fd704b4cf7b418b8f462a8128033851a199ffd083567cd5c6fe8d1ef5ccd7"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/sql/01-instruction-file-read-candidates.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/sql/01-instruction-file-read-candidates.sql",
+      "bytes": 884,
+      "sha256": "01db1bdb26831f0aa6f375a2429ffb92b4e3451e23825f6e24dafc3a3b5264bd"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/sql/02b-mention-search.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/sql/02b-mention-search.sql",
+      "bytes": 424,
+      "sha256": "d7b847ef31afd60f46514567c514c167f76bae4b6603958d396986aa57a2fc60"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r1/out/read-candidate.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r1/out/read-candidate.sql",
+      "bytes": 485,
+      "sha256": "b95a2252c0e76192817f82517f6ccceb5796c7b433d7f77cba65db735e32ee82"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r1/out/candidates.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r1/out/candidates.sql",
+      "bytes": 548,
+      "sha256": "c7cbc0c63653b42d759c09d0a13678617ff116a3b33ca2073e242457f70d0d4d"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r1/jsrepo/evidence/native.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r1/jsrepo/evidence/native.js",
+      "bytes": 4425,
+      "sha256": "ab28d2345d6628f684a4cce56721fec303d956a004defdeeb721adf7ed187a7e"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r2/instruction-read.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r2/instruction-read.sql",
+      "bytes": 1060,
+      "sha256": "44ed0dbe051f5e59bce2d87a92e4a4083ec5c54d64abc0ae536bfdec106fd64d"
+    },
+    {
+      "run": "C-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r2/qr/native/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r2/qr/native/native-scan.js",
+      "bytes": 3058,
+      "sha256": "ce61ee70c642dbc470fd96a5f5008a6c65564006d5e0068406f87d42ef8256ba"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r1/queryrepo/native/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r1/queryrepo/native/native-scan.js",
+      "bytes": 5753,
+      "sha256": "e8c33a524baabfcccdf93b4ef46fba87276e08ddf04a379e896fa0ec411036d1"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r1/sql/instruction-read-candidates.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r1/sql/instruction-read-candidates.sql",
+      "bytes": 891,
+      "sha256": "a451b4b96dca593d6e3506a54cf403e283346f83502476b936888bc3c1b89e3d"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-counts.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r2/qs/native-counts.js",
+      "bytes": 1935,
+      "sha256": "aff6a0ccbf9832d7fc409edcd429e21f1de390be403a66c943cf741955be2302"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-inspect.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r2/qs/native-inspect.js",
+      "bytes": 3802,
+      "sha256": "f2c0a6e00aa3646502a36a078a2b4818065a80807f24288b4b95928a52121d9c"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/instruction-reads.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r2/qs/instruction-reads.sql",
+      "bytes": 1250,
+      "sha256": "3d9814d6182398020ad08330c7e83c65315e44b099ef330ce97d4898f519533e"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-diag.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r2/qs/native-diag.js",
+      "bytes": 1523,
+      "sha256": "e712237b8ccbf008d2091b4bfa4917913edf58d13e5bab29f2ca11fcb485b9e3"
+    },
+    {
+      "run": "C-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r2/qs/native-scan.js",
+      "bytes": 2134,
+      "sha256": "1f551a91059caf82bf9d8ebe975b2d2d63d70a0dfb6fb4bb73f7cfb1fb4e517f"
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r1/out-claude-read.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r1/out-claude-read.sql",
+      "bytes": 430,
+      "sha256": "048af288dd2c8c72a0e34cc250590bf2ee47390a72b9b6df99230f97f7da8d4a"
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r1/out-claude-read-output.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r1/out-claude-read-output.sql",
+      "bytes": 317,
+      "sha256": "1f74d33bdf0696933b80bc7b0233107321eaba989ffa676164be736ffaaaa2c7"
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r1/queries/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r1/queries/native-scan.js",
+      "bytes": 5537,
+      "sha256": "01b2609c913be566457206892249ec78b8fa190a4a26e339c5795b8c25bf95d8"
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r2/native-commands/inspect-d047.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r2/native-commands/inspect-d047.js",
+      "bytes": 705,
+      "sha256": "16029d6d65aed3c80d88c7ed7423fffd2960b4f9cd3212b528705fa79ebe4de3"
+    },
+    {
+      "run": "C-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r2/native-commands/native-scan.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r2/native-commands/native-scan.js",
+      "bytes": 4369,
+      "sha256": "99a6e452ef561f1f14cb6d835172ca8ace9d158a3d5b1b63316d106c57b06f22"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/run.sh",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r1/run.sh",
+      "bytes": 2933,
+      "sha256": "44013c50af6e23f06d0755d3471f0a2552c138d43bab598858d90809b85bbfeb"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/raw.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r1/commands/raw.js",
+      "bytes": 756,
+      "sha256": "751396d89eb697e4e1b484fee0beead6318bb5346687a951712d5b10fe31a133"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r1/commands/bad.js",
+      "bytes": 750,
+      "sha256": "205bb1bb0362ec043326d43fd0fe8e54a42eccb09fe4c2eb363626c6b1b3b0f8"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r1/commands/good.js",
+      "bytes": 2109,
+      "sha256": "690b8e1508ad41627a6121d5e620ccd10e82830ab3d8f38cd95d64bc1c716a9b"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/probe.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r1/commands/probe.js",
+      "bytes": 985,
+      "sha256": "fe00fb6f7594e76d5a4052386d9939b0a03de7ef6730592fce171164e0282a68"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/raw.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r2/commands/raw.js",
+      "bytes": 970,
+      "sha256": "c76ef1302a9c05907c08efc3da026997a0fee491a8b50ff845c436fdef31825a"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r2/commands/bad.js",
+      "bytes": 336,
+      "sha256": "3b23cc59bd2ab0ef65146fdbf7d914263a224aee2bc219163dccde424242bf5c"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r2/commands/good.js",
+      "bytes": 3008,
+      "sha256": "eb33df048dc62ee954bade9cdcdd4a350394810f9f9bbde54a3eb53fb4e4d21d"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/probe.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r2/commands/probe.js",
+      "bytes": 942,
+      "sha256": "bb99aa577bdd66f211bc2c63a13c5850bb39a57587cffe769c6630c60e270813"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/disallowed.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/commands/disallowed.js",
+      "bytes": 840,
+      "sha256": "20b28d1728f78de60a30f562894df15f8ad2e0f8d8006b9a2f22fe920aced4d1"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/contrast.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/commands/contrast.js",
+      "bytes": 979,
+      "sha256": "2a1120f6ac8ef3dd5a1b818dc4646af4ea8cd63f4455034ff60a6dd0367c59d2"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/commands/bad.js",
+      "bytes": 641,
+      "sha256": "af98f519fc261b3bbf0e68b3b9f8bc687ce5e54a7cb6b5f081bcf0913e8c7db6"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/commands/good.js",
+      "bytes": 1825,
+      "sha256": "b69ad41906157bd83c687607be1e7023b80d811a9808417cfe9bd0533233fc56"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/tool-rows.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/commands/tool-rows.js",
+      "bytes": 1251,
+      "sha256": "7e68cff70ebe41e06e6f79b0ee83d0779defa079aa50e3e29a62cff817d82680"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/introspection.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/commands/introspection.js",
+      "bytes": 782,
+      "sha256": "73083388930dd2a10d78d786b6a36ef65eae1d7651ba54665fb2650b37d080e6"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/run_checks.sh",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r2/run_checks.sh",
+      "bytes": 2753,
+      "sha256": "e47eccb462b6ef3df53406700ecc0fab5ef972d5aa8aed5a6d10d125f68c405d"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/commands/contrast.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r2/commands/contrast.js",
+      "bytes": 958,
+      "sha256": "27c20b42a099978bb0d4d42382456549d575294cd99c7220a32f91477ead4a1a"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r2/commands/bad.js",
+      "bytes": 600,
+      "sha256": "60db35e4bdc7a271c19d8d203f20e2e6136cb8dbcfd89fd8578bb6d8feed0249"
+    },
+    {
+      "run": "D-deepseek-4.1-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r2/commands/good.js",
+      "bytes": 2334,
+      "sha256": "ba92b1cfc144a55ca6b093c3e6154209a5e8df3045e115ed54b3032b395343a2"
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r1/commands/rawdemo.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r1/commands/rawdemo.js",
+      "bytes": 837,
+      "sha256": "abcc3d8ff3c74c03e448f6af3ba542b62d27a9d5eaa8bcdfae32463ad38f2b1c"
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r1/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r1/commands/bad.js",
+      "bytes": 1245,
+      "sha256": "4678f684d97333458045d364cfa9ecd9768929a893a90d0105e26f33524ee1c9"
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r1/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r1/commands/good.js",
+      "bytes": 3409,
+      "sha256": "15adeec3260fae8ba2480738ac7a7e403ad068faaab4064c5b599dab4ca21bf5"
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r2/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r2/commands/bad.js",
+      "bytes": 925,
+      "sha256": "0ab2e499f1c5a04c1e15f0386ae79a45cca985d3980bf701ff668124009528ca"
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r2/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r2/commands/good.js",
+      "bytes": 3586,
+      "sha256": "b1d6d91533362e352ad4a5be9a56cf64004f3784f9ab9562f3ebf4432787c462"
+    },
+    {
+      "run": "D-glm-5.3-flash-high-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r2/commands/formats.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r2/commands/formats.js",
+      "bytes": 834,
+      "sha256": "f8daf8958c1d22803b72a10492e9560be209494a07864dcdcf9084d2882ab9d3"
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r1/commands/bad.sql",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r1/commands/bad.sql",
+      "bytes": 243,
+      "sha256": "637ec27e0f85ca565455233852ff399008d4f6c9b70f822163cf82653e5e241a"
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r1/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r1/commands/bad.js",
+      "bytes": 748,
+      "sha256": "9a1009b1fff5a2692d2fcedc5e3ceae85a3b27eaf929e431f8f8d4674ec974a3"
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r1",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r1/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r1/commands/good.js",
+      "bytes": 2640,
+      "sha256": "30f3664ac7233c4f39ed9fedfbef579fe0d5fce260785f94f7893705f1be8e9a"
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r2/commands/bad.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r2/commands/bad.js",
+      "bytes": 843,
+      "sha256": "16affe1b8f6728908cb33d6d644a84531468a382e59390643a1743fedc29c547"
+    },
+    {
+      "run": "D-glm-5.3-flash-low-r2",
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r2/commands/good.js",
+      "source_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r2/commands/good.js",
+      "bytes": 3128,
+      "sha256": "b644e59637970817590b396b1409b27187fb4012aebb6708037861511c2545c9"
+    }
+  ]
+}

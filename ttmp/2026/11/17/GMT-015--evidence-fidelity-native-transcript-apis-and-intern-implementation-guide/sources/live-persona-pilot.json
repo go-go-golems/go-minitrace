@@ -1,0 +1,195 @@
+{
+  "initial_pilot": {
+    "batch": "gmt015-live-historical-pilot",
+    "binary_sha256": "9987668348554a12ed8968867fcdda75de5196dcd81f96cd8cbd622811b1ea0b",
+    "archive_sha256": {
+      "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+    },
+    "oracle_sha256": "64f90509046a5c7d3299d2c5856651ce7afb624a9d9e3b12588e60035d301026",
+    "scenario_sha256": "78cfbbd6b33f4aff6f5c351f3e3237d913c3e731a65dc89b52877b47e47b52e8",
+    "analyst_thinking_requested": "low",
+    "stakeholder_and_judge": "glm-5.3-flash",
+    "runs": {
+      "deepseek-4.1-flash": {
+        "elapsed_seconds": 278.95,
+        "terminal_event": "finish",
+        "terminal_text": "review needed",
+        "tool_calls": 86,
+        "tool_failure_events": 6,
+        "judge_delivered": true,
+        "replays": [
+          {
+            "scope": "all",
+            "passed": false,
+            "expected_rows": 0,
+            "observed_rows": 34,
+            "missing_count": 0,
+            "unexpected_count": 34,
+            "turn": 1,
+            "artifact_sha256": "ce859ac474b0f57f6bed9e0c4bf466a7d1d044676b2ba3141001e869240d4f25"
+          },
+          {
+            "scope": "all",
+            "passed": false,
+            "expected_rows": 0,
+            "observed_rows": 34,
+            "missing_count": 0,
+            "unexpected_count": 34,
+            "turn": 2,
+            "artifact_sha256": "ce859ac474b0f57f6bed9e0c4bf466a7d1d044676b2ba3141001e869240d4f25"
+          },
+          {
+            "scope": "codex",
+            "passed": false,
+            "expected_rows": 0,
+            "observed_rows": 1,
+            "missing_count": 0,
+            "unexpected_count": 1,
+            "turn": 3,
+            "artifact_sha256": "ce859ac474b0f57f6bed9e0c4bf466a7d1d044676b2ba3141001e869240d4f25"
+          }
+        ]
+      },
+      "glm-5.3-flash": {
+        "elapsed_seconds": 181.18,
+        "terminal_event": "failure",
+        "terminal_text": "analyst analyst-1: timeout=True, exit=-9. Warning: No models match pattern \"tulip/deepseek-v4\"",
+        "tool_calls": 48,
+        "tool_failure_events": 2,
+        "judge_delivered": false,
+        "replays": []
+      }
+    }
+  },
+  "initial_pilot_limitation": "Invalid operation taxonomy in the host oracle. Initial replay grades are void.",
+  "corrected_pilot": {
+    "batch": "gmt015-live-historical-v2",
+    "binary_sha256": "9987668348554a12ed8968867fcdda75de5196dcd81f96cd8cbd622811b1ea0b",
+    "archive_sha256": {
+      "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+    },
+    "oracle_sha256": "b3e3a84c5dc65402be769f75289ed247115c313aee4dd4a7f492814d03daf7ff",
+    "scenario_sha256": "49aaec52b2b534a1c3f26b2a6746f1e6c163db62ac2708c1452260ed634bfffc",
+    "analyst_thinking_requested": "low",
+    "stakeholder_and_judge": "glm-5.3-flash",
+    "runs": {
+      "deepseek-4.1-flash": {
+        "elapsed_seconds": 245.3,
+        "terminal_event": "finish",
+        "terminal_text": "complete",
+        "tool_calls": 73,
+        "tool_failure_events": 2,
+        "judge_delivered": true,
+        "replays": [
+          {
+            "scope": "all",
+            "passed": true,
+            "expected_rows": 34,
+            "observed_rows": 34,
+            "missing_count": 0,
+            "unexpected_count": 0,
+            "turn": 1,
+            "artifact_sha256": "94e7af387d1f0c6fbde036b88c800387893b4fb90dc94d8ddfaaee1caa682821"
+          },
+          {
+            "scope": "all",
+            "passed": true,
+            "expected_rows": 34,
+            "observed_rows": 34,
+            "missing_count": 0,
+            "unexpected_count": 0,
+            "turn": 2,
+            "artifact_sha256": "94e7af387d1f0c6fbde036b88c800387893b4fb90dc94d8ddfaaee1caa682821"
+          },
+          {
+            "scope": "codex",
+            "passed": true,
+            "expected_rows": 1,
+            "observed_rows": 1,
+            "missing_count": 0,
+            "unexpected_count": 0,
+            "turn": 3,
+            "artifact_sha256": "94e7af387d1f0c6fbde036b88c800387893b4fb90dc94d8ddfaaee1caa682821"
+          }
+        ]
+      },
+      "glm-5.3-flash": {
+        "elapsed_seconds": 320.97,
+        "terminal_event": "finish",
+        "terminal_text": "review needed",
+        "tool_calls": 70,
+        "tool_failure_events": 4,
+        "judge_delivered": true,
+        "replays": [
+          {
+            "scope": "all",
+            "passed": false,
+            "error": "CLI (exit 1): Error: duplicate js verb path \"probe-sandbox probe-sandbox\" (probe_sandbox.js#probe_sandbox)\n",
+            "observed_rows": null,
+            "turn": 1,
+            "artifact_sha256": "5f9a02722ffe21045958711726d847343643aac67cb6f3bb463f2013f8b3b124"
+          },
+          {
+            "scope": "all",
+            "passed": true,
+            "expected_rows": 34,
+            "observed_rows": 34,
+            "missing_count": 0,
+            "unexpected_count": 0,
+            "turn": 2,
+            "artifact_sha256": "8eccde47fb85bc684db369b5a670008f8281b9ab22f3c2ce683744921dbebb31"
+          },
+          {
+            "scope": "codex",
+            "passed": true,
+            "expected_rows": 1,
+            "observed_rows": 1,
+            "missing_count": 0,
+            "unexpected_count": 0,
+            "turn": 3,
+            "artifact_sha256": "8eccde47fb85bc684db369b5a670008f8281b9ab22f3c2ce683744921dbebb31"
+          }
+        ]
+      }
+    }
+  },
+  "scope_counts": {
+    "all": 34,
+    "codex": 1
+  },
+  "isolated_recheck": {
+    "elapsed_seconds": 1.31,
+    "terminal_event": "finish",
+    "terminal_text": "complete",
+    "tool_calls": 0,
+    "tool_failure_events": 0,
+    "judge_delivered": false,
+    "replays": [
+      {
+        "scope": "all",
+        "passed": true,
+        "expected_rows": 34,
+        "observed_rows": 34,
+        "missing_count": 0,
+        "unexpected_count": 0
+      }
+    ]
+  },
+  "interpretation": "GLM turn 1 passed the isolated check of its saved ledger. Its original live judge saw the command directory failure. Results are single runs and do not establish a model ranking."
+}

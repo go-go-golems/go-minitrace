@@ -3,12 +3,16 @@ package query
 //glazedclilint:file-ignore legacy query command uses Cobra flags pending Glazed field migration
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/common"
 	minitracecmd "github.com/go-go-golems/go-minitrace/pkg/minitracecmd"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 func NewCommandsCommand(flagPaths []string) (*cobra.Command, error) {
@@ -16,7 +20,10 @@ func NewCommandsCommand(flagPaths []string) (*cobra.Command, error) {
 	if err != nil {
 		return nil, err
 	}
+	return newCommandsCommand(flagPaths, catalog)
+}
 
+func newCommandsCommand(flagPaths []string, catalog *minitracecmd.Catalog) (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:   "commands",
 		Short: "Run repository-backed MinitraceCommand queries",
@@ -35,6 +42,33 @@ When a JS file defines exactly one verb and that verb has the same name as the f
 with a single verb named research-summary becomes:
   go-minitrace query commands hardware-research research-summary
 
+Minimal JavaScript commands (create these files in ./commands).
+
+ledger.js
+
+~~~js
+function ledger() { return [{ ok: true }]; }
+__verb__("ledger", { name: "ledger" });
+~~~
+
+~~~sh
+go-minitrace query commands --query-repository ./commands ledger --output json
+~~~
+
+report.js
+
+~~~js
+function summarize() { return [{ ok: true }]; }
+__verb__("summarize", { name: "summary" });
+~~~
+
+~~~sh
+go-minitrace query commands --query-repository ./commands report summary --output json
+~~~
+
+The first \_\_verb\_\_ argument names a top-level JavaScript function. The name
+property sets the CLI verb. See go-minitrace help structured-query-commands.
+
 The nightly review commands live under the nightly subverb, so a file like
 pkg/minitracecmd/core/nightly/session-inventory.sql becomes:
   go-minitrace query commands nightly session-inventory
@@ -49,15 +83,19 @@ Examples:
   go-minitrace query commands overview session-tools session-list --query-repository ./query-commands/team
   GO_MINITRACE_QUERY_REPOSITORIES=./query-commands/team go-minitrace query commands overview framework-summary`,
 	}
+	for _, diagnostic := range catalog.Diagnostics {
+		fmt.Fprintf(os.Stderr, "query catalog: skipped %s: %s\n", diagnostic.SourcePath, diagnostic.Error)
+	}
 	groups := map[string]*cobra.Command{}
 	root.PersistentFlags().StringSlice(minitracecmd.QueryRepositoryFlagName, flagPaths, "Repeatable directory flag for additional structured query-command repository roots")
+	root.SetFlagErrorFunc(explainUnresolvedQueryCommand)
 
 	for _, command := range catalog.Commands {
 		glazeCommand, err := NewMinitraceCatalogGlazeCommand(command, catalog)
 		if err != nil {
 			return nil, err
 		}
-		cobraCommand, err := common.BuildCobraCommandWithShortHelpSections(glazeCommand, "default", QueryRuntimeSectionSlug)
+		cobraCommand, err := common.BuildCobraCommandWithShortHelpSections(glazeCommand, catalogShortHelpSections(command)...)
 		if err != nil {
 			return nil, err
 		}
@@ -72,6 +110,23 @@ Examples:
 	}
 
 	return root, nil
+}
+
+// Cobra parses flags on the last resolved node before validating positional
+// arguments. A leaf-only flag on a group can therefore hide a missing verb.
+func explainUnresolvedQueryCommand(cmd *cobra.Command, err error) error {
+	var unknown *pflag.NotExistError
+	if cmd.Runnable() || !errors.As(err, &unknown) || unknown.GetSpecifiedName() != "archive-glob" {
+		return err
+	}
+	message := fmt.Sprintf("choose a runnable query command under %q before using --archive-glob", cmd.CommandPath())
+	if args := cmd.Flags().Args(); len(args) > 0 {
+		message = fmt.Sprintf("unknown query command %q under %q", args[0], cmd.CommandPath())
+	}
+	if children := childCommandNames(cmd); len(children) > 0 {
+		message += "\n  available commands: " + strings.Join(children, ", ")
+	}
+	return errors.New(message)
 }
 
 // wrapArgumentParseErrors rejects surplus positional arguments on a leaf
@@ -97,7 +152,7 @@ func wrapArgumentParseErrors(cmd *cobra.Command, command *minitracecmd.Minitrace
 				fmt.Fprintf(&b, " more than %d positional argument(s)", maxArgs)
 			}
 			fmt.Fprintf(&b, "\n  extra arguments: %s", strings.Join(args[maxArgs:], " "))
-			if siblings := siblingVerbNames(c); len(siblings) > 0 {
+			if siblings := childCommandNames(c.Parent()); len(siblings) > 0 {
 				parentPath := c.CommandPath()
 				if parent := c.Parent(); parent != nil {
 					parentPath = parent.CommandPath()
@@ -136,17 +191,16 @@ func maxPositionalArgs(command *minitracecmd.MinitraceCommand) (int, bool) {
 	return count, false
 }
 
-func siblingVerbNames(cmd *cobra.Command) []string {
-	parent := cmd.Parent()
+func childCommandNames(parent *cobra.Command) []string {
 	if parent == nil {
 		return nil
 	}
 	names := make([]string, 0, len(parent.Commands()))
-	for _, sibling := range parent.Commands() {
-		if sibling == nil || sibling.Hidden {
+	for _, child := range parent.Commands() {
+		if child == nil || child.Hidden {
 			continue
 		}
-		names = append(names, sibling.Name())
+		names = append(names, child.Name())
 	}
 	return names
 }
@@ -212,4 +266,20 @@ func findCommandChild(parent *cobra.Command, use string) *cobra.Command {
 		}
 	}
 	return nil
+}
+
+// Include custom command sections in normal help; otherwise required JS fields
+// can be parsed correctly yet remain invisible until --long-help is requested.
+func catalogShortHelpSections(command *minitracecmd.MinitraceCommand) []string {
+	sections := []string{"default", QueryRuntimeSectionSlug}
+	seen := map[string]bool{"default": true, QueryRuntimeSectionSlug: true}
+	if command != nil && command.Schema != nil {
+		command.Schema.ForEach(func(slug string, _ schema.Section) {
+			if !seen[slug] {
+				sections = append(sections, slug)
+				seen[slug] = true
+			}
+		})
+	}
+	return sections
 }

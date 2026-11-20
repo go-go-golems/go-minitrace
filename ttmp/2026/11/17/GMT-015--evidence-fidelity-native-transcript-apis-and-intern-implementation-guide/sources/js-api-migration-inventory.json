@@ -1,0 +1,6499 @@
+{
+  "scope": "rg-visible JS/MJS/CJS in this worktree; dependencies and build output excluded; inline JS in Go/Markdown is not counted",
+  "total": 267,
+  "bytes": 530212,
+  "unique_content": 240,
+  "groups": {
+    "examples": 2,
+    "pkg": 6,
+    "skills": 5,
+    "testdata": 15,
+    "ttmp": 232,
+    "web": 7
+  },
+  "files": [
+    {
+      "path": "examples/xgoja/minitrace-command-provider/queries/reports/markdown-summary.js",
+      "bytes": 2032,
+      "sha256": "8b943d0224e75d44e7bd58d27c0fad3ef8022764508008fd6e26f8b65a81c7b2",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "db",
+        "join",
+        "map",
+        "mkdirSync",
+        "query",
+        "queryOne",
+        "replace",
+        "writeFileSync"
+      ],
+      "imports": [
+        "fs",
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "examples/xgoja/minitrace-jsverbs/verbs/inspect.js",
+      "bytes": 5055,
+      "sha256": "2d79c67566c2e7cbf58fd2e478e361eebdf2f64f805738ebe036c05090155461",
+      "methods": [
+        "Auto",
+        "AutoConvert",
+        "AutoDetect",
+        "Build",
+        "Cache",
+        "CacheKey",
+        "Convert",
+        "Converted",
+        "Dir",
+        "File",
+        "Import",
+        "Into",
+        "Limits",
+        "Overwrite",
+        "Preview",
+        "QueryCommandDefaults",
+        "Rows",
+        "Save",
+        "Sources",
+        "Strict",
+        "cache",
+        "cacheInfo",
+        "close",
+        "db",
+        "diagnostics",
+        "importPolicy",
+        "importer",
+        "limits",
+        "query",
+        "queryOne",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M8",
+        "M9"
+      ]
+    },
+    {
+      "path": "pkg/minitracecmd/core/files/file-activity.js",
+      "bytes": 4153,
+      "sha256": "4f18be95d95c7c9db1c90f302db9994df9e2eed6a17e76f59d67aad034bdc399",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "like",
+        "query",
+        "string",
+        "stringIn"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M9"
+      ]
+    },
+    {
+      "path": "pkg/minitracecmd/core/history/context-window.js",
+      "bytes": 7796,
+      "sha256": "0b443dbefc10c3e9eb3207b956e6918d608b7e9e32fba615275bf1c7f7538992",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "exec",
+        "filter",
+        "includes",
+        "join",
+        "limits",
+        "map",
+        "max",
+        "parse",
+        "push",
+        "query",
+        "replace",
+        "slice",
+        "string",
+        "test",
+        "values"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "pkg/minitracecmd/core/history/file-history.js",
+      "bytes": 12081,
+      "sha256": "b30555ef7508d45f437a715145b6a144c4463bc4304e1981572e44fd3bb9f1d3",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "add",
+        "close",
+        "db",
+        "exec",
+        "filter",
+        "has",
+        "includes",
+        "like",
+        "limits",
+        "localeCompare",
+        "map",
+        "match",
+        "push",
+        "query",
+        "replace",
+        "slice",
+        "sort",
+        "startsWith",
+        "toLowerCase",
+        "trim",
+        "values"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "pkg/minitracecmd/core/history/ticket-timeline.js",
+      "bytes": 6492,
+      "sha256": "b1a8dcf9d701b663c5f0e6534400b0278864479acb601f7ac0348921bdf8a044",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "endsWith",
+        "exec",
+        "filter",
+        "find",
+        "includes",
+        "like",
+        "limits",
+        "localeCompare",
+        "map",
+        "push",
+        "query",
+        "replace",
+        "slice",
+        "sort",
+        "test",
+        "toLowerCase"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "pkg/minitracecmd/core/overview/session-activity.js",
+      "bytes": 3504,
+      "sha256": "4ecc781d6fb156c1ea7e1ab8c237ecf2f71e759d70a724808889cc72c611eab6",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "js",
+        "like",
+        "query",
+        "string",
+        "stringIn"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M9"
+      ]
+    },
+    {
+      "path": "pkg/minitracejs/testdata/native_compaction_projection.js",
+      "bytes": 581,
+      "sha256": "b412b810370fbae06e6c72b3529716c4491f4086a817baca5fa33e0dfd934cac",
+      "methods": [
+        "File",
+        "Inspect",
+        "map",
+        "native"
+      ],
+      "imports": [],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7"
+      ]
+    },
+    {
+      "path": "skills/transcript-doc-friction-analysis/query-commands/docmetrics/api-calls.js",
+      "bytes": 3395,
+      "sha256": "d4b0ded0b008e2813b5ec9ab9278b600ab68e5176b3920e8111cc94be4b37a55",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "entries",
+        "floor",
+        "limits",
+        "max",
+        "push",
+        "query",
+        "toFixed"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "skills/transcript-doc-friction-analysis/query-commands/docmetrics/doc-consumption.js",
+      "bytes": 8495,
+      "sha256": "5a5a4dbf9a223a91d22b37f72a2a2e873d8e8f982801a5a8472a9c58a548ed56",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "exec",
+        "exec_command",
+        "flatMap",
+        "includes",
+        "join",
+        "limits",
+        "map",
+        "parse",
+        "pop",
+        "push",
+        "query",
+        "replace",
+        "slice",
+        "split",
+        "values"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "skills/transcript-doc-friction-analysis/query-commands/docmetrics/episodes.js",
+      "bytes": 3762,
+      "sha256": "52ffa35724326bfd4a9f8ebfd48c4a4cd64c982c92ade871a28cd568b7bab998",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "entries",
+        "filter",
+        "join",
+        "limits",
+        "map",
+        "parse",
+        "push",
+        "query",
+        "round",
+        "slice",
+        "sort",
+        "startsWith",
+        "trim"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "skills/transcript-doc-friction-analysis/query-commands/docmetrics/failure-triage.js",
+      "bytes": 5507,
+      "sha256": "d54d3dd98656146107b5d1be6f52a847057a562c31ec190a27bde22cf5e83298",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "exec",
+        "includes",
+        "limits",
+        "map",
+        "match",
+        "push",
+        "query",
+        "slice",
+        "split",
+        "startsWith",
+        "test",
+        "toLowerCase"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "skills/transcript-doc-friction-analysis/query-commands/docmetrics/source-probes.js",
+      "bytes": 5948,
+      "sha256": "9eaa399a829da97ce11565726baf535ef8f6dc02afd3cc095ae057752caabf73",
+      "methods": [
+        "Build",
+        "CellChars",
+        "Limits",
+        "QueryCommandDefaults",
+        "Rows",
+        "RuntimeArchives",
+        "add",
+        "close",
+        "db",
+        "entries",
+        "exec",
+        "exec_command",
+        "filter",
+        "includes",
+        "join",
+        "limits",
+        "map",
+        "match",
+        "pop",
+        "push",
+        "query",
+        "replace",
+        "slice",
+        "split",
+        "startsWith",
+        "test",
+        "trim"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/evidence-workflows/analysis/session-tools.js",
+      "bytes": 646,
+      "sha256": "805db78e2769179658ea90571e564686ac61d1905e20eea29bf8ea6405268495",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "StrictEvidence",
+        "close",
+        "db",
+        "execute",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/analysis/lib/cookbook.js",
+      "bytes": 3036,
+      "sha256": "2f0e41c5c1b534beb41ecde696879e86232a74889915154d43dbe78ceb909ad9",
+      "methods": [
+        "entries",
+        "filter",
+        "from",
+        "isFinite",
+        "join",
+        "localeCompare",
+        "map",
+        "pow",
+        "push",
+        "round",
+        "slice",
+        "sort",
+        "split",
+        "values"
+      ],
+      "imports": [],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/analysis/phase3-cookbook.js",
+      "bytes": 5554,
+      "sha256": "56f86253c0cb0760d0519023a6e25ca662c7f04c7d5f92c0578e89897ecdf6f1",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "join",
+        "like",
+        "map",
+        "max",
+        "min",
+        "push",
+        "query",
+        "stringIn"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/analysis/report-cookbook.js",
+      "bytes": 6798,
+      "sha256": "ec200d126d118c111c3c3a29a8bbbc7a1ea1f98ee8218a43ff4f13a230472ce5",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "join",
+        "like",
+        "max",
+        "min",
+        "push",
+        "query",
+        "stringIn"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/analysis/session-architectures.js",
+      "bytes": 5332,
+      "sha256": "04ed74daaeeaa043d199a7653971c7a6a6d78b1c1c9a4d0aa20e669e892721d3",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "classifySessionShape",
+        "close",
+        "db",
+        "find",
+        "firstBy",
+        "groupBy",
+        "join",
+        "joinTopValues",
+        "like",
+        "map",
+        "push",
+        "query",
+        "round1",
+        "safeNumber",
+        "shortWorkspace",
+        "stringIn"
+      ],
+      "imports": [
+        "./lib/cookbook",
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/analysis/tool-intelligence.js",
+      "bytes": 3765,
+      "sha256": "4d2644dc4ee5430994d7580a0607a1077c03bd7719b49ff0a3b802a76f68290a",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "firstBy",
+        "join",
+        "like",
+        "map",
+        "max",
+        "pairCounts",
+        "push",
+        "query",
+        "round2",
+        "safeNumber",
+        "shortWorkspace",
+        "slice",
+        "stringIn"
+      ],
+      "imports": [
+        "./lib/cookbook",
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/analysis/workspace-lab.js",
+      "bytes": 5655,
+      "sha256": "1b7167a1fd49157f79aa9d16addc6f84e85ddaf52d1aae6fceeb3d3e4f640f37",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "firstBy",
+        "groupBy",
+        "join",
+        "joinTopValues",
+        "like",
+        "map",
+        "push",
+        "query",
+        "round1",
+        "safeNumber",
+        "shortWorkspace",
+        "stringIn"
+      ],
+      "imports": [
+        "./lib/cookbook",
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/overview/async-tools.js",
+      "bytes": 2245,
+      "sha256": "4f34096b59d146db3b87baad3f618b49e1fd4dd4dfce19d3ec0d774c3d5b1001",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "map",
+        "query",
+        "queryOne",
+        "sleep",
+        "stringIn"
+      ],
+      "imports": [
+        "minitrace",
+        "timer"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/overview/lib/transforms.js",
+      "bytes": 957,
+      "sha256": "cdb754f8ab98d868aa6b26941e910b6e15232c8dcaab180c564777e97415b6d8",
+      "methods": [
+        "map",
+        "reduce",
+        "replace",
+        "round",
+        "toLowerCase",
+        "toUpperCase",
+        "trim"
+      ],
+      "imports": [],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/overview/runtime-playground.js",
+      "bytes": 1522,
+      "sha256": "b57ec31c2cb9fa6785a43fa9f8233f6e82540db53303c6b0c55d35731634c960",
+      "methods": [
+        "isArray",
+        "makePreviewCards"
+      ],
+      "imports": [
+        "./lib/transforms",
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/js-showcase/overview/session-tools.js",
+      "bytes": 1721,
+      "sha256": "5aa6d6178d66ca662d7379edabfe7a905e6151ae7e4879e64b00d36714217259",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "addSharePercent",
+        "close",
+        "db",
+        "query",
+        "stringIn"
+      ],
+      "imports": [
+        "./lib/transforms",
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/mixed-sql-js-showcase/analysis/lib/cookbook.js",
+      "bytes": 733,
+      "sha256": "8e8bec42d68dc9bf70f28a5a23b4ee09af0fd57eace822aa1065cbc6b41c07a4",
+      "methods": [
+        "filter",
+        "isFinite",
+        "join",
+        "round",
+        "slice",
+        "split"
+      ],
+      "imports": [],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/mixed-sql-js-showcase/analysis/workspace-lab.js",
+      "bytes": 2120,
+      "sha256": "436fc73055db024297638cb1f651d72b62e7be3803537a4c08d8c49b18e620a8",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "join",
+        "like",
+        "map",
+        "push",
+        "query",
+        "round"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/mixed-sql-js-showcase/overview/lib/transforms.js",
+      "bytes": 501,
+      "sha256": "b02356afbb5849e767f1fb9d08c859c3516fca09a9c7df5f997bdff8371e6647",
+      "methods": [
+        "map",
+        "reduce",
+        "round"
+      ],
+      "imports": [],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "testdata/query-repositories/mixed-sql-js-showcase/overview/session-tools.js",
+      "bytes": 1413,
+      "sha256": "8198de372dcda6060bdc18d84c6c15ef8b8cf88d07952b50462e7cf1050ab12b",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "map",
+        "query",
+        "reduce",
+        "round"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "maintained migration review",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/04/04/ANNOTATE-CLI--go-minitrace-annotation-cli-and-storage-backend-design/scripts/11-ui-smoke-annotation-navigation.mjs",
+      "bytes": 3455,
+      "sha256": "af16c4dac77751e6c7cf98076b784802b02127378c64227c25b213a114330b5e",
+      "methods": [
+        "click",
+        "close",
+        "getByRole",
+        "getByText",
+        "goto",
+        "includes",
+        "isVisible",
+        "launch",
+        "locator",
+        "log",
+        "newPage",
+        "screenshot",
+        "textContent",
+        "waitForSelector"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/04/04/ANNOTATE-CLI--go-minitrace-annotation-cli-and-storage-backend-design/scripts/15-ui-workflow-live-stack-smoke.mjs",
+      "bytes": 2955,
+      "sha256": "db648e7aa251bf0187cd083efd2772f927f4fffcc3a5e256e8c6a565162c7bba",
+      "methods": [
+        "click",
+        "close",
+        "filter",
+        "first",
+        "getByRole",
+        "goto",
+        "includes",
+        "launch",
+        "locator",
+        "log",
+        "newPage",
+        "screenshot",
+        "textContent",
+        "url",
+        "waitForSelector"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/01-web-ui-baseline-perf.mjs",
+      "bytes": 4556,
+      "sha256": "75f48ec0f5cc94fd5e65039d44f628142ebe0b504edbdd0137ccd6b27b458aa7",
+      "methods": [
+        "at",
+        "click",
+        "close",
+        "evaluate",
+        "getByRole",
+        "goto",
+        "json",
+        "launch",
+        "log",
+        "map",
+        "max",
+        "newPage",
+        "now",
+        "push",
+        "querySelector",
+        "querySelectorAll",
+        "reduce",
+        "round",
+        "slice",
+        "stringify",
+        "waitForFunction",
+        "waitForSelector"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/04/06/TRANSCRIPT-PERF-001--transcript-viewer-and-web-ui-performance-optimization-study/scripts/02-session-summary-blocks-split-perf.mjs",
+      "bytes": 2858,
+      "sha256": "d8ce1dbd911ee3f23976562d0542a25a76fe7b832e46e760dd62ca78c36b661c",
+      "methods": [
+        "at",
+        "byteLength",
+        "call",
+        "isArray",
+        "log",
+        "map",
+        "max",
+        "now",
+        "parse",
+        "push",
+        "reduce",
+        "round",
+        "stringify",
+        "text"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/09/06/CODEX-FIDELITY-001--normalize-codex-paginated-messages-and-nested-execution-evidence/scripts/07-check-proto-outcomes.mjs",
+      "bytes": 1642,
+      "sha256": "f8b6aa777556511aad778a418a1301a6130ccb55dffa8c82cb307066e20c3c8b",
+      "methods": [
+        "cwd",
+        "equal",
+        "log",
+        "map",
+        "parse",
+        "stringify"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/03-provenance-example.js",
+      "bytes": 832,
+      "sha256": "033b77647b68a8b0d3f2177d03473f9c18f47d55797385c31fac358b84ad236c",
+      "methods": [
+        "Build",
+        "SessionID",
+        "ToolRows",
+        "args",
+        "corpusManifest",
+        "query",
+        "queryResult",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-deepseek-4.1-flash-high-r2/qrepo/counts/counts.js",
+      "bytes": 1000,
+      "sha256": "7f7b12b9caf9c51a79b9ae57faf7f1efe3effba7d1ae9a83481e286136b407b1",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-deepseek-4.1-flash-low-r1/query-commands/checks/all-nine.js",
+      "bytes": 1003,
+      "sha256": "bb967849bf5bd531c6ff081b439b546bb444b1470c7897c71797ff3ad0447358",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "SessionToolCounts",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-deepseek-4.1-flash-low-r2/jsrepo/counts/session-counts.js",
+      "bytes": 2582,
+      "sha256": "b617fa4e87a5e4548c134dd25a82f3e79e6203614996b6cbca1a54776b23aaa8",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "StrictEvidence",
+        "TurnRows",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-deepseek-4.1-flash-low-r2/jsrepo2/counts/session-counts.js",
+      "bytes": 2623,
+      "sha256": "006931a086698bb8f793516d34be284405eb548c362767885f4e87223b21544a",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TurnRows",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-glm-5.3-flash-high-r1/qc/session-counts.js",
+      "bytes": 903,
+      "sha256": "836cdbe29e1361d727adc0974a6844423af0c3d114dc63bd56971e5cbd714ad1",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "execute"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-glm-5.3-flash-high-r2/query-commands/counts/per-session-counts.js",
+      "bytes": 1212,
+      "sha256": "551d5ac225c3a0fd958c410a4e73cd5a5cb900bdf6c2782870892f7db4f3ed47",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "close",
+        "db",
+        "execute"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-glm-5.3-flash-low-r1/qc/tools/session-counts.js",
+      "bytes": 962,
+      "sha256": "703fb41ec8539a8560a1382f13dc355d7ced2a9659364a42492033f2841e0604",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "execute"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/A-glm-5.3-flash-low-r2/query-repo/counts/turn-tool-counts.js",
+      "bytes": 605,
+      "sha256": "63eb663449b298f82919f518377650c785a60470b3d7af4c135fbdccd21223cd",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r1/repo/evidence/evidence-check.js",
+      "bytes": 2815,
+      "sha256": "4aa9fb36050fa636f7d132157998aa2b65f4643f16ae45a681cc7e4ae268d693",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r1/repo/evidence/real-probe.js",
+      "bytes": 1583,
+      "sha256": "8a17b3a024a74ba532cebe9303da657a1cd0ddfdb17bab7ee9f1bfb6d5efe949",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "push",
+        "query",
+        "slice"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r1/repo/evidence/real-sessions.js",
+      "bytes": 4156,
+      "sha256": "4ead86386c5e80a7a0620a40139d03a391e2a61cde062c49154008c6dcc3a5d2",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionID",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "keys",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r1/repo/evidence/schema-probe.js",
+      "bytes": 864,
+      "sha256": "98e7390ffaacf163cba37bfe7c8a2858a313044042c66a2cc42cfd55e294ec35",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "execute",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r1/repo/evidence/synthetic-final.js",
+      "bytes": 2240,
+      "sha256": "5ebeccd6d86d80d32f97884c43d8a95b5a9f4a643ee6f97ead3c8a603c05e7fa",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r1/repo/evidence/toolrows-diag.js",
+      "bytes": 860,
+      "sha256": "cfd5ac62ce3064c2d09f4544ffc47435be2e3657040b761945e11d81370988b2",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r2/query-commands/fidelity/manifest.js",
+      "bytes": 574,
+      "sha256": "f22dbc7ec6458fb0eddf6977589912d6b432420c370c4fdcbca3970719607479",
+      "methods": [
+        "corpusManifest"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r2/query-commands/fidelity/optional.js",
+      "bytes": 986,
+      "sha256": "f2d8b310754d87aa2061c255dc182bdea1c24fb7b440f1b367bb71d7a4803b45",
+      "methods": [
+        "Archive",
+        "Build",
+        "MaxRows",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "execute",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r2/query-commands/fidelity/probe.js",
+      "bytes": 1221,
+      "sha256": "928e6f9c5d47e0892ac6ef5db48bdc8e27f556301ce43d55094bd48579c197eb",
+      "methods": [
+        "Archive",
+        "Build",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r2/query-commands/fidelity/real.js",
+      "bytes": 1476,
+      "sha256": "66a5518ab729b4a263760c2d73782eccaf122467f70a6d8b23f9a9c5333a65f5",
+      "methods": [
+        "Build",
+        "Glob",
+        "SQLiteMemory",
+        "SessionSummary",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "push",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-high-r2/query-commands/fidelity/realsessions.js",
+      "bytes": 3006,
+      "sha256": "7ecfe9322cf64eb7ea9480827a127fea07505342515fd506c472dc062332f925",
+      "methods": [
+        "Build",
+        "Glob",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "filter",
+        "from",
+        "map",
+        "push",
+        "query",
+        "sort"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-low-r1/qrepo/evidence/evidence.js",
+      "bytes": 3153,
+      "sha256": "b7fb6c0cb757b4a16911ddfa9e4ad758af47b5fe8d59b8548e10d8051706545b",
+      "methods": [
+        "Build",
+        "Files",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "Sources",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "sources",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-low-r2/qc/fidelity.js",
+      "bytes": 2680,
+      "sha256": "603f8cfd01c6d91ef98dfa071984f7f757db3d2b3c634b244413eb111bbba9c6",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "push",
+        "query",
+        "stringify",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-deepseek-4.1-flash-low-r2/qc/real.js",
+      "bytes": 2589,
+      "sha256": "6192fe5e17bbe2e1be3120a1b3f733d2f34f5eb143ba58bcb294e7cc51287de1",
+      "methods": [
+        "Build",
+        "File",
+        "QueryCommandDefaults",
+        "SQLiteMemory",
+        "SessionSummary",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "filter",
+        "map",
+        "max",
+        "query",
+        "reduce",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r1/qc/btask.js",
+      "bytes": 3119,
+      "sha256": "9a6336c34d68f69187fe30a59cbd3378393a827094da3929ed07f48e9c0a85c5",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "isArray",
+        "map",
+        "pop",
+        "push",
+        "query",
+        "queryResult",
+        "split",
+        "stringify",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r1/qc/fieldprobe.js",
+      "bytes": 1317,
+      "sha256": "e24ea618492a7c6f0fc4f6cf946b3afdd6ed3f153b6e480f96fb76b971ab3186",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "push",
+        "query",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r1/qc/realtask.js",
+      "bytes": 2829,
+      "sha256": "ffb6afb5a288600f2f2f6e7dbac85268511c82ad626b8bebd2c869caf5a83bc4",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "find",
+        "keys",
+        "map",
+        "parse",
+        "pop",
+        "push",
+        "query",
+        "queryOne",
+        "reduce",
+        "split",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r1/qc/tokprobe.js",
+      "bytes": 1272,
+      "sha256": "b7946ecb850aa132db8fa645791b3b94ba680cdbed2793cdf6e1061bf7ba6f86",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "push",
+        "query",
+        "slice",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r2/qrepo/persona/fixture-checks.js",
+      "bytes": 2715,
+      "sha256": "0dd033c64bef28c0beb208af90fc9c6824ca959c3227a1b457215c6f0bcb9221",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "queryResult",
+        "slice",
+        "sort",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r2/qrepo/persona/real-session.js",
+      "bytes": 3022,
+      "sha256": "554b86f463a021326f41d7de35c960f2bc62138b92987acffe06287e6ab196df",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryResult",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-high-r2/qrepo/persona/sqlpeek.js",
+      "bytes": 313,
+      "sha256": "1ca3d25cbc4b91554c35b528e4c6f5ec1b57ee6bdb0addd0eb9be88fd26b417a",
+      "methods": [
+        "Build",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "ToolRows",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-low-r1/qc/b/b.js",
+      "bytes": 2874,
+      "sha256": "0964afc0352e7f55db8086b1e507ad7ea956f85bf7d546c4c41340c0f16b4e31",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "slice",
+        "sort",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-low-r1/qc/rs/rs.js",
+      "bytes": 1101,
+      "sha256": "aec3857b8f7d2314348d560172c5ced18f8e79444e9fa7683f6f8ef3415ad086",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "keys",
+        "map",
+        "push",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-low-r2/qc/real-session-check.js",
+      "bytes": 813,
+      "sha256": "773dfbf44db40352cbe7ce5be8f47463b5e4814facfd1000a8be7ac6d44d143d",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-low-r2/qc/real-session-summary.js",
+      "bytes": 1819,
+      "sha256": "424561dd60438916879e947da32ed6b11331ecf63688731a7ec419f533acec4c",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionToolCounts",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "indexOf",
+        "push",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M4",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/B-glm-5.3-flash-low-r2/qc/synthetic-checks.js",
+      "bytes": 2323,
+      "sha256": "f067033339a8daf1fd61138f7dea5cedba9525e296bfb5fcfb4ebb96bde2a840",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "sort",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-high-r1/qcmds/scans/native-scan.js",
+      "bytes": 3455,
+      "sha256": "35ae6e4d2e7f56c44316449ee6eb830619dde617b48340d90de374d26179c4b9",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "indexOf",
+        "keys",
+        "map",
+        "native",
+        "push",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-scan.js",
+      "bytes": 7582,
+      "sha256": "e47c89f52c143b9bc4441842e731a4ee490b6b77cc53f30e8313e6ef7b605645",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "filter",
+        "isArray",
+        "keys",
+        "map",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-low-r1/qrepo/evidence/native-detail.js",
+      "bytes": 853,
+      "sha256": "5f7fdcf92c25397c7ff14960c2300994adc36f65c480adafb6ad2958667e785b",
+      "methods": [
+        "File",
+        "Inspect",
+        "map",
+        "native"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-low-r1/qrepo/evidence/native-early.js",
+      "bytes": 498,
+      "sha256": "fdbb93b8cf9026142584d508cc6b8555fd115d92853ce437b21ec3535b975180",
+      "methods": [
+        "File",
+        "ForEach",
+        "native"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-low-r1/qrepo/evidence/native-scan.js",
+      "bytes": 1483,
+      "sha256": "b2fbd3bdee9fdb3d196c7dd5eeba7060b1f604e54e6692ff94ab4d7f524bf8e7",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-low-r2/repo/native-scan/detail.js",
+      "bytes": 1951,
+      "sha256": "3aed9f5d333266ec181a3c628014538378a55f591d62ce09f0693c5c2db04c7b",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "map",
+        "native"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-deepseek-4.1-flash-low-r2/repo/native-scan/scan.js",
+      "bytes": 3186,
+      "sha256": "cd0829713edf6eafc4a5375030b9bea63e9bf1a81af6d55251cc453398952476",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "forEach",
+        "indexOf",
+        "map",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-high-r1/qrepo/edge-probe.js",
+      "bytes": 1076,
+      "sha256": "a21b252655fbb95d881a391b9b0457c3e6d01436717188afa817e4b82ac2dbcb",
+      "methods": [
+        "File",
+        "ForEach",
+        "MaxRecordBytes",
+        "native",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-high-r1/qrepo/fixture-inspect.js",
+      "bytes": 1125,
+      "sha256": "a29e1779991495b454844122bc0dc777428e776880b7b070eb347644c938ffbf",
+      "methods": [
+        "File",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "filter",
+        "map",
+        "native",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-high-r1/qrepo/native-scan.js",
+      "bytes": 2473,
+      "sha256": "48c90726265075645a2e36c69879925b8862b88363b7581af16d762fd17de06a",
+      "methods": [
+        "File",
+        "ForEach",
+        "MaxRecordBytes",
+        "native",
+        "push",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-high-r1/qrepo/real-inspect.js",
+      "bytes": 2745,
+      "sha256": "7718fa3d4e5d52ebcc9ffc73410a749f2919a9d7c92b75c040787218e561012f",
+      "methods": [
+        "File",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "filter",
+        "keys",
+        "map",
+        "native",
+        "push",
+        "slice",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-high-r2/query-repo/nativescan/native-scan.js",
+      "bytes": 4208,
+      "sha256": "8b4b85ad0a7a2d75f49d26f89ac8c5c5a5bd7f92d1958363fdac54218227e622",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "keys",
+        "map",
+        "native"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-low-r1/cmds/native-scan.js",
+      "bytes": 2570,
+      "sha256": "81b2694a76a1d790273ad840bc64534f26836a077cc397217abc44f67431f5a2",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "native",
+        "push",
+        "stringify"
+      ],
+      "imports": [
+        "fs",
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/C-glm-5.3-flash-low-r2/native-scan/native-scan.js",
+      "bytes": 3037,
+      "sha256": "e3610479a9f6818374a1463107f18bc3cab36c0c1201334ba85d8a2a24c687ad",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "filter",
+        "map",
+        "native",
+        "push",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-high-r1/commands/bad.js",
+      "bytes": 304,
+      "sha256": "1ec5b3b2bd377557aea622045cb4c06ddeb42a67704f7b706b6e9a4246b95807",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-high-r1/commands/good.js",
+      "bytes": 1490,
+      "sha256": "8465c8819f6240aa87dd070d45d73d2d8828d0ba5ee422a7fad496266aa0fede",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionID",
+        "Sources",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "query",
+        "sources",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-high-r2/commands/bad.js",
+      "bytes": 265,
+      "sha256": "99dbec1e1277740ceace4b348a84b48334577b9e1a5aa8992a75ba9189152262",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-high-r2/commands/good.js",
+      "bytes": 1628,
+      "sha256": "e89f4be95358318a4a779b13ced98ba8974e1bba40ad805abe216279dea144d6",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionID",
+        "Sources",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryOne",
+        "sources",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-high-r2/probe/commands-verb/bad.js",
+      "bytes": 230,
+      "sha256": "7172588748b01a966ab81240c0bdb7e6cdd1ca4c04b6f3fe1fc5feed13de6a8d",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/arg1/good.js",
+      "bytes": 285,
+      "sha256": "2fa1efa2994683e43468d350c44cf89293df50af3e88e61b0a5ba533912f6c54",
+      "methods": [
+        "keys"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/arg2/good.js",
+      "bytes": 282,
+      "sha256": "02248cb29d618a30cdd247d76b23798a58395aeeaf95a9e205c259bb9bf45309",
+      "methods": [
+        "keys"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/arg3/good.js",
+      "bytes": 242,
+      "sha256": "8501afe43b3d8bd315b8a15fd826b0e78d6156e305356f5931367cbcac7146d8",
+      "methods": [
+        "keys"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/arg4/good.js",
+      "bytes": 487,
+      "sha256": "a261794a437b0bf8f198df381672351d368106662ae40de37bcfb4843baab6de",
+      "methods": [
+        "keys",
+        "parse",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/arg5/good.js",
+      "bytes": 462,
+      "sha256": "aa3efcd13cd9fd9cb65619d508e47b0022da41fb5febb5b34d57b1c88af5d0f7",
+      "methods": [
+        "keys",
+        "parse",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/arg6/good.js",
+      "bytes": 612,
+      "sha256": "6ffccca2f52dc7797dfa8a6e11cadd917b1d8a1da97343b7f626bb66d15a870d",
+      "methods": [
+        "getOwnPropertyNames",
+        "stringify"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c1/bad.js",
+      "bytes": 78,
+      "sha256": "99ab27b4e97ed137f4d4d7def8c810476b320b5990f7ce290eb83d4b4dbac859",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c1/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c2/bad.js",
+      "bytes": 239,
+      "sha256": "bb25773a2f7b97a1b9ed1a879f625a5fa91bc3f8535610265a6ec402dfa79dc9",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c2/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c3/bad.js",
+      "bytes": 238,
+      "sha256": "e57f42d16e438b6b1c802feabf8a6aa054044b019670364ed00832eabe738b9d",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c3/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c4/bad.js",
+      "bytes": 104,
+      "sha256": "962eb7b54b3baa6d1e6841a3ca2d31f5c9ec9794389cae99ecbea004f14515fc",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c4/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c5/bad.js",
+      "bytes": 230,
+      "sha256": "31be90200da81b298f5572828d43493d3f63b229d8a2d41dbc708ffe8d680e39",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c5/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c6/bad.js",
+      "bytes": 88,
+      "sha256": "d1c78a83a7588a6feea0c7a0bf6e263a7d1ba3cc63911cdbbb0efe7f1f84e27d",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c6/good.js",
+      "bytes": 91,
+      "sha256": "9d9e8916f59154f88e48b2923ae71e17815354b54f77326e933c10ee42378e09",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c7/bad.js",
+      "bytes": 238,
+      "sha256": "e57f42d16e438b6b1c802feabf8a6aa054044b019670364ed00832eabe738b9d",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/c7/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/commands/bad.js",
+      "bytes": 259,
+      "sha256": "2c6545010d75b7dcc0e396405077744c089bf644eb50a4b1fad0720044468f0b",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/commands/good.js",
+      "bytes": 735,
+      "sha256": "292ce4861c915d4b0a2560f44c699047cd8490c15e60ad7e7b0729c4f70e0fb0",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d1/bad.js",
+      "bytes": 109,
+      "sha256": "086c2dfd5486f4db543ea6273ea536f9db4971cd1f73be5bc9a1b7e42d1a5ea9",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d1/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d2/bad.js",
+      "bytes": 141,
+      "sha256": "dd1af5e5efe0467a2f637512a249f4158865c7d4fe985ac39c3a028e92ee9261",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d2/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d3/bad.js",
+      "bytes": 127,
+      "sha256": "6a5f6119c8c8b09c27df0da5ea1d59ce05fa313e54757b22d315acd14fbc813f",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d3/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d4/bad.js",
+      "bytes": 33,
+      "sha256": "28f451890c004d67cdc39dd53ad116cff1bc09caae3fb7e3b75a1dd3415f5f00",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9/M10 (ordinary JS or discovery fixture)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/d4/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/args/good.js",
+      "bytes": 191,
+      "sha256": "9f901fd73b1879db1c99ce5c6f3fe270b34446319d63e8ddcded29d63d25afe2",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/arguments/good.js",
+      "bytes": 196,
+      "sha256": "b1481729bd83a68cd84c3b4d918aed33e7abe6aa583d6efd8de295ce73f2683f",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/fields/good.js",
+      "bytes": 193,
+      "sha256": "ce97ce08a20d7c439b8ecb7577538d911972a4c511dc1cf7cb717f5011bd5706",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/flags/good.js",
+      "bytes": 192,
+      "sha256": "df086e3b02a7e65cb008fd66cbbac92871ff53908a2f52c3f429055e566704fa",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/inputs/good.js",
+      "bytes": 193,
+      "sha256": "1edc29ebcadf4e31485b43fd4470149c458512ea4b2a8953d5d952073891d6a5",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/options/good.js",
+      "bytes": 194,
+      "sha256": "fa4ff34e3c882df102816ff62881a9b1284a2c3d821ac8a792e665b12cf27fb5",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/parameters/good.js",
+      "bytes": 197,
+      "sha256": "125c9f70238b46db6ed2f40bc915be2b46b227b63c2205314e26e4bbfc841227",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/kv/params/good.js",
+      "bytes": 193,
+      "sha256": "5824ac83690aa9dce17fe62dcc73932dc8d5da27b8cc7dba6647f040787601d0",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/n1/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/n1/good.js",
+      "bytes": 622,
+      "sha256": "3fd6dd3124d6fd31314191d0578e3d02244bc33f60a4e44344be2b8527969f98",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/n2/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/n2/good.js",
+      "bytes": 622,
+      "sha256": "3fd6dd3124d6fd31314191d0578e3d02244bc33f60a4e44344be2b8527969f98",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb1/good.js",
+      "bytes": 241,
+      "sha256": "52e7b4154f61b6056d23364772198fe6fe8fabd085c1e0af21c14935a8cec93f",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb2/good.js",
+      "bytes": 221,
+      "sha256": "8a6363b82e44225d95560b1b86e589bc4867e1372640846d73f883877870b829",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb3/good.js",
+      "bytes": 241,
+      "sha256": "7b244094ca6ddbd683fa34968aa20f6304ffae9ba1d134a761ad4db7e30f8a58",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb4/good.js",
+      "bytes": 247,
+      "sha256": "d62134ff702919e0fbdf7af70b563a8a15f5c1c32549a2d168fd0059edde642e",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb5/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb5/good.js",
+      "bytes": 247,
+      "sha256": "d62134ff702919e0fbdf7af70b563a8a15f5c1c32549a2d168fd0059edde642e",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb6/good.js",
+      "bytes": 835,
+      "sha256": "83ad9cfd79f97c2f68d04d6d7654e14b1ee5a7d1399310735cb1d5bd0a9760fe",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb7/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/pb7/good.js",
+      "bytes": 735,
+      "sha256": "292ce4861c915d4b0a2560f44c699047cd8490c15e60ad7e7b0729c4f70e0fb0",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/posverb/good.js",
+      "bytes": 239,
+      "sha256": "0a1cbd22c1fc82ed7e5b5f3630430b0aa421a20aea0035750412aceffb81655e",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/r1/commands/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/r1/commands/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/r2/bad/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/r2/good/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/r3/bad/bad.js",
+      "bytes": 238,
+      "sha256": "e57f42d16e438b6b1c802feabf8a6aa054044b019670364ed00832eabe738b9d",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/r3/good/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/s1/bad/bad.js",
+      "bytes": 508,
+      "sha256": "f6a3e4f578b5fff328d31f62d1cd3913bf5244aff1a6763b6bb2796a330c4188",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/s1/good/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/t-bad/bad.js",
+      "bytes": 496,
+      "sha256": "6325bc0c63316a69ac445b715130c5007594bca8c0f0751d66a32d60fd59fb12",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/t-good/good.js",
+      "bytes": 896,
+      "sha256": "d4fd814ee980f2ad124062ed233f53d0471696687d8b6d9c62c3625baba55cf5",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/v1/good.js",
+      "bytes": 292,
+      "sha256": "3b16bd4099ed796b03ce67fa0da89fd873ea8cc7db0688b543434d857ac35e86",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/v2/good.js",
+      "bytes": 190,
+      "sha256": "1c63e0514d43f4ea75664a5d5056977027a32b62bb33f0dc5451aa231017abac",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r1/v3/good.js",
+      "bytes": 276,
+      "sha256": "ff500f8503e85692b139530540bd1522005acb94995bb188d1700e2a1283161b",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r2/commands/bad.js",
+      "bytes": 362,
+      "sha256": "edde394e59581cc32f42e4f495a7c326c2346e9991af1e7b8528d3307d829b80",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-deepseek-4.1-flash-low-r2/commands/good.js",
+      "bytes": 1014,
+      "sha256": "bef86b178a816c6fca0da2198b04155dbc014a9c03fc99418455e8a05e7a8ca7",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryOne"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r1/commands/bad.js",
+      "bytes": 983,
+      "sha256": "66f6e7af7c4f93eece4d5ea443cf6052d70eb5489a0a262b6ddce0ff4b725c8e",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r1/commands/good.js",
+      "bytes": 2137,
+      "sha256": "50bcd2f78698839d72838cd863e3288f8d5989754dabb0cea393ddeb2b4618f0",
+      "methods": [
+        "Archive",
+        "Build",
+        "Cache",
+        "Memory",
+        "SessionID",
+        "Sources",
+        "ToolRows",
+        "args",
+        "cache",
+        "close",
+        "db",
+        "query",
+        "sources",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r2/commands/bad.js",
+      "bytes": 1580,
+      "sha256": "72de3ca9259c69152a89de273f0c5dd56b97b49d19470069ea5afed34b5afe7d",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionID",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryOne"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r2/commands/good.js",
+      "bytes": 1580,
+      "sha256": "4b7ec54042a99cfd3c0dc324455a6d2d17ee2308113e139a558692d2ee9d5c6d",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "MaxColumns",
+        "MaxRows",
+        "SQLiteMemory",
+        "SessionID",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryOne"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r2/scratch/negsection/neg.js",
+      "bytes": 248,
+      "sha256": "2470b04735dd5b9a0480cf822b139ea2be2366f893a09b59a6c81e76afd9c186",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r2/scratch/opt/opt.js",
+      "bytes": 964,
+      "sha256": "bcc09c343fe443b259781ecd7038c0166f0e99ef5fee0d94393e69b2a0646156",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "close",
+        "db",
+        "join",
+        "queryResult",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-high-r2/scratch/pos/pos.js",
+      "bytes": 264,
+      "sha256": "1099f6a2a4f0be9f2b66e4548b7ae229a4894a5fec46722a92f2f4c0f462c83c",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/commands/bad.js",
+      "bytes": 1026,
+      "sha256": "3c00abafaa4e33cf5f7c324390919d148375b9ccbc18e7812853121bfb3c21d8",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionID",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "query",
+        "queryOne",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/commands/good.js",
+      "bytes": 958,
+      "sha256": "f85e808aac7f1a6b982910b80f0fe40f26011f5f618f2f1439605cb4bc60386c",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "SessionID",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "query",
+        "queryOne",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/opt/introspect.js",
+      "bytes": 717,
+      "sha256": "ed158f85c3cb5fffb9c352028b52aa7a3e35abf59cdc82188c38923589c0dc17",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query",
+        "schema",
+        "slice",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/t/g/evidence.js",
+      "bytes": 265,
+      "sha256": "4872bf5867fcee8e993e8fa06819bf2edba234d99f7c0514601fc78918c3187d",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/t/h/hello.js",
+      "bytes": 289,
+      "sha256": "af736688627d81aae1df0b21348f654ab9c8ed35fdc6dddc06cba646062dfd83",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/t/h/hello2.js",
+      "bytes": 360,
+      "sha256": "85f669f6c7084911bfe2e720f077819e55501781b666522210a38f46e13fc192",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r1/t/k/neg.js",
+      "bytes": 159,
+      "sha256": "c3b6d72868285d729d054f2f856e78fb694ac3354d0db41f432990177a9eba61",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r2/commands/bad.js",
+      "bytes": 1309,
+      "sha256": "bcba7cb9b265c38f83f76bebeda202efe39ced9653d2860931583156c53ef268",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r2/commands/good.js",
+      "bytes": 1350,
+      "sha256": "4274403a0bb7e9f1ba1639b14df1cc3f7e554cd1e63c1a4d4ba3b31f00939c2d",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "Sources",
+        "ToolRows",
+        "close",
+        "db",
+        "entries",
+        "execute",
+        "get",
+        "query",
+        "set",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r2/evidence/bad.js",
+      "bytes": 1309,
+      "sha256": "bcba7cb9b265c38f83f76bebeda202efe39ced9653d2860931583156c53ef268",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing-v2/generated/D-glm-5.3-flash-low-r2/evidence/good.js",
+      "bytes": 1350,
+      "sha256": "4274403a0bb7e9f1ba1639b14df1cc3f7e554cd1e63c1a4d4ba3b31f00939c2d",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "Sources",
+        "ToolRows",
+        "close",
+        "db",
+        "entries",
+        "execute",
+        "get",
+        "query",
+        "set",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r1/jsq/overview/session-counts.js",
+      "bytes": 754,
+      "sha256": "d537333f7e022203d3efe74e948b8561c456912b98b10a57033a1e6ba812b481",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/query-commands/counts/session-counts.js",
+      "bytes": 1668,
+      "sha256": "3d01ef3ae3df725498df9a6abe471fac8eb725e609f622777ab226dc23f67993",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-high-r2/query-commands/discovery/schema.js",
+      "bytes": 284,
+      "sha256": "e6d6fb9e56f501221c17c24aeb5932e4568389fa558ded889a0354de24afeeac",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "schema"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r1/out/qrepo/session-counts.js",
+      "bytes": 951,
+      "sha256": "dfa7d31fc8f4202caed9fa5991e811cf5d6bf2951bfc756a63286e6fa6f07c5d",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-deepseek-4.1-flash-low-r2/query-commands/evidence/session-counts.js",
+      "bytes": 775,
+      "sha256": "79be7f5ecdc0c7be2126ab5d28146b7eae7158534f7d735a516acdb920700805",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r1/qc/session-counts.js",
+      "bytes": 735,
+      "sha256": "6b0a5bdef272f5c0f4bb0fa98545e5e726744b8b00464bd5c873a4ab9a2f9220",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-high-r2/work/commands/session-counts.js",
+      "bytes": 636,
+      "sha256": "c80f389091b696c7ccbcc2658e1e309bbbf3292c1b25920730230c3ee4523461",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-low-r1/queries/per-session-counts.js",
+      "bytes": 1281,
+      "sha256": "7d95a829fcad15027b7e5ebceaac03e8039186dfeea06ba7395d9a56e9ccc44b",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/A-glm-5.3-flash-low-r2/qc/session-counts.js",
+      "bytes": 828,
+      "sha256": "f94e133c34f2d7104bb52a03f2e0f013595c45b3d1ab232d3012321f3499349a",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/qrepo/probe/corpus.js",
+      "bytes": 2926,
+      "sha256": "26902d61009dc36a5ca8356392421d5864116e022c5849c1109dbfcfe2829137",
+      "methods": [
+        "Build",
+        "ByTool",
+        "Glob",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "args",
+        "cacheInfo",
+        "close",
+        "db",
+        "query",
+        "sources",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M8",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/qrepo/probe/fidelity.js",
+      "bytes": 8646,
+      "sha256": "d7cfd30a93e5bd18181c5de2087927c738b141e5883b360d56d9d6a875d6f879",
+      "methods": [
+        "Build",
+        "ByTool",
+        "File",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "close",
+        "codePointAt",
+        "corpusManifest",
+        "db",
+        "execute",
+        "from",
+        "map",
+        "name",
+        "query",
+        "queryOne",
+        "queryResult",
+        "schema",
+        "sql",
+        "tables",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r1/qrepo/probe/unicode.js",
+      "bytes": 351,
+      "sha256": "a0722a84efd39d44bca19937cf7e008e144a9f462353043610cfb9048a19a99b",
+      "methods": [
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/fidelity/fidelity.js",
+      "bytes": 5765,
+      "sha256": "72a1dcdce7500a6255daef8821938fa4675ddca5fbe67d951390576b79d21547",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "map",
+        "name",
+        "query",
+        "queryOne",
+        "queryResult",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/manifest/manifest.js",
+      "bytes": 1842,
+      "sha256": "c98447e4d323b1566da4a125532a39c6bd702475aaeaefbb177d86f34c48b8f7",
+      "methods": [
+        "call",
+        "corpusManifest",
+        "filter",
+        "json",
+        "map"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/probe/p2.js",
+      "bytes": 502,
+      "sha256": "fb572a94f70ae4e32136cc16c003c6c749eec5f77d488e49340368f827c3e3d0",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "filter",
+        "map",
+        "query",
+        "sql",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/probe/p3.js",
+      "bytes": 430,
+      "sha256": "cfe73682afb3cea9a75957550bc09569f731db62dbc67f5ff680617286c2a93e",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "filter",
+        "map",
+        "tables",
+        "test"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/probe/probe.js",
+      "bytes": 789,
+      "sha256": "842e6a85b45d6f5539881728cb334d57072f611e871e0290920a15c095f029e0",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "name",
+        "query",
+        "sources",
+        "sql",
+        "tables",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/tokens/tokens.js",
+      "bytes": 5895,
+      "sha256": "f993f3bc50da65e32208326955214d588b3e56b2b89ecc7d411f6267e7a24917",
+      "methods": [
+        "Build",
+        "ByTool",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionID",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "add",
+        "close",
+        "db",
+        "execute",
+        "from",
+        "keys",
+        "map",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-high-r2/js/unicode/unicode.js",
+      "bytes": 4601,
+      "sha256": "5d0d8629ce05ed3aaa36cf13d53a76655845b044b9d20e38f6270d47889fd4d7",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "close",
+        "db",
+        "map",
+        "query",
+        "queryResult",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/main.js",
+      "bytes": 12381,
+      "sha256": "06d3a29b5cb8b19f0c613eb7229bd8b19e920a70e990947f3e549bde9ec43f09",
+      "methods": [
+        "Build",
+        "ByTurn",
+        "Files",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "assign",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "forEach",
+        "join",
+        "map",
+        "name",
+        "pop",
+        "push",
+        "query",
+        "queryOne",
+        "queryResult",
+        "slice",
+        "split",
+        "sql",
+        "stringify",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe1.js",
+      "bytes": 794,
+      "sha256": "b2eaf8cbd16184c9f0a908ff0ddd51b62a4b5006eb45e8999665d54d93b2bc77",
+      "methods": [
+        "Build",
+        "Files",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "close",
+        "db",
+        "queryResult",
+        "stringify",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe2.js",
+      "bytes": 664,
+      "sha256": "10f9af7b8be6d16f80f628999d6b465609313d99acc93f200f88a6f9636031c0",
+      "methods": [
+        "Build",
+        "Files",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "map",
+        "schema",
+        "slice",
+        "stringify",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r1/qrepo/fidelity/probe3.js",
+      "bytes": 451,
+      "sha256": "f209efcd7f35f2acca6df6d2b81495f2d96b702b6b60eb6b38fb42c9c52c8115",
+      "methods": [
+        "Build",
+        "ByTurn",
+        "Files",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "query",
+        "sql",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r2/queries/fid/fidelity.js",
+      "bytes": 7771,
+      "sha256": "b3172c6bdfc7e05bf923f8787ef37fd74b40e65689c38b214be8bae35c1dc713",
+      "methods": [
+        "Build",
+        "ByTool",
+        "ByTurn",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "keys",
+        "map",
+        "push",
+        "query",
+        "queryOne",
+        "queryResult",
+        "sql",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-deepseek-4.1-flash-low-r2/queries/fid/limits.js",
+      "bytes": 2757,
+      "sha256": "d94ce44cbe8bc32f28d7998f1c6b094d62f20f75ba0d49340b3a0cb46dc489da",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "MaxRows",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "close",
+        "db",
+        "keys",
+        "queryResult",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r1/qrepo/evidence/fidelity.js",
+      "bytes": 8823,
+      "sha256": "8209251b5709f0c6189583a89cbafc475a3514f57429a0c76bcdd2fc409a9ff6",
+      "methods": [
+        "Archive",
+        "Build",
+        "ByTool",
+        "MaxCellBytes",
+        "MaxRows",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "includes",
+        "join",
+        "map",
+        "name",
+        "query",
+        "queryOne",
+        "queryResult",
+        "sql",
+        "stringIn",
+        "utf8ByteLength",
+        "values"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M3",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/lab.js",
+      "bytes": 11773,
+      "sha256": "b969f5b4426ae7ad343ab6d8f4eb517d116a8b108afa6adf678557ed7354f7fe",
+      "methods": [
+        "Build",
+        "ByTool",
+        "ByTurn",
+        "File",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "Sources",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "cacheInfo",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "filter",
+        "forEach",
+        "includes",
+        "indexOf",
+        "localeCompare",
+        "map",
+        "push",
+        "query",
+        "queryOne",
+        "queryResult",
+        "slice",
+        "sort",
+        "sources",
+        "sql",
+        "stringify",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M8",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-corpus-manifest.js",
+      "bytes": 829,
+      "sha256": "6ac281b4fd1a0885fc40aac1239f288cf2b891b4398067f3aed52f5fdb7ecf27",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "corpusManifest",
+        "db",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-envelope-contrast.js",
+      "bytes": 2319,
+      "sha256": "62d24406db50ca6600635664ac27ac9c5b5172a947d1f31f531864710e4cba04",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryOne",
+        "queryResult",
+        "slice",
+        "sources",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-framework-summary.js",
+      "bytes": 1416,
+      "sha256": "d3859a69837c3fd9a9eec70463c69b7431c177dab9539c994bb9d280736c2f1e",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "TokenUsageRows",
+        "cacheInfo",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "queryOne",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M8",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-row-overflow.js",
+      "bytes": 915,
+      "sha256": "4c0a6d05f43557effdfbedcc1d956430fb8dee11ef76e38a67e12cd2e0eac0c1",
+      "methods": [
+        "Build",
+        "File",
+        "MaxRows",
+        "SQLiteMemory",
+        "Sources",
+        "close",
+        "db",
+        "queryResult",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-strict-checks.js",
+      "bytes": 879,
+      "sha256": "793afb1d35b12b44c439b56322d3ac6b1d84a8990df419f3d946c4c294a510e9",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "Sources",
+        "StrictEvidence",
+        "close",
+        "db",
+        "queryResult",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-provenance-tools.js",
+      "bytes": 1816,
+      "sha256": "9706914fa56ec48892afcd6c920a0fb918101b6fa3ba7c7ee6603bc200289124",
+      "methods": [
+        "Build",
+        "ByTool",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "filter",
+        "includes",
+        "push",
+        "query",
+        "slice",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-provenance.js",
+      "bytes": 1944,
+      "sha256": "571bc4e6e82f01c9b6187fc2b08cd0cffd6e4a21419c5f1b14187eb63746cbff",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "filter",
+        "includes",
+        "map",
+        "push",
+        "query",
+        "slice",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-token-zero-vs-missing.js",
+      "bytes": 1022,
+      "sha256": "3ac28289f627a52844345307ec6547dd3a106168f81077087075afc1cc2169a5",
+      "methods": [
+        "Build",
+        "ByTurn",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "query",
+        "sources"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-tool-fidelity.js",
+      "bytes": 2275,
+      "sha256": "6af345821ab89f405e90e8d1a7aa69654ac273adc0ba2be0bb18934f06ccaf09",
+      "methods": [
+        "Build",
+        "File",
+        "SQLiteMemory",
+        "Sources",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "indexOf",
+        "localeCompare",
+        "map",
+        "query",
+        "slice",
+        "sort",
+        "sources",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-high-r2/qclab/analysis/v-unicode-checks.js",
+      "bytes": 1041,
+      "sha256": "17cc484c19046a58cfd6f5acdaf534b7f71acb932447f2b5da76963f17ff77e8",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "SQLiteMemory",
+        "Sources",
+        "close",
+        "db",
+        "queryResult",
+        "sources",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r1/commands/archive-summary.js",
+      "bytes": 1587,
+      "sha256": "0e5bdb8ee05ed2038f2fe9185ba518214229aa09cd8ed37c8868d88911d69562",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "SessionID",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "push",
+        "query",
+        "queryOne"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r1/commands/fidelity-lab.js",
+      "bytes": 4009,
+      "sha256": "ddaeca35f7aa6e85f2c5d6c1b88af9ce7231c4d045022d6bab69542954036eb4",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "query",
+        "queryOne",
+        "queryResult",
+        "sql",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r2/qrepo/fidelity/fidelity.js",
+      "bytes": 4841,
+      "sha256": "6c45f3c0639819c67e04fbd9c3d6228829cad2e42576db5ea8954623237ff30c",
+      "methods": [
+        "Build",
+        "File",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "TokenUsageRows",
+        "ToolRows",
+        "args",
+        "close",
+        "corpusManifest",
+        "db",
+        "execute",
+        "map",
+        "name",
+        "query",
+        "queryOne",
+        "queryResult",
+        "slice",
+        "sql",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r2/qrepo/fidelity/summary.js",
+      "bytes": 1537,
+      "sha256": "03327e7c7faadc37ee06519a4e4c04d4ffa5da5fb7858aa2d49af8304b5962e9",
+      "methods": [
+        "Build",
+        "Files",
+        "SQLiteMemory",
+        "TokenUsageRows",
+        "close",
+        "db",
+        "execute",
+        "join",
+        "query",
+        "values"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/B-glm-5.3-flash-low-r2/qrepo/fidelity/tables.js",
+      "bytes": 366,
+      "sha256": "f09035ab129f6f3c5b8a4feb1acef1c52e280d047d725a89ea516b86f4620983",
+      "methods": [
+        "Build",
+        "Files",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r1/repos/native-scan/native-scan.js",
+      "bytes": 12079,
+      "sha256": "a4bcc355ec51a3632d437ad40b799226562892f1b2083fa6f1943c382762eebb",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "call",
+        "indexOf",
+        "keys",
+        "map",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-bounds.js",
+      "bytes": 1850,
+      "sha256": "3c352b1b5308016998b44ada5c70b81045bc032a048e569a64aa44c590488acc",
+      "methods": [
+        "File",
+        "ForEach",
+        "MaxRecordBytes",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-detail.js",
+      "bytes": 2531,
+      "sha256": "7076ce71e1c3ce74354e8d251ce08f2b31e0083a6cb2baad6f345eba1a29e894",
+      "methods": [
+        "File",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "keys",
+        "native",
+        "push",
+        "slice",
+        "values"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-inspect.js",
+      "bytes": 2335,
+      "sha256": "816bdf42431b8a6d6a0cf8c4078066e8fe086670d91157c5a8ccff82f0d2c740",
+      "methods": [
+        "File",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "map",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-high-r2/qrepo/native/native-scan.js",
+      "bytes": 1533,
+      "sha256": "4205e7112f8e1e642fa7773fce5066eb73902482c0d7c3fb61e1f50e9e6a19e7",
+      "methods": [
+        "File",
+        "ForEach",
+        "MaxRecordBytes",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r1/jsrepo/evidence/native.js",
+      "bytes": 4425,
+      "sha256": "ab28d2345d6628f684a4cce56721fec303d956a004defdeeb721adf7ed187a7e",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "filter",
+        "keys",
+        "map",
+        "native",
+        "push",
+        "reduce"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-deepseek-4.1-flash-low-r2/qr/native/native-scan.js",
+      "bytes": 3058,
+      "sha256": "ce61ee70c642dbc470fd96a5f5008a6c65564006d5e0068406f87d42ef8256ba",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "filter",
+        "map",
+        "native",
+        "push",
+        "slice"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r1/queryrepo/native/native-scan.js",
+      "bytes": 5753,
+      "sha256": "e8c33a524baabfcccdf93b4ef46fba87276e08ddf04a379e896fa0ec411036d1",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "filter",
+        "keys",
+        "map",
+        "native",
+        "push",
+        "slice"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-counts.js",
+      "bytes": 1935,
+      "sha256": "aff6a0ccbf9832d7fc409edcd429e21f1de390be403a66c943cf741955be2302",
+      "methods": [
+        "File",
+        "Inspect",
+        "filter",
+        "keys",
+        "map",
+        "native",
+        "pop",
+        "push",
+        "slice",
+        "split"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-diag.js",
+      "bytes": 1523,
+      "sha256": "e712237b8ccbf008d2091b4bfa4917913edf58d13e5bab29f2ca11fcb485b9e3",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "keys",
+        "native",
+        "slice",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-inspect.js",
+      "bytes": 3802,
+      "sha256": "f2c0a6e00aa3646502a36a078a2b4818065a80807f24288b4b95928a52121d9c",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "filter",
+        "keys",
+        "map",
+        "native",
+        "slice"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-high-r2/qs/native-scan.js",
+      "bytes": 2134,
+      "sha256": "1f551a91059caf82bf9d8ebe975b2d2d63d70a0dfb6fb4bb73f7cfb1fb4e517f",
+      "methods": [
+        "File",
+        "ForEach",
+        "MaxRecordBytes",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r1/queries/native-scan.js",
+      "bytes": 5537,
+      "sha256": "01b2609c913be566457206892249ec78b8fa190a4a26e339c5795b8c25bf95d8",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxIndexBytes",
+        "MaxRecordBytes",
+        "filter",
+        "keys",
+        "map",
+        "native",
+        "push",
+        "replace",
+        "slice"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r2/native-commands/inspect-d047.js",
+      "bytes": 705,
+      "sha256": "16029d6d65aed3c80d88c7ed7423fffd2960b4f9cd3212b528705fa79ebe4de3",
+      "methods": [
+        "File",
+        "Inspect",
+        "filter",
+        "forEach",
+        "map",
+        "native",
+        "slice"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/C-glm-5.3-flash-low-r2/native-commands/native-scan.js",
+      "bytes": 4369,
+      "sha256": "99a6e452ef561f1f14cb6d835172ca8ace9d158a3d5b1b63316d106c57b06f22",
+      "methods": [
+        "File",
+        "ForEach",
+        "Inspect",
+        "MaxRecordBytes",
+        "filter",
+        "indexOf",
+        "keys",
+        "map",
+        "native",
+        "push"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M6",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/bad.js",
+      "bytes": 750,
+      "sha256": "205bb1bb0362ec043326d43fd0fe8e54a42eccb09fe4c2eb363626c6b1b3b0f8",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/good.js",
+      "bytes": 2109,
+      "sha256": "690b8e1508ad41627a6121d5e620ccd10e82830ab3d8f38cd95d64bc1c716a9b",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "isArray",
+        "map",
+        "query",
+        "queryResult",
+        "schema",
+        "tables",
+        "trim"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/probe.js",
+      "bytes": 985,
+      "sha256": "fe00fb6f7594e76d5a4052386d9939b0a03de7ef6730592fce171164e0282a68",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "isArray",
+        "queryResult",
+        "schema",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r1/commands/raw.js",
+      "bytes": 756,
+      "sha256": "751396d89eb697e4e1b484fee0beead6318bb5346687a951712d5b10fe31a133",
+      "methods": [
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/bad.js",
+      "bytes": 336,
+      "sha256": "3b23cc59bd2ab0ef65146fdbf7d914263a224aee2bc219163dccde424242bf5c",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/good.js",
+      "bytes": 3008,
+      "sha256": "eb33df048dc62ee954bade9cdcdd4a350394810f9f9bbde54a3eb53fb4e4d21d",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "MaxRows",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "filter",
+        "isArray",
+        "map",
+        "name",
+        "push",
+        "query",
+        "schema",
+        "slice",
+        "sort",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/probe.js",
+      "bytes": 942,
+      "sha256": "bb99aa577bdd66f211bc2c63a13c5850bb39a57587cffe769c6630c60e270813",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "map",
+        "queryResult",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-high-r2/commands/raw.js",
+      "bytes": 970,
+      "sha256": "c76ef1302a9c05907c08efc3da026997a0fee491a8b50ff845c436fdef31825a",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "isArray",
+        "map",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/bad.js",
+      "bytes": 641,
+      "sha256": "af98f519fc261b3bbf0e68b3b9f8bc687ce5e54a7cb6b5f081bcf0913e8c7db6",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/contrast.js",
+      "bytes": 979,
+      "sha256": "2a1120f6ac8ef3dd5a1b818dc4646af4ea8cd63f4455034ff60a6dd0367c59d2",
+      "methods": [],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/disallowed.js",
+      "bytes": 840,
+      "sha256": "20b28d1728f78de60a30f562894df15f8ad2e0f8d8006b9a2f22fe920aced4d1",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "queryResult",
+        "schema",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/good.js",
+      "bytes": 1825,
+      "sha256": "b69ad41906157bd83c687607be1e7023b80d811a9808417cfe9bd0533233fc56",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query",
+        "source_format"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/introspection.js",
+      "bytes": 782,
+      "sha256": "73083388930dd2a10d78d786b6a36ef65eae1d7651ba54665fb2650b37d080e6",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "schema",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M7",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r1/commands/tool-rows.js",
+      "bytes": 1251,
+      "sha256": "7e68cff70ebe41e06e6f79b0ee83d0779defa079aa50e3e29a62cff817d82680",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "name",
+        "query",
+        "slice",
+        "sql"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/commands/bad.js",
+      "bytes": 600,
+      "sha256": "60db35e4bdc7a271c19d8d203f20e2e6136cb8dbcfd89fd8578bb6d8feed0249",
+      "methods": [],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/commands/contrast.js",
+      "bytes": 958,
+      "sha256": "27c20b42a099978bb0d4d42382456549d575294cd99c7220a32f91477ead4a1a",
+      "methods": [
+        "Build",
+        "SessionSummary",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-deepseek-4.1-flash-low-r2/commands/good.js",
+      "bytes": 2334,
+      "sha256": "ba92b1cfc144a55ca6b093c3e6154209a5e8df3045e115ed54b3032b395343a2",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "join",
+        "keys",
+        "map",
+        "query",
+        "schema",
+        "sort",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r1/commands/bad.js",
+      "bytes": 1245,
+      "sha256": "4678f684d97333458045d364cfa9ecd9768929a893a90d0105e26f33524ee1c9",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r1/commands/good.js",
+      "bytes": 3409,
+      "sha256": "15adeec3260fae8ba2480738ac7a7e403ad068faaab4064c5b599dab4ca21bf5",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "isArray",
+        "js",
+        "map",
+        "query",
+        "schema",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M7",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r1/commands/rawdemo.js",
+      "bytes": 837,
+      "sha256": "abcc3d8ff3c74c03e448f6af3ba542b62d27a9d5eaa8bcdfae32463ad38f2b1c",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "schema",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r2/commands/bad.js",
+      "bytes": 925,
+      "sha256": "0ab2e499f1c5a04c1e15f0386ae79a45cca985d3980bf701ff668124009528ca",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r2/commands/formats.js",
+      "bytes": 834,
+      "sha256": "f8daf8958c1d22803b72a10492e9560be209494a07864dcdcf9084d2882ab9d3",
+      "methods": [
+        "stringify"
+      ],
+      "imports": [],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-high-r2/commands/good.js",
+      "bytes": 3586,
+      "sha256": "b1d6d91533362e352ad4a5be9a56cf64004f3784f9ab9562f3ebf4432787c462",
+      "methods": [
+        "Build",
+        "MaxCellBytes",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "ToolRows",
+        "close",
+        "db",
+        "execute",
+        "join",
+        "keys",
+        "map",
+        "query",
+        "queryResult",
+        "schema",
+        "sort",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r1/commands/bad.js",
+      "bytes": 748,
+      "sha256": "9a1009b1fff5a2692d2fcedc5e3ceae85a3b27eaf929e431f8f8d4674ec974a3",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r1/commands/good.js",
+      "bytes": 2640,
+      "sha256": "30f3664ac7233c4f39ed9fedfbef579fe0d5fce260785f94f7893705f1be8e9a",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "ToolRows",
+        "args",
+        "close",
+        "db",
+        "execute",
+        "find",
+        "map",
+        "query",
+        "schema",
+        "slice",
+        "sql",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r2/commands/bad.js",
+      "bytes": 843,
+      "sha256": "16affe1b8f6728908cb33d6d644a84531468a382e59390643a1743fedc29c547",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/D-glm-5.3-flash-low-r2/commands/good.js",
+      "bytes": 3128,
+      "sha256": "b644e59637970817590b396b1409b27187fb4012aebb6708037861511c2545c9",
+      "methods": [
+        "Build",
+        "QueryCommandDefaults",
+        "RuntimeArchives",
+        "SessionID",
+        "ToolRows",
+        "close",
+        "concat",
+        "db",
+        "execute",
+        "join",
+        "map",
+        "query",
+        "queryResult",
+        "schema",
+        "slice",
+        "stringify",
+        "tables"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M5",
+        "M6",
+        "M9",
+        "M10 (review fixture intent)"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/pilot/utf8-demo.js",
+      "bytes": 2419,
+      "sha256": "3d8f5066e62cea2d1c32982355482e9db5e3aa85cca97045e69bfe466b6bf284",
+      "methods": [
+        "Build",
+        "Content",
+        "MaxCellBytes",
+        "Name",
+        "SQLiteMemory",
+        "Sources",
+        "StrictEvidence",
+        "close",
+        "db",
+        "queryResult",
+        "sources",
+        "stringify",
+        "utf8ByteLength"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/repros/runtime-archives-helper.js",
+      "bytes": 461,
+      "sha256": "05fac59833c0cfa7d2385b003cc005e39c503f7dc8d46e55c11d67e099f4bed0",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/repros/runtime-archives-inline.js",
+      "bytes": 279,
+      "sha256": "1d176a89bc27aea00357ef50d04cac332ed6ab1070867e1c4dd2630c190cf6e7",
+      "methods": [
+        "Build",
+        "RuntimeArchives",
+        "SQLiteMemory",
+        "close",
+        "db",
+        "query"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/query-fidelity/fidelity-probe.js",
+      "bytes": 1356,
+      "sha256": "46163c4f2ffabdc0c7a635ec5116943372788c82309d3366a4059271fd2a471a",
+      "methods": [
+        "Build",
+        "Content",
+        "MaxCellBytes",
+        "MaxRows",
+        "SQLiteMemory",
+        "StrictEvidence",
+        "close",
+        "db",
+        "execute",
+        "forEach",
+        "push",
+        "stringify"
+      ],
+      "imports": [
+        "minitrace"
+      ],
+      "disposition": "historical; preserve original",
+      "migration_families": [
+        "M1",
+        "M2",
+        "M9"
+      ]
+    },
+    {
+      "path": "web/eslint.config.js",
+      "bytes": 787,
+      "sha256": "6a4cafb6253483af89a9273c8bf1bd2942d10d525e68cccb8d181c9b842cb696",
+      "methods": [],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "web/public/mockServiceWorker.js",
+      "bytes": 9121,
+      "sha256": "49d2c393373b33118cdc7bd4bf2733f1c24e1a4945da8e505cd6985c95560a55",
+      "methods": [
+        "add",
+        "arrayBuffer",
+        "claim",
+        "clone",
+        "defineProperty",
+        "delete",
+        "entries",
+        "error",
+        "filter",
+        "find",
+        "fromEntries",
+        "get",
+        "has",
+        "join",
+        "map",
+        "matchAll",
+        "now",
+        "postMessage",
+        "randomUUID",
+        "respondWith",
+        "set",
+        "skipWaiting",
+        "split",
+        "trim",
+        "unregister",
+        "waitUntil"
+      ],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "web/src/gen/proto/go_go_golems/minitrace/api/v1/annotations_pb.js",
+      "bytes": 10038,
+      "sha256": "d09d9909c1aeb6ac5a5c757c9ff1af0915229cadc4a8ee07a0078dabd8873986",
+      "methods": [
+        "proto"
+      ],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "web/src/gen/proto/go_go_golems/minitrace/api/v1/common_pb.js",
+      "bytes": 4936,
+      "sha256": "77c3dc58171a0117dfb3398d6c615e430a328a181634dd4f24914b53799f4340",
+      "methods": [
+        "proto"
+      ],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "web/src/gen/proto/go_go_golems/minitrace/api/v1/queries_pb.js",
+      "bytes": 3317,
+      "sha256": "aef18657bcaa9ec6e0e55ceb8f5252ee56fa9ca0ef167f799469308dfb50b055",
+      "methods": [
+        "proto"
+      ],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "web/src/gen/proto/go_go_golems/minitrace/api/v1/query_commands_pb.js",
+      "bytes": 4468,
+      "sha256": "83bfb139564388c4eb0caae68af9aa39adb72c9ec205c9695990958ea8ff866f",
+      "methods": [
+        "proto"
+      ],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    },
+    {
+      "path": "web/src/gen/proto/go_go_golems/minitrace/api/v1/sessions_pb.js",
+      "bytes": 11874,
+      "sha256": "d25c76c75e3957755455b78fed25d0af2f6f22faacc3a0d5dfaae4a87ee37143",
+      "methods": [
+        "proto"
+      ],
+      "imports": [],
+      "disposition": "web/generated; outside query API",
+      "migration_families": [
+        "M10 (unchanged external/web tooling)"
+      ]
+    }
+  ]
+}

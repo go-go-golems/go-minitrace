@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const SchemaVersion = "normalized-sqlite-v5"
+const SchemaVersion = "normalized-sqlite-v6"
 
 // SessionsBaseCompatView is a compatibility VIEW that reconstructs the legacy
 // DuckDB `sessions_base` shape (5 scalar columns plus JSON blob columns) from
@@ -317,6 +317,7 @@ func toolCallsTable() TableDescriptor {
 		Columns: []ColumnDescriptor{
 			{Name: "session_id", Type: "TEXT", PrimaryKey: true},
 			{Name: "tool_call_id", Type: "TEXT", PrimaryKey: true},
+			{Name: "source_ordinal", Type: "INTEGER"},
 			{Name: "emitting_turn_index", Type: "INTEGER", Nullable: true},
 			{Name: "timestamp", Type: "TEXT", Nullable: true},
 			{Name: "tool_name", Type: "TEXT", Nullable: true},
@@ -328,6 +329,7 @@ func toolCallsTable() TableDescriptor {
 			{Name: "arguments_json", Type: "TEXT", Nullable: true},
 			{Name: "success", Type: "INTEGER", Nullable: true},
 			{Name: "outcome_status", Type: "TEXT", Nullable: true},
+			{Name: "output_status", Type: "TEXT", Nullable: true},
 			{Name: "result", Type: "TEXT", Nullable: true},
 			{Name: "error", Type: "TEXT", Nullable: true},
 			{Name: "exit_code", Type: "INTEGER", Nullable: true},
@@ -351,6 +353,7 @@ func toolCallsTable() TableDescriptor {
 		CreateSQL: `CREATE TABLE IF NOT EXISTS tool_calls (
 	session_id TEXT NOT NULL,
 	tool_call_id TEXT NOT NULL,
+	source_ordinal INTEGER NOT NULL,
 	emitting_turn_index INTEGER,
 	timestamp TEXT,
 	tool_name TEXT,
@@ -362,6 +365,7 @@ func toolCallsTable() TableDescriptor {
 	arguments_json TEXT,
 	success INTEGER,
 	outcome_status TEXT,
+	output_status TEXT,
 	result TEXT,
 	error TEXT,
 	exit_code INTEGER,

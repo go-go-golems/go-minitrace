@@ -82,31 +82,32 @@ func TestGojaFidelityViews(t *testing.T) {
 	if err := vm.Set("paths", paths); err != nil {
 		t.Fatal(err)
 	}
+	loadAnalysisLibrary(t, vm)
 	_, err = vm.RunString(`
  const check=(condition,message)=>{if(!condition)throw new Error(message)};
- const db=mt.db().File(paths[0]).File(paths[1]).Build();
+ const db=mt.db().sources(mt.sources().files(paths).build()).build();
  try {
-  const recipe=builder=>{const r=builder.Build();return db.query(r.sql(),...r.args())};
-  const tools=recipe(mt.query().ToolRows().SessionID('a'));
+  const rows=query=>{const r=db.execute(query.build());check(r.complete&&!r.error,r.error);return r.rows};
+  const tools=rows(analysis.toolRows('a'));
   check(tools.length===6,'tool rows lost');
   const failed=tools.find(t=>t.tool_call_id==='failed');
   check(failed.record_kind==='execution' && failed.outcome_status==='failed','tool kind/status missing');
   check(failed.full_hash==='sha256:test' && failed.full_reference==='source#L4','output provenance lost');
   check(JSON.parse(failed.framework_metadata_json).parent_association==='unknown','framework metadata lost');
   check(JSON.parse(failed.file_targets_json).length===2,'nested targets lost');
-  const files=recipe(mt.query().FileRows().SessionID('a'));
+  const files=rows(analysis.fileRows('a'));
   check(files.length===2 && files.every(f=>f.success===null && f.evidence_status==='attempted'),'file evidence lost');
-  const summary=mt.view().DB(db).SessionID('a').SessionSummary().Run();
+  const summary=rows(analysis.sessionSummary('a'))[0];
   check(summary.execution_record_count===6 && summary.file_touch_count===2 && summary.confirmed_file_target_count===0,'summary counters lost');
-  const timeline=mt.view().DB(db).SessionID('a').Timeline().Run();
+  const timeline=rows(analysis.timelineRows('a'));
   const first=timeline.find(t=>t.turn_index===0),last=timeline.find(t=>t.turn_index===5);
   check(first.tool_call_count===4 && first.failed_tool_count===1 && first.unknown_tool_count===3,'join multiplied tool outcomes');
   check(first.file_count===2 && first.file_touch_count===2 && first.confirmed_file_target_count===0,'join multiplied targets');
   check(first.has_annotations===1 && last.has_annotations===0,'annotation scopes conflated');
-  const transcript=recipe(mt.query().TranscriptRows().IncludeTools());
+  const transcript=rows(analysis.transcriptRows({includeTools:true}));
   check(transcript.filter(r=>r.role==='tool').length===12,'memberships duplicated transcript tools');
   check(transcript.filter(r=>r.tool_call_id==='detached').every(r=>r.turn_index===null),'transcript fabricated turn zero');
-  const frames=mt.view().DB(db).TurnFrames().Run();
+  const frames=analysis.turnFrames(db);
   check(frames.length===6,'sessions or null turns conflated');
   for(const id of ['a','b']) {
    const frame=frames.find(f=>f.sessionId===id && f.turnIndex===0);
@@ -114,11 +115,31 @@ func TestGojaFidelityViews(t *testing.T) {
    const detached=frames.find(f=>f.sessionId===id && f.unassociated);
    check(detached.turnIndex===null && detached.toolCalls.length===1 && detached.stats.unknownToolCalls===1,'unassociated frame lost');
   }
-  const preview=mt.importer().File(paths[0]).Preview();
+  const usage = rows(analysis.turnTokenUsage("a"));
+  check(usage.length===2 && usage[0].token_unit==="tokens",'turn usage lost');
+  const grouped=rows(analysis.sessionTokenUsage("a"));
+  check(grouped.length===1 && grouped[0].scope==="session",'session usage lost');
+  const byRole=rows(analysis.roleTokenUsage("a"));
+  check(byRole.length>0 && byRole.every(row=>row.scope==="role"),'role usage lost');
+  const estimated=rows(analysis.toolTokenUsage("a"));
+  check(estimated.length===6 && estimated.every(row=>row.token_unit==="estimated_tokens"),'estimate labels lost');
+  const preview=mt.importer().file(paths[0]).preview();
   check(preview.sampleTools[0].recordKind==='execution' && preview.sampleTools[0].fileTargets.length===2,'preview evidence lost');
  } finally {db.close()}
  `)
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func loadAnalysisLibrary(t *testing.T, vm *goja.Runtime) {
+	t.Helper()
+	source, err := os.ReadFile("../../../examples/query-library/analysis.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := vm.RunScript("analysis.js", "const analysis = ((require) => { const exports = {};\n"+
+		string(source)+"\nreturn exports; })(() => mt);"); err != nil {
 		t.Fatal(err)
 	}
 }

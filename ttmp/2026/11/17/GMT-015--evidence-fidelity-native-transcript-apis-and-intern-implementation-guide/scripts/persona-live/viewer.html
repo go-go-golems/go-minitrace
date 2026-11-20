@@ -1,0 +1,1684 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona runs · go-minitrace</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Charter, Georgia, ui-serif, serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --bg: #f5f3ed; --surface: #fffdf8; --sunken: #eeebe2;
+  --ink: #1c2220; --ink-2: #3f4945; --muted: #5a645f;
+  --line: #dcd8cc; --line-strong: #b5b0a1; --accent: #0d6259;
+  --pass: #176540; --pass-bg: #e2f2e8;
+  --fail: #a8231b; --fail-bg: #fbe8e4;
+  --warn: #7a5000; --warn-bg: #faefd4;
+  --live: #1c5ca3; --live-bg: #e4eefa;
+  --judge: #64389a; --judge-bg: #efe8f8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111514; --surface: #181e1c; --sunken: #0c100f;
+    --ink: #e8ece8; --ink-2: #c6cec9; --muted: #9ba6a1;
+    --line: #2a3330; --line-strong: #4a5651; --accent: #62c9b8;
+    --pass: #7ad6a1; --pass-bg: #15301f;
+    --fail: #ff9f93; --fail-bg: #3a1a17;
+    --warn: #e9bf6a; --warn-bg: #33270f;
+    --live: #92c0f6; --live-bg: #152a42;
+    --judge: #c9a9f3; --judge-bg: #2a1f3d;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scrollbar-gutter: stable; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+h1, h2, h3, h4, h5, h6, p, dl, dd, figure, fieldset { margin: 0; padding: 0; border: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+[tabindex="-1"]:focus { outline: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip { position: absolute; left: .75rem; top: -4rem; z-index: 30; background: var(--ink); color: var(--bg); padding: .5rem .8rem; border-radius: 6px; }
+.skip:focus { top: .5rem; }
+
+/* Masthead and run picker */
+.masthead { padding: 1rem clamp(.9rem, 3vw, 2rem) .8rem; border-bottom: 1px solid var(--line); background: var(--surface); }
+.masthead-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1.4rem; max-width: 86rem; margin: 0 auto .7rem; }
+.brand { display: flex; align-items: baseline; gap: .6rem; }
+.brand h1 { font: 600 1.3rem/1.2 var(--serif); letter-spacing: -.005em; }
+.brand span { color: var(--muted); font: .78rem var(--mono); }
+.meta { display: flex; flex-wrap: wrap; gap: .1rem 1.1rem; color: var(--muted); font-size: .82rem; }
+.meta div { display: flex; gap: .35rem; }
+.meta dd { color: var(--ink-2); font-weight: 550; overflow-wrap: anywhere; }
+.conn { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.conn::before { content: ""; display: inline-block; width: .5rem; height: .5rem; margin-right: .4rem; border-radius: 50%; background: var(--line-strong); }
+.conn[data-state="live"] { color: var(--pass); }
+.conn[data-state="live"]::before { background: var(--pass); }
+.conn[data-state="lost"] { color: var(--fail); }
+.conn[data-state="lost"]::before { background: var(--fail); }
+.runs { max-width: 86rem; margin: auto; min-width: 0; }
+.runs legend { font-size: .72rem; font-weight: 650; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; margin-bottom: .3rem; padding: 0; }
+#runs { display: flex; gap: .5rem; overflow-x: auto; padding: 2px 2px 4px; }
+.run { position: relative; flex: 0 0 auto; display: grid; gap: .25rem; max-width: 19rem; min-width: 10rem; padding: .45rem .7rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; }
+.run:hover { border-color: var(--line-strong); }
+.run.is-selected { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: var(--surface); }
+.run:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.run input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.run-name { font: 600 .82rem/1.3 var(--mono); overflow-wrap: anywhere; }
+.run-status { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .5rem; font-size: .75rem; color: var(--muted); }
+.banner { padding: .55rem clamp(.9rem, 3vw, 2rem); background: var(--fail-bg); color: var(--fail); font-weight: 550; font-size: .88rem; }
+
+/* View bar */
+.bar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem 1rem; padding: .45rem clamp(.9rem, 3vw, 2rem); background: var(--bg); border-bottom: 1px solid var(--line); }
+.views { display: flex; gap: .2rem; overflow-x: auto; padding: 2px; }
+.views button { flex: none; display: inline-flex; align-items: center; gap: .4rem; padding: .32rem .7rem; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 600; font-size: .88rem; cursor: pointer; }
+.views button:hover { color: var(--ink); background: var(--sunken); }
+.views button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.badge { font: 600 .72rem var(--mono); opacity: .85; }
+.badge[data-tone="fail"] { color: var(--fail); opacity: 1; }
+.views button[aria-pressed="true"] .badge[data-tone="fail"] { color: inherit; }
+.follow { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; font-size: .85rem; }
+.follow label { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
+.follow input { accent-color: var(--accent); width: 1rem; height: 1rem; margin: 0; }
+#followNote { color: var(--warn); font-size: .8rem; }
+.btn, .mini { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 6px; cursor: pointer; font-weight: 600; }
+.btn { padding: .28rem .7rem; font-size: .84rem; }
+.mini { padding: .08rem .45rem; font-size: .74rem; color: var(--ink-2); }
+.btn:hover, .mini:hover { border-color: var(--ink); }
+
+/* Page layout */
+.layout { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); align-items: start; max-width: 86rem; margin: auto; padding: 1.4rem clamp(.9rem, 3vw, 2rem) 5rem; }
+#rail { position: sticky; top: 3.6rem; display: grid; gap: 1.15rem; max-height: calc(100vh - 4.4rem); overflow-y: auto; padding: 2px; }
+#main { min-width: 0; max-width: 54rem; }
+#main:focus { outline: none; }
+
+/* Rail */
+.eyebrow { font-size: .72rem; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: .35rem; }
+.run-title { font: 600 1rem/1.3 var(--mono); overflow-wrap: anywhere; margin-bottom: .4rem; }
+.state-detail { margin-top: .4rem; font-size: .85rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.age { margin-top: .15rem; font-size: .78rem; color: var(--muted); }
+.rows { display: grid; gap: .4rem; }
+.rows > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .15rem .6rem; font-size: .85rem; }
+.rows dt { color: var(--muted); }
+.rows dd { font-weight: 600; font-variant-numeric: tabular-nums; }
+.rows dd[data-tone="fail"] { color: var(--fail); }
+.rows dd[data-tone="warn"] { color: var(--warn); }
+.linkish { padding: 0; border: 0; background: none; color: var(--accent); font-size: .82rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; margin-top: .3rem; }
+.turn-nav { list-style: none; margin: 0; padding: 0; display: grid; gap: .1rem; }
+.turn-nav button { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .2rem .5rem; padding: .32rem .4rem; border: 0; border-radius: 6px; background: none; font-size: .86rem; font-weight: 600; text-align: left; cursor: pointer; }
+.turn-nav button:hover { background: var(--sunken); }
+
+/* Status chips: every tone carries a text label, so colour is never the only signal */
+.chip { display: inline-flex; align-items: center; gap: .32em; padding: .08rem .5rem; border-radius: 999px; background: var(--sunken); color: var(--ink-2); font: 650 .74rem/1.45 var(--sans); white-space: nowrap; }
+.chip[data-tone="pass"] { background: var(--pass-bg); color: var(--pass); }
+.chip[data-tone="pass"]::before { content: "✓"; }
+.chip[data-tone="fail"] { background: var(--fail-bg); color: var(--fail); }
+.chip[data-tone="fail"]::before { content: "✕"; }
+.chip[data-tone="warn"] { background: var(--warn-bg); color: var(--warn); }
+.chip[data-tone="warn"]::before { content: "!"; font-weight: 800; }
+.chip[data-tone="live"] { background: var(--live-bg); color: var(--live); }
+.chip[data-tone="live"]::before { content: ""; width: .45em; height: .45em; border-radius: 50%; background: currentColor; animation: pulse 1.6s ease-in-out infinite; }
+.chip[data-tone="wait"] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--muted); }
+.chip[data-tone="judge"] { background: var(--judge-bg); color: var(--judge); }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .chip[data-tone="live"]::before { animation: none; } }
+
+/* Conversation */
+.band { display: flex; flex-wrap: wrap; gap: .2rem 1rem; padding: .45rem .75rem; margin-bottom: 1.4rem; background: var(--sunken); border-radius: 7px; font-size: .84rem; color: var(--muted); }
+.band strong { color: var(--ink-2); }
+.band span { font-variant-numeric: tabular-nums; }
+.turn, .evidence-body, .tool-detail, .tool-rows, .stack, .quiet > .fold-body, #rail { grid-template-columns: minmax(0, 1fr); }
+.turn { display: grid; gap: 1.15rem; padding-bottom: 2.4rem; margin-bottom: 1.8rem; border-bottom: 1px solid var(--line-strong); scroll-margin-top: 3.8rem; }
+.turn:last-of-type { border-bottom: 0; }
+.turn-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .3rem .9rem; }
+.turn-head h2 { font: 600 1.55rem/1.2 var(--serif); }
+.turn-meta { color: var(--muted); font-size: .82rem; }
+.voice { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .1rem .8rem; margin-bottom: .35rem; }
+.voice h3 { font-size: .74rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+time { color: var(--muted); font-size: .76rem; font-variant-numeric: tabular-nums; }
+.request { padding: .75rem .95rem; background: var(--sunken); border-radius: 9px; }
+.request .md { font-size: .98rem; font-weight: 500; }
+.reply .voice h3 { color: var(--accent); }
+.reply .md { font-family: var(--serif); font-size: 1.14rem; line-height: 1.6; max-width: 44rem; }
+.reply-note { padding-left: .9rem; border-left: 2px solid var(--line); }
+.reply-note .md { font-size: 1rem; color: var(--ink-2); }
+.pending { padding: .55rem .8rem; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--muted); font-size: .88rem; }
+.pending strong { color: var(--ink-2); }
+.followup { font-size: .92rem; color: var(--ink-2); }
+.followup-link { font-size: .84rem; color: var(--muted); }
+.note-line { display: flex; flex-wrap: wrap; gap: .1rem .6rem; font-size: .85rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.note-line strong { color: var(--muted); }
+.now { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .1rem 1rem; padding: .6rem .8rem; border-radius: 8px; background: var(--sunken); color: var(--ink-2); font-size: .88rem; }
+.now[data-tone="live"] { background: var(--live-bg); color: var(--live); }
+.now[data-tone="fail"] { background: var(--fail-bg); color: var(--fail); }
+.now .js-age { font-size: .8rem; opacity: .85; }
+.empty { padding: 1rem; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--muted); }
+
+/* Formatted prose */
+.md { overflow-wrap: anywhere; }
+.md > * + * { margin-top: .7em; }
+.md p { white-space: pre-line; }
+.md h4, .md h5, .md h6 { font-family: var(--sans); line-height: 1.3; margin-top: 1.1em; }
+.md h4 { font-size: 1.06em; }
+.md h5 { font-size: .96em; }
+.md h6 { font-size: .88em; color: var(--ink-2); }
+.md ul, .md ol { margin-block: .7em 0; padding-left: 1.5em; }
+.md li + li { margin-top: .25em; }
+.md li > ul, .md li > ol { margin-top: .25em; }
+.md blockquote { margin-inline: 0; padding-left: .85em; border-left: 3px solid var(--line-strong); color: var(--ink-2); }
+.md hr { border: 0; border-top: 1px solid var(--line); }
+.md code { padding: .06em .3em; border-radius: 4px; background: var(--sunken); font: .84em var(--mono); }
+.request .md code { background: var(--bg); }
+.url { font: .84em var(--mono); color: var(--muted); }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font: .84rem/1.4 var(--sans); font-variant-numeric: tabular-nums; }
+th, td { padding: .32rem .6rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { background: var(--sunken); font-weight: 650; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+.a-right { text-align: right; }
+.a-center { text-align: center; }
+
+/* Evidence panels: host replay, failures, judge */
+.evidence { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); overflow: hidden; scroll-margin-top: 3.8rem; }
+.evidence > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .25rem .8rem; padding: .5rem .85rem; background: var(--sunken); }
+.evidence > header h3 { font-size: .92rem; font-weight: 700; }
+.evidence[data-tone="pass"] > header { background: var(--pass-bg); }
+.evidence[data-tone="fail"] { border-color: var(--fail); }
+.evidence[data-tone="fail"] > header { background: var(--fail-bg); }
+.evidence[data-tone="warn"] > header { background: var(--warn-bg); }
+.evidence[data-tone="judge"] > header { background: var(--judge-bg); }
+.evidence .chip { background: var(--surface); }
+.evidence-body { display: grid; gap: .7rem; padding: .7rem .85rem .8rem; min-width: 0; }
+.evidence-sub { color: var(--muted); font-size: .8rem; }
+.evidence-text { font-size: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.judge-prose { font-family: var(--serif); font-size: 1.1rem; line-height: 1.6; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .5rem 1rem; }
+.facts dt { color: var(--muted); font-size: .76rem; }
+.facts dd { font: 600 1.28rem/1.25 var(--mono); overflow-wrap: anywhere; }
+.facts dd[data-tone="fail"] { color: var(--fail); }
+
+/* Folds and tool activity */
+.fold > summary { display: flex; align-items: center; gap: .55rem; cursor: pointer; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: "▸"; flex: none; color: var(--muted); font-size: .8em; transition: transform .12s; }
+.fold[open] > summary::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .fold > summary::before { transition: none; } }
+.quiet > summary { font-size: .84rem; font-weight: 600; color: var(--ink-2); }
+.quiet > .fold-body { margin-top: .5rem; display: grid; gap: .6rem; }
+.activity { border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.activity > summary { padding: .5rem .8rem; border-radius: 9px; }
+.activity > summary:hover { background: var(--sunken); }
+.activity-sum { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .7rem; font-size: .84rem; color: var(--muted); }
+.activity-sum strong { color: var(--ink); font-size: .88rem; }
+.activity > .fold-body { padding: 0 .8rem .7rem; border-top: 1px solid var(--line); }
+.hint { padding: .55rem 0; font-size: .8rem; color: var(--muted); }
+.tool-rows, .stack { display: grid; gap: .3rem; min-width: 0; }
+.tool { min-width: 0; border-radius: 7px; background: var(--bg); scroll-margin-top: 4rem; }
+.tool > summary { padding: .36rem .55rem; border-radius: 7px; }
+.tool > summary:hover { background: var(--sunken); }
+.tool-type { flex: none; width: 3.9rem; font-size: .74rem; font-weight: 650; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-title { flex: 1; min-width: 0; font: .8rem/1.4 var(--mono); }
+.tool-title > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-title .tool-excerpt { color: var(--fail); font-size: .76rem; }
+.tool-title .tool-excerpt[data-tone="warn"] { color: var(--warn); }
+.tool > .fold-body { padding: .15rem .55rem .6rem; }
+.tool-detail { display: grid; gap: .6rem; min-width: 0; }
+.tool-note { font-size: .85rem; color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-note[data-tone="warn"] { color: var(--warn); font-weight: 600; }
+
+/* Code */
+.code { min-width: 0; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface); }
+.md .code { font-family: var(--sans); font-size: 1rem; }
+.code[data-tone="fail"] { border-color: var(--fail); }
+.code[data-tone="warn"] { border-color: var(--warn); }
+.code figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .6rem; padding: .22rem .55rem; background: var(--sunken); font-size: .75rem; color: var(--muted); }
+.code-label { font-weight: 650; color: var(--ink-2); overflow-wrap: anywhere; }
+.code[data-tone="fail"] figcaption { background: var(--fail-bg); }
+.code[data-tone="fail"] .code-label { color: var(--fail); }
+.code[data-tone="warn"] figcaption { background: var(--warn-bg); }
+.code[data-tone="warn"] .code-label { color: var(--warn); }
+.code figcaption .mini { margin-left: auto; }
+.code pre { margin: 0; padding: .55rem .65rem; max-height: 26rem; overflow: auto; font: .8rem/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
+.code > .mini { margin: .35rem .55rem .5rem; }
+pre.numbered { counter-reset: ln; padding-left: .3rem; }
+.ln { display: block; position: relative; padding-left: 3.4em; counter-increment: ln; }
+.ln::before { content: counter(ln); position: absolute; left: 0; width: 2.7em; text-align: right; color: var(--muted); opacity: .75; user-select: none; -webkit-user-select: none; }
+
+/* Errors and code, raw timeline */
+.inspect { margin-bottom: 2rem; }
+.inspect h2 { display: flex; align-items: baseline; gap: .5rem; font: 600 1.3rem/1.25 var(--serif); }
+.inspect h2 .count { font: 600 .85rem var(--mono); color: var(--muted); }
+.inspect-note { margin: .15rem 0 .7rem; color: var(--muted); font-size: .85rem; }
+.raw-tools { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem .9rem; margin-bottom: .55rem; }
+.raw-tools label { display: grid; gap: .15rem; font-size: .76rem; font-weight: 650; color: var(--muted); }
+.raw-tools .grow { flex: 1 1 14rem; }
+.raw-tools input, .raw-tools select { width: 100%; padding: .32rem .5rem; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: .88rem; font-weight: 400; }
+#rawCount { margin-bottom: .6rem; color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.raw-role { flex: none; width: 5.6rem; font-size: .76rem; font-weight: 650; color: var(--ink-2); }
+.raw-kind { flex: none; max-width: 8rem; font: .76rem var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.raw-text { flex: 1; min-width: 0; font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: minmax(0, 1fr); padding-top: 1rem; }
+  #rail { position: static; max-height: none; overflow: visible; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); padding-bottom: 1rem; border-bottom: 1px solid var(--line-strong); }
+  #main { max-width: none; }
+}
+@media (max-width: 640px) {
+  .bar { position: static; }
+  #latest { position: fixed; right: .75rem; bottom: .75rem; z-index: 25; padding: .55rem .9rem; box-shadow: 0 3px 12px rgb(0 0 0 / .28); }
+  .conn { margin-left: 0; }
+  .reply .md { font-size: 1.07rem; }
+  .turn-head h2 { font-size: 1.35rem; }
+  .tool > summary { flex-wrap: wrap; }
+  .tool-title { order: 3; flex-basis: 100%; }
+  .tool-type { flex: 1; width: auto; }
+  .raw-role { width: auto; }
+  .raw-text { flex-basis: 100%; order: 3; white-space: normal; }
+}
+@media (pointer: coarse) {
+  .views button, .btn, .turn-nav button { min-height: 2.75rem; }
+  .mini { min-height: 2rem; padding-inline: .7rem; }
+  .tool > summary, .activity > summary { min-height: 2.75rem; }
+}
+#rawList { list-style: none; margin: 0; padding: 0; }
+/* Chronology uses sequence order. Imported thinking markers have no wall-clock timestamps. */
+.chronology-message { padding: 1rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); }
+.chronology-thinking { display: flex; flex-wrap: wrap; align-items: baseline; gap: .45rem .8rem; padding: .4rem .75rem; color: var(--muted); font-size: .84rem; border-left: 2px solid var(--live); }
+.chronology-thinking span:last-child { font-variant-numeric: tabular-nums; }
+.timeline-tool { padding: .6rem .8rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); }
+.timeline-tool[data-tone="fail"] { border-left: 3px solid var(--fail); }
+.timeline-tool .voice { margin-bottom: .35rem; }
+.timeline-tool .voice h3 { font: 650 .81rem/1.4 var(--sans); letter-spacing: 0; text-transform: none; }
+.timeline-preview { margin: .3rem 0; padding: .5rem .65rem; background: var(--sunken); color: var(--ink-2); border-radius: .25rem; white-space: pre-wrap; overflow-wrap: anywhere; font: .78rem/1.5 var(--mono); }
+.timeline-tool > details { margin-top: .3rem; }
+.timeline-tool > details > summary { cursor: pointer; font-size: .76rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to conversation</a>
+<header class="masthead">
+  <div class="masthead-row">
+    <div class="brand"><h1>Persona runs</h1><span>go-minitrace</span></div>
+    <dl class="meta" id="meta"></dl>
+    <p class="conn" id="conn" data-state="connecting">Connecting</p>
+  </div>
+  <fieldset class="runs" id="runPicker" hidden>
+    <legend>Run</legend>
+    <div id="runs"></div>
+  </fieldset>
+</header>
+<p class="banner" id="banner" role="alert" hidden></p>
+<nav class="bar" aria-label="Views and follow controls">
+  <div class="views">
+    <button type="button" data-view="raw" aria-pressed="true">Timeline <span class="badge" id="countRaw"></span></button>
+    <button type="button" data-view="conversation" aria-pressed="false">Conversation summary</button>
+    <button type="button" data-view="inspect" aria-pressed="false">Errors and code <span class="badge" id="countInspect"></span></button>
+  </div>
+  <div class="follow">
+    <span id="followNote"></span>
+    <label><input type="checkbox" id="follow"> Follow latest</label>
+    <button type="button" class="btn" id="latest">Jump to latest</button>
+  </div>
+</nav>
+<div class="layout">
+  <aside id="rail" aria-label="Run summary"></aside>
+  <main id="main" tabindex="-1">
+    <div id="view-conversation" hidden></div>
+    <div id="view-inspect" hidden></div>
+    <div id="view-raw">
+      <div class="raw-tools">
+        <label>Role
+          <select id="roleFilter">
+            <option value="">All roles</option>
+            <option value="stakeholder">Stakeholder</option>
+            <option value="analyst">Analyst</option>
+            <option value="host">Host</option>
+            <option value="judge">Judge</option>
+          </select>
+        </label>
+        <label class="grow">Search text and data
+          <input type="search" id="rawSearch" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+      <p id="rawCount"></p>
+      <p class="evidence-sub">In event order. Imported thinking markers show sequence position. Live markers show elapsed time when available.</p>
+      <ol class="stack" id="rawList" aria-label="Events in recorded order"></ol>
+    </div>
+  </main>
+</div>
+<p class="sr" id="announce" role="status"></p>
+<script>
+(() => {
+"use strict";
+
+/* ---------- Small helpers. All event content reaches the page as text nodes. ---------- */
+
+const $ = id => document.getElementById(id);
+const follow = $("follow");
+const VIEWS = ["conversation", "inspect", "raw"];
+const CODE_CAP = 30000;
+
+function h(tag, props, ...kids) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props || {})) {
+    if (value === null || value === undefined || value === false) continue;
+    if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : String(value));
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid !== null && kid !== undefined && kid !== false) node.append(kid);
+  }
+  return node;
+}
+
+const record = value => (value && typeof value === "object" && !Array.isArray(value) ? value : {});
+const squash = value => String(value ?? "").replace(/\s+/g, " ").trim();
+const same = (a, b) => squash(a) === squash(b);
+const firstLine = value => String(value ?? "").trim().split("\n")[0].trim();
+const asText = value => (typeof value === "string" ? value : JSON.stringify(value, null, 2) ?? String(value));
+const plural = (n, one, many = one + "s") => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+const chip = (label, tone) => h("span", {class: "chip", "data-tone": tone}, label);
+
+function humanise(value) {
+  const text = String(value ?? "").replace(/[_-]+/g, " ").trim();
+  if (text.toLowerCase() === "sql") return "SQL";
+  return text ? text[0].toUpperCase() + text.slice(1) : "";
+}
+
+function clock(seconds) {
+  if (seconds === null) return "";
+  return new Date(seconds * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
+}
+
+function timeEl(seconds) {
+  if (seconds === null) return null;
+  return h("time", {datetime: new Date(seconds * 1000).toISOString()}, clock(seconds));
+}
+
+function span(seconds) {
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
+  return `${Math.floor(s / 3600)} h ${Math.floor(s / 60) % 60} min`;
+}
+
+/* ---------- Event reading. Unknown kinds fall back on the shape of their data. ---------- */
+
+function decode(data) {
+  if (typeof data !== "string") return data ?? null;
+  const text = data.trim();
+  if (!/^[[{]/.test(text)) return data;
+  try {
+    const value = JSON.parse(text);
+    return value && typeof value === "object" ? value : data;
+  } catch {
+    return data;
+  }
+}
+
+function classify(event) {
+  const kind = event.kind.toLowerCase().replace(/[\s-]+/g, "_");
+  const data = record(event.data);
+  const has = (...names) => names.some(name => name in data);
+  if (kind === "thinking_start" || kind === "thinking_end") return "thinking";
+  if (kind === "waiting" && event.role !== "judge") return "note";
+  if (kind === "tool_call") return "toolCall";
+  if (kind === "tool_result" || kind === "tool_failure") return "toolResult";
+  if (/^(failure|failed|fatal|abort|aborted)$/.test(kind)) return "failure";
+  if (kind === "finish" || kind === "finished" || has("replays_passed")) return "finish";
+  switch (event.role) {
+    case "stakeholder":
+      return kind === "request" || typeof data.turn === "number" ? "request" : "followup";
+    case "host":
+      if (kind === "baseline" || (typeof data.all === "number" && !has("passed"))) return "baseline";
+      if (kind.includes("replay") || has("passed", "expected_rows", "observed_rows")) return "replay";
+      if (kind === "error") return "failure";
+      return "note";
+    case "judge":
+      if (kind.includes("verdict")) return "verdict";
+      if (kind.includes("wait")) return "waiting";
+      return "judgeMessage";
+    case "analyst":
+      if (/result|output|observation|error/.test(kind) || has("exit", "stdout", "stderr", "saved")) return "toolResult";
+      if (/call|tool|invoke|exec/.test(kind) || has("content", "scope") || (typeof data.text === "string" && has("kind"))) return "toolCall";
+      if (/think|reason/.test(kind)) return "thinking";
+      return event.text.trim() ? "reply" : "note";
+    default:
+      return "note";
+  }
+}
+
+function normalise(raw, seq) {
+  const source = record(raw);
+  const time = typeof source.time === "number" && Math.abs(source.time) < 8.64e12 ? source.time : null;
+  const event = {
+    raw, seq, time, callId: source.tool_call_id ?? null,
+    role: typeof source.role === "string" ? source.role : "unknown",
+    kind: typeof source.kind === "string" ? source.kind : "",
+    text: source.text === null || source.text === undefined ? "" : String(source.text),
+    data: decode(source.data),
+  };
+  event.type = classify(event);
+  return event;
+}
+
+function readResult(event) {
+  const data = event.data;
+  if (typeof data === "string") return {stdout: data, stderr: ""};
+  if (data === null) return {stdout: event.text, stderr: ""};
+  if (Array.isArray(data) || typeof data !== "object") return {stdout: asText(data), stderr: ""};
+  if ("saved" in data) return {saved: data.saved, stdout: "", stderr: ""};
+  if (!("exit" in data || "stdout" in data || "stderr" in data || "error" in data)) return {stdout: asText(data), stderr: ""};
+  const code = data.exit === null || data.exit === undefined || data.exit === "" ? null : Number(data.exit);
+  return {
+    hasExit: "exit" in data,
+    exit: Number.isFinite(code) ? code : null,
+    stdout: data.stdout === null || data.stdout === undefined ? "" : asText(data.stdout),
+    stderr: data.stderr === null || data.stderr === undefined ? "" : asText(data.stderr),
+    error: data.error ? asText(data.error) : "",
+    truncated: Boolean(data.previewTruncated ?? data.deliveryTruncated),
+    processError: data.processError, queryComplete: data.queryComplete,
+  };
+}
+
+function readReplay(event) {
+  const data = record(event.data);
+  const passed = data.passed === true ? true : data.passed === false || data.error ? false : null;
+  if (passed === true) return {passed, label: "Passed", tone: "pass"};
+  if (passed === false) return {passed, label: "Failed", tone: "fail"};
+  return {passed, label: "No result reported", tone: "warn"};
+}
+
+function readVerdict(event) {
+  const data = record(event?.data);
+  const value = data.passed ?? data.pass ?? data.verdict ?? data.outcome ?? data.result ?? data.decision;
+  if (value === true) return {label: "Judge passed", tone: "pass"};
+  if (value === false) return {label: "Judge failed", tone: "fail"};
+  if (typeof value === "string" && value.trim()) {
+    if (/^(pass|passed|correct|approved?|accept|accepted|success)\b/i.test(value.trim())) return {label: humanise(value), tone: "pass"};
+    if (/^(fail|failed|incorrect|reject|rejected|wrong)\b/i.test(value.trim())) return {label: humanise(value), tone: "fail"};
+    return {label: humanise(value), tone: "judge"};
+  }
+  return {label: "Verdict recorded", tone: "judge"};
+}
+
+/* A zero exit is only ever "Exit 0": it says the command ran, not that the answer is right. */
+function toolOutcome(tool, ended) {
+  const out = tool.output;
+  if (tool.kind === "thinking") return {label: "Note", tone: "neutral"};
+  if (!out) return ended ? {label: "No result recorded", tone: "warn"} : {label: "Running", tone: "live"};
+  if (out.saved !== undefined) return {label: "Saved", tone: "neutral"};
+  if (out.processError && out.processError !== "nonzero_exit") return {label: humanise(out.processError), tone: "fail"};
+  if (out.queryComplete === false) return {label: "Incomplete query evidence", tone: "warn"};
+  if (out.error || tool.result?.kind === "tool failure") return {label: "Error", tone: "fail"};
+  if (out.exit !== null && out.exit !== undefined && out.exit !== 0) return {label: `Exit ${out.exit}`, tone: "fail"};
+  if (out.hasExit && out.exit === null) return {label: "No exit code", tone: "warn"};
+  if (out.exit === 0 && out.stderr.trim()) return {label: "Exit 0, with stderr", tone: "warn"};
+  if (out.truncated) return {label: out.exit === 0 ? "Exit 0, output truncated" : "Output truncated", tone: "warn"};
+  if (out.exit === 0) return {label: "Exit 0", tone: "neutral"};
+  return {label: "Returned", tone: "neutral"};
+}
+
+function makeTool(event, turn, seq) {
+  const data = record(event?.data);
+  const tool = {key: "t" + seq, call: event, result: null, output: null, turn, kind: "tool", label: "Tool", title: "", code: "", scope: null, name: null, version: 0};
+  if (!event) return {...tool, label: "Result", title: "Result without a uniquely identified call"};
+  if (event.type === "thinking") return {...tool, kind: "thinking", label: "Note", title: firstLine(event.text) || "Reasoning note"};
+  if (typeof data.content === "string") {
+    const name = data.name === null || data.name === undefined ? "" : String(data.name);
+    return {...tool, kind: "script", label: "Script", name, title: name || "Unnamed script", code: data.content};
+  }
+  if (typeof data.text === "string" || Array.isArray(data.path)) {
+    const command = Array.isArray(data.path) ? data.path.join(" ") : data.text;
+    return {...tool, kind: "query", label: humanise(data.kind) || "Query", title: firstLine(command) || "Command catalog", code: command, scope: data.scope ?? null};
+  }
+  return {...tool, title: firstLine(event.text) || humanise(event.kind) || "Tool call", code: event.data === null ? "" : asText(event.data)};
+}
+
+/* ---------- Run model. Rebuilt from the event list, so partial data is always consistent. ---------- */
+
+const newTurn = (key, number, request) => ({
+  key, number, request,
+  scope: request ? record(request.data).scope ?? null : null,
+  replies: [], replays: [], tools: [], failures: [], notes: [], followups: [],
+});
+const turnName = turn => (turn.number === null ? "Before the first request" : `Turn ${turn.number}`);
+const hasContent = t => t.replies.length || t.replays.length || t.tools.length || t.failures.length || t.notes.length || t.followups.length;
+const countOf = value => (Array.isArray(value) ? value.length : Number.isFinite(value) ? value : null);
+
+function buildModel(events) {
+  const m = {
+    events, setup: newTurn("setup", null, null), turns: [], baseline: null, finish: null, failures: [],
+    judge: {waiting: null, messages: [], verdict: null}, tools: [], first: null, last: null,
+  };
+  let current = m.setup;
+  const unanswered = [];
+  const versions = new Map();
+  const turnFor = number => [...m.turns].reverse().find(turn => turn.number === number);
+
+  for (const event of events) {
+    if (event.time !== null) {
+      m.first ??= event.time;
+      m.last = event.time;
+    }
+    switch (event.type) {
+      case "request": {
+        const number = record(event.data).turn;
+        current = newTurn("turn-" + event.seq, typeof number === "number" ? number : m.turns.length + 1, event);
+        m.turns.push(current);
+        break;
+      }
+      case "followup": current.followups.push(event); break;
+      case "reply": current.replies.push(event); break;
+      case "thinking": break; // Shown in chronological order in the Chronology view.
+      case "toolCall": {
+        const tool = makeTool(event, current, event.seq);
+        if (tool.kind === "script") {
+          const version = (versions.get(tool.title) ?? 0) + 1;
+          versions.set(tool.title, version);
+          tool.version = version;
+        }
+        current.tools.push(tool);
+        m.tools.push(tool);
+        unanswered.push(tool);
+        break;
+      }
+      case "toolResult": {
+        const output = readResult(event);
+        const matching = unanswered.filter(tool => event.callId
+          ? tool.call.callId === event.callId
+          : tool.call.text === event.text && (output.saved === undefined || tool.name === String(output.saved)));
+        const index = matching.length === 1 ? unanswered.indexOf(matching[0]) : -1;
+        let tool;
+        if (index >= 0) {
+          [tool] = unanswered.splice(index, 1);
+        } else {
+          tool = makeTool(null, current, event.seq);
+          current.tools.push(tool);
+          m.tools.push(tool);
+        }
+        tool.result = event;
+        tool.output = output;
+        break;
+      }
+      case "baseline": m.baseline = event; break;
+      case "replay": (turnFor(record(event.data).turn) ?? current).replays.push(event); break;
+      case "finish": m.finish = event; break;
+      case "failure": {
+        const where = turnFor(record(event.data).turn) ?? current;
+        event.where = where;
+        where.failures.push(event);
+        m.failures.push(event);
+        break;
+      }
+      case "waiting": m.judge.waiting = event; break;
+      case "judgeMessage": m.judge.messages.push(event); break;
+      case "verdict": m.judge.verdict = event; break;
+      default: current.notes.push(event);
+    }
+  }
+
+  m.ended = Boolean(m.failures.length || m.finish || m.judge.verdict);
+  for (const turn of [m.setup, ...m.turns]) {
+    for (const tool of turn.tools) tool.outcome = toolOutcome(tool, m.ended);
+  }
+  m.turns.forEach((turn, index) => {
+    const next = m.turns[index + 1];
+    for (const event of turn.followups) event.becomes = next && same(event.text, next.request.text) ? next : null;
+  });
+  for (const event of m.setup.followups) event.becomes = null;
+
+  const toneCount = tone => m.tools.filter(tool => tool.outcome.tone === tone).length;
+  m.counts = {
+    calls: m.tools.filter(tool => tool.call).length,
+    queries: m.tools.filter(tool => tool.kind === "query").length,
+    scripts: m.tools.filter(tool => tool.output?.saved !== undefined).length,
+    errors: toneCount("fail"),
+    warnings: toneCount("warn"),
+  };
+
+  const seen = [...m.setup.replays, ...m.turns.flatMap(turn => turn.replays)].map(readReplay);
+  const finish = record(m.finish?.data);
+  m.replays = {
+    passed: countOf(finish.replays_passed) ?? seen.filter(r => r.passed === true).length,
+    total: countOf(finish.replays) ?? seen.length,
+    failed: seen.filter(r => r.passed === false).length,
+    final: Boolean(m.finish),
+  };
+  m.state = runState(m);
+  return m;
+}
+
+const replaysBad = r => r.failed > 0 || (r.final && r.passed < r.total);
+
+function runState(m) {
+  if (!m.events.length) return {label: "Waiting", tone: "wait", detail: "No events have arrived for this run yet."};
+  if (m.failures.length) return {label: "Failed", tone: "fail", detail: firstLine(m.failures.at(-1).text) || "The run reported a failure."};
+  const finished = m.finish || m.judge.verdict;
+  if (m.judge.waiting && !m.judge.verdict) return {label: "Judge reviewing", tone: "live", detail: "The host has handed this run to the judge."};
+  if (finished && replaysBad(m.replays)) return {label: "Finished, replay failed", tone: "fail", detail: "The run ended, but at least one host replay did not pass."};
+  if (finished) return {label: "Finished", tone: "neutral", detail: m.judge.verdict ? "The judge verdict is recorded." : "The run ended. No judge verdict has arrived yet."};
+  return {label: "Running", tone: "live", detail: "Events are still expected for this run."};
+}
+
+function judgeStatus(m) {
+  if (m.judge.verdict) return readVerdict(m.judge.verdict);
+  if (m.judge.waiting) return {label: "Reviewing", tone: "live"};
+  if (m.judge.messages.length) return {label: "Message received", tone: "live"};
+  return m.ended ? {label: "No verdict yet", tone: "wait"} : {label: "Not started", tone: "wait"};
+}
+
+function turnStatus(turn, m) {
+  if (turn.failures.length) return {label: "Failure reported", tone: "fail"};
+  const replays = turn.replays.map(readReplay);
+  if (replays.some(r => r.passed === false)) return {label: "Replay failed", tone: "fail"};
+  if (replays.length && replays.every(r => r.passed === true)) return {label: "Replay passed", tone: "pass"};
+  if (replays.length) return {label: "Replay unclear", tone: "warn"};
+  if (m.ended) return {label: "No replay recorded", tone: "warn"};
+  return turn === m.turns.at(-1) ? {label: "In progress", tone: "live"} : {label: "Replay pending", tone: "wait"};
+}
+
+function replayTally(m) {
+  const r = m.replays;
+  if (!r.total) return {label: m.ended ? "None recorded" : "None yet", tone: m.ended ? "warn" : "wait"};
+  const label = `${r.passed} of ${r.total} passed${r.final ? "" : " so far"}`;
+  if (replaysBad(r)) return {label, tone: "fail"};
+  return {label, tone: r.final && r.passed === r.total ? "pass" : "live"};
+}
+
+function nowText(m) {
+  if (!m.events.length) return "Waiting for the first event from this run.";
+  if (m.failures.length) return "This run reported a failure. Everything received is shown above.";
+  if (m.judge.verdict) return "The judge verdict is recorded above.";
+  if (m.judge.waiting) return "The judge is reviewing this run.";
+  if (m.finish) return "The host has finished. No judge verdict has arrived yet.";
+  if (m.tools.some(tool => tool.outcome.tone === "live")) return "A tool call is waiting for its result.";
+  const last = m.events.at(-1);
+  if (last.type === "request") return "The analyst is working on this request.";
+  if (last.type === "reply") return "The analyst replied. Waiting for the next step.";
+  if (last.type === "replay") return "The host replay is in. Waiting for the next step.";
+  return "Waiting for the next event.";
+}
+
+function ageText(m) {
+  if (m.last === null) return "";
+  if (m.ended) return "Last event at " + clock(m.last);
+  const gap = Math.max(0, Date.now() / 1000 - m.last);
+  if (gap < 5) return "Last event just now";
+  return gap >= 120 ? `No new events for ${span(gap)}` : `Last event ${span(gap)} ago`;
+}
+
+/* ---------- Safe markdown subset. Links stay as text, and nothing is parsed as HTML. ---------- */
+
+const MD = {
+  fence: /^\s*(`{3,}|~{3,})\s*([^`]*)$/,
+  heading: /^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/,
+  rule: /^ {0,3}([-*_])(?:\s*\1){2,}\s*$/,
+  quote: /^ {0,3}>\s?/,
+  item: /^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$/,
+  separator: /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/,
+  inline: /(`+)(.+?)\1|\*\*(?=\S)(.+?)\*\*|\*(?=[^\s*])([^*\n]+?)\*|\[([^\]\n]+)\]\(([^)\s]+)\)/g,
+};
+const isTableStart = (line, next) => line.includes("|") && next !== undefined && next.includes("|") && MD.separator.test(next);
+const startsBlock = (line, next) => MD.fence.test(line) || MD.heading.test(line) || MD.rule.test(line) || MD.quote.test(line) || MD.item.test(line) || isTableStart(line, next);
+
+function inline(node, text) {
+  let at = 0;
+  for (const match of text.matchAll(MD.inline)) {
+    node.append(text.slice(at, match.index));
+    at = match.index + match[0].length;
+    if (match[1]) node.append(h("code", null, match[2]));
+    else if (match[3] !== undefined) node.append(inline(h("strong"), match[3]));
+    else if (match[4] !== undefined) {
+      if (/\w/.test(text[match.index - 1] ?? "")) node.append(match[0]);
+      else node.append(inline(h("em"), match[4]));
+    } else node.append(match[5], " (", h("span", {class: "url"}, match[6]), ")");
+  }
+  node.append(text.slice(at));
+  return node;
+}
+
+function tableView(head, rows, aligns = [], rich = false) {
+  const cell = (tag, text, index) => {
+    const aligned = aligns[index] && aligns[index] !== "left" ? "a-" + aligns[index] : null;
+    const numeric = tag === "td" && /^-?[\d.,]+%?$/.test(text) ? "a-right" : null;
+    const node = h(tag, {class: aligned ?? numeric, scope: tag === "th" ? "col" : null});
+    if (rich) inline(node, text);
+    else node.textContent = text;
+    return node;
+  };
+  return h("div", {class: "table-wrap", tabindex: "0", role: "region", "aria-label": "Data table"},
+    h("table", null,
+      h("thead", null, h("tr", null, head.map((text, i) => cell("th", text, i)))),
+      h("tbody", null, rows.map(row => h("tr", null, head.map((_, i) => cell("td", row[i] ?? "", i)))))));
+}
+
+function parseTable(lines, start) {
+  const cells = line => line.trim().replace(/^\|/, "").replace(/\|\s*$/, "").replace(/\\\|/g, "\u0001")
+    .split("|").map(cell => cell.trim().replace(/\u0001/g, "|"));
+  const head = cells(lines[start]);
+  const aligns = cells(lines[start + 1]).map(c => (c.endsWith(":") ? (c.startsWith(":") ? "center" : "right") : "left"));
+  const rows = [];
+  let i = start + 2;
+  while (i < lines.length && lines[i].trim() && lines[i].includes("|")) rows.push(cells(lines[i++]));
+  return {node: tableView(head, rows, aligns, true), next: i};
+}
+
+function parseList(root, lines, start) {
+  const stack = [];
+  let i = start;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) {
+      let j = i;
+      while (j < lines.length && !lines[j].trim()) j++;
+      if (j < lines.length && MD.item.test(lines[j]) && !MD.rule.test(lines[j])) { i = j; continue; }
+      break;
+    }
+    const match = MD.rule.test(line) || MD.fence.test(line) ? null : line.match(MD.item);
+    if (!match) {
+      if (/^\s+\S/.test(line) && stack.length && !MD.fence.test(line)) {
+        inline(stack.at(-1).last, " " + line.trim());
+        i++;
+        continue;
+      }
+      break;
+    }
+    const indent = match[1].replace(/\t/g, "    ").length;
+    const ordered = /\d/.test(match[2]);
+    const newList = () => {
+      const list = h(ordered ? "ol" : "ul");
+      const first = parseInt(match[2], 10);
+      if (ordered && first !== 1) list.setAttribute("start", first);
+      return list;
+    };
+    while (stack.length > 1 && indent < stack.at(-1).indent) stack.pop();
+    let level = stack.at(-1);
+    if (!level || (indent >= level.indent + 2 && stack.length < 5)) {
+      const list = newList();
+      (level ? level.last : root).append(list);
+      level = {indent, list, ordered, last: null};
+      stack.push(level);
+    } else if (level.ordered !== ordered) {
+      const list = newList();
+      level.list.after(list);
+      level.list = list;
+      level.ordered = ordered;
+    }
+    level.last = inline(h("li"), match[3]);
+    level.list.append(level.last);
+    i++;
+  }
+  return i;
+}
+
+function markdown(text, depth = 0) {
+  const root = h("div", {class: "md"});
+  const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    let match;
+    if (!line.trim()) {
+      i++;
+    } else if ((match = line.match(MD.fence))) {
+      const close = new RegExp("^\\s*" + match[1][0] + "{" + match[1].length + ",}\\s*$");
+      const body = [];
+      i++;
+      while (i < lines.length && !close.test(lines[i])) body.push(lines[i++]);
+      i++;
+      root.append(codeBlock(body.join("\n"), {label: match[2].trim() || "Code"}));
+    } else if ((match = line.match(MD.heading))) {
+      const level = match[1].length;
+      root.append(inline(h(level <= 2 ? "h4" : level === 3 ? "h5" : "h6"), match[2]));
+      i++;
+    } else if (MD.rule.test(line)) {
+      root.append(h("hr"));
+      i++;
+    } else if (isTableStart(line, lines[i + 1])) {
+      const table = parseTable(lines, i);
+      root.append(table.node);
+      i = table.next;
+    } else if (MD.quote.test(line)) {
+      const body = [];
+      while (i < lines.length && MD.quote.test(lines[i])) body.push(lines[i++].replace(MD.quote, ""));
+      root.append(h("blockquote", null, depth < 3 ? markdown(body.join("\n"), depth + 1) : h("p", null, body.join("\n"))));
+    } else if (MD.item.test(line)) {
+      i = parseList(root, lines, i);
+    } else {
+      const body = [];
+      do {
+        body.push(lines[i].trim());
+        i++;
+      } while (i < lines.length && lines[i].trim() && !startsBlock(lines[i], lines[i + 1]));
+      root.append(inline(h("p"), body.join("\n")));
+    }
+  }
+  return root;
+}
+
+/* ---------- Reusable pieces ---------- */
+
+function copyButton(getText, label = "Copy") {
+  if (!navigator.clipboard) return null;
+  const button = h("button", {type: "button", class: "mini", onclick: async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      button.textContent = "Copied";
+    } catch {
+      button.textContent = "Copy failed";
+    }
+    setTimeout(() => { button.textContent = label; }, 1500);
+  }}, label);
+  return button;
+}
+
+function fillPre(pre, text, numbered) {
+  if (!numbered) {
+    pre.textContent = text;
+    return;
+  }
+  const lines = text.replace(/\n$/, "").split("\n");
+  const rows = document.createDocumentFragment();
+  lines.forEach((line, i) => rows.append(h("span", {class: "ln"}, line + (i < lines.length - 1 ? "\n" : ""))));
+  pre.replaceChildren(rows);
+}
+
+function codeBlock(text, {label = "Code", tone = null, numbered = false} = {}) {
+  const value = String(text ?? "");
+  const lineCount = value ? value.replace(/\n$/, "").split("\n").length : 0;
+  const pre = h("pre", {tabindex: "0", class: numbered ? "numbered" : null, "aria-label": label});
+  fillPre(pre, value.length > CODE_CAP ? value.slice(0, CODE_CAP) : value, numbered);
+  const more = value.length > CODE_CAP
+    ? h("button", {type: "button", class: "mini", onclick: event => { fillPre(pre, value, numbered); event.currentTarget.remove(); }}, `Show all ${value.length.toLocaleString()} characters`)
+    : null;
+  return h("figure", {class: "code", "data-tone": tone},
+    h("figcaption", null, h("span", {class: "code-label"}, label), h("span", null, plural(lineCount, "line")), copyButton(() => value)),
+    pre, more);
+}
+
+function prettyJson(text) {
+  const trimmed = text.trim();
+  if (!/^[[{]/.test(trimmed) || trimmed.length > 400000 || /\d{16,}/.test(trimmed)) return {text, formatted: false};
+  try {
+    return {text: JSON.stringify(JSON.parse(trimmed), null, 2), formatted: true};
+  } catch {
+    return {text, formatted: false};
+  }
+}
+
+/* Expanded state lives outside the DOM, so folds survive re-rendering and view switches. */
+function fold({key, cls = "", summary, body, open = false, live = false, id = null}) {
+  const stateKey = ui.run + "\u0000" + key;
+  const details = h("details", {class: "fold " + cls, id});
+  const inner = h("div", {class: "fold-body"});
+  details.append(h("summary", {"data-fk": "fold:" + key, onclick: pauseFollow}, summary), inner);
+  let filled = false;
+  const fill = () => {
+    if (live || !filled) {
+      filled = true;
+      body(inner);
+    }
+  };
+  details.open = ui.open.has(stateKey) ? ui.open.get(stateKey) : open;
+  if (details.open) fill();
+  details.addEventListener("toggle", () => {
+    ui.open.set(stateKey, details.open);
+    if (details.open) fill();
+  });
+  return details;
+}
+
+/* Keyed update: unchanged nodes stay in place, which keeps focus, selection and open folds. */
+const signatures = new WeakMap();
+function reconcile(parent, items) {
+  const existing = new Map([...parent.children].map(node => [node.dataset.key, node]));
+  const active = document.activeElement;
+  const focusKey = active?.dataset?.fk;
+  let refocus = false;
+  const next = items.map(item => {
+    let node = existing.get(item.key);
+    if (!node || signatures.get(node) !== item.sig) {
+      const fresh = item.build();
+      fresh.dataset.key = item.key;
+      signatures.set(fresh, item.sig);
+      if (node) {
+        refocus ||= node.contains(active);
+        node.replaceWith(fresh);
+      }
+      node = fresh;
+    }
+    existing.delete(item.key);
+    item.update?.(node);
+    return node;
+  });
+  existing.forEach(node => node.remove());
+  let cursor = parent.firstElementChild;
+  for (const node of next) {
+    if (node === cursor) cursor = cursor.nextElementSibling;
+    else parent.insertBefore(node, cursor);
+  }
+  if (refocus && focusKey) {
+    [...parent.querySelectorAll("[data-fk]")].find(node => node.dataset.fk === focusKey)?.focus({preventScroll: true});
+  }
+}
+
+/* ---------- Tool activity ---------- */
+
+function toolSummary(tool) {
+  const tone = tool.outcome.tone;
+  const excerpt = tone === "fail" || tone === "warn" ? firstLine(tool.output?.error || tool.output?.stderr) : "";
+  const title = tool.version > 1 ? `${tool.title} · version ${tool.version}` : tool.title;
+  return [
+    h("span", {class: "tool-type"}, tool.label),
+    h("span", {class: "tool-title"}, h("span", null, title), excerpt ? h("span", {class: "tool-excerpt", "data-tone": tone}, excerpt) : null),
+    chip(tool.outcome.label, tone),
+  ];
+}
+
+function toolDetail(tool) {
+  if (tool.kind === "thinking") return markdown(tool.call.text);
+  const out = tool.output;
+  const failed = tool.outcome.tone === "fail";
+  const intro = tool.call?.text.trim() && !same(tool.call.text, tool.code) && !same(tool.call.text, tool.title) ? tool.call.text : "";
+  const facts = [tool.scope !== null ? `Scope: ${tool.scope}` : null, tool.call ? clock(tool.call.time) : null].filter(Boolean).join(" · ");
+  const pretty = out?.stdout?.trim() ? prettyJson(out.stdout) : null;
+  const silent = out && out.saved === undefined && !pretty && !out.stderr?.trim() && !out.error;
+  return h("div", {class: "tool-detail"},
+    facts ? h("p", {class: "evidence-sub"}, facts) : null,
+    intro ? h("p", {class: "tool-note"}, intro) : null,
+    out?.error ? codeBlock(out.error, {label: "Error", tone: "fail"}) : null,
+    out?.stderr?.trim() ? codeBlock(out.stderr, {label: "Standard error", tone: failed ? "fail" : "warn"}) : null,
+    tool.code ? codeBlock(tool.code, {label: tool.kind === "script" ? `Code · ${tool.title}` : tool.label, numbered: tool.kind === "script"}) : null,
+    out?.saved !== undefined ? h("p", {class: "tool-note"}, `Saved as ${out.saved}.`) : null,
+    out?.truncated ? h("p", {class: "tool-note", "data-tone": "warn"}, "This output was truncated on delivery, so the analyst may not have seen all of it.") : null,
+    pretty ? codeBlock(pretty.text, {label: pretty.formatted ? "Standard output, formatted JSON" : "Standard output"}) : null,
+    silent ? h("p", {class: "tool-note"}, "The command produced no output.") : null,
+    !out ? h("p", {class: "tool-note"}, tool.outcome.tone === "live" ? "Waiting for the result." : "No result was recorded for this call.") : null);
+}
+
+const toolSig = tool => `${tool.outcome.label}|${tool.result?.seq ?? ""}`;
+
+function toolRow(tool) {
+  return fold({key: "tool:" + tool.key, cls: "tool", id: "row-" + tool.key, summary: toolSummary(tool), body: inner => inner.append(toolDetail(tool))});
+}
+
+function activityLabel(turn) {
+  const tools = turn.tools.filter(tool => tool.kind !== "thinking");
+  const count = (kind) => tools.filter(tool => tool.kind === kind).length;
+  const errors = tools.filter(tool => tool.outcome.tone === "fail").length;
+  const warnings = tools.filter(tool => tool.outcome.tone === "warn").length;
+  const running = tools.filter(tool => tool.outcome.tone === "live").length;
+  return [
+    h("strong", null, "Tool activity"),
+    h("span", null, plural(tools.length, "call")),
+    count("query") ? h("span", null, plural(count("query"), "query", "queries")) : null,
+    count("script") ? h("span", null, plural(count("script"), "script")) : null,
+    errors ? chip(plural(errors, "error"), "fail") : null,
+    warnings ? chip(plural(warnings, "warning"), "warn") : null,
+    running ? chip(`${running} running`, "live") : null,
+  ].filter(Boolean);
+}
+
+function syncActivity(inner, turnKey) {
+  const m = modelOf(ui.run);
+  const turn = turnKey === "setup" ? m.setup : m.turns.find(item => item.key === turnKey);
+  if (!turn) return;
+  reconcile(inner, [
+    {key: "hint", sig: "hint", build: () => h("p", {class: "hint"}, "Exit 0 only means a command ran. The host replay and judge verdict are the evidence for whether the answer is right.")},
+    {key: "rows", sig: "rows", build: () => h("div", {class: "tool-rows"}), update: node => reconcile(node, turn.tools.map(tool => ({key: tool.key, sig: toolSig(tool), build: () => toolRow(tool)})))},
+  ]);
+}
+
+function activityItem(turn) {
+  return {
+    key: "activity", sig: "activity",
+    build: () => fold({key: "activity:" + turn.key, cls: "activity", live: true, summary: h("span", {class: "activity-sum"}), body: inner => syncActivity(inner, turn.key)}),
+    update: node => {
+      node.querySelector(".activity-sum").replaceChildren(...activityLabel(turn));
+      if (node.open) syncActivity(node.querySelector(".fold-body"), turn.key);
+    },
+  };
+}
+
+/* ---------- Conversation blocks ---------- */
+
+function voice(title, time) {
+  return h("header", {class: "voice"}, h("h3", null, title), timeEl(time));
+}
+
+function previewView(preview) {
+  const value = decode(preview);
+  if (Array.isArray(value) && value.length && value.every(row => row && typeof row === "object" && !Array.isArray(row))) {
+    const columns = [...new Set(value.flatMap(row => Object.keys(row)))].slice(0, 12);
+    const text = cell => (cell === null || cell === undefined ? "" : typeof cell === "object" ? JSON.stringify(cell) : String(cell));
+    return tableView(columns, value.slice(0, 50).map(row => columns.map(column => text(row[column]))));
+  }
+  return codeBlock(asText(value), {label: "Preview"});
+}
+
+function replayBlock(event) {
+  const result = readReplay(event);
+  const data = record(event.data);
+  const show = value => (typeof value === "object" ? JSON.stringify(value) : String(value));
+  const metrics = [
+    ["Expected rows", data.expected_rows, false],
+    ["Observed rows", data.observed_rows, data.expected_rows !== undefined && data.observed_rows !== data.expected_rows],
+    ["Missing rows", data.missing_count, data.missing_count > 0],
+    ["Unexpected rows", data.unexpected_count, data.unexpected_count > 0],
+  ].filter(([, value]) => value !== undefined && value !== null);
+  const sub = [data.scope !== undefined && data.scope !== null ? `Scope: ${data.scope}` : null, clock(event.time)].filter(Boolean).join(" · ");
+  return h("article", {class: "evidence", "data-tone": result.tone},
+    h("header", null, h("h3", null, "Independent host replay"), chip(result.label, result.tone)),
+    h("div", {class: "evidence-body"},
+      sub ? h("p", {class: "evidence-sub"}, sub) : null,
+      metrics.length ? h("dl", {class: "facts"}, metrics.map(([label, value, bad]) => h("div", null, h("dt", null, label), h("dd", {"data-tone": bad ? "fail" : null}, show(value))))) : null,
+      data.error ? codeBlock(asText(data.error), {label: "Replay error", tone: "fail"}) : null,
+      event.text.trim() ? h("p", {class: "evidence-text"}, event.text) : null,
+      data.preview !== undefined && data.preview !== null
+        ? fold({key: "preview:" + event.seq, cls: "quiet", summary: "Preview of replayed rows", body: inner => inner.append(previewView(data.preview))})
+        : null));
+}
+
+function failureBlock(event) {
+  return h("article", {class: "evidence", "data-tone": "fail"},
+    h("header", null, h("h3", null, `${humanise(event.role) || "Run"} reported a failure`), chip("Failed", "fail")),
+    h("div", {class: "evidence-body"},
+      event.time !== null ? h("p", {class: "evidence-sub"}, clock(event.time)) : null,
+      event.text.trim() ? h("p", {class: "evidence-text"}, event.text) : null,
+      event.data !== null ? codeBlock(asText(event.data), {label: "Failure details", tone: "fail"}) : null));
+}
+
+function noteBlock(event) {
+  return h("div", null,
+    h("p", {class: "note-line"}, h("strong", null, humanise(event.role)), h("span", null, event.text || humanise(event.kind)), timeEl(event.time)),
+    event.data !== null ? fold({key: "note:" + event.seq, cls: "quiet", summary: "Details", body: inner => inner.append(codeBlock(asText(event.data), {label: "Data"}))}) : null);
+}
+
+function followupBlock(event) {
+  if (event.becomes) return h("p", {class: "followup-link"}, `The proposed follow-up became ${turnName(event.becomes)}.`);
+  return h("article", {class: "followup"}, voice("Proposed follow-up", event.time), markdown(event.text));
+}
+
+function turnBlocks(turn, m) {
+  const status = turnStatus(turn, m);
+  const calls = turn.tools.filter(tool => tool.call).length;
+  const errors = turn.tools.filter(tool => tool.outcome.tone === "fail").length;
+  const meta = [
+    turn.scope !== null ? `Scope: ${turn.scope}` : null,
+    calls ? plural(calls, "tool call") : null,
+    errors ? plural(errors, "error") : null,
+  ].filter(Boolean).join(" · ");
+  const items = [{
+    key: "head", sig: JSON.stringify([status, meta]),
+    build: () => h("header", {class: "turn-head"},
+      h("div", null, h("h2", {id: turn.key + "-h"}, turnName(turn)), meta ? h("p", {class: "turn-meta"}, meta) : null),
+      turn.request ? chip(status.label, status.tone) : null),
+  }];
+  if (turn.request) {
+    items.push({key: "request", sig: "request", build: () => h("article", {class: "request"}, voice("Stakeholder request", turn.request.time), markdown(turn.request.text))});
+  }
+  const lastReply = turn.replies.at(-1);
+  for (const event of turn.replies) {
+    const final = event === lastReply;
+    items.push({key: "r" + event.seq, sig: String(final), build: () => h("article", {class: final ? "reply" : "reply reply-note"}, voice(final ? "Analyst reply" : "Analyst progress note", event.time), markdown(event.text))});
+  }
+  if (turn.request && !turn.replies.length) {
+    const working = !m.ended && turn === m.turns.at(-1);
+    const text = working ? "The analyst has not replied yet." : "No analyst reply was recorded for this turn.";
+    items.push({key: "no-reply", sig: text, build: () => h("p", {class: "pending"}, text)});
+  }
+  for (const event of turn.replays) items.push({key: "p" + event.seq, sig: "replay", build: () => replayBlock(event)});
+  if (turn.request && !turn.replays.length) {
+    const text = m.ended ? "No replay was recorded for this turn." : "The result has not arrived yet.";
+    items.push({key: "no-replay", sig: text, build: () => h("p", {class: "pending"}, h("strong", null, "Independent host replay. "), text)});
+  }
+  for (const event of turn.failures) items.push({key: "f" + event.seq, sig: "failure", build: () => failureBlock(event)});
+  if (turn.tools.length) items.push(activityItem(turn));
+  for (const event of turn.notes) items.push({key: "n" + event.seq, sig: "note", build: () => noteBlock(event)});
+  for (const event of turn.followups) {
+    items.push({key: "u" + event.seq, sig: String(event.becomes?.key ?? ""), build: () => followupBlock(event)});
+  }
+  return items;
+}
+
+function turnItem(turn, m) {
+  return {
+    key: turn.key, sig: "turn",
+    build: () => h("section", {class: "turn", id: turn.key, tabindex: "-1", "aria-labelledby": turn.key + "-h"}),
+    update: node => reconcile(node, turnBlocks(turn, m)),
+  };
+}
+
+function judgePanel(m) {
+  const {verdict, waiting, messages} = m.judge;
+  const status = judgeStatus(m);
+  const seen = new Set(verdict ? [squash(verdict.text)] : []);
+  const notes = messages.filter(event => {
+    const text = squash(event.text);
+    if (!text || seen.has(text)) return false;
+    seen.add(text);
+    return true;
+  });
+  const lead = verdict ? (verdict.text.trim() ? verdict : notes.pop()) : null;
+  const prose = event => h("div", {class: "judge-prose"}, markdown(event.text));
+  return h("article", {class: "evidence", id: "verdict", tabindex: "-1", "data-tone": status.tone === "pass" || status.tone === "fail" ? status.tone : "judge"},
+    h("header", null, h("h3", null, "Judge verdict"), chip(status.label, status.tone)),
+    h("div", {class: "evidence-body"},
+      lead ? prose(lead) : null,
+      !verdict ? notes.map(prose) : null,
+      !verdict && waiting ? h("p", {class: "evidence-text"}, waiting.text || "The judge is reviewing this run.") : null,
+      !verdict && !waiting && !notes.length ? h("p", {class: "evidence-text"}, "No judge verdict has arrived yet.") : null,
+      verdict && notes.length
+        ? fold({key: "judge-notes", cls: "quiet", summary: `Earlier judge messages (${notes.length})`, body: inner => inner.append(...notes.map(prose))})
+        : null,
+      verdict && verdict.data !== null
+        ? fold({key: "judge-data", cls: "quiet", summary: "Verdict data", body: inner => inner.append(codeBlock(asText(verdict.data), {label: "Verdict data"}))})
+        : null));
+}
+
+function outcomeSection(m) {
+  const tally = replayTally(m);
+  return h("section", {class: "turn", id: "outcome", tabindex: "-1", "aria-labelledby": "outcome-h"},
+    h("header", {class: "turn-head"}, h("h2", {id: "outcome-h"}, "Run outcome"), chip(m.state.label, m.state.tone)),
+    m.failures.map(event => h("p", {class: "now", "data-tone": "fail"},
+      h("span", null, `${turnName(event.where)}: ${firstLine(event.text) || "failure reported"}`),
+      event.where.number !== null ? h("button", {type: "button", class: "mini", onclick: () => jump(event.where.key)}, "Go to failure") : null)),
+    m.finish ? h("dl", {class: "facts"},
+      h("div", null, h("dt", null, "Host replays passed"), h("dd", {"data-tone": tally.tone === "fail" ? "fail" : null}, tally.label))) : null,
+    judgePanel(m));
+}
+
+function renderConversation(m) {
+  const items = [];
+  if (!m.events.length) {
+    const text = ui.run ? "This run has started but has no events yet." : "No runs have started in this batch yet. This page checks for new events every second.";
+    items.push({key: "empty", sig: text, build: () => h("p", {class: "empty"}, text)});
+  }
+  if (m.baseline) {
+    const event = m.baseline;
+    items.push({key: "baseline", sig: String(event.seq), build: () => h("p", {class: "band"},
+      h("strong", null, "Host baseline"),
+      Object.entries(record(event.data)).map(([key, value]) => h("span", null, `${humanise(key)}: ${typeof value === "object" ? JSON.stringify(value) : value}`)),
+      event.data === null ? h("span", null, event.text) : null)});
+  }
+  if (hasContent(m.setup)) items.push(turnItem(m.setup, m));
+  for (const turn of m.turns) items.push(turnItem(turn, m));
+  if (m.finish || m.failures.length || m.judge.waiting || m.judge.messages.length || m.judge.verdict) {
+    const sig = JSON.stringify([m.state, replayTally(m), m.finish?.seq, m.failures.map(e => e.seq), m.judge.waiting?.seq, m.judge.messages.map(e => e.seq), m.judge.verdict?.seq]);
+    items.push({key: "outcome", sig, build: () => outcomeSection(m)});
+  }
+  if (m.events.length) {
+    items.push({key: "now", sig: m.state.tone, build: () => h("p", {class: "now", "data-tone": m.state.tone}, h("span", {class: "js-now"}), h("span", {class: "js-age"}))});
+  }
+  reconcile($("view-conversation"), items);
+}
+
+/* ---------- Errors and code ---------- */
+
+function inspectRow(tool, open) {
+  const where = tool.version > 1 ? `${turnName(tool.turn)}, version ${tool.version}` : turnName(tool.turn);
+  return fold({
+    key: "inspect:" + tool.key, cls: "tool", open, summary: toolSummary(tool),
+    body: inner => inner.append(h("div", {class: "tool-detail"},
+      h("p", {class: "evidence-sub"}, where, " ", h("button", {type: "button", class: "mini", onclick: () => revealTool(tool)}, "Show in conversation")),
+      toolDetail(tool))),
+  });
+}
+
+function inspectSection(key, title, note, empty, tools, open) {
+  return {
+    key, sig: "section",
+    build: () => h("section", {class: "inspect"}, h("h2", null, title, " ", h("span", {class: "count"})), h("p", {class: "inspect-note"}, note), h("div", {class: "stack"})),
+    update: node => {
+      node.querySelector(".count").textContent = tools.length;
+      reconcile(node.querySelector(".stack"), tools.length
+        ? tools.map(tool => ({key: tool.key, sig: toolSig(tool), build: () => inspectRow(tool, open)}))
+        : [{key: "empty", sig: empty, build: () => h("p", {class: "empty"}, empty)}]);
+    },
+  };
+}
+
+function renderInspect(m) {
+  reconcile($("view-inspect"), [
+    inspectSection("errors", "Command errors", "Commands that returned a non-zero exit code or an error.", "No command has returned an error so far.", m.tools.filter(tool => tool.outcome.tone === "fail"), true),
+    inspectSection("warnings", "Worth checking", "Commands that exited 0 but wrote to stderr, lost output, or never returned a result.", "Nothing to check so far.", m.tools.filter(tool => tool.outcome.tone === "warn"), false),
+    inspectSection("code", "Saved code", "Every script the analyst wrote, in order. Saving a script does not show that it works.", "No code has been saved so far.", m.tools.filter(tool => tool.kind === "script"), false),
+  ]);
+}
+
+/* ---------- Raw timeline ---------- */
+
+function eventDetails(event, summary) {
+  return fold({
+    key: "raw:" + event.seq, cls: "tool",
+    summary,
+    body: inner => inner.append(h("div", {class: "tool-detail"},
+      h("p", {class: "evidence-sub"}, `Event ${event.seq + 1} `,
+        event.callId ? h("code", null, event.callId) : null, " ", copyButton(() => JSON.stringify(event.raw), "Copy event JSON")),
+      event.text ? codeBlock(event.text, {label: "Text"}) : null,
+      event.data !== null ? codeBlock(asText(event.data), {label: typeof event.raw?.data === "string" && typeof event.data !== "string" ? "Data, decoded from a JSON string" : "Data"}) : null)),
+  });
+}
+
+function toolTimelineRow(event) {
+  const call = event.type === "toolCall";
+  const args = record(event.data);
+  const output = call ? null : readResult(event);
+  const method = args.kind === "sql" ? "SQL query" : args.kind === "js" ? "JavaScript command" :
+    args.kind === "help" ? "Help" : event.text;
+  const title = call ? "Tool call · " + method : "Tool result · " + event.text;
+  const status = call ? null : toolOutcome({output, result: event}, false);
+  const full = call ? args.text ?? (Array.isArray(args.path) ? args.path.join(" ") : args.name ?? asText(event.data)) :
+    output.saved !== undefined ? "Saved " + output.saved :
+    [output.stderr, output.error, output.stdout].filter(Boolean).join("\n");
+  const lines = String(full ?? "").trim().split("\n");
+  const excerpt = lines.slice(0, 5).join("\n").slice(0, 480);
+  const clipped = excerpt.length < String(full ?? "").trim().length;
+  return h("article", {class: "timeline-tool", "data-tone": status?.tone},
+    voice(title, event.time),
+    status ? chip(status.label, status.tone) : null,
+    excerpt ? h("pre", {class: "timeline-preview"}, excerpt + (clipped ? "\n…" : "")) : null,
+    eventDetails(event, call ? "Full arguments" : "Full recorded result"));
+}
+
+function rawRow(event) {
+  const turn = record(event.data).turn;
+  const title = event.type === "request" && Number.isInteger(turn)
+    ? `Turn ${turn} · Stakeholder request`
+    : humanise(event.role) + " · " + humanise(event.kind);
+  if (event.type === "thinking") {
+    const elapsed = record(event.data).elapsed_seconds;
+    return h("article", {class: "chronology-thinking"},
+      timeEl(event.time), h("span", null, humanise(event.role) + " · " + event.text),
+      typeof elapsed === "number" ? h("span", null, span(elapsed)) : null);
+  }
+  if (event.type === "toolCall" || event.type === "toolResult") return toolTimelineRow(event);
+  if (event.type === "replay") return replayBlock(event);
+  if (["reply", "request", "followup", "judgeMessage", "verdict"].includes(event.type)) {
+    const id = event.type === "request" ? "turn-" + event.seq : event.type === "verdict" ? "verdict" : null;
+    return h("article", {class: "chronology-message", id, tabindex: id ? "-1" : null},
+      voice(title, event.time), markdown(event.text));
+  }
+  return eventDetails(event, [
+    timeEl(event.time),
+    h("span", {class: "raw-role"}, humanise(event.role)),
+    h("span", {class: "raw-kind"}, event.kind),
+    h("span", {class: "raw-text"}, firstLine(event.text)),
+  ]);
+}
+
+function renderRaw(m) {
+  const role = $("roleFilter").value;
+  const query = $("rawSearch").value.trim().toLowerCase();
+  const rows = m.events.filter(event => {
+    if (role && event.role !== role) return false;
+    if (!query) return true;
+    event.search ??= `${event.role} ${event.kind} ${event.text} ${JSON.stringify(event.raw?.data ?? "")}`.toLowerCase();
+    return event.search.includes(query);
+  });
+  const offset = store.get(ui.run)?.offset;
+  $("rawCount").textContent = `Showing ${rows.length.toLocaleString()} of ${plural(m.events.length, "event")}` + (offset !== undefined ? ` · byte offset ${Number(offset).toLocaleString()}` : "");
+  reconcile($("rawList"), rows.map(event => ({key: "e" + event.seq, sig: "event", build: () => h("li", null, rawRow(event))})));
+}
+
+/* ---------- Rail, run picker and page chrome ---------- */
+
+function renderRail(m) {
+  const replay = replayTally(m);
+  const judge = judgeStatus(m);
+  const c = m.counts;
+  const row = (label, value, tone = null) => h("div", null, h("dt", null, label), h("dd", {"data-tone": tone}, value));
+  const turns = m.turns.map(turn => ({turn, status: turnStatus(turn, m)}));
+  const items = [
+    {
+      key: "state", sig: JSON.stringify([ui.run, m.state]),
+      build: () => h("section", null,
+        h("p", {class: "eyebrow"}, "Selected run"),
+        h("h2", {class: "run-title"}, ui.run || "No run yet"),
+        chip(m.state.label, m.state.tone),
+        h("p", {class: "state-detail"}, m.state.detail),
+        h("p", {class: "age js-age"})),
+    },
+    {
+      key: "evidence", sig: JSON.stringify([replay, judge, Boolean(m.judge.verdict)]),
+      build: () => h("section", null,
+        h("p", {class: "eyebrow"}, "Evidence"),
+        h("dl", {class: "rows"},
+          h("div", null, h("dt", null, "Host replays"), h("dd", null, chip(replay.label, replay.tone))),
+          h("div", null, h("dt", null, "Judge"), h("dd", null, chip(judge.label, judge.tone)))),
+        m.judge.verdict ? h("button", {type: "button", class: "linkish", "data-fk": "read-verdict", onclick: () => jump("verdict")}, "Read the verdict") : null),
+    },
+  ];
+  if (turns.length) {
+    items.push({
+      key: "turns", sig: JSON.stringify(turns.map(({turn, status}) => [turn.key, turn.number, status])),
+      build: () => h("nav", {"aria-label": "Turns in this run"},
+        h("p", {class: "eyebrow"}, "Turns"),
+        h("ul", {class: "turn-nav"}, turns.map(({turn, status}) => h("li", null,
+          h("button", {type: "button", "data-fk": "nav:" + turn.key, onclick: () => jump(turn.key)}, turnName(turn), chip(status.label, status.tone)))))),
+    });
+  }
+  const duration = m.first !== null && m.last !== null ? span(m.last - m.first) : "None yet";
+  items.push({
+    key: "counts", sig: JSON.stringify([c, m.events.length, duration]),
+    build: () => h("section", null,
+      h("p", {class: "eyebrow"}, "Activity"),
+      h("dl", {class: "rows"},
+        row("Tool calls", c.calls),
+        row("Queries", c.queries),
+        row("Scripts saved", c.scripts),
+        row("Command errors", c.errors, c.errors ? "fail" : null),
+        row("Warnings", c.warnings, c.warnings ? "warn" : null),
+        row("Events", m.events.length.toLocaleString()),
+        row("Time span", duration))),
+  });
+  reconcile($("rail"), items);
+}
+
+function runOption(name) {
+  return h("label", {class: "run"},
+    h("input", {type: "radio", name: "run", value: name, onchange: () => selectRun(name)}),
+    h("span", {class: "run-name"}, name),
+    h("span", {class: "run-status"}));
+}
+
+function updateRunOption(node, name, m) {
+  const selected = name === ui.run;
+  node.classList.toggle("is-selected", selected);
+  node.querySelector("input").checked = selected;
+  const replay = replayTally(m);
+  const slot = node.querySelector(".run-status");
+  const sig = m.state.label + "|" + replay.label;
+  if (slot.dataset.sig !== sig) {
+    slot.dataset.sig = sig;
+    slot.replaceChildren(chip(m.state.label, m.state.tone), m.replays.total ? `Replays ${replay.label}` : "");
+  }
+}
+
+function renderRuns() {
+  $("runPicker").hidden = store.size === 0;
+  reconcile($("runs"), [...store.keys()].map(name => ({
+    key: name, sig: "run", build: () => runOption(name), update: node => updateRunOption(node, name, modelOf(name)),
+  })));
+}
+
+function renderTabs(m) {
+  const flagged = m.counts.errors;
+  const inspect = $("countInspect");
+  inspect.textContent = flagged ? String(flagged) : "";
+  inspect.dataset.tone = flagged ? "fail" : "";
+  $("countRaw").textContent = m.events.length ? m.events.length.toLocaleString() : "";
+  document.querySelectorAll(".views button").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.view === ui.view)));
+}
+
+function setMeta(meta) {
+  const source = record(meta);
+  const judge = record(source.judge);
+  const judgeLabel = judge.model ? [judge.model, judge.thinking].filter(Boolean).join(" · ") : source.stakeholder_and_judge;
+  const entries = [["Scenario", source.scenario], ["Mode", source.mode], ["Analyst thinking", source.thinking], ["Judge", judgeLabel]]
+    .filter(([, value]) => value !== null && value !== undefined && value !== "");
+  const sig = JSON.stringify(entries);
+  const node = $("meta");
+  if (node.dataset.sig === sig) return;
+  node.dataset.sig = sig;
+  node.replaceChildren(...(entries.length
+    ? entries.map(([label, value]) => h("div", null, h("dt", null, label), h("dd", null, String(value))))
+    : [h("div", null, h("dd", null, "Waiting for a batch"))]));
+}
+
+function updateBanner() {
+  const message = ui.connectionError || ui.drawError;
+  const banner = $("banner");
+  banner.hidden = !message;
+  if (banner.textContent !== message) banner.textContent = message;
+}
+
+function setConnection(ok, detail = "") {
+  const conn = $("conn");
+  conn.dataset.state = ok ? "live" : "lost";
+  conn.textContent = ok ? "Connected" : "Reconnecting";
+  ui.connectionError = ok ? "" : `The connection to the viewer was interrupted (${detail}). Showing the events received so far and retrying.`;
+  updateBanner();
+}
+
+function updateAge() {
+  const m = modelOf(ui.run);
+  const age = ageText(m);
+  document.querySelectorAll(".js-age").forEach(node => { if (node.textContent !== age) node.textContent = age; });
+  const now = document.querySelector(".js-now");
+  const text = nowText(m);
+  if (now && now.textContent !== text) now.textContent = text;
+}
+
+function announce(m) {
+  const message = ui.run ? `${ui.run}: ${m.state.label}` : "";
+  if (message === ui.announced) return;
+  ui.announced = message;
+  $("announce").textContent = message;
+  document.title = ui.run ? `${m.state.label} · ${ui.run} · go-minitrace` : "Persona runs · go-minitrace";
+}
+
+function render() {
+  const m = modelOf(ui.run);
+  renderRuns();
+  renderRail(m);
+  renderTabs(m);
+  if (ui.view === "conversation") renderConversation(m);
+  else if (ui.view === "inspect") renderInspect(m);
+  else renderRaw(m);
+  updateAge();
+  announce(m);
+}
+
+function safeRender() {
+  try {
+    render();
+    ui.drawError = "";
+  } catch (error) {
+    console.error(error);
+    ui.drawError = `Part of this run could not be drawn (${error.message}). The events are kept and will be retried on the next update.`;
+  }
+  updateBanner();
+}
+
+/* ---------- Navigation and follow behaviour ---------- */
+
+const bottomGap = () => document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+
+function scrollToY(y) {
+  ui.ignoreScrollUntil = performance.now() + 200;
+  window.scrollTo(0, y);
+}
+const toBottom = () => scrollToY(document.documentElement.scrollHeight);
+
+function updateLatest() {
+  $("latest").textContent = ui.unread ? `Jump to latest (${ui.unread.toLocaleString()} new)` : "Jump to latest";
+  $("followNote").textContent = ui.autoPaused ? "Paused while you read" : "";
+}
+
+function pauseFollow() {
+  if (!follow.checked) return;
+  follow.checked = false;
+  ui.autoPaused = true;
+  updateLatest();
+}
+
+function resumeFollow() {
+  follow.checked = true;
+  ui.autoPaused = false;
+  ui.unread = 0;
+  updateLatest();
+}
+
+/* Never pull the page away from someone who is selecting text or working in a control. */
+function mayAutoScroll() {
+  const active = document.activeElement;
+  if (active?.matches?.("summary, button, input:not(#follow), select, pre, [tabindex='0']") && $("main").contains(active)) return false;
+  const selection = window.getSelection();
+  return !selection || selection.isCollapsed;
+}
+
+function clearViews() {
+  $("view-conversation").replaceChildren();
+  $("view-inspect").replaceChildren();
+  $("rawList").replaceChildren();
+}
+
+function showView(view) {
+  if (view === ui.view) return;
+  ui.scroll[ui.view] = window.scrollY;
+  ui.view = view;
+  clearViews();
+  for (const name of VIEWS) $("view-" + name).hidden = name !== view;
+  safeRender();
+  if (follow.checked && view !== "inspect") toBottom();
+  else scrollToY(ui.scroll[view] ?? 0);
+}
+
+function selectRun(name) {
+  if (name === ui.run) return;
+  ui.run = name;
+  ui.unread = 0;
+  ui.scroll = {};
+  clearViews();
+  safeRender();
+  if (follow.checked && ui.view !== "inspect") toBottom();
+  else scrollToY(0);
+  updateLatest();
+}
+
+function jump(id) {
+  pauseFollow();
+  if (ui.view === "inspect") showView("raw");
+  if (ui.view === "raw" && !$(id)) {
+    $("roleFilter").value = $("rawSearch").value = "";
+    renderRaw(modelOf(ui.run));
+  }
+  const node = $(id);
+  if (!node) return;
+  ui.ignoreScrollUntil = performance.now() + 200;
+  node.scrollIntoView({block: "start"});
+  node.focus({preventScroll: true});
+}
+
+function revealTool(tool) {
+  ui.open.set(ui.run + "\u0000activity:" + tool.turn.key, true);
+  ui.open.set(ui.run + "\u0000tool:" + tool.key, true);
+  pauseFollow();
+  showView("conversation");
+  const row = $("row-" + tool.key);
+  if (!row) return;
+  ui.ignoreScrollUntil = performance.now() + 200;
+  row.scrollIntoView({block: "center"});
+  row.querySelector("summary")?.focus({preventScroll: true});
+}
+
+function jumpLatest() {
+  if (ui.view === "inspect") showView("raw");
+  toBottom();
+  ui.unread = 0;
+  if (ui.autoPaused) resumeFollow();
+  updateLatest();
+}
+
+/* ---------- Live updates: the /events contract is unchanged ---------- */
+
+const store = new Map();
+const offsets = {};
+const ui = {
+  run: null, view: "raw", open: new Map(), scroll: {}, unread: 0, autoPaused: false,
+  ignoreScrollUntil: 0, lastY: 0, announced: "", connectionError: "", drawError: "",
+};
+let emptyModel = null;
+
+function modelOf(name) {
+  const entry = store.get(name);
+  if (!entry) return (emptyModel ??= buildModel([]));
+  return (entry.model ??= buildModel(entry.events));
+}
+
+function apply(payload) {
+  const {meta, runs} = record(payload);
+  setMeta(meta);
+  let changed = false;
+  let selectedNew = 0;
+  for (const [name, update] of Object.entries(record(runs))) {
+    let entry = store.get(name);
+    if (!entry) {
+      entry = {events: [], offset: undefined, model: null};
+      store.set(name, entry);
+      changed = true;
+    }
+    const fresh = Array.isArray(update?.events) ? update.events : [];
+    for (const raw of fresh) entry.events.push(normalise(raw, entry.events.length));
+    if (update?.offset !== undefined && update?.offset !== null) {
+      offsets[name] = update.offset;
+      entry.offset = update.offset;
+    }
+    if (fresh.length) {
+      entry.model = null;
+      changed = true;
+      if (name === ui.run) selectedNew += fresh.length;
+    }
+  }
+  if (ui.run === null && store.size) {
+    ui.run = store.keys().next().value;
+    selectedNew = store.get(ui.run).events.length;
+  }
+  if (!changed) return;
+  safeRender();
+  if (!selectedNew) return;
+  if (follow.checked && ui.view !== "inspect" && mayAutoScroll()) toBottom();
+  else if (bottomGap() > 40) ui.unread += selectedNew;
+  updateLatest();
+}
+
+async function poll() {
+  try {
+    const response = await fetch("/events?after=" + encodeURIComponent(JSON.stringify(offsets)), {cache: "no-store"});
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim());
+    const payload = await response.json();
+    setConnection(true);
+    apply(payload);
+  } catch (error) {
+    setConnection(false, error.message);
+  } finally {
+    setTimeout(poll, 1000);
+  }
+}
+
+document.querySelectorAll(".views button").forEach(button => button.addEventListener("click", () => showView(button.dataset.view)));
+$("latest").addEventListener("click", jumpLatest);
+follow.addEventListener("change", () => {
+  ui.autoPaused = false;
+  if (follow.checked) jumpLatest();
+  updateLatest();
+});
+$("roleFilter").addEventListener("change", () => renderRaw(modelOf(ui.run)));
+$("rawSearch").addEventListener("input", () => renderRaw(modelOf(ui.run)));
+window.addEventListener("scroll", () => {
+  const y = window.scrollY;
+  const gap = bottomGap();
+  if (performance.now() > ui.ignoreScrollUntil) {
+    if (follow.checked && y < ui.lastY - 2 && gap > 200) pauseFollow();
+    else if (ui.autoPaused && y > ui.lastY && gap < 40) resumeFollow();
+  }
+  if (gap < 40 && ui.unread) {
+    ui.unread = 0;
+    updateLatest();
+  }
+  ui.lastY = y;
+}, {passive: true});
+setInterval(updateAge, 5000);
+
+setMeta(null);
+safeRender();
+poll();
+})();
+</script>
+</body>
+</html>

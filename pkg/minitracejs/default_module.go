@@ -16,9 +16,9 @@ var _ modules.TypeScriptDeclarer = (*module)(nil)
 func (*module) Name() string { return ModuleName }
 
 func (*module) Doc() string {
-	return `The minitrace module loads transcript/session archives and exposes query, view, session, import, cache, source, and SQL helper builders to JavaScript.
+	return `The minitrace module opens local transcript archives and runs fluent query plans or tagged SQL.
 
-Use require("minitrace") from a go-go-goja runtime after linking this package into the host binary. Hand-built hosts typically use explicit sources such as mt.session().File(...), mt.db().File(...), mt.db().Content(...), or mt.sources().Glob(...). Generated xgoja hosts can still use the provider package when they need command-scoped runtime settings.`
+Use require("minitrace") in a Goja host. Build a source selection with mt.sources(), open it with mt.db(), and execute a local plan with db.execute(plan). Use mt.importer() to convert raw transcripts and mt.native() to inspect native evidence.`
 }
 
 func (*module) Loader(vm *goja.Runtime, moduleObj *goja.Object) {

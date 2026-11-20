@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "unscored": true,
+  "source_session_id": "01a1364a-f58a-7ce3-8460-a856dacc8a1a",
+  "tested": 8,
+  "passing_saved_commands": 5,
+  "final_answer_commands_tested": 7,
+  "final_answer_commands_passing": 4,
+  "unfinished_commands_tested": 1,
+  "original_grades_modified": false,
+  "results": [
+    {
+      "run_id": "D-deepseek-4.1-flash-high-r1",
+      "unscored": true,
+      "passed": true,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 0,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-deepseek-4.1-flash-high-r1/command.json",
+      "result_kind": "one-zero-count-identity"
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-high-r2",
+      "unscored": true,
+      "passed": true,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 0,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-deepseek-4.1-flash-high-r2/command.json",
+      "result_kind": "one-zero-count-identity"
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-low-r1",
+      "unscored": true,
+      "passed": false,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 0,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-deepseek-4.1-flash-low-r1/command.json",
+      "result_kind": "empty-array"
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-low-r2",
+      "unscored": true,
+      "passed": true,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 0,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-deepseek-4.1-flash-low-r2/command.json",
+      "result_kind": "one-zero-count-identity"
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r1",
+      "unscored": true,
+      "passed": true,
+      "final_answer_present": false,
+      "code_state": "unfinished-generated-code",
+      "exit_code": 0,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-glm-5.3-flash-high-r1/command.json",
+      "result_kind": "one-zero-count-identity"
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r2",
+      "unscored": true,
+      "passed": true,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 0,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-glm-5.3-flash-high-r2/command.json",
+      "result_kind": "one-zero-count-identity"
+    },
+    {
+      "run_id": "D-glm-5.3-flash-low-r1",
+      "unscored": true,
+      "passed": false,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 1,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-glm-5.3-flash-low-r1/command.json",
+      "result_kind": "command-error"
+    },
+    {
+      "run_id": "D-glm-5.3-flash-low-r2",
+      "unscored": true,
+      "passed": false,
+      "final_answer_present": true,
+      "code_state": "final-answer-present",
+      "exit_code": 1,
+      "receipt_path": "/private/tmp/gmt015-persona-v2-matrix/control/zero-tool-probes/matrix/D-glm-5.3-flash-low-r2/command.json",
+      "result_kind": "command-error"
+    }
+  ]
+}

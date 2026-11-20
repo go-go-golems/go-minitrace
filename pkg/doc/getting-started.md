@@ -34,6 +34,41 @@ Verify the installation:
 go-minitrace --version
 ```
 
+## JavaScript-first quick path
+
+If you already have normalized `.minitrace.json` archives, start with a small JavaScript command. Save this as `queries/evidence.js`:
+
+```js
+function audit() {
+  const mt = require("minitrace");
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .limits({maxCellBytes: 16000, strict: true}).build();
+  try {
+    const result = db.execute(mt.sql`SELECT session_id, tool_call_id, tool_name FROM tool_calls ORDER BY session_id, source_ordinal`.build());
+    if (result.error || !result.complete) {
+      throw new Error(result.error || "Incomplete evidence");
+    }
+    return result.rows;
+  } finally {
+    db.close();
+  }
+}
+__verb__("audit", {name: "audit", short: "Inspect complete normalized tool rows"});
+```
+
+Run it against your archives:
+
+```bash
+go-minitrace query commands --query-repository ./queries \
+  evidence audit --archive-glob './output/**/*.minitrace.json' --output json
+```
+
+JavaScript composes sources and queries. SQLite performs selection and aggregation. The `execute(plan)` envelope includes completeness metadata. Strict evidence mode refuses incomplete rows/cells rather than silently treating clipped content as evidence. Byte limits mean UTF-8 bytes, not tokens or Unicode characters. Use `mt.utf8ByteLength(text)` to measure text bytes; this does not add Node's `Buffer.byteLength` API.
+
+Before combining overlapping normalized archives, `mt.corpusManifest(paths)` reports byte-identical duplicates and conflicting normalized session IDs. It does not choose sources or change ingestion automatically. Original JSONL request bodies require the separate opt-in `mt.native().file(path).forEach(callback)` or bounded `.inspect()` API; normalized tool rows alone cannot recover missing request references. Native compaction coordinates are not exact historical model replay.
+
+See `go-minitrace help evidence-workflows` for command/flag scope, nested command paths, zero-tool session counts, and CLI envelopes. See `go-minitrace help js-api-reference` for native limits, query result fields, provenance and corpus-selection examples. If you do not have normalized archives yet, continue with discovery and conversion below. With `--cache-mode memory` or `none`, the database and SQLite temporary tables used for sorting and grouping stay in memory. Large intermediate results can increase peak memory use. The `auto` and `disk` cache modes may write cache files even for read-only queries.
+
 ## Step 1: Discover your sessions
 
 Before converting anything, see what sessions you have. Each discovery command scans a native session store and reports what it finds.

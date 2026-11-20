@@ -14,22 +14,33 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
+const memoryDriver = "sqlite3_minitrace_memory"
+
+func init() {
+	// SQLite may otherwise spill GROUP BY and ORDER BY scratch data to a file,
+	// even when the main database is in memory. Apply this to every pooled connection.
+	sql.Register(memoryDriver, &sqlite3.SQLiteDriver{ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+		_, err := conn.Exec("PRAGMA temp_store=MEMORY", nil)
+		return err
+	}})
+}
+
 func OpenSQLiteMemory(ctx context.Context, prefix string) (*sql.DB, error) {
 	name, err := uniqueMemoryName(prefix)
 	if err != nil {
 		return nil, err
 	}
-	dsn := "file:" + name + "?mode=memory&cache=shared"
-	db, err := sql.Open("sqlite3", dsn)
+	dsn := "file:" + name + "?mode=memory&cache=shared&_foreign_keys=on"
+	db, err := sql.Open(memoryDriver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite memory: %w", err)
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if _, err := db.ExecContext(ctx, `PRAGMA foreign_keys=ON;`); err != nil {
+	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
-		return nil, fmt.Errorf("enable sqlite foreign keys: %w", err)
+		return nil, fmt.Errorf("configure sqlite memory connection: %w", err)
 	}
 	return db, nil
 }

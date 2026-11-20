@@ -27,6 +27,18 @@ Structured query commands add a metadata layer on top of raw SQL and JavaScript-
 
 This matters when a query or analysis script becomes part of your team's repeatable workflow. A structured command gives you a stable name, typed inputs, alias support, discoverability in `go-minitrace query commands --help`, and a matching form in the `/query` web UI.
 
+Save this minimal command as `queries/ledger.js`. The scanner reads the quoted function name and the metadata object before the handler runs.
+
+```js
+function ledger() { return [{ok: true}]; }
+__verb__("ledger", {name: "ledger", short: "Run the ledger"});
+```
+
+```sh
+go-minitrace query catalog --query-repository ./queries ledger.js
+go-minitrace query commands --query-repository ./queries ledger --output json
+```
+
 ## What gets loaded
 
 The `query commands` subgroup loads a catalog from two places:
@@ -356,6 +368,12 @@ AND id IN ({{ .session_ids | sqlStringIn }})
 
 ## Writing a scanner-first JS command file
 
+After saving a file, inspect its exact registered CLI path and any scanner diagnostics.
+
+```sh
+go-minitrace query catalog --query-repository ./commands report.js
+```
+
 A structured JS command is a `.js` or `.cjs` file that exposes command metadata through static scanner markers and executes only when the command is invoked.
 
 A minimal example looks like this:
@@ -365,7 +383,7 @@ __section__("filters", {
   title: "Filters",
   fields: {
     framework: {
-      type: "stringList",
+      type: "string",
       help: "Filter by agent framework",
     },
     limit: {
@@ -378,19 +396,21 @@ __section__("filters", {
 
 function sessionList(filters) {
   const mt = require("minitrace");
-  const db = mt.db().RuntimeArchives().QueryCommandDefaults().Build();
+  const db = mt.db().sources(mt.sources().runtimeArchives().build())
+    .import({autoConvert: true, strict: true}).build();
   try {
-    return db.query(`
+    const result = db.execute(mt.sql`
       SELECT
         session_id,
         title,
         agent_framework AS framework
       FROM sessions
-      WHERE 1=1
-      ${filters.framework?.length ? `AND agent_framework IN (${mt.sql.stringIn(filters.framework)})` : ""}
-      ORDER BY started_at DESC
+      WHERE (${filters.framework || null} IS NULL OR agent_framework = ${filters.framework || null})
+      ORDER BY started_at DESC, session_id
       LIMIT ${filters.limit}
-    `);
+    `.build());
+    if (result.error || !result.complete) throw Error(result.error || "Incomplete result");
+    return result.rows;
   } finally {
     db.close();
   }
@@ -437,7 +457,7 @@ Those testdata repositories demonstrate:
 - relative helper modules,
 - pure synthetic row generation with no DB query,
 - async commands using `require("timer")`,
-- `queryOne(...)` plus JS-side reshaping,
+- explicit first-row selection plus JS-side reshaping,
 - query results post-processed in JavaScript before emission,
 - multiple SQL queries joined together in JS,
 - JS-side scoring and session classification logic,
@@ -535,7 +555,7 @@ The two approaches are complementary. Raw `query run` is the fastest ad hoc path
 
 ## See also
 
-- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.db()`, `db.query()`, normalized SQLite tables, cache modes, `mt.sql.*`, `mt.runtime`, built-in modules, scanner markers, field types
+- `go-minitrace help js-api-reference` — complete JS runtime API: `mt.db()`, `db.execute(plan)`, normalized SQLite tables, cache modes, tagged `mt.sql`, `mt.runtime`, built-in modules, scanner markers, field types
 - `go-minitrace help analysis-guide` — end-to-end workflow with JS command guidance, authoring loop, and when to use JS vs SQL
 - `go-minitrace help query-recipes` — ready-to-use SQL examples that can be promoted into structured commands
 - `go-minitrace help writing-queries` — SQL patterns for the normalized schema: joins, JSON access, filtering

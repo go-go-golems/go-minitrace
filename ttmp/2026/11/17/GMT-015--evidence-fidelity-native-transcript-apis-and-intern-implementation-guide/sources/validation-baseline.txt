@@ -1,0 +1,7 @@
+--- FAIL: TestNewCommandsCommand_LoadsConfiguredRepositoryFromAppConfig (0.07s)
+    commands_test.go:178: found.Short = "List minitrace sessions", want app-config override short description
+--- FAIL: TestNewCommandsCommand_XDGConfigOverridesHomeConfig (0.06s)
+    commands_test.go:535: found.Short = "Home config override session list", want XDG config override short description
+FAIL
+FAIL	github.com/go-go-golems/go-minitrace/cmd/go-minitrace/cmds/query	3.726s
+FAIL

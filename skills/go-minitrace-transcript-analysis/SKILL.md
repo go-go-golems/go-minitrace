@@ -1,9 +1,11 @@
 ---
 name: go-minitrace-transcript-analysis
-description: Use when analyzing previous Pi or Codex coding-agent transcripts with go-minitrace, especially to find sessions by repository/date, attribute implementation work to a session, convert targeted native JSONL sources, query normalized SQLite tables, compare agent behavior, and report evidence with explicit caveats.
+description: Use when analyzing previous Claude Code, Codex, or Pi coding-agent transcripts with go-minitrace, especially to find sessions by repository/date, attribute implementation work to a session, convert targeted native JSONL sources, query normalized SQLite tables, compare agent behavior, and report evidence with explicit caveats.
 ---
 
 # go-minitrace Transcript Analysis
+
+Use `go-minitrace query schema` to list normalized tables and `go-minitrace query schema tool_calls` to inspect columns. For reusable JavaScript queries, build a local plan and call `db.execute(plan)`. Start with [JavaScript query command authoring](references/js-query-authoring.md) and the installed `go-minitrace help js-api-reference`.
 
 ## Purpose
 
@@ -56,6 +58,7 @@ Design rationale and the original validation log (including one false-positive b
 
 ## Native stores
 
+- Claude Code: `~/.claude/projects/<project>/*.jsonl` for top-level sessions. Project subdirectories may also contain subagent transcripts.
 - Codex: `~/.codex/sessions/YYYY/MM/DD/*.jsonl`
 - Pi: `~/.pi/agent/sessions/--slugged-cwd--/*.jsonl`
 

@@ -67,7 +67,7 @@ WHERE source_format NOT LIKE '%subagent%'
 **What happened**: A query against `sqlite_master` (or any other object outside the allowlist) was rejected with:
 
 ```
-query references disallowed table/view "sqlite_master"; use db.schema() or db.tables() from JS to introspect the schema
+query references disallowed table/view "sqlite_master"; run go-minitrace help minitrace-schema for SQL tables and columns, or use db.schema() or db.tables() from JS
 ```
 
 **Cause**: All SQL runs through a sandboxed read-only runner that only allows the normalized tables (`sessions`, `turns`, `tool_calls`, `turn_tool_calls`, `files`, `annotations`, `handovers`, `metrics`, `attachments`, `events`) plus the `sessions_base` compatibility view. Introspection tables are blocked.

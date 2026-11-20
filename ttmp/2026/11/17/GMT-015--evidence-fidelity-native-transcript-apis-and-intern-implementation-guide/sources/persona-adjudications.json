@@ -1,0 +1,426 @@
+{
+  "schema": "gmt015-persona-adjudications/v1",
+  "scope": "Independent selected-run review; raw contract grades unchanged",
+  "adjudications": [
+    {
+      "run_id": "B-glm-5.3-flash-high-r1",
+      "keys": [
+        "source_ordinals"
+      ],
+      "classification": "harness_answer_scope_ambiguity",
+      "raw_score_unchanged": true,
+      "finding": "Both archive [0,1,2] and chronological [1,2,0] orders computed correctly; answer deliberately selects latter. Prompt did not specify field ordering.",
+      "evidence": [
+        "out/tool-order.json",
+        "qrepo/evidence/fidelity.js:114",
+        "report.md"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r1",
+      "keys": [
+        "native_complete_requests",
+        "native_incomplete_requests"
+      ],
+      "classification": "harness_answer_scope_ambiguity",
+      "raw_score_unchanged": true,
+      "finding": "Fixture2/1 computed correctly in saved inspection and answer notes. Top-level counts intended real corpus; prompt explicitly scoped only hash to fixture.",
+      "evidence": [
+        "out/inspect-synth.json",
+        "answer.json:notes",
+        "report.md"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r1",
+      "keys": [
+        "native_incomplete_requests"
+      ],
+      "classification": "substantive_reporting_error_under_alternative_scope",
+      "raw_score_unchanged": true,
+      "finding": "Even as real-corpus count,106 is wrong: per-file106+1=107. Correct breakdown and later prose preserved.",
+      "evidence": [
+        "out/inspect-7dce.json",
+        "out/inspect-d047.json",
+        "answer.json:notes"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r1",
+      "keys": [],
+      "classification": "caller_projection_error_unscored",
+      "raw_score_unchanged": true,
+      "finding": "Guessed compaction property paths discard available metadata, producing null wrapper fields; not evidence missing from native API.",
+      "evidence": [
+        "queryrepo/native/native-scan.js:119",
+        "out/inspect-synth.json"
+      ]
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r1",
+      "keys": [],
+      "classification": "narrative_error_unscored",
+      "raw_score_unchanged": true,
+      "finding": "Report claims ab\u00e9 JS.length=4 (actual3) and empty queryOne indistinguishable from broken query (broken throws). Computed byte length remains correct.",
+      "evidence": [
+        "report.md",
+        "out/api-envelopes.json"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r1",
+      "keys": [
+        "real_scan_paths",
+        "real_scan_rows"
+      ],
+      "classification": "harness_path_resolution_bug_corrected_v2",
+      "raw_score_unchanged": false,
+      "original_v1_score": {
+        "correct_fields": 3,
+        "graded_fields": 42
+      },
+      "original_v1_checks": [
+        {
+          "key": "native_complete_requests",
+          "present": true,
+          "passed": false,
+          "expected": 2,
+          "actual": 7
+        },
+        {
+          "key": "native_incomplete_requests",
+          "present": true,
+          "passed": false,
+          "expected": 1,
+          "actual": 107
+        },
+        {
+          "key": "native_whole_hash",
+          "present": true,
+          "passed": true,
+          "expected": "f9348a3f2c48583524d10c9eb5a14a3e8c5347585c9bcd051a66045e9d9c12da",
+          "actual": "f9348a3f2c48583524d10c9eb5a14a3e8c5347585c9bcd051a66045e9d9c12da"
+        },
+        {
+          "key": "exact_replay_possible",
+          "passed": true,
+          "actual": false,
+          "expected": false
+        },
+        {
+          "key": "real_scan_paths",
+          "passed": false,
+          "actual": [
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/claude-code/7dce992c-7793-4e1a-950c-4db92cef2502.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/claude-code/agent-ae7076749749daca0.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/claude-code/d047a697-35c0-460c-8fda-541799b5b5b0.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/codex/rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/codex/rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/codex/rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/pi/2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/pi/2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl",
+            "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/pi/2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl"
+          ],
+          "expected": [
+            "/private/tmp/gmt015-persona/corpus/raw/claude-code/7dce992c-7793-4e1a-950c-4db92cef2502.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/claude-code/agent-ae7076749749daca0.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/claude-code/d047a697-35c0-460c-8fda-541799b5b5b0.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/codex/rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/codex/rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/codex/rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/pi/2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/pi/2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl",
+            "/private/tmp/gmt015-persona/corpus/raw/pi/2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl"
+          ]
+        },
+        {
+          "key": "real_scan_rows",
+          "passed": true,
+          "actual": 9,
+          "expected": 9
+        },
+        {
+          "key": "agent-ae7076749749daca0.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "44d3639b32f19768354e836d1afe878591b7d7580020afd1c6f07f42a41c11cf"
+        },
+        {
+          "key": "agent-ae7076749749daca0.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 174606
+        },
+        {
+          "key": "agent-ae7076749749daca0.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 35
+        },
+        {
+          "key": "agent-ae7076749749daca0.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "d047a697-35c0-460c-8fda-541799b5b5b0.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "4ab8202602bb2cf6465c827433ab39ec8976033ffa5fce9ba3ea4d8dd97e2f0d"
+        },
+        {
+          "key": "d047a697-35c0-460c-8fda-541799b5b5b0.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 1070484
+        },
+        {
+          "key": "d047a697-35c0-460c-8fda-541799b5b5b0.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 68
+        },
+        {
+          "key": "d047a697-35c0-460c-8fda-541799b5b5b0.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "7dce992c-7793-4e1a-950c-4db92cef2502.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "9216fa6ed19757b97903e2feb7c4748e0844d1d3f17cf39ea2766d75ae494a3f"
+        },
+        {
+          "key": "7dce992c-7793-4e1a-950c-4db92cef2502.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 3779472
+        },
+        {
+          "key": "7dce992c-7793-4e1a-950c-4db92cef2502.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 985
+        },
+        {
+          "key": "7dce992c-7793-4e1a-950c-4db92cef2502.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "923151d00d903cdfb40e3316a19ee0930042cea456a20f8f3832cea63e86cdbe"
+        },
+        {
+          "key": "rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 150747
+        },
+        {
+          "key": "rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 29
+        },
+        {
+          "key": "rollout-2026-10-13T13-24-04-01a1364a-f58a-7ce3-8460-a856dacc8a1a.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "b21bec35a3f232d574a8d3eedc2dde3d250033d43f88e73598b057ad1a190149"
+        },
+        {
+          "key": "rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 783921
+        },
+        {
+          "key": "rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 97
+        },
+        {
+          "key": "rollout-2026-10-12T14-20-10-01a13157-f631-7cd3-8f84-e2666b24af01.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "4605c3343a8ffda0a6a6e57c7e36f97c14b94adac659bd0b7f1af1e880cbca16"
+        },
+        {
+          "key": "rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 3968125
+        },
+        {
+          "key": "rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 606
+        },
+        {
+          "key": "rollout-2026-11-10T11-59-20-01a1c666-5f02-7b92-984e-99a27afd7a94.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "facc5c8fb127ba227d96fa3a9b9176665fe0b2a3c5adaea854cbb498628fc615"
+        },
+        {
+          "key": "2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 150185
+        },
+        {
+          "key": "2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 42
+        },
+        {
+          "key": "2026-09-29T17-08-34-793Z_01a0ee23-bd68-75c1-a81f-2c43771fc216.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "019af5f05b45978851eaf74d115d3408dc07221123e4b1ac468747677238f0c9"
+        },
+        {
+          "key": "2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 769209
+        },
+        {
+          "key": "2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 90
+        },
+        {
+          "key": "2026-09-17T17-19-05-437Z_01a0b061-0cdd-7557-a80a-96802d3d02c5.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        },
+        {
+          "key": "2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl.sha256",
+          "passed": false,
+          "actual": null,
+          "expected": "bf72c170961ee635a31e290cbcd8ee37debe35a9c0160cc93afa7b9d7b8525a4"
+        },
+        {
+          "key": "2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl.bytes",
+          "passed": false,
+          "actual": null,
+          "expected": 3969769
+        },
+        {
+          "key": "2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl.lines",
+          "passed": false,
+          "actual": null,
+          "expected": 811
+        },
+        {
+          "key": "2026-09-15T15-50-28-655Z_01a0a5c3-342f-7447-be74-b6c35f542ff7.jsonl.hashScope",
+          "passed": false,
+          "actual": null,
+          "expected": "whole_source"
+        }
+      ],
+      "finding": "Prompt did not require absolute paths. Framework/basename paths match frozen inputs exactly; v1 erroneously resolved relative paths against evaluator cwd. v2 canonicalizes only exact corpus-relative framework/basename or exact absolute paths; no basename ambiguity or duplicate rows accepted.",
+      "evidence": [
+        "answer.json",
+        "scripts/persona-testing/summarize_results.py"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r1",
+      "keys": [
+        "native_complete_requests",
+        "native_incomplete_requests"
+      ],
+      "classification": "harness_answer_scope_ambiguity",
+      "raw_score_unchanged": true,
+      "finding": "Top-level7/107 correctly count real requests; report retains correct fixture2/1. Prompt did not explicitly assign fixture scope to count fields. Count mismatches remain raw contract results, not API error.",
+      "evidence": [
+        "answer.json",
+        "report.md"
+      ]
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r2",
+      "keys": [
+        "source_ordinals"
+      ],
+      "classification": "harness_answer_dataset_scope_ambiguity",
+      "raw_score_unchanged": true,
+      "finding": "Answer deliberately selects real Pi archive ordinals0..344, corroborated by out-tool-fidelity-pi.json and report section3. Oracle expects synthetic0..2; prompt also requested real summaries and did not explicitly label answer dataset. No demonstrated ordinal computation error.",
+      "evidence": [
+        "answer.json",
+        "report.md",
+        "out-tool-fidelity-pi.json"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r2",
+      "keys": [
+        "native_complete_requests",
+        "native_incomplete_requests"
+      ],
+      "classification": "harness_answer_scope_ambiguity",
+      "raw_score_unchanged": true,
+      "finding": "Top-level7/107 correctly describes real corpus; outputs/inspect.json and report describe synthetic2/1 separately. Scope mismatch retained, not API reconstruction error.",
+      "evidence": [
+        "answer.json",
+        "report.md",
+        "outputs/inspect.json",
+        "outputs/diag.json"
+      ]
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r2",
+      "keys": [
+        "native_complete_requests",
+        "native_incomplete_requests"
+      ],
+      "classification": "harness_answer_scope_ambiguity",
+      "raw_score_unchanged": true,
+      "finding": "Top-level9/108 correctly totals real corpus PLUS synthetic fixture (7+2 complete,107+1 incomplete). inspect-fixture.json explicitly resolves r1/r2 complete and r3 missing_blob; report explicitly states corpus+fixture scope. Oracle expects fixture2/1 only. Raw40/42 retained; no demonstrated request-reconstruction error.",
+      "evidence": [
+        "answer.json",
+        "inspect-fixture.json",
+        "inspect-claude.json",
+        "report.md"
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
 	"github.com/pkg/errors"
 )
 
@@ -34,20 +35,25 @@ type queryProvenance struct {
 }
 
 type queryRunRecord struct {
-	Schema       string           `json:"schema"`
-	StartedAt    string           `json:"started_at"`
-	FinishedAt   string           `json:"finished_at"`
-	Status       string           `json:"status"`
-	ErrorCode    string           `json:"error_code,omitempty"`
-	Error        string           `json:"error,omitempty"`
-	Query        queryProvenance  `json:"query"`
-	Inventory    archiveInventory `json:"archive_inventory"`
-	MaxRows      int              `json:"max_rows"`
-	MaxCellChars int              `json:"max_cell_chars"`
-	TimeoutMS    int              `json:"timeout_ms"`
-	Columns      []string         `json:"columns"`
-	RowCount     int              `json:"row_count"`
-	Truncated    bool             `json:"truncated"`
+	Schema          string                       `json:"schema"`
+	StartedAt       string                       `json:"started_at"`
+	FinishedAt      string                       `json:"finished_at"`
+	Status          string                       `json:"status"`
+	ErrorCode       string                       `json:"error_code,omitempty"`
+	Error           string                       `json:"error,omitempty"`
+	Query           queryProvenance              `json:"query"`
+	Inventory       archiveInventory             `json:"archive_inventory"`
+	MaxRows         int                          `json:"max_rows"`
+	MaxCellChars    int                          `json:"max_cell_chars"`
+	MaxCellBytes    int                          `json:"max_cell_bytes"`
+	StrictEvidence  bool                         `json:"strict_evidence"`
+	CacheMode       string                       `json:"cache_mode"`
+	Complete        bool                         `json:"complete"`
+	CellDiagnostics []minitracedb.CellDiagnostic `json:"cell_diagnostics,omitempty"`
+	TimeoutMS       int                          `json:"timeout_ms"`
+	Columns         []string                     `json:"columns"`
+	RowCount        int                          `json:"row_count"`
+	Truncated       bool                         `json:"truncated"`
 }
 
 func hashText(text string) string {

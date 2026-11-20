@@ -1,0 +1,7 @@
+{
+  "scope": "pre-matrix GLM low pilot, excluded from 32 runs",
+  "script": "ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/generated/pilot/utf8-demo.js",
+  "sha256": "3d8f5066e62cea2d1c32982355482e9db5e3aa85cca97045e69bfe466b6bf284",
+  "events": "/private/tmp/gmt015-persona/pilot/events.jsonl",
+  "observed": "executed UTF8 byte/clipping/strict rejection probe; corrected invalid Name method, invalid archive shape and execute(rawSQL)"
+}

@@ -15,9 +15,11 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/go-go-golems/go-minitrace/pkg/minitracedb"
+	"github.com/go-go-golems/go-minitrace/pkg/queryplan"
 )
 
 type DBBuilder struct {
+	relation            *relationalBinding
 	ctx                 context.Context
 	backend             string
 	storage             string
@@ -46,6 +48,9 @@ type ValidationResult struct {
 }
 
 type DBHandle struct {
+	owner       *queryplan.Owner
+	relation    *relationalBinding
+	ctx         context.Context
 	db          *sql.DB
 	runner      *minitracedb.QueryRunner
 	schema      minitracedb.SchemaDescriptor
@@ -94,189 +99,6 @@ func NewDBBuilderWithRuntime(ctx context.Context, runtimeSettings RuntimeSetting
 		ctx = context.Background()
 	}
 	return &DBBuilder{ctx: ctx, backend: "sqlite", storage: "memory", cacheMode: "none", query: minitracedb.DefaultQueryOptions(), runtimeArchiveGlobs: append([]string(nil), runtimeSettings.ArchiveGlob...), strictConversion: true}
-}
-
-func builderObject(vm *goja.Runtime, b *DBBuilder) *goja.Object {
-	obj := vm.NewObject()
-	_ = obj.Set("SQLiteMemory", func() *goja.Object {
-		b.backend = "sqlite"
-		b.storage = "memory"
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("SQLiteDiskCache", func(call goja.FunctionCall) goja.Value {
-		b.backend = "sqlite"
-		b.storage = "disk-cache"
-		b.cacheMode = "disk"
-		if len(call.Arguments) > 0 && !goja.IsUndefined(call.Argument(0)) && !goja.IsNull(call.Argument(0)) {
-			b.cacheDir = strings.TrimSpace(call.Argument(0).String())
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("File", func(path string) *goja.Object {
-		b.addFile(path)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Files", func(paths []string) *goja.Object {
-		b.addFiles(paths)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Archive", func(path string) *goja.Object {
-		b.addFile(path)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Content", func(call goja.FunctionCall) goja.Value {
-		content := call.Argument(0).String()
-		name := "content"
-		if len(call.Arguments) > 1 && !goja.IsUndefined(call.Argument(1)) && !goja.IsNull(call.Argument(1)) {
-			arg := call.Argument(1)
-			if exported := arg.Export(); exported != nil {
-				switch typed := exported.(type) {
-				case string:
-					name = typed
-				case map[string]any:
-					if value, ok := typed["name"].(string); ok && value != "" {
-						name = value
-					}
-				}
-			}
-		}
-		b.addContent(content, name)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Glob", func(pattern string) *goja.Object {
-		b.addGlob(pattern)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("RuntimeArchives", func() *goja.Object {
-		if len(b.runtimeArchiveGlobs) == 0 {
-			b.errors = append(b.errors, "runtime archive glob is not configured")
-		} else {
-			for _, pattern := range b.runtimeArchiveGlobs {
-				b.addGlob(pattern)
-			}
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Dir", func(path string) *goja.Object {
-		paths, err := collectMinitraceFiles(path)
-		if err != nil {
-			b.errors = append(b.errors, err.Error())
-		} else {
-			b.addFiles(paths)
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("MaxRows", func(n int) *goja.Object {
-		if n <= 0 {
-			b.errors = append(b.errors, "maxRows must be > 0")
-		} else {
-			b.query.MaxRows = n
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("MaxColumns", func(n int) *goja.Object {
-		if n <= 0 {
-			b.errors = append(b.errors, "maxColumns must be > 0")
-		} else {
-			b.query.MaxColumns = n
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("MaxCellChars", func(n int) *goja.Object {
-		if n <= 0 {
-			b.errors = append(b.errors, "maxCellChars must be > 0")
-		} else {
-			b.query.MaxCellChars = n
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Timeout", func(ms int) *goja.Object {
-		if ms <= 0 {
-			b.errors = append(b.errors, "timeout must be > 0")
-		} else {
-			b.query.Timeout = time.Duration(ms) * time.Millisecond
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("RequireOrderBy", func(enabled bool) *goja.Object {
-		b.query.RequireOrderBy = enabled
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("AutoConvert", func(enabled bool) *goja.Object {
-		b.autoConvert = enabled
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("StrictConversion", func(enabled bool) *goja.Object {
-		b.strictConversion = enabled
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Sources", func(sources *SourceSet) *goja.Object {
-		b.applySourceSet(sources)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Import", func(policy *ImportPolicy) *goja.Object {
-		b.applyImportPolicy(policy)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Limits", func(limits *QueryLimits) *goja.Object {
-		b.applyQueryLimits(limits)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("Cache", func(call goja.FunctionCall) goja.Value {
-		if len(call.Arguments) == 0 || goja.IsUndefined(call.Argument(0)) || goja.IsNull(call.Argument(0)) {
-			b.applyCachePolicy(&CachePolicy{Mode: "none"})
-			return builderObject(vm, b)
-		}
-		if policy, ok := call.Argument(0).Export().(*CachePolicy); ok {
-			b.applyCachePolicy(policy)
-			return builderObject(vm, b)
-		}
-		b.applyCacheMode(call.Argument(0).String())
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("CacheAuto", func(call goja.FunctionCall) goja.Value {
-		b.applyCachePolicy(&CachePolicy{Mode: "auto", Dir: optionalString(call)})
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("QueryCommandDefaults", func() *goja.Object {
-		b.autoConvert = true
-		b.strictConversion = true
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("InteractiveDefaults", func(call goja.FunctionCall) goja.Value {
-		b.autoConvert = true
-		b.strictConversion = true
-		b.applyCachePolicy(&CachePolicy{Mode: "auto", Dir: optionalString(call)})
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("CacheDir", func(path string) *goja.Object {
-		b.cacheDir = strings.TrimSpace(path)
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("ForceRebuild", func(call goja.FunctionCall) goja.Value {
-		b.forceRebuild = true
-		if len(call.Arguments) > 0 && !goja.IsUndefined(call.Argument(0)) && !goja.IsNull(call.Argument(0)) {
-			b.forceRebuild = call.Argument(0).ToBoolean()
-		}
-		return builderObject(vm, b)
-	})
-	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(b.sources) })
-	_ = obj.Set("CacheKey", func() (map[string]any, error) {
-		key, err := b.CacheKey()
-		if err != nil {
-			return nil, err
-		}
-		return toPlainMap(key), nil
-	})
-	_ = obj.Set("Validate", func() ValidationResult { return b.Validate() })
-	_ = obj.Set("Build", func() (*goja.Object, error) {
-		h, err := b.Build()
-		if err != nil {
-			return nil, err
-		}
-		return handleObject(vm, h), nil
-	})
-	return obj
 }
 
 func (b *DBBuilder) addFile(path string) {
@@ -360,15 +182,6 @@ func (b *DBBuilder) applySourceSet(set *SourceSet) {
 	}
 }
 
-func (b *DBBuilder) applyImportPolicy(policy *ImportPolicy) {
-	if policy == nil {
-		b.errors = append(b.errors, "import policy must not be nil")
-		return
-	}
-	b.autoConvert = policy.AutoConvert
-	b.strictConversion = policy.Strict
-}
-
 func (b *DBBuilder) applyQueryLimits(limits *QueryLimits) {
 	if limits == nil {
 		b.errors = append(b.errors, "query limits must not be nil")
@@ -382,7 +195,12 @@ func (b *DBBuilder) applyQueryLimits(limits *QueryLimits) {
 	}
 	if limits.MaxCellChars > 0 {
 		b.query.MaxCellChars = limits.MaxCellChars
+		b.query.MaxCellBytes = 0
 	}
+	if limits.MaxCellBytes > 0 {
+		b.query.MaxCellBytes = limits.MaxCellBytes
+	}
+	b.query.StrictEvidence = limits.StrictEvidence
 	if limits.Timeout > 0 {
 		b.query.Timeout = limits.Timeout
 	}
@@ -940,16 +758,13 @@ func NewArchiveQueryTarget(ctx context.Context, archiveGlobs []string, query min
 
 func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	obj := vm.NewObject()
-	_ = obj.Set("_handle", h)
-	_ = obj.Set("query", func(sqlText string, args ...any) ([]map[string]any, error) {
-		return h.runner.Query(context.Background(), sqlText, args...)
-	})
-	_ = obj.Set("queryOne", func(sqlText string, args ...any) (map[string]any, error) {
-		return h.runner.QueryOne(context.Background(), sqlText, args...)
-	})
-	_ = obj.Set("queryResult", func(sqlText string, args ...any) (map[string]any, error) {
-		result, err := h.runner.QueryResult(context.Background(), sqlText, args...)
-		return toPlainMap(result), err
+	_ = obj.Set("table", func(name string) *goja.Object { return h.relation.table(h, name) })
+	_ = obj.Set("execute", func(call goja.FunctionCall) goja.Value {
+		plan, ok := h.relation.lookup(call.Argument(0)).(executablePlan)
+		if !ok {
+			return h.relation.executionError("execute requires a built query plan, call query.build()")
+		}
+		return h.relation.execute(h.ctx, h, plan, call.Argument(1))
 	})
 	_ = obj.Set("schema", func() map[string]any { return toPlainMap(h.schema) })
 	_ = obj.Set("tables", func() []map[string]any { return toPlainSlice(h.schema.Tables) })
@@ -959,7 +774,6 @@ func handleObject(vm *goja.Runtime, h *DBHandle) *goja.Object {
 	_ = obj.Set("sources", func() []map[string]any { return toPlainSlice(h.sources) })
 	_ = obj.Set("diagnostics", func() []map[string]any { return toPlainSlice(h.diagnostics) })
 	_ = obj.Set("cacheInfo", func() map[string]any { return toPlainMap(h.CacheInfo()) })
-	_ = obj.Set("CacheInfo", func() map[string]any { return toPlainMap(h.CacheInfo()) })
 	_ = obj.Set("close", func() error { return h.Close() })
 	return obj
 }

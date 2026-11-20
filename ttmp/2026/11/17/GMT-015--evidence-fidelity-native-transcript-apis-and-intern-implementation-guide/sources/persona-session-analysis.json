@@ -1,0 +1,3791 @@
+{
+  "schema": "gmt015-persona-session-analysis/v1",
+  "finished_receipt_count": 32,
+  "native_session_count": 32,
+  "normalized_session_count": 32,
+  "runs": [
+    {
+      "run_id": "A-deepseek-4.1-flash-high-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 174.132,
+      "receipt_sha256": "ac996ed144fe47e1b365a1f5172d37c5a9be2e1f74c565610957aa9cbd4f72de",
+      "runner_tool_start_events": 54,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 2771,
+        "output": 21709,
+        "cacheRead": 1415680,
+        "cacheWrite": 34944,
+        "reasoning": 5604,
+        "totalTokens": 1475104
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf6-74b7-71d8-b4c4-63cc023b04f6",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r1/sessions/2026-11-17T19-23-02-711Z_01a1eaf6-74b7-71d8-b4c4-63cc023b04f6.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-deepseek-4.1-flash-high-r1/2026-11-17T19-23-02-711Z_01a1eaf6-74b7-71d8-b4c4-63cc023b04f6.jsonl",
+          "sha256": "b5a6140e6c247630869ce55089121504dd3945dd1629b94dd2277979694382b9",
+          "bytes": 323378,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 99
+          },
+          "native_assistant_tool_calls": 54,
+          "native_tool_names": {
+            "bash": 48,
+            "write": 4,
+            "edit": 2
+          },
+          "native_tool_result_events": 54,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 2771,
+            "output": 21709,
+            "cacheRead": 1415680,
+            "cacheWrite": 34944,
+            "reasoning": 5604,
+            "totalTokens": 1475104
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:25:56Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 54,
+            "normalized_turns": 45,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1415680,
+            "recorded_cache_write": 34944,
+            "recorded_input": 2771,
+            "recorded_output": 21709,
+            "recorded_reasoning": 5604,
+            "session_id": "01a1eaf6-74b7-71d8-b4c4-63cc023b04f6",
+            "started_at": "2026-11-17T19:23:02Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 54,
+        "normalized_tools": 54,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 2771,
+            "sql_recorded_sum": 2771,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2771,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 21709,
+            "sql_recorded_sum": 21709,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 21709,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1415680,
+            "sql_recorded_sum": 1415680,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1415680,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 34944,
+            "sql_recorded_sum": 34944,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 34944,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 5604,
+            "sql_recorded_sum": 5604,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 5604,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-deepseek-4.1-flash-high-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 264.906,
+      "receipt_sha256": "16619046328c8b50d43ebde017ff69e956cc0d18de7ec68d2ad3cbcee4e34bdf",
+      "runner_tool_start_events": 68,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 3515,
+        "output": 24558,
+        "cacheRead": 2132352,
+        "cacheWrite": 42496,
+        "reasoning": 4748,
+        "totalTokens": 2202921
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb01-1aa6-742e-80e6-67087a9b760f",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-high-r2/sessions/2026-11-17T19-34-40-551Z_01a1eb01-1aa6-742e-80e6-67087a9b760f.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-deepseek-4.1-flash-high-r2/2026-11-17T19-34-40-551Z_01a1eb01-1aa6-742e-80e6-67087a9b760f.jsonl",
+          "sha256": "c4a234d3b223c88b32f55aa065f5aa049691b97d8f05b2595ed7a2982496a60d",
+          "bytes": 390172,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 129
+          },
+          "native_assistant_tool_calls": 68,
+          "native_tool_names": {
+            "bash": 68
+          },
+          "native_tool_result_events": 68,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 3515,
+            "output": 24558,
+            "cacheRead": 2132352,
+            "cacheWrite": 42496,
+            "reasoning": 4748,
+            "totalTokens": 2202921
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:39:05Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 68,
+            "normalized_turns": 61,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 2132352,
+            "recorded_cache_write": 42496,
+            "recorded_input": 3515,
+            "recorded_output": 24558,
+            "recorded_reasoning": 4748,
+            "session_id": "01a1eb01-1aa6-742e-80e6-67087a9b760f",
+            "started_at": "2026-11-17T19:34:40Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 68,
+        "normalized_tools": 68,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 3515,
+            "sql_recorded_sum": 3515,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3515,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 24558,
+            "sql_recorded_sum": 24558,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 24558,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 2132352,
+            "sql_recorded_sum": 2132352,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2132352,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 42496,
+            "sql_recorded_sum": 42496,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 42496,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4748,
+            "sql_recorded_sum": 4748,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4748,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-deepseek-4.1-flash-low-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 130.464,
+      "receipt_sha256": "39c01ec8dba251dd2c42368334eb7f1e48bfba5533a5322cd9efeb9359a4f708",
+      "runner_tool_start_events": 38,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 1659,
+        "output": 15522,
+        "cacheRead": 910464,
+        "cacheWrite": 46720,
+        "reasoning": 3949,
+        "totalTokens": 974365
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafb-d45d-7038-85ec-53b4fe9476b9",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r1/sessions/2026-11-17T19-28-54-878Z_01a1eafb-d45d-7038-85ec-53b4fe9476b9.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-deepseek-4.1-flash-low-r1/2026-11-17T19-28-54-878Z_01a1eafb-d45d-7038-85ec-53b4fe9476b9.jsonl",
+          "sha256": "92a9cca476c15f68e98e232c4608af2b71e5be1a269698811db3f4a9ccc786c8",
+          "bytes": 328834,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 70
+          },
+          "native_assistant_tool_calls": 38,
+          "native_tool_names": {
+            "bash": 38
+          },
+          "native_tool_result_events": 38,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 1659,
+            "output": 15522,
+            "cacheRead": 910464,
+            "cacheWrite": 46720,
+            "reasoning": 3949,
+            "totalTokens": 974365
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:31:04Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 38,
+            "normalized_turns": 32,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 910464,
+            "recorded_cache_write": 46720,
+            "recorded_input": 1659,
+            "recorded_output": 15522,
+            "recorded_reasoning": 3949,
+            "session_id": "01a1eafb-d45d-7038-85ec-53b4fe9476b9",
+            "started_at": "2026-11-17T19:28:54Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 38,
+        "normalized_tools": 38,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 1659,
+            "sql_recorded_sum": 1659,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1659,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 15522,
+            "sql_recorded_sum": 15522,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 15522,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 910464,
+            "sql_recorded_sum": 910464,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 910464,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 46720,
+            "sql_recorded_sum": 46720,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 46720,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 3949,
+            "sql_recorded_sum": 3949,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3949,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-deepseek-4.1-flash-low-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 132.69,
+      "receipt_sha256": "5705e34526a964749c401faf47166125fc38dfd0049e8308b05c60660ecf4ae4",
+      "runner_tool_start_events": 39,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 2017,
+        "output": 15137,
+        "cacheRead": 984832,
+        "cacheWrite": 41984,
+        "reasoning": 3419,
+        "totalTokens": 1043970
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb07-cbaa-7655-b5ca-21ad1b9b2ebe",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-deepseek-4.1-flash-low-r2/sessions/2026-11-17T19-41-59-083Z_01a1eb07-cbaa-7655-b5ca-21ad1b9b2ebe.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-deepseek-4.1-flash-low-r2/2026-11-17T19-41-59-083Z_01a1eb07-cbaa-7655-b5ca-21ad1b9b2ebe.jsonl",
+          "sha256": "3340c4b5755a0dd7d0fb13606e884aaa88cf58042183d7ba1c7f93aec72adea9",
+          "bytes": 311866,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 70
+          },
+          "native_assistant_tool_calls": 39,
+          "native_tool_names": {
+            "bash": 39
+          },
+          "native_tool_result_events": 39,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 2017,
+            "output": 15137,
+            "cacheRead": 984832,
+            "cacheWrite": 41984,
+            "reasoning": 3419,
+            "totalTokens": 1043970
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:44:11Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 39,
+            "normalized_turns": 31,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 984832,
+            "recorded_cache_write": 41984,
+            "recorded_input": 2017,
+            "recorded_output": 15137,
+            "recorded_reasoning": 3419,
+            "session_id": "01a1eb07-cbaa-7655-b5ca-21ad1b9b2ebe",
+            "started_at": "2026-11-17T19:41:59Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 39,
+        "normalized_tools": 39,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 2017,
+            "sql_recorded_sum": 2017,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2017,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 15137,
+            "sql_recorded_sum": 15137,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 15137,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 984832,
+            "sql_recorded_sum": 984832,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 984832,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 41984,
+            "sql_recorded_sum": 41984,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 41984,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 3419,
+            "sql_recorded_sum": 3419,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3419,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-glm-5.3-flash-high-r1",
+      "model": "glm-5.3-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 177.441,
+      "receipt_sha256": "6ec7de674c4126c6be866cc570a2e5404a02fc24321b90a443801017c935bef7",
+      "runner_tool_start_events": 41,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 33987,
+        "output": 10699,
+        "cacheRead": 621568,
+        "cacheWrite": 0,
+        "reasoning": 1447,
+        "totalTokens": 666254
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf9-1d1e-769d-ae45-afcff964bfb0",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r1/sessions/2026-11-17T19-25-56-894Z_01a1eaf9-1d1e-769d-ae45-afcff964bfb0.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-glm-5.3-flash-high-r1/2026-11-17T19-25-56-894Z_01a1eaf9-1d1e-769d-ae45-afcff964bfb0.jsonl",
+          "sha256": "bdef1ceb850e74c5a5aa812b970aa06b15da35ccdadc8ef9d6eb729eafd7a2de",
+          "bytes": 262914,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 77
+          },
+          "native_assistant_tool_calls": 41,
+          "native_tool_names": {
+            "bash": 36,
+            "write": 4,
+            "edit": 1
+          },
+          "native_tool_result_events": 41,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 33987,
+            "output": 10699,
+            "cacheRead": 621568,
+            "cacheWrite": 0,
+            "reasoning": 1447,
+            "totalTokens": 666254
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:28:53Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 41,
+            "normalized_turns": 36,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 621568,
+            "recorded_cache_write": null,
+            "recorded_input": 33987,
+            "recorded_output": 10699,
+            "recorded_reasoning": 1447,
+            "session_id": "01a1eaf9-1d1e-769d-ae45-afcff964bfb0",
+            "started_at": "2026-11-17T19:25:56Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 41,
+        "normalized_tools": 41,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 33987,
+            "sql_recorded_sum": 33987,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 33987,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 10699,
+            "sql_recorded_sum": 10699,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 10699,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 621568,
+            "sql_recorded_sum": 621568,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 621568,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 1447,
+            "sql_recorded_sum": 1447,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1447,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-glm-5.3-flash-high-r2",
+      "model": "glm-5.3-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 254.525,
+      "receipt_sha256": "f8fbfd9b0e407fdac1dd0bf15152c656289250a469025f5bd7eff7c8a141e382",
+      "runner_tool_start_events": 56,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 32574,
+        "output": 14511,
+        "cacheRead": 1251584,
+        "cacheWrite": 0,
+        "reasoning": 2467,
+        "totalTokens": 1298669
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb03-e956-775f-bc55-ead8cdcd69e7",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-high-r2/sessions/2026-11-17T19-37-44-535Z_01a1eb03-e956-775f-bc55-ead8cdcd69e7.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-glm-5.3-flash-high-r2/2026-11-17T19-37-44-535Z_01a1eb03-e956-775f-bc55-ead8cdcd69e7.jsonl",
+          "sha256": "2d9f251d0016f4960d3be385c8a427f8a0b50a676932cecf509e5f118857d0e2",
+          "bytes": 309574,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 115
+          },
+          "native_assistant_tool_calls": 56,
+          "native_tool_names": {
+            "bash": 54,
+            "write": 2
+          },
+          "native_tool_result_events": 56,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 32574,
+            "output": 14511,
+            "cacheRead": 1251584,
+            "cacheWrite": 0,
+            "reasoning": 2467,
+            "totalTokens": 1298669
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:41:58Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 56,
+            "normalized_turns": 59,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1251584,
+            "recorded_cache_write": null,
+            "recorded_input": 32574,
+            "recorded_output": 14511,
+            "recorded_reasoning": 2467,
+            "session_id": "01a1eb03-e956-775f-bc55-ead8cdcd69e7",
+            "started_at": "2026-11-17T19:37:44Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 56,
+        "normalized_tools": 56,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 32574,
+            "sql_recorded_sum": 32574,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 32574,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 14511,
+            "sql_recorded_sum": 14511,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 14511,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1251584,
+            "sql_recorded_sum": 1251584,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1251584,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 2467,
+            "sql_recorded_sum": 2467,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2467,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-glm-5.3-flash-low-r1",
+      "model": "glm-5.3-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 180.7,
+      "receipt_sha256": "f24b334636d6a36dd7bda2ff847dbb2d795c31c8c878d383cda4b14bd48a0ca5",
+      "runner_tool_start_events": 50,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 30226,
+        "output": 11059,
+        "cacheRead": 865536,
+        "cacheWrite": 0,
+        "reasoning": 726,
+        "totalTokens": 906821
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafe-6593-74d1-9fb5-69bfb3a803c9",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-low-r1/sessions/2026-11-17T19-31-43-123Z_01a1eafe-6593-74d1-9fb5-69bfb3a803c9.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-glm-5.3-flash-low-r1/2026-11-17T19-31-43-123Z_01a1eafe-6593-74d1-9fb5-69bfb3a803c9.jsonl",
+          "sha256": "ed972dc9cc4ffd24481a6fb13fc9f8ef977c54afece418a8997538d72d7f4a82",
+          "bytes": 193576,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 98
+          },
+          "native_assistant_tool_calls": 50,
+          "native_tool_names": {
+            "bash": 46,
+            "write": 4
+          },
+          "native_tool_result_events": 50,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 30226,
+            "output": 11059,
+            "cacheRead": 865536,
+            "cacheWrite": 0,
+            "reasoning": 726,
+            "totalTokens": 906821
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:34:43Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 50,
+            "normalized_turns": 48,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 865536,
+            "recorded_cache_write": null,
+            "recorded_input": 30226,
+            "recorded_output": 11059,
+            "recorded_reasoning": 726,
+            "session_id": "01a1eafe-6593-74d1-9fb5-69bfb3a803c9",
+            "started_at": "2026-11-17T19:31:43Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 50,
+        "normalized_tools": 50,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 30226,
+            "sql_recorded_sum": 30226,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 30226,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 11059,
+            "sql_recorded_sum": 11059,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 11059,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 865536,
+            "sql_recorded_sum": 865536,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 865536,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 726,
+            "sql_recorded_sum": 726,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 726,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "A-glm-5.3-flash-low-r2",
+      "model": "glm-5.3-flash",
+      "persona": "new intern",
+      "task": "A",
+      "exit_code": 0,
+      "elapsed_seconds": 199.851,
+      "receipt_sha256": "4fe24ae3285a24aee7d8e36f8e942b0c84e139f777cd1eaeb1fcf62f9aedf44a",
+      "runner_tool_start_events": 34,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 31855,
+        "output": 10369,
+        "cacheRead": 572928,
+        "cacheWrite": 0,
+        "reasoning": 919,
+        "totalTokens": 615152
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb0c-d6d6-7619-a5fd-1aa36dbba017",
+          "original_path": "/private/tmp/gmt015-persona/matrix/A-glm-5.3-flash-low-r2/sessions/2026-11-17T19-47-29-622Z_01a1eb0c-d6d6-7619-a5fd-1aa36dbba017.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/A-glm-5.3-flash-low-r2/2026-11-17T19-47-29-622Z_01a1eb0c-d6d6-7619-a5fd-1aa36dbba017.jsonl",
+          "sha256": "ea977d7c1249137d79bb01e03d09662a3639766e18982195751de200b1fad93e",
+          "bytes": 255518,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 71
+          },
+          "native_assistant_tool_calls": 34,
+          "native_tool_names": {
+            "bash": 33,
+            "write": 1
+          },
+          "native_tool_result_events": 34,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 31855,
+            "output": 10369,
+            "cacheRead": 572928,
+            "cacheWrite": 0,
+            "reasoning": 919,
+            "totalTokens": 615152
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:50:49Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 34,
+            "normalized_turns": 37,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 572928,
+            "recorded_cache_write": null,
+            "recorded_input": 31855,
+            "recorded_output": 10369,
+            "recorded_reasoning": 919,
+            "session_id": "01a1eb0c-d6d6-7619-a5fd-1aa36dbba017",
+            "started_at": "2026-11-17T19:47:29Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 34,
+        "normalized_tools": 34,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 31855,
+            "sql_recorded_sum": 31855,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 31855,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 10369,
+            "sql_recorded_sum": 10369,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 10369,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 572928,
+            "sql_recorded_sum": 572928,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 572928,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 919,
+            "sql_recorded_sum": 919,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 919,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-high-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 294.86,
+      "receipt_sha256": "91e48fe0bf64bc3b96f6985a2dd2cc52a5367155740fe15a0b39eb63451c017f",
+      "runner_tool_start_events": 50,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 2876,
+        "output": 23075,
+        "cacheRead": 1800192,
+        "cacheWrite": 61824,
+        "reasoning": 4521,
+        "totalTokens": 1887967
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf6-74ca-747a-848c-67972e02ef6e",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r1/sessions/2026-11-17T19-23-02-730Z_01a1eaf6-74ca-747a-848c-67972e02ef6e.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-deepseek-4.1-flash-high-r1/2026-11-17T19-23-02-730Z_01a1eaf6-74ca-747a-848c-67972e02ef6e.jsonl",
+          "sha256": "865cd4885f0d44c90c501fd4cb51016812bef97d081be6a2441eba1b7b1c4b6a",
+          "bytes": 383999,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 98
+          },
+          "native_assistant_tool_calls": 50,
+          "native_tool_names": {
+            "bash": 49,
+            "write": 1
+          },
+          "native_tool_result_events": 50,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 2876,
+            "output": 23075,
+            "cacheRead": 1800192,
+            "cacheWrite": 61824,
+            "reasoning": 4521,
+            "totalTokens": 1887967
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:27:57Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 50,
+            "normalized_turns": 48,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1800192,
+            "recorded_cache_write": 61824,
+            "recorded_input": 2876,
+            "recorded_output": 23075,
+            "recorded_reasoning": 4521,
+            "session_id": "01a1eaf6-74ca-747a-848c-67972e02ef6e",
+            "started_at": "2026-11-17T19:23:02Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 50,
+        "normalized_tools": 50,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 2876,
+            "sql_recorded_sum": 2876,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2876,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 23075,
+            "sql_recorded_sum": 23075,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 23075,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1800192,
+            "sql_recorded_sum": 1800192,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1800192,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 61824,
+            "sql_recorded_sum": 61824,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 61824,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4521,
+            "sql_recorded_sum": 4521,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4521,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-high-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 154.887,
+      "receipt_sha256": "f10415b8facb1dc0aa350ddb7e2fc366f93cbadbb6c7200b24e7c9ec70b871bd",
+      "runner_tool_start_events": 48,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 3301,
+        "output": 25704,
+        "cacheRead": 1313280,
+        "cacheWrite": 30592,
+        "reasoning": 6418,
+        "totalTokens": 1372877
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb01-272c-7464-88c0-5aa8786ee0b4",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-high-r2/sessions/2026-11-17T19-34-43-756Z_01a1eb01-272c-7464-88c0-5aa8786ee0b4.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-deepseek-4.1-flash-high-r2/2026-11-17T19-34-43-756Z_01a1eb01-272c-7464-88c0-5aa8786ee0b4.jsonl",
+          "sha256": "3d0c5cab2fe705935a9b243c838e724e4c383557a55e24cddd4bda6d8e65cbf1",
+          "bytes": 297605,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 95
+          },
+          "native_assistant_tool_calls": 48,
+          "native_tool_names": {
+            "bash": 41,
+            "write": 5,
+            "edit": 2
+          },
+          "native_tool_result_events": 48,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 3301,
+            "output": 25704,
+            "cacheRead": 1313280,
+            "cacheWrite": 30592,
+            "reasoning": 6418,
+            "totalTokens": 1372877
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:37:18Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 48,
+            "normalized_turns": 47,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1313280,
+            "recorded_cache_write": 30592,
+            "recorded_input": 3301,
+            "recorded_output": 25704,
+            "recorded_reasoning": 6418,
+            "session_id": "01a1eb01-272c-7464-88c0-5aa8786ee0b4",
+            "started_at": "2026-11-17T19:34:43Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 48,
+        "normalized_tools": 48,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 3301,
+            "sql_recorded_sum": 3301,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3301,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 25704,
+            "sql_recorded_sum": 25704,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 25704,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1313280,
+            "sql_recorded_sum": 1313280,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1313280,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 30592,
+            "sql_recorded_sum": 30592,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 30592,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 6418,
+            "sql_recorded_sum": 6418,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 6418,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-low-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 111.514,
+      "receipt_sha256": "c0150202635447604427b7714320516f4073f4fba63d300e35d07f6f62e507b2",
+      "runner_tool_start_events": 36,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 1715,
+        "output": 16830,
+        "cacheRead": 670336,
+        "cacheWrite": 25088,
+        "reasoning": 2858,
+        "totalTokens": 713969
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafc-b2ba-74be-9bc7-55c70aa4e349",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r1/sessions/2026-11-17T19-29-51-802Z_01a1eafc-b2ba-74be-9bc7-55c70aa4e349.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-deepseek-4.1-flash-low-r1/2026-11-17T19-29-51-802Z_01a1eafc-b2ba-74be-9bc7-55c70aa4e349.jsonl",
+          "sha256": "998e2f866318fb0c0f4f58a9a375aa9cd028afb91ea4a6b7b6adb865dbebc9ad",
+          "bytes": 206752,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 68
+          },
+          "native_assistant_tool_calls": 36,
+          "native_tool_names": {
+            "bash": 36
+          },
+          "native_tool_result_events": 36,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 1715,
+            "output": 16830,
+            "cacheRead": 670336,
+            "cacheWrite": 25088,
+            "reasoning": 2858,
+            "totalTokens": 713969
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:31:42Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 36,
+            "normalized_turns": 32,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 670336,
+            "recorded_cache_write": 25088,
+            "recorded_input": 1715,
+            "recorded_output": 16830,
+            "recorded_reasoning": 2858,
+            "session_id": "01a1eafc-b2ba-74be-9bc7-55c70aa4e349",
+            "started_at": "2026-11-17T19:29:51Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 36,
+        "normalized_tools": 36,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 1715,
+            "sql_recorded_sum": 1715,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1715,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 16830,
+            "sql_recorded_sum": 16830,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 16830,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 670336,
+            "sql_recorded_sum": 670336,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 670336,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 25088,
+            "sql_recorded_sum": 25088,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 25088,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 2858,
+            "sql_recorded_sum": 2858,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2858,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-deepseek-4.1-flash-low-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 215.137,
+      "receipt_sha256": "2329263b913e652cc508583f5a607f6e58f925efbdb7c9260bbec5fa28c82d29",
+      "runner_tool_start_events": 58,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 2743,
+        "output": 20484,
+        "cacheRead": 1502720,
+        "cacheWrite": 34432,
+        "reasoning": 3614,
+        "totalTokens": 1560379
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb09-d255-735a-8f78-945757e236dc",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-deepseek-4.1-flash-low-r2/sessions/2026-11-17T19-44-11-862Z_01a1eb09-d255-735a-8f78-945757e236dc.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-deepseek-4.1-flash-low-r2/2026-11-17T19-44-11-862Z_01a1eb09-d255-735a-8f78-945757e236dc.jsonl",
+          "sha256": "5775e44959d5c7b458ee6778ddee266c624e7bf92936096b60ff955114bfcf6d",
+          "bytes": 315846,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 108
+          },
+          "native_assistant_tool_calls": 58,
+          "native_tool_names": {
+            "bash": 52,
+            "write": 6
+          },
+          "native_tool_result_events": 58,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 2743,
+            "output": 20484,
+            "cacheRead": 1502720,
+            "cacheWrite": 34432,
+            "reasoning": 3614,
+            "totalTokens": 1560379
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:47:46Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 58,
+            "normalized_turns": 50,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1502720,
+            "recorded_cache_write": 34432,
+            "recorded_input": 2743,
+            "recorded_output": 20484,
+            "recorded_reasoning": 3614,
+            "session_id": "01a1eb09-d255-735a-8f78-945757e236dc",
+            "started_at": "2026-11-17T19:44:11Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 58,
+        "normalized_tools": 58,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 2743,
+            "sql_recorded_sum": 2743,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2743,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 20484,
+            "sql_recorded_sum": 20484,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 20484,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1502720,
+            "sql_recorded_sum": 1502720,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1502720,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 34432,
+            "sql_recorded_sum": 34432,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 34432,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 3614,
+            "sql_recorded_sum": 3614,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3614,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r1",
+      "model": "glm-5.3-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 218.859,
+      "receipt_sha256": "13b83eafc38f3430d1ee635575be3e531bada68eb8e7d7f8acefe4fd870e76e0",
+      "runner_tool_start_events": 38,
+      "runner_tool_error_events": 4,
+      "runner_reported_usage": {
+        "input": 29411,
+        "output": 18447,
+        "cacheRead": 768512,
+        "cacheWrite": 0,
+        "reasoning": 6965,
+        "totalTokens": 816370
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf9-59d0-72a6-b53e-0e79fc375564",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r1/sessions/2026-11-17T19-26-12-433Z_01a1eaf9-59d0-72a6-b53e-0e79fc375564.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-glm-5.3-flash-high-r1/2026-11-17T19-26-12-433Z_01a1eaf9-59d0-72a6-b53e-0e79fc375564.jsonl",
+          "sha256": "a9bad1f7508c16058ce91ae07658694c42897468d676897089bec73500cc07b6",
+          "bytes": 335405,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 73
+          },
+          "native_assistant_tool_calls": 38,
+          "native_tool_names": {
+            "bash": 31,
+            "write": 3,
+            "edit": 4
+          },
+          "native_tool_result_events": 38,
+          "native_error_result_events": 4,
+          "native_assistant_usage_sum": {
+            "input": 29411,
+            "output": 18447,
+            "cacheRead": 768512,
+            "cacheWrite": 0,
+            "reasoning": 6965,
+            "totalTokens": 816370
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:29:50Z",
+            "normalized_failed_tools": 4,
+            "normalized_tools": 38,
+            "normalized_turns": 35,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 768512,
+            "recorded_cache_write": null,
+            "recorded_input": 29411,
+            "recorded_output": 18447,
+            "recorded_reasoning": 6965,
+            "session_id": "01a1eaf9-59d0-72a6-b53e-0e79fc375564",
+            "started_at": "2026-11-17T19:26:12Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 38,
+        "normalized_tools": 38,
+        "native_error_result_events": 4,
+        "normalized_failed_tools": 4,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 29411,
+            "sql_recorded_sum": 29411,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 29411,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 18447,
+            "sql_recorded_sum": 18447,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 18447,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 768512,
+            "sql_recorded_sum": 768512,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 768512,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 6965,
+            "sql_recorded_sum": 6965,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 6965,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-glm-5.3-flash-high-r2",
+      "model": "glm-5.3-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 472.546,
+      "receipt_sha256": "3138d98c92b31f52075d3717290652a7f469927dddfd0429d64c66d541eb6ac9",
+      "runner_tool_start_events": 102,
+      "runner_tool_error_events": 3,
+      "runner_reported_usage": {
+        "input": 55601,
+        "output": 36577,
+        "cacheRead": 3887360,
+        "cacheWrite": 0,
+        "reasoning": 8383,
+        "totalTokens": 3979538
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb05-2610-759e-913a-ba60722bd63e",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-high-r2/sessions/2026-11-17T19-39-05-617Z_01a1eb05-2610-759e-913a-ba60722bd63e.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-glm-5.3-flash-high-r2/2026-11-17T19-39-05-617Z_01a1eb05-2610-759e-913a-ba60722bd63e.jsonl",
+          "sha256": "3fcbd41de04fbd26ffce13bc863530e3d6c45d4453ea6a71038ca6238efc948b",
+          "bytes": 566358,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 202
+          },
+          "native_assistant_tool_calls": 102,
+          "native_tool_names": {
+            "bash": 98,
+            "write": 3,
+            "edit": 1
+          },
+          "native_tool_result_events": 102,
+          "native_error_result_events": 3,
+          "native_assistant_usage_sum": {
+            "input": 55601,
+            "output": 36577,
+            "cacheRead": 3887360,
+            "cacheWrite": 0,
+            "reasoning": 8383,
+            "totalTokens": 3979538
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:46:57Z",
+            "normalized_failed_tools": 3,
+            "normalized_tools": 102,
+            "normalized_turns": 100,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 3887360,
+            "recorded_cache_write": null,
+            "recorded_input": 55601,
+            "recorded_output": 36577,
+            "recorded_reasoning": 8383,
+            "session_id": "01a1eb05-2610-759e-913a-ba60722bd63e",
+            "started_at": "2026-11-17T19:39:05Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 102,
+        "normalized_tools": 102,
+        "native_error_result_events": 3,
+        "normalized_failed_tools": 3,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 55601,
+            "sql_recorded_sum": 55601,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 55601,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 36577,
+            "sql_recorded_sum": 36577,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 36577,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 3887360,
+            "sql_recorded_sum": 3887360,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3887360,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 8383,
+            "sql_recorded_sum": 8383,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 8383,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-glm-5.3-flash-low-r1",
+      "model": "glm-5.3-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 166.889,
+      "receipt_sha256": "a26c7b137a987b214db674b9fbb63f6c70fec5bbfb0229527e4aad4ad872bcee",
+      "runner_tool_start_events": 41,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 27967,
+        "output": 10133,
+        "cacheRead": 727808,
+        "cacheWrite": 0,
+        "reasoning": 1589,
+        "totalTokens": 765908
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafe-910f-7136-b563-5a859956b6d8",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r1/sessions/2026-11-17T19-31-54-256Z_01a1eafe-910f-7136-b563-5a859956b6d8.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-glm-5.3-flash-low-r1/2026-11-17T19-31-54-256Z_01a1eafe-910f-7136-b563-5a859956b6d8.jsonl",
+          "sha256": "e8d5c3855f1bd6be8e1c2aa68876d5b251ec4631ff56e78deb4b459de882073e",
+          "bytes": 233076,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 85
+          },
+          "native_assistant_tool_calls": 41,
+          "native_tool_names": {
+            "bash": 32,
+            "read": 3,
+            "write": 3,
+            "edit": 3
+          },
+          "native_tool_result_events": 41,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 27967,
+            "output": 10133,
+            "cacheRead": 727808,
+            "cacheWrite": 0,
+            "reasoning": 1589,
+            "totalTokens": 765908
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:34:40Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 41,
+            "normalized_turns": 44,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 727808,
+            "recorded_cache_write": null,
+            "recorded_input": 27967,
+            "recorded_output": 10133,
+            "recorded_reasoning": 1589,
+            "session_id": "01a1eafe-910f-7136-b563-5a859956b6d8",
+            "started_at": "2026-11-17T19:31:54Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 41,
+        "normalized_tools": 41,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 27967,
+            "sql_recorded_sum": 27967,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 27967,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 10133,
+            "sql_recorded_sum": 10133,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 10133,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 727808,
+            "sql_recorded_sum": 727808,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 727808,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 1589,
+            "sql_recorded_sum": 1589,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1589,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "B-glm-5.3-flash-low-r2",
+      "model": "glm-5.3-flash",
+      "persona": "Python analyst learning JavaScript",
+      "task": "B",
+      "exit_code": 0,
+      "elapsed_seconds": 199.727,
+      "receipt_sha256": "bd053f1b68070e649839cf26a4d873e886eda38ff844f2d6c3b9dec8cb5fe423",
+      "runner_tool_start_events": 37,
+      "runner_tool_error_events": 2,
+      "runner_reported_usage": {
+        "input": 33645,
+        "output": 10649,
+        "cacheRead": 663296,
+        "cacheWrite": 0,
+        "reasoning": 1974,
+        "totalTokens": 707590
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb0d-19f0-7790-9188-7261f9e9ad15",
+          "original_path": "/private/tmp/gmt015-persona/matrix/B-glm-5.3-flash-low-r2/sessions/2026-11-17T19-47-46-800Z_01a1eb0d-19f0-7790-9188-7261f9e9ad15.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/B-glm-5.3-flash-low-r2/2026-11-17T19-47-46-800Z_01a1eb0d-19f0-7790-9188-7261f9e9ad15.jsonl",
+          "sha256": "ad13210f0df46fcfdec68d00f45381345272ae76818a580d7a80a624fe8ce7c9",
+          "bytes": 265496,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 74
+          },
+          "native_assistant_tool_calls": 37,
+          "native_tool_names": {
+            "bash": 31,
+            "write": 4,
+            "edit": 2
+          },
+          "native_tool_result_events": 37,
+          "native_error_result_events": 2,
+          "native_assistant_usage_sum": {
+            "input": 33645,
+            "output": 10649,
+            "cacheRead": 663296,
+            "cacheWrite": 0,
+            "reasoning": 1974,
+            "totalTokens": 707590
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:51:06Z",
+            "normalized_failed_tools": 2,
+            "normalized_tools": 37,
+            "normalized_turns": 37,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 663296,
+            "recorded_cache_write": null,
+            "recorded_input": 33645,
+            "recorded_output": 10649,
+            "recorded_reasoning": 1974,
+            "session_id": "01a1eb0d-19f0-7790-9188-7261f9e9ad15",
+            "started_at": "2026-11-17T19:47:46Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 37,
+        "normalized_tools": 37,
+        "native_error_result_events": 2,
+        "normalized_failed_tools": 2,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 33645,
+            "sql_recorded_sum": 33645,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 33645,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 10649,
+            "sql_recorded_sum": 10649,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 10649,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 663296,
+            "sql_recorded_sum": 663296,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 663296,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 1974,
+            "sql_recorded_sum": 1974,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1974,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-high-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 223.513,
+      "receipt_sha256": "3e917139f8226d6d604fc3d19ed66e1f61ac02be41c4988fb1607885b57ead69",
+      "runner_tool_start_events": 80,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 3935,
+        "output": 28001,
+        "cacheRead": 2244864,
+        "cacheWrite": 42496,
+        "reasoning": 5407,
+        "totalTokens": 2319296
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf6-74a2-7234-8558-99184e883270",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r1/sessions/2026-11-17T19-23-02-690Z_01a1eaf6-74a2-7234-8558-99184e883270.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-deepseek-4.1-flash-high-r1/2026-11-17T19-23-02-690Z_01a1eaf6-74a2-7234-8558-99184e883270.jsonl",
+          "sha256": "1a813d1f26499d2e168a19cf377b09fa8c6e5aec65568094d1c2e886355ac4e3",
+          "bytes": 342331,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 150
+          },
+          "native_assistant_tool_calls": 80,
+          "native_tool_names": {
+            "bash": 75,
+            "write": 4,
+            "edit": 1
+          },
+          "native_tool_result_events": 80,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 3935,
+            "output": 28001,
+            "cacheRead": 2244864,
+            "cacheWrite": 42496,
+            "reasoning": 5407,
+            "totalTokens": 2319296
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:26:45Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 80,
+            "normalized_turns": 70,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 2244864,
+            "recorded_cache_write": 42496,
+            "recorded_input": 3935,
+            "recorded_output": 28001,
+            "recorded_reasoning": 5407,
+            "session_id": "01a1eaf6-74a2-7234-8558-99184e883270",
+            "started_at": "2026-11-17T19:23:02Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 80,
+        "normalized_tools": 80,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 3935,
+            "sql_recorded_sum": 3935,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3935,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 28001,
+            "sql_recorded_sum": 28001,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 28001,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 2244864,
+            "sql_recorded_sum": 2244864,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2244864,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 42496,
+            "sql_recorded_sum": 42496,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 42496,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 5407,
+            "sql_recorded_sum": 5407,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 5407,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-high-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 340.295,
+      "receipt_sha256": "d54b2c9df73113451281b50fbd39b98f7c2073284f9324fac7e8ddd53bce81bc",
+      "runner_tool_start_events": 94,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 4024,
+        "output": 37008,
+        "cacheRead": 3046400,
+        "cacheWrite": 44928,
+        "reasoning": 10172,
+        "totalTokens": 3132360
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb01-cc80-7209-87e4-6631d30f7237",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-high-r2/sessions/2026-11-17T19-35-26-081Z_01a1eb01-cc80-7209-87e4-6631d30f7237.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-deepseek-4.1-flash-high-r2/2026-11-17T19-35-26-081Z_01a1eb01-cc80-7209-87e4-6631d30f7237.jsonl",
+          "sha256": "2841e879cd66a7fa21d311c1339a9bb50542e806a14bd2acc68db2d6aaa96933",
+          "bytes": 417772,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 174
+          },
+          "native_assistant_tool_calls": 94,
+          "native_tool_names": {
+            "bash": 93,
+            "write": 1
+          },
+          "native_tool_result_events": 94,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 4024,
+            "output": 37008,
+            "cacheRead": 3046400,
+            "cacheWrite": 44928,
+            "reasoning": 10172,
+            "totalTokens": 3132360
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:41:06Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 94,
+            "normalized_turns": 80,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 3046400,
+            "recorded_cache_write": 44928,
+            "recorded_input": 4024,
+            "recorded_output": 37008,
+            "recorded_reasoning": 10172,
+            "session_id": "01a1eb01-cc80-7209-87e4-6631d30f7237",
+            "started_at": "2026-11-17T19:35:26Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 94,
+        "normalized_tools": 94,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 4024,
+            "sql_recorded_sum": 4024,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4024,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 37008,
+            "sql_recorded_sum": 37008,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 37008,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 3046400,
+            "sql_recorded_sum": 3046400,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3046400,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 44928,
+            "sql_recorded_sum": 44928,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 44928,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 10172,
+            "sql_recorded_sum": 10172,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 10172,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-low-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 119.422,
+      "receipt_sha256": "6cd36c7fa23cf7adf79b27e0d957fa71fcd66ef6219844d1964203f1d22b3a6b",
+      "runner_tool_start_events": 44,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 1823,
+        "output": 18320,
+        "cacheRead": 881152,
+        "cacheWrite": 53120,
+        "reasoning": 4674,
+        "totalTokens": 954415
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafd-d14f-77f4-aefa-13c6112188c9",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r1/sessions/2026-11-17T19-31-05-168Z_01a1eafd-d14f-77f4-aefa-13c6112188c9.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-deepseek-4.1-flash-low-r1/2026-11-17T19-31-05-168Z_01a1eafd-d14f-77f4-aefa-13c6112188c9.jsonl",
+          "sha256": "5ed92b3609fc9cf89236d7ccc72777a18c554cd32012fc0597c6e64b7fc76571",
+          "bytes": 323398,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 71
+          },
+          "native_assistant_tool_calls": 44,
+          "native_tool_names": {
+            "bash": 44
+          },
+          "native_tool_result_events": 44,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 1823,
+            "output": 18320,
+            "cacheRead": 881152,
+            "cacheWrite": 53120,
+            "reasoning": 4674,
+            "totalTokens": 954415
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:33:03Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 44,
+            "normalized_turns": 27,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 881152,
+            "recorded_cache_write": 53120,
+            "recorded_input": 1823,
+            "recorded_output": 18320,
+            "recorded_reasoning": 4674,
+            "session_id": "01a1eafd-d14f-77f4-aefa-13c6112188c9",
+            "started_at": "2026-11-17T19:31:05Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 44,
+        "normalized_tools": 44,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 1823,
+            "sql_recorded_sum": 1823,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1823,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 18320,
+            "sql_recorded_sum": 18320,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 18320,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 881152,
+            "sql_recorded_sum": 881152,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 881152,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 53120,
+            "sql_recorded_sum": 53120,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 53120,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4674,
+            "sql_recorded_sum": 4674,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4674,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-deepseek-4.1-flash-low-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 103.733,
+      "receipt_sha256": "e87a9dd8f653aaa3c3cc69f5f2257e10ac1c60de77188b6033b32da904316aa1",
+      "runner_tool_start_events": 43,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 1630,
+        "output": 17702,
+        "cacheRead": 1197824,
+        "cacheWrite": 64384,
+        "reasoning": 4156,
+        "totalTokens": 1281540
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb0b-aaf0-7719-9878-3eac72994d4e",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-deepseek-4.1-flash-low-r2/sessions/2026-11-17T19-46-12-848Z_01a1eb0b-aaf0-7719-9878-3eac72994d4e.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-deepseek-4.1-flash-low-r2/2026-11-17T19-46-12-848Z_01a1eb0b-aaf0-7719-9878-3eac72994d4e.jsonl",
+          "sha256": "b19ced2c1e04cf35ace1f5f115aedf3ef2f9d171ac5395acfff611cfeaacf8ba",
+          "bytes": 422266,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 74
+          },
+          "native_assistant_tool_calls": 43,
+          "native_tool_names": {
+            "bash": 40,
+            "write": 3
+          },
+          "native_tool_result_events": 43,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 1630,
+            "output": 17702,
+            "cacheRead": 1197824,
+            "cacheWrite": 64384,
+            "reasoning": 4156,
+            "totalTokens": 1281540
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:47:56Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 43,
+            "normalized_turns": 31,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1197824,
+            "recorded_cache_write": 64384,
+            "recorded_input": 1630,
+            "recorded_output": 17702,
+            "recorded_reasoning": 4156,
+            "session_id": "01a1eb0b-aaf0-7719-9878-3eac72994d4e",
+            "started_at": "2026-11-17T19:46:12Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 43,
+        "normalized_tools": 43,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 1630,
+            "sql_recorded_sum": 1630,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1630,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 17702,
+            "sql_recorded_sum": 17702,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 17702,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1197824,
+            "sql_recorded_sum": 1197824,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1197824,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 64384,
+            "sql_recorded_sum": 64384,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 64384,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4156,
+            "sql_recorded_sum": 4156,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4156,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r1",
+      "model": "glm-5.3-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 273.628,
+      "receipt_sha256": "6a93cd7ae1f70cb2e089768c9a4de1d00057277ab2502efd0f10e40180a8381c",
+      "runner_tool_start_events": 55,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 30551,
+        "output": 19828,
+        "cacheRead": 1177344,
+        "cacheWrite": 0,
+        "reasoning": 4081,
+        "totalTokens": 1227723
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf9-de94-71be-b0e7-0fbc1e15ef41",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r1/sessions/2026-11-17T19-26-46-420Z_01a1eaf9-de94-71be-b0e7-0fbc1e15ef41.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-glm-5.3-flash-high-r1/2026-11-17T19-26-46-420Z_01a1eaf9-de94-71be-b0e7-0fbc1e15ef41.jsonl",
+          "sha256": "97fb5fd8c759d01d07a63aa49817cc6a252ce7497f6e921c23cc7cf750e0fcf3",
+          "bytes": 276800,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 109
+          },
+          "native_assistant_tool_calls": 55,
+          "native_tool_names": {
+            "bash": 51,
+            "write": 4
+          },
+          "native_tool_result_events": 55,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 30551,
+            "output": 19828,
+            "cacheRead": 1177344,
+            "cacheWrite": 0,
+            "reasoning": 4081,
+            "totalTokens": 1227723
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:31:19Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 55,
+            "normalized_turns": 54,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1177344,
+            "recorded_cache_write": null,
+            "recorded_input": 30551,
+            "recorded_output": 19828,
+            "recorded_reasoning": 4081,
+            "session_id": "01a1eaf9-de94-71be-b0e7-0fbc1e15ef41",
+            "started_at": "2026-11-17T19:26:46Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 55,
+        "normalized_tools": 55,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 30551,
+            "sql_recorded_sum": 30551,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 30551,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 19828,
+            "sql_recorded_sum": 19828,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 19828,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1177344,
+            "sql_recorded_sum": 1177344,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1177344,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4081,
+            "sql_recorded_sum": 4081,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4081,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-glm-5.3-flash-high-r2",
+      "model": "glm-5.3-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 450.091,
+      "receipt_sha256": "79d894ed239353d84865a813ab2fce65acdda55181ccf709ce1527378a4a72ae",
+      "runner_tool_start_events": 77,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 40389,
+        "output": 25152,
+        "cacheRead": 2011136,
+        "cacheWrite": 0,
+        "reasoning": 9754,
+        "totalTokens": 2076677
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb05-f8f4-74ad-ba9d-7a9ce54859f4",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-high-r2/sessions/2026-11-17T19-39-59-605Z_01a1eb05-f8f4-74ad-ba9d-7a9ce54859f4.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-glm-5.3-flash-high-r2/2026-11-17T19-39-59-605Z_01a1eb05-f8f4-74ad-ba9d-7a9ce54859f4.jsonl",
+          "sha256": "7576efc76dbc15b016850e131c2321dac6498fa4063909538833e32d0de82209",
+          "bytes": 433797,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 153
+          },
+          "native_assistant_tool_calls": 77,
+          "native_tool_names": {
+            "bash": 68,
+            "write": 7,
+            "edit": 1,
+            "read": 1
+          },
+          "native_tool_result_events": 77,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 40389,
+            "output": 25152,
+            "cacheRead": 2011136,
+            "cacheWrite": 0,
+            "reasoning": 9754,
+            "totalTokens": 2076677
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:47:29Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 77,
+            "normalized_turns": 76,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 2011136,
+            "recorded_cache_write": null,
+            "recorded_input": 40389,
+            "recorded_output": 25152,
+            "recorded_reasoning": 9754,
+            "session_id": "01a1eb05-f8f4-74ad-ba9d-7a9ce54859f4",
+            "started_at": "2026-11-17T19:39:59Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 77,
+        "normalized_tools": 77,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 40389,
+            "sql_recorded_sum": 40389,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 40389,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 25152,
+            "sql_recorded_sum": 25152,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 25152,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 2011136,
+            "sql_recorded_sum": 2011136,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2011136,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 9754,
+            "sql_recorded_sum": 9754,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 9754,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r1",
+      "model": "glm-5.3-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 141.794,
+      "receipt_sha256": "517657a309f49925fc07ef6543909f4c889e5bf9afca2ad65115270c9c4ff61f",
+      "runner_tool_start_events": 34,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 21688,
+        "output": 11002,
+        "cacheRead": 435968,
+        "cacheWrite": 0,
+        "reasoning": 1178,
+        "totalTokens": 468658
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaff-a334-748d-8782-deac0e8285ba",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r1/sessions/2026-11-17T19-33-04-438Z_01a1eaff-a334-748d-8782-deac0e8285ba.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-glm-5.3-flash-low-r1/2026-11-17T19-33-04-438Z_01a1eaff-a334-748d-8782-deac0e8285ba.jsonl",
+          "sha256": "3c8653d7c2f8ee154956e7b54141665b686cb159f07d518fa2ba578d4ca3ca2d",
+          "bytes": 152992,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 68
+          },
+          "native_assistant_tool_calls": 34,
+          "native_tool_names": {
+            "bash": 31,
+            "write": 3
+          },
+          "native_tool_result_events": 34,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 21688,
+            "output": 11002,
+            "cacheRead": 435968,
+            "cacheWrite": 0,
+            "reasoning": 1178,
+            "totalTokens": 468658
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:35:25Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 34,
+            "normalized_turns": 34,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 435968,
+            "recorded_cache_write": null,
+            "recorded_input": 21688,
+            "recorded_output": 11002,
+            "recorded_reasoning": 1178,
+            "session_id": "01a1eaff-a334-748d-8782-deac0e8285ba",
+            "started_at": "2026-11-17T19:33:04Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 34,
+        "normalized_tools": 34,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 21688,
+            "sql_recorded_sum": 21688,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 21688,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 11002,
+            "sql_recorded_sum": 11002,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 11002,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 435968,
+            "sql_recorded_sum": 435968,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 435968,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 1178,
+            "sql_recorded_sum": 1178,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1178,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "C-glm-5.3-flash-low-r2",
+      "model": "glm-5.3-flash",
+      "persona": "forensic reviewer",
+      "task": "C",
+      "exit_code": 0,
+      "elapsed_seconds": 206.492,
+      "receipt_sha256": "87fdc678cc80d15ffab43fee414a8fac3612437d4f1e9338b9e516ae2fc8aff5",
+      "runner_tool_start_events": 36,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 39827,
+        "output": 11392,
+        "cacheRead": 845568,
+        "cacheWrite": 0,
+        "reasoning": 1412,
+        "totalTokens": 896787
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb0d-403f-72b4-8e19-720b2187f14c",
+          "original_path": "/private/tmp/gmt015-persona/matrix/C-glm-5.3-flash-low-r2/sessions/2026-11-17T19-47-56-607Z_01a1eb0d-403f-72b4-8e19-720b2187f14c.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/C-glm-5.3-flash-low-r2/2026-11-17T19-47-56-607Z_01a1eb0d-403f-72b4-8e19-720b2187f14c.jsonl",
+          "sha256": "9b3c5147b4c07975dde5b806160df901b8e864988c80b1340ed3f50648cddca2",
+          "bytes": 304183,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 71
+          },
+          "native_assistant_tool_calls": 36,
+          "native_tool_names": {
+            "bash": 32,
+            "write": 4
+          },
+          "native_tool_result_events": 36,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 39827,
+            "output": 11392,
+            "cacheRead": 845568,
+            "cacheWrite": 0,
+            "reasoning": 1412,
+            "totalTokens": 896787
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:51:22Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 36,
+            "normalized_turns": 35,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 845568,
+            "recorded_cache_write": null,
+            "recorded_input": 39827,
+            "recorded_output": 11392,
+            "recorded_reasoning": 1412,
+            "session_id": "01a1eb0d-403f-72b4-8e19-720b2187f14c",
+            "started_at": "2026-11-17T19:47:56Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 36,
+        "normalized_tools": 36,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 39827,
+            "sql_recorded_sum": 39827,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 39827,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 11392,
+            "sql_recorded_sum": 11392,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 11392,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 845568,
+            "sql_recorded_sum": 845568,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 845568,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 1412,
+            "sql_recorded_sum": 1412,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1412,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-high-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 189.632,
+      "receipt_sha256": "9efb333bf9b1a7ccaa4095a0b302e6d085c1a320e8d94dfa7c6df32f5ce8b18c",
+      "runner_tool_start_events": 53,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 3057,
+        "output": 23628,
+        "cacheRead": 1826176,
+        "cacheWrite": 53120,
+        "reasoning": 7998,
+        "totalTokens": 1905981
+      },
+      "sources": [
+        {
+          "session_id": "01a1eaf6-74c8-759b-89b1-1867f7c8dbf2",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r1/sessions/2026-11-17T19-23-02-729Z_01a1eaf6-74c8-759b-89b1-1867f7c8dbf2.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-deepseek-4.1-flash-high-r1/2026-11-17T19-23-02-729Z_01a1eaf6-74c8-759b-89b1-1867f7c8dbf2.jsonl",
+          "sha256": "50456d4d67601b7d3fd139f7d0e2df5b4258664c7b207e65bb1bfd2c00d56300",
+          "bytes": 448844,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 97
+          },
+          "native_assistant_tool_calls": 53,
+          "native_tool_names": {
+            "bash": 53
+          },
+          "native_tool_result_events": 53,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 3057,
+            "output": 23628,
+            "cacheRead": 1826176,
+            "cacheWrite": 53120,
+            "reasoning": 7998,
+            "totalTokens": 1905981
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:26:12Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 53,
+            "normalized_turns": 44,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1826176,
+            "recorded_cache_write": 53120,
+            "recorded_input": 3057,
+            "recorded_output": 23628,
+            "recorded_reasoning": 7998,
+            "session_id": "01a1eaf6-74c8-759b-89b1-1867f7c8dbf2",
+            "started_at": "2026-11-17T19:23:02Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 53,
+        "normalized_tools": 53,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 3057,
+            "sql_recorded_sum": 3057,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 3057,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 23628,
+            "sql_recorded_sum": 23628,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 23628,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1826176,
+            "sql_recorded_sum": 1826176,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1826176,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 53120,
+            "sql_recorded_sum": 53120,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 53120,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 7998,
+            "sql_recorded_sum": 7998,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 7998,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-high-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 160.9,
+      "receipt_sha256": "aa9e0ca5388ab3e19d0b9a9ba0ceec5f0dca43cef2ae0854abe735ec6ed585b4",
+      "runner_tool_start_events": 55,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 1704,
+        "output": 23449,
+        "cacheRead": 1610752,
+        "cacheWrite": 68608,
+        "reasoning": 8345,
+        "totalTokens": 1704513
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb03-842f-715b-98a6-f63972d8dace",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-high-r2/sessions/2026-11-17T19-37-18-639Z_01a1eb03-842f-715b-98a6-f63972d8dace.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-deepseek-4.1-flash-high-r2/2026-11-17T19-37-18-639Z_01a1eb03-842f-715b-98a6-f63972d8dace.jsonl",
+          "sha256": "25a7c07ff2e6f15fa8521303710d34307a8c0424fb5af04e191cae5fa07cf7fd",
+          "bytes": 481403,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 87
+          },
+          "native_assistant_tool_calls": 55,
+          "native_tool_names": {
+            "bash": 55
+          },
+          "native_tool_result_events": 55,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 1704,
+            "output": 23449,
+            "cacheRead": 1610752,
+            "cacheWrite": 68608,
+            "reasoning": 8345,
+            "totalTokens": 1704513
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:39:59Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 55,
+            "normalized_turns": 32,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1610752,
+            "recorded_cache_write": 68608,
+            "recorded_input": 1704,
+            "recorded_output": 23449,
+            "recorded_reasoning": 8345,
+            "session_id": "01a1eb03-842f-715b-98a6-f63972d8dace",
+            "started_at": "2026-11-17T19:37:18Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 55,
+        "normalized_tools": 55,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 1704,
+            "sql_recorded_sum": 1704,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1704,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 23449,
+            "sql_recorded_sum": 23449,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 23449,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1610752,
+            "sql_recorded_sum": 1610752,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1610752,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 68608,
+            "sql_recorded_sum": 68608,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 68608,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 8345,
+            "sql_recorded_sum": 8345,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 8345,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-low-r1",
+      "model": "deepseek-4.1-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 150.591,
+      "receipt_sha256": "772dd9f193be437f29a40f321ede57b8bd599121fd2178ea68a2183765d2f360",
+      "runner_tool_start_events": 49,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 2093,
+        "output": 18794,
+        "cacheRead": 1621376,
+        "cacheWrite": 71552,
+        "reasoning": 6331,
+        "totalTokens": 1713815
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafe-0cab-71a7-aeff-02abb84551b7",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r1/sessions/2026-11-17T19-31-20-363Z_01a1eafe-0cab-71a7-aeff-02abb84551b7.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-deepseek-4.1-flash-low-r1/2026-11-17T19-31-20-363Z_01a1eafe-0cab-71a7-aeff-02abb84551b7.jsonl",
+          "sha256": "bc154c258f6daca846e971a4796f58ccee7528ccfba6b435e91a66166bb8d4d5",
+          "bytes": 519579,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 82
+          },
+          "native_assistant_tool_calls": 49,
+          "native_tool_names": {
+            "bash": 41,
+            "write": 8
+          },
+          "native_tool_result_events": 49,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 2093,
+            "output": 18794,
+            "cacheRead": 1621376,
+            "cacheWrite": 71552,
+            "reasoning": 6331,
+            "totalTokens": 1713815
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:33:50Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 49,
+            "normalized_turns": 33,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1621376,
+            "recorded_cache_write": 71552,
+            "recorded_input": 2093,
+            "recorded_output": 18794,
+            "recorded_reasoning": 6331,
+            "session_id": "01a1eafe-0cab-71a7-aeff-02abb84551b7",
+            "started_at": "2026-11-17T19:31:20Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 49,
+        "normalized_tools": 49,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 2093,
+            "sql_recorded_sum": 2093,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2093,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 18794,
+            "sql_recorded_sum": 18794,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 18794,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1621376,
+            "sql_recorded_sum": 1621376,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1621376,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 71552,
+            "sql_recorded_sum": 71552,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 71552,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 6331,
+            "sql_recorded_sum": 6331,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 6331,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-deepseek-4.1-flash-low-r2",
+      "model": "deepseek-4.1-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 126.816,
+      "receipt_sha256": "995706ba426b63cd97e6c408b172b8e8c4ca937898c007ec28f5c1706c893131",
+      "runner_tool_start_events": 46,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 2423,
+        "output": 17878,
+        "cacheRead": 1157888,
+        "cacheWrite": 34304,
+        "reasoning": 4470,
+        "totalTokens": 1212493
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb0c-5b9d-76b4-b298-3082302ba3b8",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-deepseek-4.1-flash-low-r2/sessions/2026-11-17T19-46-58-080Z_01a1eb0c-5b9d-76b4-b298-3082302ba3b8.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-deepseek-4.1-flash-low-r2/2026-11-17T19-46-58-080Z_01a1eb0c-5b9d-76b4-b298-3082302ba3b8.jsonl",
+          "sha256": "743fd15e1d5d208f6ff5539defb733daf90219c2df63466fb86fc559a51a888f",
+          "bytes": 333200,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 87
+          },
+          "native_assistant_tool_calls": 46,
+          "native_tool_names": {
+            "bash": 46
+          },
+          "native_tool_result_events": 46,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 2423,
+            "output": 17878,
+            "cacheRead": 1157888,
+            "cacheWrite": 34304,
+            "reasoning": 4470,
+            "totalTokens": 1212493
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:49:04Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 46,
+            "normalized_turns": 41,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1157888,
+            "recorded_cache_write": 34304,
+            "recorded_input": 2423,
+            "recorded_output": 17878,
+            "recorded_reasoning": 4470,
+            "session_id": "01a1eb0c-5b9d-76b4-b298-3082302ba3b8",
+            "started_at": "2026-11-17T19:46:58Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 46,
+        "normalized_tools": 46,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 2423,
+            "sql_recorded_sum": 2423,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2423,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 17878,
+            "sql_recorded_sum": 17878,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 17878,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1157888,
+            "sql_recorded_sum": 1157888,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1157888,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 34304,
+            "sql_recorded_sum": 34304,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 34304,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4470,
+            "sql_recorded_sum": 4470,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4470,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r1",
+      "model": "glm-5.3-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 235.796,
+      "receipt_sha256": "fab6440c08ac28e2baf5ef32f32c02e839eaa33e8bca05f3272570b1c6161b86",
+      "runner_tool_start_events": 59,
+      "runner_tool_error_events": 0,
+      "runner_reported_usage": {
+        "input": 45309,
+        "output": 16046,
+        "cacheRead": 1361152,
+        "cacheWrite": 0,
+        "reasoning": 4963,
+        "totalTokens": 1422507
+      },
+      "sources": [
+        {
+          "session_id": "01a1eafa-f4ed-720a-acda-ab54c350bf81",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r1/sessions/2026-11-17T19-27-57-678Z_01a1eafa-f4ed-720a-acda-ab54c350bf81.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-glm-5.3-flash-high-r1/2026-11-17T19-27-57-678Z_01a1eafa-f4ed-720a-acda-ab54c350bf81.jsonl",
+          "sha256": "84988e59d75cec268c6a1d33e6b65f64fa1ef6955c1409209f945e622059f487",
+          "bytes": 447056,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 112
+          },
+          "native_assistant_tool_calls": 59,
+          "native_tool_names": {
+            "bash": 51,
+            "read": 2,
+            "write": 5,
+            "edit": 1
+          },
+          "native_tool_result_events": 59,
+          "native_error_result_events": 0,
+          "native_assistant_usage_sum": {
+            "input": 45309,
+            "output": 16046,
+            "cacheRead": 1361152,
+            "cacheWrite": 0,
+            "reasoning": 4963,
+            "totalTokens": 1422507
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:31:53Z",
+            "normalized_failed_tools": 0,
+            "normalized_tools": 59,
+            "normalized_turns": 53,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1361152,
+            "recorded_cache_write": null,
+            "recorded_input": 45309,
+            "recorded_output": 16046,
+            "recorded_reasoning": 4963,
+            "session_id": "01a1eafa-f4ed-720a-acda-ab54c350bf81",
+            "started_at": "2026-11-17T19:27:57Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 59,
+        "normalized_tools": 59,
+        "native_error_result_events": 0,
+        "normalized_failed_tools": 0,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 45309,
+            "sql_recorded_sum": 45309,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 45309,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 16046,
+            "sql_recorded_sum": 16046,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 16046,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1361152,
+            "sql_recorded_sum": 1361152,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1361152,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 4963,
+            "sql_recorded_sum": 4963,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 4963,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-glm-5.3-flash-high-r2",
+      "model": "glm-5.3-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 306.43,
+      "receipt_sha256": "917f151df2022cbba3c5dfbb861398270760dd4a02760cf2c40d8fb9449f3744",
+      "runner_tool_start_events": 56,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 31747,
+        "output": 16198,
+        "cacheRead": 1191424,
+        "cacheWrite": 0,
+        "reasoning": 6180,
+        "totalTokens": 1239369
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb06-fdfd-71b0-84e1-df6addb924c6",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-high-r2/sessions/2026-11-17T19-41-06-430Z_01a1eb06-fdfd-71b0-84e1-df6addb924c6.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-glm-5.3-flash-high-r2/2026-11-17T19-41-06-430Z_01a1eb06-fdfd-71b0-84e1-df6addb924c6.jsonl",
+          "sha256": "066a493ee0890e8e776673d09df5bd878279e58d8c4da4d18ffd1ffb036d5e20",
+          "bytes": 366668,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 106
+          },
+          "native_assistant_tool_calls": 56,
+          "native_tool_names": {
+            "bash": 43,
+            "read": 7,
+            "write": 5,
+            "edit": 1
+          },
+          "native_tool_result_events": 56,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 31747,
+            "output": 16198,
+            "cacheRead": 1191424,
+            "cacheWrite": 0,
+            "reasoning": 6180,
+            "totalTokens": 1239369
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:46:12Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 56,
+            "normalized_turns": 50,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1191424,
+            "recorded_cache_write": null,
+            "recorded_input": 31747,
+            "recorded_output": 16198,
+            "recorded_reasoning": 6180,
+            "session_id": "01a1eb06-fdfd-71b0-84e1-df6addb924c6",
+            "started_at": "2026-11-17T19:41:06Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 56,
+        "normalized_tools": 56,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 31747,
+            "sql_recorded_sum": 31747,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 31747,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 16198,
+            "sql_recorded_sum": 16198,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 16198,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1191424,
+            "sql_recorded_sum": 1191424,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1191424,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 6180,
+            "sql_recorded_sum": 6180,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 6180,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-glm-5.3-flash-low-r1",
+      "model": "glm-5.3-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 233.792,
+      "receipt_sha256": "e09b1e9e5c1e2d175dc610fe68be9093bf3ff37d3f3ed9643d3804c7a9259ac4",
+      "runner_tool_start_events": 51,
+      "runner_tool_error_events": 2,
+      "runner_reported_usage": {
+        "input": 36051,
+        "output": 12793,
+        "cacheRead": 1039360,
+        "cacheWrite": 0,
+        "reasoning": 1894,
+        "totalTokens": 1088204
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb00-57b1-741f-b46d-a27fdc94b86d",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r1/sessions/2026-11-17T19-33-50-641Z_01a1eb00-57b1-741f-b46d-a27fdc94b86d.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-glm-5.3-flash-low-r1/2026-11-17T19-33-50-641Z_01a1eb00-57b1-741f-b46d-a27fdc94b86d.jsonl",
+          "sha256": "a40126719289e443f5278800b2934b476154dbe89990218232337acc82fe1b91",
+          "bytes": 418480,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 97
+          },
+          "native_assistant_tool_calls": 51,
+          "native_tool_names": {
+            "bash": 43,
+            "write": 5,
+            "edit": 3
+          },
+          "native_tool_result_events": 51,
+          "native_error_result_events": 2,
+          "native_assistant_usage_sum": {
+            "input": 36051,
+            "output": 12793,
+            "cacheRead": 1039360,
+            "cacheWrite": 0,
+            "reasoning": 1894,
+            "totalTokens": 1088204
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:37:44Z",
+            "normalized_failed_tools": 2,
+            "normalized_tools": 51,
+            "normalized_turns": 46,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1039360,
+            "recorded_cache_write": null,
+            "recorded_input": 36051,
+            "recorded_output": 12793,
+            "recorded_reasoning": 1894,
+            "session_id": "01a1eb00-57b1-741f-b46d-a27fdc94b86d",
+            "started_at": "2026-11-17T19:33:50Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 51,
+        "normalized_tools": 51,
+        "native_error_result_events": 2,
+        "normalized_failed_tools": 2,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 36051,
+            "sql_recorded_sum": 36051,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 36051,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 12793,
+            "sql_recorded_sum": 12793,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 12793,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1039360,
+            "sql_recorded_sum": 1039360,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1039360,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 1894,
+            "sql_recorded_sum": 1894,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1894,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    },
+    {
+      "run_id": "D-glm-5.3-flash-low-r2",
+      "model": "glm-5.3-flash",
+      "persona": "SQL analyst authoring a reusable command",
+      "task": "D",
+      "exit_code": 0,
+      "elapsed_seconds": 150.766,
+      "receipt_sha256": "838f73d74932fd23526ee100ecb66d02fafcf16e97b2ebe8379d2f7efd8f20b7",
+      "runner_tool_start_events": 49,
+      "runner_tool_error_events": 1,
+      "runner_reported_usage": {
+        "input": 34212,
+        "output": 12844,
+        "cacheRead": 1169408,
+        "cacheWrite": 0,
+        "reasoning": 2237,
+        "totalTokens": 1216464
+      },
+      "sources": [
+        {
+          "session_id": "01a1eb0e-4af7-7691-a540-cca991513ccf",
+          "original_path": "/private/tmp/gmt015-persona/matrix/D-glm-5.3-flash-low-r2/sessions/2026-11-17T19-49-04-888Z_01a1eb0e-4af7-7691-a540-cca991513ccf.jsonl",
+          "snapshot_path": "/private/tmp/gmt015-persona/agent-analysis/raw/D-glm-5.3-flash-low-r2/2026-11-17T19-49-04-888Z_01a1eb0e-4af7-7691-a540-cca991513ccf.jsonl",
+          "sha256": "5ab2cf3722f3aef08dbe5091df28d7c9eefebcc3bb87c56b4aa79b40e9cfac45",
+          "bytes": 318676,
+          "native_record_types": {
+            "session": 1,
+            "model_change": 1,
+            "thinking_level_change": 1,
+            "message": 100
+          },
+          "native_assistant_tool_calls": 49,
+          "native_tool_names": {
+            "bash": 40,
+            "write": 5,
+            "edit": 4
+          },
+          "native_tool_result_events": 49,
+          "native_error_result_events": 1,
+          "native_assistant_usage_sum": {
+            "input": 34212,
+            "output": 12844,
+            "cacheRead": 1169408,
+            "cacheWrite": 0,
+            "reasoning": 2237,
+            "totalTokens": 1216464
+          },
+          "normalized_sql": {
+            "agent_framework": "pi",
+            "ended_at": "2026-11-17T19:51:35Z",
+            "normalized_failed_tools": 1,
+            "normalized_tools": 49,
+            "normalized_turns": 51,
+            "normalized_unknown_tools": 0,
+            "recorded_cache_read": 1169408,
+            "recorded_cache_write": null,
+            "recorded_input": 34212,
+            "recorded_output": 12844,
+            "recorded_reasoning": 2237,
+            "session_id": "01a1eb0e-4af7-7691-a540-cca991513ccf",
+            "started_at": "2026-11-17T19:49:04Z"
+          }
+        }
+      ],
+      "comparison": {
+        "native_assistant_tool_calls": 49,
+        "normalized_tools": 49,
+        "native_error_result_events": 1,
+        "normalized_failed_tools": 1,
+        "normalized_unknown_tools": 0,
+        "runner_vs_native_tool_delta": 0,
+        "normalized_vs_native_tool_delta": 0,
+        "normalized_failure_vs_runner_error_delta": 0,
+        "usage": {
+          "input": {
+            "native_assistant_sum": 34212,
+            "sql_recorded_sum": 34212,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 34212,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "output": {
+            "native_assistant_sum": 12844,
+            "sql_recorded_sum": 12844,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 12844,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheRead": {
+            "native_assistant_sum": 1169408,
+            "sql_recorded_sum": 1169408,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 1169408,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          },
+          "cacheWrite": {
+            "native_assistant_sum": 0,
+            "sql_recorded_sum": null,
+            "sql_reporting_sessions": 0,
+            "runner_event_sum": 0,
+            "sql_minus_native": null,
+            "runner_minus_native": 0
+          },
+          "reasoning": {
+            "native_assistant_sum": 2237,
+            "sql_recorded_sum": 2237,
+            "sql_reporting_sessions": 1,
+            "runner_event_sum": 2237,
+            "sql_minus_native": 0,
+            "runner_minus_native": 0
+          }
+        }
+      }
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "convert",
+        "pi",
+        "--source-list",
+        "/private/tmp/gmt015-persona/agent-analysis/sources.txt",
+        "--output-dir",
+        "/private/tmp/gmt015-persona/agent-analysis/archives",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout_path": "/private/tmp/gmt015-persona/agent-analysis/convert.stdout",
+      "stderr_path": "/private/tmp/gmt015-persona/agent-analysis/convert.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "validate",
+        "--path",
+        "/private/tmp/gmt015-persona/agent-analysis/archives",
+        "--archive",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout_path": "/private/tmp/gmt015-persona/agent-analysis/validate.stdout",
+      "stderr_path": "/private/tmp/gmt015-persona/agent-analysis/validate.stderr"
+    },
+    {
+      "argv": [
+        "go",
+        "run",
+        "./cmd/go-minitrace",
+        "query",
+        "run",
+        "--archive-glob",
+        "/private/tmp/gmt015-persona/agent-analysis/archives/active/*/*.minitrace.json",
+        "--sql-file",
+        "/Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-testing/session-analysis.sql",
+        "--output",
+        "json"
+      ],
+      "exit_code": 0,
+      "stdout_path": "/private/tmp/gmt015-persona/agent-analysis/sql.stdout",
+      "stderr_path": "/private/tmp/gmt015-persona/agent-analysis/sql.stderr"
+    }
+  ],
+  "warnings": [],
+  "limits": [
+    "Finished means receipt has elapsed_seconds, including timeout/nonzero exits.",
+    "Runner counts tool-start/error events; native counts assistant toolCall and toolResult records; normalized SQL counts adapter tool rows. These are separate units.",
+    "Usage sums retained assistant records versus runner events; not independent billing or exact marginal cost.",
+    "Only completed persisted sessions are converted; outputs and transcripts remain private.",
+    "No source mutation, model invocation or historical command replay."
+  ]
+}

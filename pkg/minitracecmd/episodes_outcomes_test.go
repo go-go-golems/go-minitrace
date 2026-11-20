@@ -18,9 +18,11 @@ func TestEpisodesDistinguishesUnknownOutcomesAndUnassociatedCalls(t *testing.T) 
  const calls=[true,1,false,0,null,null,null].map(success=>({session_id:'s',turn:1,tool_name:'shell',timestamp:'2026-09-01T00:00:00Z',success}));
  calls.push({session_id:'s',turn:null,tool_name:'shell',success:false});
  calls.push({session_id:'s',turn:6,tool_name:'shell',success:0});
- const db={RuntimeArchives(){return this},QueryCommandDefaults(){return this},Limits(){return this},Build(){return this},query(sql){return sql.includes('FROM turns')?users:calls},close(){closed=true}};
- const limits={Rows(){return this},CellChars(){return this},Build(){return {}}};
- const require=()=>({db:()=>db,limits:()=>limits});
+ const sourceBuilder={runtimeArchives(){return this},build(){return {}}};
+ const db={sources(){return this},import(){return this},limits(){return this},build(){return this},
+   execute(sql){return {complete:true,rows:sql.includes('FROM turns')?users:calls}},
+   close(){closed=true}};
+ const require=()=>({db:()=>db,sources:()=>sourceBuilder,sql:parts=>({build:()=>parts[0]})});
  const __verb__=()=>{};
  `
 	result, err := vm.RunString(script + string(source) + "\nepisodes();")

@@ -27,12 +27,17 @@ type RunQueryCommand struct {
 }
 
 type RunQuerySettings struct {
+	ResultEnvelope bool     `glazed:"result-envelope"`
 	ArchiveGlob    []string `glazed:"archive-glob"`
 	Preset         string   `glazed:"preset"`
 	SQL            string   `glazed:"sql"`
 	SQLFile        string   `glazed:"sql-file"`
 	MaxRows        int      `glazed:"max-rows"`
 	MaxCellChars   int      `glazed:"max-cell-chars"`
+	MaxCellBytes   int      `glazed:"max-cell-bytes"`
+	StrictEvidence bool     `glazed:"strict-evidence"`
+	CacheMode      string   `glazed:"cache-mode"`
+	CacheDir       string   `glazed:"cache-dir"`
 	TimeoutMS      int      `glazed:"timeout-ms"`
 	RunRecord      string   `glazed:"run-record"`
 	Strict         bool     `glazed:"strict"`
@@ -59,7 +64,10 @@ read-only query runner.
 
 Queries target the normalized schema (sessions, turns, tool_calls,
 annotations, metrics, files, events, attachments, handovers) plus the
-sessions_base compatibility view.
+sessions_base compatibility view. See go-minitrace help minitrace-schema for columns.
+Use --result-envelope --output json for one envelope (JSON array element 0)
+including completeness and cell diagnostics. Failures still exit nonzero;
+use --run-record to retain failure diagnostics.
 
 Examples:
   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --preset session-list
@@ -68,12 +76,17 @@ Examples:
   go-minitrace query run --archive-glob './output/active/*/*.minitrace.json' --sql-file ./custom.sql --max-rows 5000
 `),
 		cmds.WithFlags(
+			fields.New("result-envelope", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Emit one full QueryResult row instead of flattening result rows; JSON output is a one-element array")),
 			fields.New("archive-glob", fields.TypeStringList, fields.WithDefault([]string{"./output/active/*/*.minitrace.json"}), fields.WithHelp("Repeatable glob flag for minitrace session JSON files to load")),
 			fields.New("preset", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Named built-in query preset to execute")),
 			fields.New("sql", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Inline SQL query to execute against the normalized database")),
 			fields.New("sql-file", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Path to a SQL file to execute against the normalized database")),
 			fields.New("max-rows", fields.TypeInteger, fields.WithDefault(1000), fields.WithHelp("Maximum number of rows to return")),
-			fields.New("max-cell-chars", fields.TypeInteger, fields.WithDefault(4000), fields.WithHelp("Maximum number of characters per result cell")),
+			fields.New("max-cell-chars", fields.TypeInteger, fields.WithDefault(4000), fields.WithHelp("Legacy alias: maximum UTF-8 bytes per result cell")),
+			fields.New("max-cell-bytes", fields.TypeInteger, fields.WithDefault(0), fields.WithHelp("Maximum UTF-8 bytes per cell; positive value overrides max-cell-chars")),
+			fields.New("strict-evidence", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Reject incomplete rows/cells before emitting any result rows")),
+			fields.New("cache-mode", fields.TypeString, fields.WithDefault("auto"), fields.WithHelp("SQLite cache mode: auto, memory, disk, none; memory and none avoid disk cache writes")),
+			fields.New("cache-dir", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Cache directory for auto/disk mode")),
 			fields.New("timeout-ms", fields.TypeInteger, fields.WithDefault(5000), fields.WithHelp("Query timeout in milliseconds")),
 			fields.New("run-record", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Write an atomic query run receipt")),
 			fields.New("strict", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Require reproducible query inputs and complete results")),
@@ -128,17 +141,19 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 	if err != nil {
 		return err
 	}
-	record := queryRunRecord{Schema: "go-minitrace-query-run-v1", StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Status: "running", Query: queryInfo, Inventory: inventory, MaxRows: settings_.MaxRows, MaxCellChars: settings_.MaxCellChars, TimeoutMS: settings_.TimeoutMS, Columns: []string{}}
+	record := queryRunRecord{Schema: "go-minitrace-query-run-v1", StartedAt: time.Now().UTC().Format(time.RFC3339Nano), Status: "running", Query: queryInfo, Inventory: inventory, MaxRows: settings_.MaxRows, MaxCellChars: settings_.MaxCellChars, MaxCellBytes: settings_.MaxCellBytes, StrictEvidence: settings_.StrictEvidence || (settings_.Strict && !settings_.AllowTruncated), CacheMode: settings_.CacheMode, TimeoutMS: settings_.TimeoutMS, Columns: []string{}}
 
 	resolvedArchivePaths := make([]string, 0, len(inventory.Files))
 	for _, file := range inventory.Files {
 		resolvedArchivePaths = append(resolvedArchivePaths, file.Path)
 	}
-	target, err := minitracejs.NewArchiveQueryTarget(ctx, resolvedArchivePaths, minitracedb.QueryOptions{
-		MaxRows:      settings_.MaxRows,
-		MaxCellChars: settings_.MaxCellChars,
-		Timeout:      time.Duration(settings_.TimeoutMS) * time.Millisecond,
-	})
+	target, err := minitracejs.NewArchiveQueryTargetWithCache(ctx, resolvedArchivePaths, minitracedb.QueryOptions{
+		MaxRows:        settings_.MaxRows,
+		MaxCellChars:   settings_.MaxCellChars,
+		MaxCellBytes:   settings_.MaxCellBytes,
+		StrictEvidence: settings_.StrictEvidence || (settings_.Strict && !settings_.AllowTruncated),
+		Timeout:        time.Duration(settings_.TimeoutMS) * time.Millisecond,
+	}, settings_.CacheMode, settings_.CacheDir)
 	if err != nil {
 		record.Status, record.ErrorCode, record.Error = "failed", "archive-load", err.Error()
 		_ = writeQueryRunRecord(settings_.RunRecord, record)
@@ -161,8 +176,9 @@ func (c *RunQueryCommand) RunIntoGlazeProcessor(ctx context.Context, vals *value
 		return verifyErr
 	}
 
-	result, runErr := RunQueryTargetIntoProcessorWithResult(ctx, target, sqlText, gp)
+	result, runErr := runQueryTargetIntoProcessor(ctx, target, sqlText, gp, settings_.ResultEnvelope)
 	record.Columns, record.RowCount, record.Truncated = result.Columns, result.Count, result.Truncated
+	record.Complete, record.CellDiagnostics = result.Complete, result.CellDiagnostics
 	if runErr != nil {
 		record.Status, record.ErrorCode, record.Error = "failed", "query-execution", runErr.Error()
 		_ = writeQueryRunRecord(settings_.RunRecord, record)
