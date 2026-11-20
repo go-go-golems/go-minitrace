@@ -61,3 +61,7 @@ Redesigned the live persona viewer with Claude Code and added an ordered thinkin
 ## 2026-11-19
 
 Completed the four-task, two-model, two-effort persona matrix with 48 exact checks and preserved five interrupted attempts. Added a reproducible sandbox SQL failure and updated the handoff playbook.
+
+## 2026-11-19
+
+Verified fluent filter composition with four live analysts, twelve independent SQL checks, and twelve helper substitutions. Fixed grouped SQLite queries under Seatbelt and matched all six original controls.

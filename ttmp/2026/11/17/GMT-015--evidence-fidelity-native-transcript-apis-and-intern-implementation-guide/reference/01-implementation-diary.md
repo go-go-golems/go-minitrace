@@ -2334,3 +2334,32 @@ A one-off PRAGMA on a pooled database would configure only the connection that h
 ### Follow-up and review
 
 Inspect `pkg/minitracedb/open.go`, its memory connection test and the before/after receipts. For the persona submissions, inspect the executed plan and flip the reusable helper’s success argument in an isolated copy to check that the two output columns exchange values.
+
+## Step 47: Verify the helper controls the delivered results
+
+All four live runs reached a judge verdict. Each submitted command passed on every turn. I changed only the helper argument in twelve isolated copies and compared the complete rows to an independently transformed oracle.
+
+### Prompt context
+
+See Step 46. Implementation checkpoint `4a963f0`.
+
+### What I did and why
+
+- Used `check_composition.py LOW_BATCH HIGH_BATCH` under the original Seatbelt policy. A flipped selector must exchange successes and failures while preserving every session ID and total. An asymmetric row prevents a vacuous pass.
+- Confirmed actual Pi model and effort from session events, matching input hashes and successful judges. Inspected saved sources for fluent plan execution. Stored bounded receipts and updated the lab handoff.
+
+### What worked
+
+All 12 live exact checks and all 12 helper substitutions passed. Full-scope checks had eight asymmetric sessions among nine. Narrowed-scope checks had three among three. The complete Go suite and the Python and Node harness checks passed.
+
+### What didn't work
+
+Two GLM exploratory SQL attempts were rejected by the single-statement interface. DeepSeek high had one unresolved exploratory command. All four analysts registered the submitted ledger on its first save. No model reruns were needed.
+
+### What I learned and what warrants review
+
+An ordinary reusable JS function can filter an immutable builder before or after session correlation. SQL parity checks alone cannot show a helper is live. Flipping its argument and demanding precise swapped results tests the dependency directly. The host mutator deliberately supports the named two-argument declaration in this exercise. It raises an error for other declaration forms.
+
+### Future work and review instructions
+
+Use reference 21 and its attached evidence to review the SQL controls, corpus, helper substitution and observed friction. Memory consumption on workloads larger than this corpus was not measured. The four successful conversations establish feasibility for the directed task; they do not estimate the likelihood of choosing the builder in open-ended work.

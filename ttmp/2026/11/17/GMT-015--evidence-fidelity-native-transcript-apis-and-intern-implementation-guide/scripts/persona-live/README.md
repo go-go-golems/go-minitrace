@@ -95,3 +95,13 @@ python3 "$lab/matrix_results.py" "$scratch"/matrix/* > "$scratch/matrix-summary.
 The launcher pairs both Lunaroute analysts at low and high thinking on file-change attribution, recovery, cost and coverage. The stakeholder stays at low thinking. The judge stays at medium. Each batch contains two conversations. The default runs two batches concurrently. Use a fresh root for each full repetition. If some cells already exist from the same revision and inputs, pass their task-effort names to `--omit` and give their batch directories to the summarizer alongside the new ones. The summary checks input hashes, per-task prompt-definition and oracle hashes, judge configuration, terminal state and matrix membership. Separate timeouts from row mismatches when comparing outcomes.
 
 For an interrupted run, keep its original directory. Start a fresh batch with the same binary, corpus, task, effort, timeout and affected models. Use a detached process for long batches. To summarize the full matrix, pass all original batch directories as positional arguments and append one `--retry /path/to/fresh-batch` per retry batch. The report preserves superseded failed attempts in `prior_failed_attempts`. A completed original cannot be replaced this way.
+
+### Verify reusable fluent filters
+
+Use `--scenario composition` with the historical corpus. Run both analyst models at low and high effort in two fresh batches. The task supplies an existing fluent projection and asks for a reusable success filter on two branches of the submitted command. The final archive selection contains Claude Code sessions. After both batches finish, run:
+
+```sh
+python3 "$lab/check_composition.py" "$scratch/low" "$scratch/high"
+```
+
+The check edits only a temporary copy of each submitted function, exchanges its numeric 0 and 1 inputs, and replays it in the original Seatbelt environment. It requires the exact swapped columns, unchanged call totals, and at least one session where the two counts differ. Read the saved JS to check how the rest of the query was constructed. A mutation result establishes that the helper affected execution. Each brief also has its normal unmodified SQL parity checks.

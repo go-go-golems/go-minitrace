@@ -1,0 +1,425 @@
+{
+  "low": {
+    "batch": "low",
+    "inputs": {
+      "input/go-minitrace": "59e0486f1a69dde4635b8574f8012b78a847ec567083b0939d76df9aa4a482c2",
+      "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+    },
+    "runs": {
+      "deepseek-4.1-flash": {
+        "first_ledger_save_registered": true,
+        "ledger_save_receipts": 1,
+        "first_successful_js_call_ordinal": 9,
+        "first_successful_ledger_call_ordinal": 9,
+        "tool_calls": {
+          "minitrace": 20,
+          "save_artifact": 1
+        },
+        "signals": {
+          "successful help invocation": 1,
+          "successful schema lookup": 3,
+          "successful sql invocation": 13,
+          "save returned registered command paths": 1,
+          "successful js invocation": 3
+        },
+        "by_phase": {
+          "analyst-1.pi": {
+            "successful help invocation": 1,
+            "successful schema lookup": 3,
+            "successful sql invocation": 3,
+            "save returned registered command paths": 1,
+            "successful js invocation": 1
+          },
+          "analyst-2.pi": {
+            "successful sql invocation": 9
+          },
+          "analyst-3.pi": {
+            "successful js invocation": 2,
+            "successful sql invocation": 1
+          }
+        },
+        "elapsed_seconds": 115.62,
+        "terminal_event": "finish",
+        "replays": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "passed": true,
+            "observed_rows": 3,
+            "expected_rows": 3,
+            "missing_count": 0,
+            "unexpected_count": 0
+          }
+        ],
+        "judge_delivered": true,
+        "helper_substitutions": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "source_sha256": "7dc0bf47081d15fa3b3e5e7672d6e51bb6abc4019f9c2938215edde4135b816c",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "source_sha256": "7dc0bf47081d15fa3b3e5e7672d6e51bb6abc4019f9c2938215edde4135b816c",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "source_sha256": "7dc0bf47081d15fa3b3e5e7672d6e51bb6abc4019f9c2938215edde4135b816c",
+            "rows": 3,
+            "discriminating_sessions": 3,
+            "passed": true
+          }
+        ]
+      },
+      "glm-5.3-flash": {
+        "first_ledger_save_registered": true,
+        "ledger_save_receipts": 1,
+        "first_successful_js_call_ordinal": 12,
+        "first_successful_ledger_call_ordinal": 12,
+        "tool_calls": {
+          "minitrace": 15,
+          "save_artifact": 1
+        },
+        "signals": {
+          "successful schema lookup": 3,
+          "successful help invocation": 1,
+          "nonzero or interrupted CLI invocation": 1,
+          "successful sql invocation": 8,
+          "save returned registered command paths": 1,
+          "successful js invocation": 2
+        },
+        "by_phase": {
+          "analyst-1.pi": {
+            "successful schema lookup": 3,
+            "successful help invocation": 1,
+            "nonzero or interrupted CLI invocation": 1,
+            "successful sql invocation": 5,
+            "save returned registered command paths": 1,
+            "successful js invocation": 1
+          },
+          "analyst-2.pi": {
+            "successful sql invocation": 3
+          },
+          "analyst-3.pi": {
+            "successful js invocation": 1
+          }
+        },
+        "elapsed_seconds": 81.83,
+        "terminal_event": "finish",
+        "replays": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "passed": true,
+            "observed_rows": 3,
+            "expected_rows": 3,
+            "missing_count": 0,
+            "unexpected_count": 0
+          }
+        ],
+        "judge_delivered": true,
+        "helper_substitutions": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "source_sha256": "38cbf830c561bb6ca8cdde608b366c3a4e6b112979431aff968e1ca5faafed7c",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "source_sha256": "38cbf830c561bb6ca8cdde608b366c3a4e6b112979431aff968e1ca5faafed7c",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "source_sha256": "38cbf830c561bb6ca8cdde608b366c3a4e6b112979431aff968e1ca5faafed7c",
+            "rows": 3,
+            "discriminating_sessions": 3,
+            "passed": true
+          }
+        ]
+      }
+    },
+    "judge": {
+      "provider": "openai-codex",
+      "model": "gpt-6.2-sol",
+      "thinking": "medium"
+    },
+    "scenario_sha256": "773194a80f15723b7cca619a74f8a2561795b6ea96e27013801e7a90d688bce5",
+    "oracle_sha256": "3b7dd9dfa01594dc36f98f7d754271e87ab041fa0ae3c3aa6b3c65e292bb0b05"
+  },
+  "high": {
+    "batch": "high",
+    "inputs": {
+      "input/go-minitrace": "59e0486f1a69dde4635b8574f8012b78a847ec567083b0939d76df9aa4a482c2",
+      "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+      "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+      "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+      "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+      "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+      "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+      "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+      "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+      "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+    },
+    "runs": {
+      "deepseek-4.1-flash": {
+        "first_ledger_save_registered": true,
+        "ledger_save_receipts": 5,
+        "first_successful_js_call_ordinal": 11,
+        "first_successful_ledger_call_ordinal": 11,
+        "tool_calls": {
+          "minitrace": 32,
+          "save_artifact": 5
+        },
+        "signals": {
+          "successful schema lookup": 3,
+          "successful help invocation": 1,
+          "successful sql invocation": 21,
+          "save returned registered command paths": 5,
+          "successful js invocation": 6,
+          "delivery preview shortened": 3,
+          "nonzero or interrupted CLI invocation": 1,
+          "unresolved command with actionable diagnostic": 1
+        },
+        "by_phase": {
+          "analyst-1.pi": {
+            "successful schema lookup": 3,
+            "successful help invocation": 1,
+            "successful sql invocation": 7,
+            "save returned registered command paths": 3,
+            "successful js invocation": 3
+          },
+          "analyst-2.pi": {
+            "successful sql invocation": 11,
+            "delivery preview shortened": 3,
+            "save returned registered command paths": 2,
+            "nonzero or interrupted CLI invocation": 1,
+            "unresolved command with actionable diagnostic": 1,
+            "successful js invocation": 2
+          },
+          "analyst-3.pi": {
+            "successful js invocation": 1,
+            "successful sql invocation": 3
+          }
+        },
+        "elapsed_seconds": 211.11,
+        "terminal_event": "finish",
+        "replays": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "passed": true,
+            "observed_rows": 3,
+            "expected_rows": 3,
+            "missing_count": 0,
+            "unexpected_count": 0
+          }
+        ],
+        "judge_delivered": true,
+        "helper_substitutions": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "source_sha256": "d6ad3b63a4d82d82657868521011e843301a6403212eceb5eb625be8c3f76c27",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "source_sha256": "d6ad3b63a4d82d82657868521011e843301a6403212eceb5eb625be8c3f76c27",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "source_sha256": "d6ad3b63a4d82d82657868521011e843301a6403212eceb5eb625be8c3f76c27",
+            "rows": 3,
+            "discriminating_sessions": 3,
+            "passed": true
+          }
+        ]
+      },
+      "glm-5.3-flash": {
+        "first_ledger_save_registered": true,
+        "ledger_save_receipts": 1,
+        "first_successful_js_call_ordinal": 10,
+        "first_successful_ledger_call_ordinal": 10,
+        "tool_calls": {
+          "minitrace": 12,
+          "save_artifact": 1
+        },
+        "signals": {
+          "successful schema lookup": 3,
+          "successful help invocation": 1,
+          "nonzero or interrupted CLI invocation": 1,
+          "successful sql invocation": 5,
+          "save returned registered command paths": 1,
+          "successful js invocation": 2
+        },
+        "by_phase": {
+          "analyst-1.pi": {
+            "successful schema lookup": 3,
+            "successful help invocation": 1,
+            "nonzero or interrupted CLI invocation": 1,
+            "successful sql invocation": 3,
+            "save returned registered command paths": 1,
+            "successful js invocation": 1
+          },
+          "analyst-2.pi": {
+            "successful sql invocation": 1
+          },
+          "analyst-3.pi": {
+            "successful js invocation": 1,
+            "successful sql invocation": 1
+          }
+        },
+        "elapsed_seconds": 106.86,
+        "terminal_event": "finish",
+        "replays": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "passed": true,
+            "observed_rows": 9,
+            "expected_rows": 9,
+            "missing_count": 0,
+            "unexpected_count": 0
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "passed": true,
+            "observed_rows": 3,
+            "expected_rows": 3,
+            "missing_count": 0,
+            "unexpected_count": 0
+          }
+        ],
+        "judge_delivered": true,
+        "helper_substitutions": [
+          {
+            "turn": 1,
+            "scope": "all",
+            "source_sha256": "899ecea6f0e3eca0953cdfcc3596cac0b34f78b4d5e3e59d8bc9c007ae1de024",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 2,
+            "scope": "all",
+            "source_sha256": "899ecea6f0e3eca0953cdfcc3596cac0b34f78b4d5e3e59d8bc9c007ae1de024",
+            "rows": 9,
+            "discriminating_sessions": 8,
+            "passed": true
+          },
+          {
+            "turn": 3,
+            "scope": "claude-code",
+            "source_sha256": "899ecea6f0e3eca0953cdfcc3596cac0b34f78b4d5e3e59d8bc9c007ae1de024",
+            "rows": 3,
+            "discriminating_sessions": 3,
+            "passed": true
+          }
+        ]
+      }
+    },
+    "judge": {
+      "provider": "openai-codex",
+      "model": "gpt-6.2-sol",
+      "thinking": "medium"
+    },
+    "scenario_sha256": "773194a80f15723b7cca619a74f8a2561795b6ea96e27013801e7a90d688bce5",
+    "oracle_sha256": "3b7dd9dfa01594dc36f98f7d754271e87ab041fa0ae3c3aa6b3c65e292bb0b05"
+  }
+}

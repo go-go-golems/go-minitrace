@@ -75,3 +75,5 @@ The low-effort DeepSeek coverage run hit a disk I/O denial while examining tool 
 | `COALESCE(result,'')=''` | Disk I/O denied | 27 rows, complete |
 
 The query groups by session ID and tool name. Even the null check over the payload column triggers the failure on this corpus. The harness's historic signal labels any “operation not permitted” message as a raw-source access attempt. Here the SQL reads only a normalized table. SQLite temporary storage is a hypothesis. No filesystem trace identifies the failed operation yet. The script prints row counts and diagnostics so a colleague can investigate without sharing payloads. [Local reproduction script](../scripts/persona-live/recheck_grouped_io.py)
+
+The [fluent filter and SQLite follow-up](21-fluent-filter-composition-and-in-memory-sqlite-sandbox-results.md) tests the composition gap and verifies the sandbox fix against the original controls.
