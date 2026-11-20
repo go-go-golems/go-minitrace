@@ -1,0 +1,1166 @@
+{
+  "inputs": {
+    "input/go-minitrace": "2bbb8eda8feb943cee1187f0f4f9cd1b22f4a7b1c4bd2ffae408fb236c9d53e9",
+    "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+    "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+    "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+    "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+    "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+    "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+    "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+    "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+    "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+  },
+  "judge": {
+    "provider": "openai-codex",
+    "model": "gpt-6.2-sol",
+    "thinking": "medium"
+  },
+  "tasks": {
+    "efficiency": {
+      "scenario_sha256": "3487727bd2d470c1fca27b0303964036f0b4d9c5d4cbc84a609b436b593c835b",
+      "oracle_sha256": "ac8eb9de56fbeb33bd652232d8758b5cdbee4b29a917661ee2909fe47d9576de"
+    },
+    "coverage": {
+      "scenario_sha256": "789f86a2636f836495ce1a73191b224637f3f458098044c0b93ef2090a699360",
+      "oracle_sha256": "337111e7b8d455a4ad32c774f4d8ce56bde787dc809eb88ad5212e1a53ed9337"
+    },
+    "file-change-ledger": {
+      "scenario_sha256": "576b3a3390d75321bb0cc2d407ab8d693c6672deda5320adc827f5f156c3819f",
+      "oracle_sha256": "b3e3a84c5dc65402be769f75289ed247115c313aee4dd4a7f492814d03daf7ff"
+    },
+    "recovery": {
+      "scenario_sha256": "3be972f2818c8fa38f2d79392a0c5dc6553d165a2b6a204af78d801a542c46c9",
+      "oracle_sha256": "a13daffc3deb31e36ec6694b92915a9e5c372fd33229332dffb4029bb98853d8"
+    }
+  },
+  "prior_failed_attempts": [
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "efficiency",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "efficiency-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 45,
+        "save_artifact": 1,
+        "read_artifact": 1
+      },
+      "signals": {
+        "successful help invocation": 2,
+        "successful schema lookup": 7,
+        "save returned registered command paths": 1,
+        "successful js invocation": 3,
+        "successful sql invocation": 30,
+        "delivery preview shortened": 1,
+        "query envelope incomplete": 1,
+        "nonzero or interrupted CLI invocation": 3
+      },
+      "elapsed_seconds": 313.37,
+      "terminal_event": "failure",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": false
+    },
+    {
+      "opening_ledger_has_tagged_sql": false,
+      "opening_ledger_has_fluent_from": false,
+      "task": "coverage",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "coverage-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": null,
+      "ledger_save_receipts": 0,
+      "first_successful_js_call_ordinal": null,
+      "first_successful_ledger_call_ordinal": null,
+      "tool_calls": {
+        "minitrace": 14
+      },
+      "signals": {
+        "successful help invocation": 1,
+        "successful schema lookup": 3,
+        "successful sql invocation": 7,
+        "nonzero or interrupted CLI invocation": 2,
+        "raw source outside allowed inputs": 2
+      },
+      "elapsed_seconds": 86.0,
+      "terminal_event": "failure",
+      "replays": [],
+      "judge_delivered": false
+    },
+    {
+      "opening_ledger_has_tagged_sql": false,
+      "opening_ledger_has_fluent_from": false,
+      "task": "coverage",
+      "analyst": "glm-5.3-flash",
+      "effort": "high",
+      "batch": "coverage-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 13,
+        "save_artifact": 2
+      },
+      "signals": {
+        "successful help invocation": 1,
+        "successful schema lookup": 3,
+        "save returned registered command paths": 2,
+        "successful js invocation": 2,
+        "successful sql invocation": 7
+      },
+      "elapsed_seconds": 93.76,
+      "terminal_event": "failure",
+      "replays": [],
+      "judge_delivered": false
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "recovery",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "recovery-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 8,
+      "first_successful_ledger_call_ordinal": 8,
+      "tool_calls": {
+        "minitrace": 29,
+        "save_artifact": 1
+      },
+      "signals": {
+        "Pi tool validation failure": 1,
+        "successful help invocation": 2,
+        "successful schema lookup": 4,
+        "save returned registered command paths": 1,
+        "successful js invocation": 1,
+        "successful sql invocation": 21
+      },
+      "elapsed_seconds": 328.12,
+      "terminal_event": "failure",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": false
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "recovery",
+      "analyst": "glm-5.3-flash",
+      "effort": "high",
+      "batch": "recovery-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 2,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 22,
+        "save_artifact": 2
+      },
+      "signals": {
+        "Pi tool validation failure": 1,
+        "successful schema lookup": 2,
+        "successful help invocation": 1,
+        "save returned registered command paths": 2,
+        "delivery preview shortened": 1,
+        "successful js invocation": 3,
+        "successful sql invocation": 15
+      },
+      "elapsed_seconds": 324.43,
+      "terminal_event": "failure",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": false
+    }
+  ],
+  "runs": [
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "coverage",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "coverage",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 7,
+      "first_successful_ledger_call_ordinal": 7,
+      "tool_calls": {
+        "minitrace": 34,
+        "save_artifact": 27
+      },
+      "signals": {
+        "Pi tool validation failure": 1,
+        "successful schema lookup": 4,
+        "successful help invocation": 2,
+        "save returned registered command paths": 27,
+        "successful js invocation": 23,
+        "nonzero or interrupted CLI invocation": 4,
+        "raw source outside allowed inputs": 4
+      },
+      "elapsed_seconds": 341.04,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "pi",
+          "passed": true,
+          "observed_rows": 11,
+          "expected_rows": 11,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "coverage",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "low",
+      "batch": "gmt015-registration-nov19-coverage",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 27,
+        "save_artifact": 7
+      },
+      "signals": {
+        "successful help invocation": 1,
+        "successful schema lookup": 3,
+        "save returned registered command paths": 7,
+        "successful js invocation": 9,
+        "successful sql invocation": 11,
+        "nonzero or interrupted CLI invocation": 3,
+        "raw source outside allowed inputs": 3
+      },
+      "elapsed_seconds": 207.93,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "pi",
+          "passed": true,
+          "observed_rows": 11,
+          "expected_rows": 11,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "coverage",
+      "analyst": "glm-5.3-flash",
+      "effort": "high",
+      "batch": "coverage",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 7,
+      "first_successful_ledger_call_ordinal": 7,
+      "tool_calls": {
+        "minitrace": 14,
+        "save_artifact": 2
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "Pi tool validation failure": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 3,
+        "successful sql invocation": 7
+      },
+      "elapsed_seconds": 170.83,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "pi",
+          "passed": true,
+          "observed_rows": 11,
+          "expected_rows": 11,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "coverage",
+      "analyst": "glm-5.3-flash",
+      "effort": "low",
+      "batch": "gmt015-registration-nov19-coverage",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 5,
+      "first_successful_ledger_call_ordinal": 5,
+      "tool_calls": {
+        "minitrace": 9,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful schema lookup": 2,
+        "successful help invocation": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "delivery preview shortened": 1,
+        "successful sql invocation": 4
+      },
+      "elapsed_seconds": 76.39,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 27,
+          "expected_rows": 27,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "pi",
+          "passed": true,
+          "observed_rows": 11,
+          "expected_rows": 11,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "efficiency",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "efficiency",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 8,
+      "first_successful_ledger_call_ordinal": 8,
+      "tool_calls": {
+        "minitrace": 31,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful help invocation": 2,
+        "successful schema lookup": 4,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "successful sql invocation": 22,
+        "nonzero or interrupted CLI invocation": 1,
+        "delivery preview shortened": 1,
+        "query envelope incomplete": 1
+      },
+      "elapsed_seconds": 209.04,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 3,
+          "expected_rows": 3,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "efficiency",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "low",
+      "batch": "gmt015-registration-nov19-efficiency",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 7,
+      "first_successful_ledger_call_ordinal": 7,
+      "tool_calls": {
+        "minitrace": 23,
+        "save_artifact": 14
+      },
+      "signals": {
+        "Pi tool validation failure": 1,
+        "successful help invocation": 1,
+        "successful schema lookup": 6,
+        "save returned registered command paths": 14,
+        "successful js invocation": 12,
+        "nonzero or interrupted CLI invocation": 3,
+        "delivery preview shortened": 1
+      },
+      "elapsed_seconds": 334.28,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 3,
+          "expected_rows": 3,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "efficiency",
+      "analyst": "glm-5.3-flash",
+      "effort": "high",
+      "batch": "efficiency-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 20,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "successful sql invocation": 14,
+        "delivery preview shortened": 1,
+        "query envelope incomplete": 1
+      },
+      "elapsed_seconds": 252.25,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 3,
+          "expected_rows": 3,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "efficiency",
+      "analyst": "glm-5.3-flash",
+      "effort": "low",
+      "batch": "gmt015-registration-nov19-efficiency",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 16,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "nonzero or interrupted CLI invocation": 1,
+        "successful sql invocation": 9
+      },
+      "elapsed_seconds": 116.56,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 9,
+          "expected_rows": 9,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 3,
+          "expected_rows": 3,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "file-change-ledger",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "file-change-ledger-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 19,
+      "first_successful_ledger_call_ordinal": 19,
+      "tool_calls": {
+        "minitrace": 45,
+        "save_artifact": 4,
+        "read_artifact": 1
+      },
+      "signals": {
+        "successful help invocation": 2,
+        "successful schema lookup": 4,
+        "successful sql invocation": 36,
+        "delivery preview shortened": 3,
+        "query envelope incomplete": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "Pi tool validation failure": 1
+      },
+      "elapsed_seconds": 478.53,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 1,
+          "expected_rows": 1,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "file-change-ledger",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "low",
+      "batch": "file-change-ledger-low",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 15,
+      "first_successful_ledger_call_ordinal": 15,
+      "tool_calls": {
+        "minitrace": 35,
+        "save_artifact": 3
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "successful sql invocation": 23,
+        "delivery preview shortened": 3,
+        "query envelope incomplete": 2,
+        "nonzero or interrupted CLI invocation": 2,
+        "save returned registered command paths": 3,
+        "successful js invocation": 6,
+        "unresolved command with actionable diagnostic": 1
+      },
+      "elapsed_seconds": 250.97,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 1,
+          "expected_rows": 1,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "file-change-ledger",
+      "analyst": "glm-5.3-flash",
+      "effort": "high",
+      "batch": "file-change-ledger-high",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 2,
+      "first_successful_js_call_ordinal": 21,
+      "first_successful_ledger_call_ordinal": 21,
+      "tool_calls": {
+        "minitrace": 36,
+        "save_artifact": 5
+      },
+      "signals": {
+        "successful help invocation": 1,
+        "successful schema lookup": 6,
+        "nonzero or interrupted CLI invocation": 2,
+        "successful sql invocation": 21,
+        "save returned registered command paths": 5,
+        "successful js invocation": 6,
+        "delivery preview shortened": 1,
+        "query envelope incomplete": 1
+      },
+      "elapsed_seconds": 319.83,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 1,
+          "expected_rows": 1,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": true,
+      "task": "file-change-ledger",
+      "analyst": "glm-5.3-flash",
+      "effort": "low",
+      "batch": "file-change-ledger-low",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 11,
+      "first_successful_ledger_call_ordinal": 11,
+      "tool_calls": {
+        "minitrace": 29,
+        "save_artifact": 5
+      },
+      "signals": {
+        "successful schema lookup": 7,
+        "successful help invocation": 1,
+        "successful sql invocation": 17,
+        "save returned registered command paths": 4,
+        "successful js invocation": 3,
+        "save returned catalog diagnostics": 1,
+        "delivery preview shortened": 1,
+        "nonzero or interrupted CLI invocation": 1,
+        "scanner skipped invalid command declaration": 1,
+        "tool subprocess output exceeded cap": 1
+      },
+      "elapsed_seconds": 194.87,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 34,
+          "expected_rows": 34,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 1,
+          "expected_rows": 1,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "recovery",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "high",
+      "batch": "recovery",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 10,
+      "first_successful_ledger_call_ordinal": 10,
+      "tool_calls": {
+        "minitrace": 35,
+        "save_artifact": 5
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "successful sql invocation": 28,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "nonzero or interrupted CLI invocation": 1,
+        "delivery preview shortened": 1,
+        "query envelope incomplete": 2
+      },
+      "elapsed_seconds": 350.84,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 6,
+          "expected_rows": 6,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "recovery",
+      "analyst": "deepseek-4.1-flash",
+      "effort": "low",
+      "batch": "recovery-low",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 16,
+      "first_successful_ledger_call_ordinal": 16,
+      "tool_calls": {
+        "minitrace": 29,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful help invocation": 2,
+        "successful schema lookup": 3,
+        "successful sql invocation": 22,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2
+      },
+      "elapsed_seconds": 241.14,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 6,
+          "expected_rows": 6,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "recovery",
+      "analyst": "glm-5.3-flash",
+      "effort": "high",
+      "batch": "recovery",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 17,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "nonzero or interrupted CLI invocation": 1,
+        "successful sql invocation": 10
+      },
+      "elapsed_seconds": 147.95,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 6,
+          "expected_rows": 6,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    },
+    {
+      "opening_ledger_has_tagged_sql": true,
+      "opening_ledger_has_fluent_from": false,
+      "task": "recovery",
+      "analyst": "glm-5.3-flash",
+      "effort": "low",
+      "batch": "recovery-low",
+      "recorded_pi_settings_match": true,
+      "first_ledger_save_registered": true,
+      "ledger_save_receipts": 1,
+      "first_successful_js_call_ordinal": 6,
+      "first_successful_ledger_call_ordinal": 6,
+      "tool_calls": {
+        "minitrace": 13,
+        "save_artifact": 1
+      },
+      "signals": {
+        "successful schema lookup": 3,
+        "successful help invocation": 1,
+        "save returned registered command paths": 1,
+        "successful js invocation": 2,
+        "successful sql invocation": 7,
+        "delivery preview shortened": 1
+      },
+      "elapsed_seconds": 153.63,
+      "terminal_event": "finish",
+      "replays": [
+        {
+          "turn": 1,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 2,
+          "scope": "all",
+          "passed": true,
+          "observed_rows": 26,
+          "expected_rows": 26,
+          "missing_count": 0,
+          "unexpected_count": 0
+        },
+        {
+          "turn": 3,
+          "scope": "codex",
+          "passed": true,
+          "observed_rows": 6,
+          "expected_rows": 6,
+          "missing_count": 0,
+          "unexpected_count": 0
+        }
+      ],
+      "judge_delivered": true
+    }
+  ]
+}

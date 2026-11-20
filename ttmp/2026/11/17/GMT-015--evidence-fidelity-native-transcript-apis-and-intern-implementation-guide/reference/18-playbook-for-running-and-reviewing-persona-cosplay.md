@@ -131,10 +131,10 @@ The default file-change scenario lives in [scenario.json](../scripts/persona-liv
 
 Give the next reviewer the revision, archived-input hashes, scenario and oracle hashes, analyst and judge settings, run status, comparison receipt and the best traces for each proposed fix. Raw private archives and receipts can stay with the authorized operator. The [latest compact results](../sources/live-persona-discovery-follow-up.json) show the intended handoff size.
 
-## What to improve next
+## Repeat the four-task comparison
 
-1. **Give the analyst the resolved command path as early as possible.** For a saved JS command, surface its registered path or the scanner reason using the real catalog. For an unresolved invocation, return the available command path as structured data the analyst can use on the next call. Measure whether that next call succeeds. Both analysts still had routing retries even after the text diagnostics improved.
-2. **Expose schema in the SQL tool's own discovery surface.** Offer one compact lookup backed by the existing normalized schema. Return table names by default and columns for a named table. Both analysts still tried `sqlite_master` once, despite the improved help.
-3. **Expand the evidence beyond one familiar ledger task.** Run recovery and efficiency next, with one held-out task and matched repeats on harder cases. Use results and traces to decide whether any fluent API change is necessary.
+Use the [matrix launcher and operator instructions](../scripts/persona-live/README.md#run-the-full-thinking-level-matrix) for a full crossed run. The four tasks cover file attribution, recovery, recorded cost and outcome coverage. Two analyst models each do every task at low and high thinking. The final scope is Pi for coverage and Codex for the other three.
+
+Use the [matrix report](20-four-task-persona-matrix-and-command-registration-results.md) to interpret the 16 conversations. For an API change, identify which submissions actually use the changed feature and compare those tool receipts. Independently replaying correct rows validates the delivered command, while the authoring traces reveal retries and the API path chosen.
 
 The Asset Studio team first reproduced a specific failing call, then tested a targeted correction before repeating the full scenario. Use the same order here. [Asset Studio playbook](</Users/manuel.odendahl/code/tulip/playback/.worktrees/feat-asset-studio/docs/operations/agent-prompt-playbook.md:285>) · [Minitrace and Asset Studio review](17-live-persona-api-friction-and-asset-studio-lessons.md)

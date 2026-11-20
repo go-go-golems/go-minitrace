@@ -57,3 +57,7 @@ Redesigned the live persona viewer with Claude Code and added an ordered thinkin
 
 - /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-live/trace.py — Historical phase projection and thinking metadata
 - /Users/manuel.odendahl/code/go-go-golems/go-minitrace/.worktrees/feat-evidence-fidelity/ttmp/2026/11/17/GMT-015--evidence-fidelity-native-transcript-apis-and-intern-implementation-guide/scripts/persona-live/viewer.html — Conversation, errors and event chronology
+
+## 2026-11-19
+
+Completed the four-task, two-model, two-effort persona matrix with 48 exact checks and preserved five interrupted attempts. Added a reproducible sandbox SQL failure and updated the handoff playbook.

@@ -2272,3 +2272,33 @@ Five retries are five additional attempts, not five additional task/model combin
 ### Review instructions and follow-up
 
 Compare the prior failure receipts with the recovered cells in the final JSON. The corpus and CLI binary hashes must match in all attempts. The judge sees each fresh conversation independently.
+
+## Step 45: Verify and hand off the completed matrix
+
+The five replacement runs completed all of their checks and received judge verdicts. The final comparison uses one completed conversation in each of sixteen cells. I kept the failed originals in a separate receipt list. All sixteen first ledger saves registered the root command. All 48 complete submissions matched independent SQL.
+
+### Prompt Context
+
+See Steps 42–43 for the requests and Step 44 for the restart. Recovery code checkpoint: `897fd19`.
+
+### What I did and why
+
+- Ran `matrix_results.py` over all eight original batches with explicit retry directories for coverage, efficiency and recovery. Verified the three checks, recorded model/effort, judge completion, registered path and tagged-SQL observation for each completed cell.
+- Compared the old/new efficiency scenario and oracle hashes, archives, judge and model settings. Read the only opening command containing fluent table expressions to determine whether those expressions reached the executed plan.
+- Reproduced a sandbox-only grouped-query denial using three manually authored aggregate predicates. Published a minimal script and the six outcomes in reference 20. Updated the colleague playbook and synced the authoring reference to the installed skill.
+
+### What worked
+
+Sixteen independent judge verdicts arrived. The host observed 12 exact checks per task. The summary correctly rejected an early attempt to publish while high-effort DeepSeek recovery was still running. It accepted the same inputs when the last timeline closed.
+
+### What didn't work and what I learned
+
+Payload-based grouped aggregates failed under Seatbelt with `Error: disk I/O error: operation not permitted`. The same pinned CLI returned all 27 groups without the profile. The permission-denied signal in the judge conflates that failure with raw-source access. Its label should not be used to infer analyst intent.
+
+### What was tricky and what warrants a second pair of eyes
+
+All opening submissions selected tagged SQL. The fluent table calls in one submission were unused. Verify the source before interpreting syntactic presence as exercised behavior. High and low thinking tied on correctness and each cell has one completed sample.
+
+### Future work and code review instructions
+
+Inspect reference 20 and `sources/four-task-persona-matrix.json` for the denominators and first-success ordinals. For targeted follow-up, exercise a reusable fluent builder on two scopes and trace SQLite temporary file access during the grouped-query failure.
