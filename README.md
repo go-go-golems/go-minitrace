@@ -173,6 +173,7 @@ Migration checklist for pre-single-engine users:
 - replace `go-minitrace query duckdb ...` with `go-minitrace query run ...`;
 - remove `--db-path`, `--table-name`, and `--persist-loaded` from SQL command invocations;
 - rewrite `UNNEST(turns/tool_calls)` queries against the `turns` and `tool_calls` tables;
+- inspect normalized columns with `go-minitrace query schema tool_calls` and check a saved command’s registered path with `go-minitrace query catalog --query-repository ./queries ledger.js`.
 - in JS commands, build a handle with `mt.db().sources(mt.sources().runtimeArchives().build()).import({autoConvert: true, strict: true}).build()` and call `db.execute(plan)`.
 
 Output formats: `--output table` (default), `--output json`, `--output csv`.

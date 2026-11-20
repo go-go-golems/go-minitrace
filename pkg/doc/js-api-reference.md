@@ -50,10 +50,18 @@ const db = mt.db().sources(sources)
 try {
   const sessions = mt.from(db.table("sessions"));
   const tools = mt.from(db.table("tool_calls"));
-  const counts = sessions.select(s => ({
-    session_id: s.session_id,
-    tool_count: tools.where(t => t.session_id.eq(s.session_id)).count(),
-  })).orderBy(s => s.session_id.asc());
+  function withSuccess(query, value) {
+    return query.where(tool => tool.success.eq(value));
+  }
+  const counts = sessions.select(s => {
+    const calls = tools.where(tool => tool.session_id.eq(s.session_id));
+    return {
+      session_id: s.session_id,
+      tool_count: calls.count(),
+      successful: withSuccess(calls, 1).count(),
+      failed: withSuccess(calls, 0).count(),
+    };
+  }).orderBy(s => s.session_id.asc());
   const result = db.execute(counts.build());
   if (result.error || !result.complete) throw Error(result.error || "Incomplete result");
   return result.rows;

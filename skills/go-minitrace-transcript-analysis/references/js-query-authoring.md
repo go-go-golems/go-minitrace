@@ -56,6 +56,21 @@ go-minitrace query commands --query-repository ./my-commands overview session-li
 
 Use `mt.from(db.table("sessions"))` to compose a catalog-backed query. Use symbolic callbacks for filters and projections, for example `.where(row => row.agent_framework.eq("pi"))`. Construct actual per-session tool counts with a correlated `.count()` over `tool_calls` so sessions with zero tool calls remain present. A named `mt.param.integer("minimum").default(0)` can be bound both in fluent filters and in tagged SQL through `db.execute(plan, {params: {minimum: 3}})`.
 
+For an outcome ledger, branch from the session’s tool calls and keep the total as its own denominator. Missing outcomes contribute only to the total. This projection uses the `sessions` and `tools` table builders from `mt.from(db.table(...))`:
+
+```js
+function withSuccess(query, value) {
+  return query.where(tool => tool.success.eq(value));
+}
+const plan = sessions.select(s => {
+  const calls = tools.where(tool => tool.session_id.eq(s.session_id));
+  return {session_id: s.session_id, calls: calls.count(),
+    successful: withSuccess(calls, 1).count(), failed: withSuccess(calls, 0).count()};
+}).build();
+```
+
+For read-only sandbox analysis, use `--cache-mode memory` with `query run` or `.cache({mode: "memory"})` on the JS database builder. SQLite keeps grouping and sorting scratch data in RAM, so large intermediate results can increase peak memory.
+
 Prefer ordinary functions for reusable query transformations. Attach scoped fragment methods only when they clarify several related operations. A `mapRows` stage runs once per row after complete SQL execution and requires declared output columns. Compose directly on the query returned by calling `.columns(...)` on a tagged SQL source. Put `orderBy` before `mapRows` and `build` last. For multiquery reductions, check every input envelope before combining them in JS.
 
 Keep interpolations scalar. Use explicit statement text for identifiers. Treat safety row caps, UTF-8 clipping, and SQL-level selection as distinct. For raw record inspection, use `mt.native().file(path).inspect()` or `.forEach(callback)`. Preserve physical coordinates and provenance in evidence claims. The repository's `examples/query-library/analysis.js` provides composable tool and token projections, timelines, and frames.
