@@ -137,6 +137,23 @@ def oracle(batch, work, binary, scope, scenario="file-change-ledger"):
     return expected
 
 
+def result_rows(output, fields):
+    if not isinstance(output, list):
+        raise ValueError("Expected a JSON row array")
+    if len(output) == 1 and isinstance(output[0], dict):
+        envelope = output[0]
+        if "rows" in envelope and not all(field in envelope for field in fields):
+            rows = envelope["rows"]
+            if envelope.get("complete") is False or envelope.get("error"):
+                raise ValueError("Query envelope reports incomplete or failed evidence")
+            if not isinstance(rows, list):
+                raise ValueError("Query envelope rows must be an array")
+            if "count" in envelope and envelope["count"] != len(rows):
+                raise ValueError("Query envelope count does not match its row array")
+            return rows
+    return output
+
+
 def verify(batch, work, binary, scope, offline, stage=None, scenario="file-change-ledger"):
     """Compare an independent SQL result with host-controlled candidate replay."""
     expected = oracle(batch, work, binary, scope, scenario)
@@ -155,9 +172,9 @@ def verify(batch, work, binary, scope, offline, stage=None, scenario="file-chang
         if not offline:
             policy = query_policy(batch, work, binary, candidate_dir)
             cmd = ["/usr/bin/sandbox-exec", "-f", str(policy), *cmd]
-        actual = command_json(cmd, work)
-        if not isinstance(actual, list):
-            raise ValueError("Expected a JSON row array")
+        output = command_json(cmd, work)
+        (work / f"captured-{label}.json").write_text(dump(output))
+        actual = result_rows(output, fields)
         actual_keys = Counter(tuple(row[key] for key in fields) for row in actual)
         expected_keys = Counter(tuple(row[key] for key in fields) for row in expected["rows"])
         missing = expected_keys - actual_keys

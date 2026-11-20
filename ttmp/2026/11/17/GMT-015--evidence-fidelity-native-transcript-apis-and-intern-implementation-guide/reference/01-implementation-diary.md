@@ -2121,3 +2121,59 @@ Read the metadata commands in `cmd/go-minitrace/cmds/query/root.go` and the two 
 ### Technical details
 
 Recovery grades exact failure IDs, ordinals and the earliest qualifying later ordinal. Efficiency grades turn totals and their denominators, including sessions with zero turns. The judge receives summaries and exact host checks.
+
+## Step 41: Preserve live scores and recheck wrapped recovery results
+
+Both efficiency runs and DeepSeek's recovery run passed all three live host checks. GLM's recovery submission returned a valid wrapper around the rows. Its live verifier expected bare rows. I rechecked the unchanged artifacts through a verifier that reads either shape and retained the original live scores.
+
+### Prompt Context
+
+See Step 40.
+
+**Implementation checkpoint.** `1ac17e2` — Expose catalog paths and schema to recovery and efficiency personas.
+
+### What I did
+
+- Added bounded envelope decoding to the host verifier and persisted the captured CLI JSON before grading.
+- Verified that a wrapped row array passes only when the exact row comparison passes. An envelope marked incomplete or with a mismatching count fails.
+- Replayed all three saved GLM recovery artifacts through the same sandbox, binary, corpus and scope. No new model calls were used in those checks.
+- Recorded reference 19 and the compact result receipt with both live and isolated outcomes.
+
+### Why
+
+The task requires an executable artifact with exact results. A correctly wrapped result is valid command output. The original live failure is still relevant because the stakeholder saw it.
+
+### What worked
+
+- Both efficiency runs matched 9, 9 and 3 sessions. DeepSeek recovery matched 26, 26 and 6 failure candidates live. GLM recovery matched 26, 26 and 6 in the isolated rechecks.
+- All four Codex medium judges completed with no tool actions.
+- The four runs recorded 15 compact schema lookups, 15 saves returning paths, five saves returning catalog diagnostics, one actionable unresolved command and zero SQLite catalog denials.
+- The new wrapper and incomplete-result fixtures passed in `test_lab.py`.
+
+### What didn't work
+
+GLM's live recovery grades were 0/3. The failure `'session_id'` came from reading the one-element output array as if the element were a data row. It actually contained `count` and `rows`. The isolated comparison verified all underlying row identities.
+
+### What I learned
+
+Reporting the registered path helps after the scanner accepts the file. The traces still show guesses at inline handler declarations. The new briefs also expose how the CLI's flexible output shape can surprise a consumer.
+
+### What was tricky to build
+
+The wrapper detection checks the outer keys so a valid record with a field named `rows` can still be graded as a row. A wrapper claiming incomplete evidence remains a failure.
+
+### What warrants a second pair of eyes
+
+The judge on the original GLM run saw the live shape failures. A rechecked artifact can validate the output independently without changing that conversation or telling the judge it passed live.
+
+### What should be done in the future
+
+Use a matched repeated scenario for any claim about rates. Focus the next authoring test on the exact point where an analyst writes static metadata.
+
+### Code review instructions
+
+Read reference 19 and `sources/recovery-efficiency-persona-results.json`, then inspect `result_rows` and the envelope checks in `test_lab.py`.
+
+### Technical details
+
+The original run logs and rechecks were saved separately. Successful schema lookups and saves are counted from matched tool result records, not agent claims.

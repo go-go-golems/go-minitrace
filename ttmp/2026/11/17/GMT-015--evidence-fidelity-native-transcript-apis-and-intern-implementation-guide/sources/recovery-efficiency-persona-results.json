@@ -1,0 +1,423 @@
+{
+  "batches": {
+    "efficiency": {
+      "batch": "efficiency",
+      "inputs": {
+        "input/go-minitrace": "df07d3ee7d58f02a9bd008e3e7f2f5d08cb2fa5139c22c5139dea2c6994ecfcc",
+        "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+        "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+        "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+        "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+        "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+        "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+        "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+        "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+        "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+      },
+      "runs": {
+        "deepseek-4.1-flash": {
+          "first_successful_js_call_ordinal": 7,
+          "first_successful_ledger_call_ordinal": 7,
+          "tool_calls": {
+            "minitrace": 18,
+            "save_artifact": 10
+          },
+          "signals": {
+            "successful help invocation": 2,
+            "successful schema lookup": 4,
+            "save returned catalog diagnostics": 1,
+            "save returned registered command paths": 9,
+            "successful js invocation": 11,
+            "nonzero or interrupted CLI invocation": 1,
+            "delivery preview shortened": 1
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 1,
+              "successful schema lookup": 4,
+              "save returned catalog diagnostics": 1,
+              "save returned registered command paths": 6,
+              "successful js invocation": 5,
+              "nonzero or interrupted CLI invocation": 1
+            },
+            "analyst-2.pi": {
+              "save returned registered command paths": 2,
+              "delivery preview shortened": 1,
+              "successful js invocation": 2
+            },
+            "analyst-3.pi": {
+              "successful help invocation": 1,
+              "successful js invocation": 4,
+              "save returned registered command paths": 1
+            }
+          },
+          "elapsed_seconds": 164.42,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 9,
+              "expected_rows": 9,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 9,
+              "expected_rows": 9,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 3,
+              "expected_rows": 3,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true,
+          "judge_receipt": {
+            "requested": {
+              "provider": "openai-codex",
+              "model": "gpt-6.2-sol",
+              "thinking": "medium"
+            },
+            "exit": 0,
+            "turn_completed": true,
+            "tool_items": [],
+            "usage": {
+              "input_tokens": 27656,
+              "cached_input_tokens": 13696,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 380,
+              "reasoning_output_tokens": 70
+            }
+          }
+        },
+        "glm-5.3-flash": {
+          "first_successful_js_call_ordinal": 9,
+          "first_successful_ledger_call_ordinal": 9,
+          "tool_calls": {
+            "minitrace": 20,
+            "save_artifact": 5
+          },
+          "signals": {
+            "successful help invocation": 1,
+            "successful schema lookup": 5,
+            "delivery preview shortened": 1,
+            "nonzero or interrupted CLI invocation": 3,
+            "unresolved command with actionable diagnostic": 1,
+            "save returned catalog diagnostics": 1,
+            "save returned registered command paths": 3,
+            "successful js invocation": 2,
+            "successful sql invocation": 9
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful help invocation": 1,
+              "successful schema lookup": 5,
+              "delivery preview shortened": 1,
+              "nonzero or interrupted CLI invocation": 2,
+              "unresolved command with actionable diagnostic": 1,
+              "save returned catalog diagnostics": 1,
+              "save returned registered command paths": 1,
+              "successful js invocation": 1,
+              "successful sql invocation": 5
+            },
+            "analyst-2.pi": {
+              "successful sql invocation": 2
+            },
+            "analyst-3.pi": {
+              "successful sql invocation": 2,
+              "save returned registered command paths": 2,
+              "nonzero or interrupted CLI invocation": 1,
+              "successful js invocation": 1
+            }
+          },
+          "elapsed_seconds": 161.5,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 9,
+              "expected_rows": 9,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 9,
+              "expected_rows": 9,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 3,
+              "expected_rows": 3,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true,
+          "judge_receipt": {
+            "requested": {
+              "provider": "openai-codex",
+              "model": "gpt-6.2-sol",
+              "thinking": "medium"
+            },
+            "exit": 0,
+            "turn_completed": true,
+            "tool_items": [],
+            "usage": {
+              "input_tokens": 27363,
+              "cached_input_tokens": 13696,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 344,
+              "reasoning_output_tokens": 53
+            }
+          }
+        }
+      },
+      "judge": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      }
+    },
+    "recovery": {
+      "batch": "recovery",
+      "inputs": {
+        "input/go-minitrace": "df07d3ee7d58f02a9bd008e3e7f2f5d08cb2fa5139c22c5139dea2c6994ecfcc",
+        "input/archives/claude-code-01.minitrace.json": "183d1e38336f53c94da5ec5f23b2285d2d4eae140b0ea8033c8d1fe779b9cfb2",
+        "input/archives/claude-code-02.minitrace.json": "cab22c896b65144a7c11e65bfda9d5d1eeb0467e8365a1d58af360107a9b7db5",
+        "input/archives/claude-code-03.minitrace.json": "a1961f90ea14c0f2fb354c858e375dfcd97a3c9be0f1e0f9b2f2856746e6beb5",
+        "input/archives/codex-04.minitrace.json": "3cfac087a7019609ceee0fb49f18cbb038de8477b12ff4c95156e2e8e0ed8c9f",
+        "input/archives/codex-05.minitrace.json": "21ea09f6edc1a408fcdf283eea7c4ce0f0398044bac9e0e22bf0ea91fb5bd21c",
+        "input/archives/codex-06.minitrace.json": "76ecb65efe2140deddf36453a47f5a7d3092548a51808bacc4f352e8bec2630c",
+        "input/archives/pi-07.minitrace.json": "9bae4fda08f72f0d6fffbb011bc2155ca690612001f466fa24beb361d77bd929",
+        "input/archives/pi-08.minitrace.json": "526bc298dc8f08c92414ebf7c4fec18b64fce065a4341832e4ec0030dbcd4bcd",
+        "input/archives/pi-09.minitrace.json": "ef0d0c2854d0e983c1b7ba18620905489805594611ccfe19ecf200365c0874a4"
+      },
+      "runs": {
+        "deepseek-4.1-flash": {
+          "first_successful_js_call_ordinal": 11,
+          "first_successful_ledger_call_ordinal": 11,
+          "tool_calls": {
+            "minitrace": 21,
+            "save_artifact": 3,
+            "read_artifact": 1
+          },
+          "signals": {
+            "Pi tool validation failure": 2,
+            "successful help invocation": 1,
+            "successful schema lookup": 3,
+            "successful sql invocation": 13,
+            "save returned catalog diagnostics": 1,
+            "save returned registered command paths": 1,
+            "successful js invocation": 2,
+            "query envelope incomplete": 1
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "Pi tool validation failure": 2,
+              "successful help invocation": 1,
+              "successful schema lookup": 3,
+              "successful sql invocation": 10,
+              "save returned catalog diagnostics": 1,
+              "save returned registered command paths": 1,
+              "successful js invocation": 1
+            },
+            "analyst-2.pi": {
+              "successful sql invocation": 1
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 1,
+              "query envelope incomplete": 1,
+              "successful sql invocation": 2
+            }
+          },
+          "elapsed_seconds": 205.08,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 26,
+              "expected_rows": 26,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": true,
+              "observed_rows": 26,
+              "expected_rows": 26,
+              "missing_count": 0,
+              "unexpected_count": 0
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": true,
+              "observed_rows": 6,
+              "expected_rows": 6,
+              "missing_count": 0,
+              "unexpected_count": 0
+            }
+          ],
+          "judge_delivered": true,
+          "judge_receipt": {
+            "requested": {
+              "provider": "openai-codex",
+              "model": "gpt-6.2-sol",
+              "thinking": "medium"
+            },
+            "exit": 0,
+            "turn_completed": true,
+            "tool_items": [],
+            "usage": {
+              "input_tokens": 27655,
+              "cached_input_tokens": 13696,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 335,
+              "reasoning_output_tokens": 29
+            }
+          }
+        },
+        "glm-5.3-flash": {
+          "first_successful_js_call_ordinal": 9,
+          "first_successful_ledger_call_ordinal": 9,
+          "tool_calls": {
+            "minitrace": 13,
+            "save_artifact": 4
+          },
+          "signals": {
+            "successful schema lookup": 3,
+            "successful help invocation": 2,
+            "save returned catalog diagnostics": 2,
+            "delivery preview shortened": 1,
+            "save returned registered command paths": 2,
+            "successful js invocation": 4,
+            "successful sql invocation": 4
+          },
+          "by_phase": {
+            "analyst-1.pi": {
+              "successful schema lookup": 3,
+              "successful help invocation": 2,
+              "save returned catalog diagnostics": 2,
+              "delivery preview shortened": 1,
+              "save returned registered command paths": 2,
+              "successful js invocation": 2,
+              "successful sql invocation": 4
+            },
+            "analyst-2.pi": {
+              "successful js invocation": 1
+            },
+            "analyst-3.pi": {
+              "successful js invocation": 1
+            }
+          },
+          "elapsed_seconds": 137.55,
+          "terminal_event": "finish",
+          "replays": [
+            {
+              "turn": 1,
+              "scope": "all",
+              "passed": false,
+              "observed_rows": null,
+              "expected_rows": null,
+              "missing_count": null,
+              "unexpected_count": null
+            },
+            {
+              "turn": 2,
+              "scope": "all",
+              "passed": false,
+              "observed_rows": null,
+              "expected_rows": null,
+              "missing_count": null,
+              "unexpected_count": null
+            },
+            {
+              "turn": 3,
+              "scope": "codex",
+              "passed": false,
+              "observed_rows": null,
+              "expected_rows": null,
+              "missing_count": null,
+              "unexpected_count": null
+            }
+          ],
+          "judge_delivered": true,
+          "judge_receipt": {
+            "requested": {
+              "provider": "openai-codex",
+              "model": "gpt-6.2-sol",
+              "thinking": "medium"
+            },
+            "exit": 0,
+            "turn_completed": true,
+            "tool_items": [],
+            "usage": {
+              "input_tokens": 27206,
+              "cached_input_tokens": 13696,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 358,
+              "reasoning_output_tokens": 32
+            }
+          }
+        }
+      },
+      "judge": {
+        "provider": "openai-codex",
+        "model": "gpt-6.2-sol",
+        "thinking": "medium"
+      }
+    }
+  },
+  "recovery_glm_isolated_rechecks": [
+    {
+      "turn": null,
+      "scope": "all",
+      "passed": true,
+      "observed_rows": 26,
+      "expected_rows": 26,
+      "missing_count": 0,
+      "unexpected_count": 0
+    },
+    {
+      "turn": null,
+      "scope": "all",
+      "passed": true,
+      "observed_rows": 26,
+      "expected_rows": 26,
+      "missing_count": 0,
+      "unexpected_count": 0
+    },
+    {
+      "turn": null,
+      "scope": "codex",
+      "passed": true,
+      "observed_rows": 6,
+      "expected_rows": 6,
+      "missing_count": 0,
+      "unexpected_count": 0
+    }
+  ]
+}

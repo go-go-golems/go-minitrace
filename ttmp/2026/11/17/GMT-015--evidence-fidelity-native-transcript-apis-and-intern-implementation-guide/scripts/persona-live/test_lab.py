@@ -43,6 +43,14 @@ def test_ledger(binary, root):
     missing = verify(root, work, binary, "all", offline=True)
     assert not missing["passed"] and missing["missing_count"] == 1, missing
 
+    command.write_text(source.replace("return result.rows;", "return {count: result.count, rows: result.rows};"))
+    wrapped = verify(root, work, binary, "all", offline=True)
+    assert wrapped["passed"] and wrapped["observed_rows"] == 2, wrapped
+
+    command.write_text(source.replace("return result.rows;", "return {complete: false, rows: result.rows};"))
+    incomplete = verify(root, work, binary, "all", offline=True)
+    assert not incomplete["passed"] and "incomplete" in incomplete["error"], incomplete
+
     command.write_text(source)
     narrowed = verify(root, work, binary, "codex", offline=True)
     assert narrowed["passed"] and narrowed["observed_rows"] == 1, narrowed
