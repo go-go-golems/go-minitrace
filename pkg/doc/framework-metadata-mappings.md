@@ -91,6 +91,9 @@ Framework-specific raw fields are preserved in three places:
 | `attribution_agent` | attribution record agent |
 | `mode` / `permission_mode` | mode and permission-mode records |
 | `ai_title` | `ai-title` record |
+| `parent_session` | subagent: parent session id (also `coordination.predecessor_session`) |
+| `agent_type` / `agent_description` / `parent_tool_use_id` | subagent `agent-<id>.meta.json` `agentType` / `description` / `toolUseId` |
+| `fork_parent_session_id` | `fork-context-ref.parentSessionId` of a forked subagent |
 
 ### `turns[].framework_metadata`
 
@@ -117,7 +120,19 @@ Framework-specific raw fields are preserved in three places:
 | `parent_uuid` | preserved from the emitting assistant/tool-result record |
 | `is_sidechain` | preserved from the emitting assistant/tool-result record |
 | `tool_use_result` | full `toolUseResult` payload from the tool-result record, size-capped (16 KiB total, 2 KiB per field). Scalar facts are also promoted: exit codes parsed from the `"Error: Exit code N"` string form become `output.exit_code`; `stderr` becomes `output.error` on failures |
-| `interrupted` | `toolUseResult.interrupted` (also marks the call failed with error `interrupted by user`) |
+| `interrupted` | `toolUseResult.interrupted` (also marks the call failed with error `interrupted by user` and `output.reason = interrupted`) |
+| `fork_spawn_echo` | `true` on the `Agent` call a forked subagent repeats from its parent (`Fork started` result); it links to the fork itself |
+
+### `events[].framework_metadata` (hook, compaction, turn_duration)
+
+| Stored key | Raw source |
+|---|---|
+| `hook_type`, `hook_event`, `hook_name`, `tool_use_id` | hook attachment `type`, `hookEvent`, `hookName`, `toolUseID` |
+| `command`, `exit_code`, `duration_ms` | hook attachment `command` (or `blockingError.command`), `exitCode`, `durationMs` |
+| `permission_decision`, `permission_decision_reason` | `hookSpecificOutput.permissionDecision(Reason)` parsed from the hook's JSON `stdout` |
+| `commands`, `hook_count`, `hook_errors`, `prevented_continuation`, `stop_reason` | `system/stop_hook_summary` `hookInfos[].command`, `hookCount`, `hookErrors`, `preventedContinuation`, `stopReason` |
+| `trigger`, `pre_tokens`, `post_tokens`, `duration_ms` | `system/compact_boundary` `compactMetadata` |
+| `duration_ms`, `message_count` | `system/turn_duration` `durationMs`, `messageCount` |
 
 ## Pi mappings
 

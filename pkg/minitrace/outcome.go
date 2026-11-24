@@ -12,6 +12,21 @@ const (
 	ToolOutcomeCancelled ToolOutcomeStatus = "cancelled"
 )
 
+// Tool outcome reasons refine a known outcome with why the tool did or did
+// not run. They are set only when the source states the reason; most tool
+// calls have none. Every reason except interrupted means the tool never
+// executed, so the call's duration measures waiting, not work.
+const (
+	ToolOutcomeReasonHookBlocked         = "hook_blocked"
+	ToolOutcomeReasonPermissionDenied    = "permission_denied"
+	ToolOutcomeReasonClassifierDenied    = "classifier_denied"
+	ToolOutcomeReasonClassifierNoVerdict = "classifier_no_verdict"
+	ToolOutcomeReasonUserRejected        = "user_rejected"
+	ToolOutcomeReasonInterrupted         = "interrupted"
+	ToolOutcomeReasonToolUseError        = "tool_use_error"
+	ToolOutcomeReasonHarnessBlocked      = "harness_blocked"
+)
+
 // SetSuccess records a known binary outcome and keeps its status consistent.
 func (output *ToolCallOutput) SetSuccess(success bool) {
 	output.Success = &success

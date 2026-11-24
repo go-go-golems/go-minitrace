@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const SchemaVersion = "normalized-sqlite-v6"
+const SchemaVersion = "normalized-sqlite-v7"
 
 // SessionsBaseCompatView is a compatibility VIEW that reconstructs the legacy
 // DuckDB `sessions_base` shape (5 scalar columns plus JSON blob columns) from
@@ -52,6 +52,7 @@ func Tables() []TableDescriptor {
 		withActivityColumns(metricsTable()),
 		attachmentsTable(),
 		eventsTable(),
+		contextLoadsTable(),
 	}
 }
 
@@ -329,6 +330,7 @@ func toolCallsTable() TableDescriptor {
 			{Name: "arguments_json", Type: "TEXT", Nullable: true},
 			{Name: "success", Type: "INTEGER", Nullable: true},
 			{Name: "outcome_status", Type: "TEXT", Nullable: true},
+			{Name: "outcome_reason", Type: "TEXT", Nullable: true, Description: "Why a known outcome happened, when the source says so: hook_blocked, permission_denied, classifier_denied, classifier_no_verdict, user_rejected, interrupted, tool_use_error, harness_blocked. Every value except interrupted means the tool never ran, so duration_ms is waiting time. NULL for ordinary results."},
 			{Name: "output_status", Type: "TEXT", Nullable: true},
 			{Name: "result", Type: "TEXT", Nullable: true},
 			{Name: "error", Type: "TEXT", Nullable: true},
@@ -365,6 +367,7 @@ func toolCallsTable() TableDescriptor {
 	arguments_json TEXT,
 	success INTEGER,
 	outcome_status TEXT,
+	outcome_reason TEXT,
 	output_status TEXT,
 	result TEXT,
 	error TEXT,
@@ -546,6 +549,8 @@ func metricsTable() TableDescriptor {
 			{Name: "unique_models", Type: "INTEGER", Nullable: true},
 			{Name: "median_response_tokens", Type: "INTEGER", Nullable: true},
 			{Name: "max_response_tokens", Type: "INTEGER", Nullable: true},
+			{Name: "compaction_count", Type: "INTEGER", Nullable: true, Description: "Context compactions recorded by the source (events kind = 'compaction'); NULL when the source records none."},
+			{Name: "total_turn_duration_ms", Type: "INTEGER", Nullable: true, Description: "Sum of source-reported turn durations (events kind = 'turn_duration'); NULL when the source records none."},
 			{Name: "raw_json", Type: "TEXT", Nullable: true},
 		},
 		CreateSQL: `CREATE TABLE IF NOT EXISTS metrics (
@@ -573,6 +578,8 @@ func metricsTable() TableDescriptor {
 	unique_models INTEGER,
 	median_response_tokens INTEGER,
 	max_response_tokens INTEGER,
+	compaction_count INTEGER,
+	total_turn_duration_ms INTEGER,
 	raw_json TEXT
 );`,
 	}
@@ -627,7 +634,7 @@ func attachmentsTable() TableDescriptor {
 func eventsTable() TableDescriptor {
 	return TableDescriptor{
 		Name:        "events",
-		Description: "One row per timeline/renderable event derived from turns, tool calls, annotations, or explicit source event records.",
+		Description: "One row per timeline/renderable event derived from turns, tool calls, annotations, or explicit source event records. Claude Code kinds besides turn/tool_call/annotation/attachment: hook (hook attachments and stop-hook summaries; tool_call_id names the hooked call), compaction (turn_index = first turn after the boundary; metadata trigger, pre_tokens, post_tokens), turn_duration (turn_index = the turn it closes; metadata duration_ms, message_count), mode_change, permission_mode_change, title_change.",
 		Columns: []ColumnDescriptor{
 			{Name: "session_id", Type: "TEXT", PrimaryKey: true},
 			{Name: "event_id", Type: "TEXT", PrimaryKey: true},
@@ -670,6 +677,50 @@ func eventsTable() TableDescriptor {
 	}
 }
 
+func contextLoadsTable() TableDescriptor {
+	return TableDescriptor{
+		Name:        "context_loads",
+		Description: "One row per instruction or guidance file injected into the model context: Claude Code nested_memory (path-scoped CLAUDE.md and .claude/rules files), instructions (session-start and post-compaction instruction files) and invoked_skill (skills re-injected after compaction).",
+		Columns: []ColumnDescriptor{
+			{Name: "session_id", Type: "TEXT", PrimaryKey: true},
+			{Name: "load_id", Type: "TEXT", PrimaryKey: true, Description: "<attachment id>:<n>."},
+			{Name: "ordinal", Type: "INTEGER", Description: "Position of the load within the session."},
+			{Name: "timestamp", Type: "TEXT", Nullable: true},
+			{Name: "turn_index", Type: "INTEGER", Nullable: true, Description: "First turn emitted after the load, i.e. the first turn whose context includes it; NULL when no turn follows."},
+			{Name: "tool_call_id", Type: "TEXT", Nullable: true, Description: "Tool call whose result triggered the load (nested_memory only), resolved through the source's parent chain."},
+			{Name: "attachment_id", Type: "TEXT", Nullable: true, Description: "attachments row that carried the load."},
+			{Name: "kind", Type: "TEXT", Description: "nested_memory, instructions or invoked_skill."},
+			{Name: "path", Type: "TEXT", Nullable: true, Description: "Home-normalized file path (~/...); for invoked_skill the native skill locator, for example userSettings:diary."},
+			{Name: "display_path", Type: "TEXT", Nullable: true, Description: "Source-relative display path (nested_memory)."},
+			{Name: "name", Type: "TEXT", Nullable: true, Description: "Skill name for invoked_skill, else the file base name."},
+			{Name: "file_type", Type: "TEXT", Nullable: true, Description: "Source file type such as Project, User, Local or AutoMem."},
+			{Name: "content_chars", Type: "INTEGER", Description: "Unicode code points of injected content."},
+			{Name: "content_bytes", Type: "INTEGER", Description: "UTF-8 bytes of injected content."},
+			{Name: "content_sha256", Type: "TEXT", Nullable: true, Description: "Hex SHA-256 of injected content; equal hashes mean identical text."},
+			{Name: "differs_from_disk", Type: "INTEGER", Nullable: true, Description: "1 when the source says the injected content differs from the file on disk."},
+		},
+		CreateSQL: `CREATE TABLE IF NOT EXISTS context_loads (
+	session_id TEXT NOT NULL,
+	load_id TEXT NOT NULL,
+	ordinal INTEGER NOT NULL,
+	timestamp TEXT,
+	turn_index INTEGER,
+	tool_call_id TEXT,
+	attachment_id TEXT,
+	kind TEXT NOT NULL,
+	path TEXT,
+	display_path TEXT,
+	name TEXT,
+	file_type TEXT,
+	content_chars INTEGER NOT NULL,
+	content_bytes INTEGER NOT NULL,
+	content_sha256 TEXT,
+	differs_from_disk INTEGER,
+	PRIMARY KEY (session_id, load_id)
+);`,
+	}
+}
+
 func indexStatements() []string {
 	return []string{
 		`CREATE INDEX IF NOT EXISTS idx_sessions_agent_framework ON sessions(agent_framework);`,
@@ -689,6 +740,8 @@ func indexStatements() []string {
 		`CREATE INDEX IF NOT EXISTS idx_attachments_event ON attachments(session_id, event_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_events_session_turn ON events(session_id, turn_index, ordinal);`,
 		`CREATE INDEX IF NOT EXISTS idx_events_kind ON events(kind);`,
+		`CREATE INDEX IF NOT EXISTS idx_context_loads_path ON context_loads(path);`,
+		`CREATE INDEX IF NOT EXISTS idx_context_loads_session_turn ON context_loads(session_id, turn_index);`,
 	}
 }
 

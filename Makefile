@@ -13,8 +13,6 @@ GLAZED_LINT_DIRS ?= ./cmd/... ./pkg/...
 CMD_DIR ?= ./cmd/$(BINARY)
 
 VERSION ?= v0.0.0
-GORELEASER_ARGS ?= --skip=sign --snapshot --clean
-GORELEASER_TARGET ?= --single-target
 
 docker-lint:
 	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run -v
@@ -58,8 +56,11 @@ build-bin:
 	mkdir -p ./dist
 	go build -o ./dist/$(BINARY) $(CMD_DIR)
 
+# Pre-push check that the GoReleaser config still builds, for this machine
+# only. `release --single-target` needs GoReleaser Pro; `build` has the flag in
+# the free edition too. Releases run in CI with Pro (.github/workflows/release.yaml).
 goreleaser:
-	GOWORK=off goreleaser release $(GORELEASER_ARGS) $(GORELEASER_TARGET)
+	GOWORK=off goreleaser build --snapshot --clean --single-target
 
 tag-major:
 	git tag $(shell svu major)

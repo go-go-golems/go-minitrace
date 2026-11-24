@@ -43,7 +43,7 @@ If `go-minitrace query commands history --help` shows nothing, the installed bin
 
 - **`history file-history --path <fragment>`** — when was a file created/edited/read, in which session/turn, at what timestamp; per-file summary plus full timeline. Extracts every *structurally* file-path-shaped candidate from a tool call — the `file_path` column, each `*** Update/Add/Delete File:` header in a Codex patch, JSON `file_path`/`path` keys, shell redirect targets — and keeps those matching the fragment. Two consequences worth knowing: a multi-file Codex patch correctly attributes to every file it touches (`tool_calls.file_path` only records the first), and prose that merely mentions a path is not counted as a touch. Paths are home-normalized before grouping, so `~/x` and `/home/you/x` collapse into one summary row.
 - **`history ticket-timeline --ticket <fragment>`** — when was a docmgr ticket created (`docmgr ticket create`), and when were its `tasks.md`/`changelog.md`/diary files touched. Reports evidence (a command ran, a file was touched), not verified success — cross-check against the ticket's own git history for certainty.
-- **`history context-window --session <id> --turn <n>`** — for a given turn, reconstructs every file, tool call, and skill signal since the last compaction boundary. Combines a textual continuation-summary marker with a cache-read-collapse heuristic (`--boundary-method auto|summary-only|cache-collapse-only` — note kebab-case on the CLI even though the JS field is `boundaryMethod`); has no reliable signal on Codex archives (no comparable cache accounting — prefer `summary-only` there).
+- **`history context-window --session <id> --turn <n>`** — for a given turn, reconstructs every file, tool call, and skill signal since the last compaction boundary. Claude Code archives record compaction boundaries as `events.kind = 'compaction'`; `auto` uses the latest one at or before the turn (`boundary_source: compact-boundary`). Without markers it combines a textual continuation-summary marker with a cache-read-collapse heuristic (`--boundary-method auto|marker-only|summary-only|cache-collapse-only` — note kebab-case on the CLI even though the JS field is `boundaryMethod`); the heuristics have no reliable signal on Codex archives (no comparable cache accounting — prefer `summary-only` there).
 
 Chain `ticket-timeline` → `context-window` to answer "when was this ticket created, and what was the agent's context at that moment" in two calls: take the `ticket-timeline` creation event's `session_id`/`turn_index` and feed them straight into `context-window`.
 
@@ -58,7 +58,7 @@ Design rationale and the original validation log (including one false-positive b
 
 ## Native stores
 
-- Claude Code: `~/.claude/projects/<project>/*.jsonl` for top-level sessions. Project subdirectories may also contain subagent transcripts.
+- Claude Code: `~/.claude/projects/<project>/*.jsonl` for top-level sessions; subagent transcripts live in `<project>/<session>/subagents/agent-<id>.jsonl` (workflow subagents one level deeper in `subagents/workflows/<run>/`). A tiny file with no user/assistant records is usually a `/resume` stub; it converts to an empty session.
 - Codex: `~/.codex/sessions/YYYY/MM/DD/*.jsonl`
 - Pi: `~/.pi/agent/sessions/--slugged-cwd--/*.jsonl`
 
@@ -91,7 +91,7 @@ If the help output contradicts this skill, follow the installed CLI and record t
 
 ### Discovery
 
-Both `discover pi` and `discover codex` expose `cwd` when the native source records it, and both support `--cwd-contains`. Pi, persisted Codex session JSONL, and Claude Code JSONL also support opt-in `--active-since`, which scans candidate transcripts and emits `last_activity_at`.
+`discover pi`, `discover codex` and `discover claude-code` expose `cwd` when the native source records it, and all support `--cwd-contains`. Pi, persisted Codex session JSONL, and Claude Code JSONL also support opt-in `--active-since`, which scans candidate transcripts and emits `last_activity_at`. `discover claude-code --include-subagents` lists each kept session's subagents right after it, with `session_kind`, `parent_session_id` and `agent_type`; subagents follow their parent's selection rather than being filtered by their own cwd or start time.
 
 Cwd is a shortlist signal, not a content index. Relevant work may be hidden when:
 
@@ -110,13 +110,21 @@ When cwd discovery misses relevant work, use exact content signatures to shortli
 
 ### Conversion
 
-Both Pi and Codex conversion currently support:
+Pi, Codex and Claude Code conversion currently support:
 
 - `--source-dir`
 - repeatable `--source-session`
 - `--source-list <file>`
 
-Prefer one `--source-list` conversion for a narrow set. Save the source list as an investigation artifact.
+Prefer one `--source-list` conversion for a narrow set. Save the source list as an investigation artifact. `convert claude-code` also converts the subagents stored next to each listed transcript (opt out with `--no-subagents`) and links parent `Agent` calls to them through native ids, so a list of parent paths is enough.
+
+### Claude Code signals worth querying directly
+
+Reconvert older archives to get these (schema `normalized-sqlite-v7`):
+
+- `context_loads` — which CLAUDE.md, `.claude/rules/*.md`, instruction files and re-injected skills entered the context, when (`turn_index`), how big (`content_chars`, `content_sha256`) and which tool call triggered a path-scoped load (`tool_call_id`).
+- `tool_calls.outcome_reason` — `hook_blocked`, `permission_denied`, `classifier_denied`, `classifier_no_verdict`, `user_rejected`, `interrupted`, `tool_use_error`, `harness_blocked`. All but `interrupted` mean the tool never ran: exclude them before attributing `duration_ms` to tool work. A permission prompt before a call that did run is still inside its `duration_ms`.
+- `events.kind` `hook` (with `tool_call_id`), `compaction`, `turn_duration`; `metrics.compaction_count`, `metrics.total_turn_duration_ms`.
 
 ### Codex parent/subagent identity and collision safety
 

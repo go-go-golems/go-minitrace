@@ -21,6 +21,7 @@ type Session struct {
 	ToolCalls          []ToolCall         `json:"tool_calls"`
 	Events             []Event            `json:"events,omitempty"`
 	Attachments        []Attachment       `json:"attachments,omitempty"`
+	ContextLoads       []ContextLoad      `json:"context_loads,omitempty"`
 	Outcome            *Outcome           `json:"outcome"`
 	Annotations        []Annotation       `json:"annotations"`
 	Metrics            Metrics            `json:"metrics"`
@@ -162,6 +163,7 @@ type ToolCallInput struct {
 type ToolCallOutput struct {
 	Success       *bool             `json:"success"`
 	Status        ToolOutcomeStatus `json:"status"`
+	Reason        string            `json:"reason,omitempty"`
 	Result        *string           `json:"result"`
 	Error         *string           `json:"error"`
 	ExitCode      *int              `json:"exit_code"`
@@ -232,6 +234,37 @@ type Attachment struct {
 	RawJSON           any     `json:"raw_json,omitempty"`
 }
 
+// ContextLoad is one instruction or guidance file the agent framework
+// injected into the model context: a CLAUDE.md or rules file loaded for a
+// path, a session-start instruction file, or a skill re-injected after
+// compaction. Content itself stays in the source attachment; the load records
+// its size and hash so loads can be counted and compared.
+type ContextLoad struct {
+	ID        string  `json:"id"`
+	Timestamp *string `json:"timestamp,omitempty"`
+	// TurnIndex is the first turn emitted after the load, i.e. the first turn
+	// whose context includes it; nil when no turn follows.
+	TurnIndex *int `json:"turn_index,omitempty"`
+	// ToolCallID is the tool call whose result triggered the load, when known.
+	ToolCallID      *string `json:"tool_call_id,omitempty"`
+	AttachmentID    *string `json:"attachment_id,omitempty"`
+	Kind            string  `json:"kind"`
+	Path            string  `json:"path,omitempty"`
+	DisplayPath     string  `json:"display_path,omitempty"`
+	Name            string  `json:"name,omitempty"`
+	FileType        string  `json:"file_type,omitempty"`
+	ContentChars    int     `json:"content_chars"`
+	ContentBytes    int     `json:"content_bytes"`
+	ContentSHA256   string  `json:"content_sha256,omitempty"`
+	DiffersFromDisk *bool   `json:"differs_from_disk,omitempty"`
+}
+
+const (
+	ContextLoadNestedMemory = "nested_memory"
+	ContextLoadInstructions = "instructions"
+	ContextLoadInvokedSkill = "invoked_skill"
+)
+
 type Annotation struct {
 	ID               string            `json:"id"`
 	Timestamp        string            `json:"timestamp"`
@@ -285,6 +318,10 @@ type Metrics struct {
 	UniqueModels             *int     `json:"unique_models"`
 	MedianResponseTokens     *int     `json:"median_response_tokens"`
 	MaxResponseTokens        *int     `json:"max_response_tokens"`
+	// CompactionCount and TotalTurnDurationMS are nil when the source records
+	// no compaction boundaries or turn durations.
+	CompactionCount     *int `json:"compaction_count,omitempty"`
+	TotalTurnDurationMS *int `json:"total_turn_duration_ms,omitempty"`
 }
 
 type TokenTotals struct {

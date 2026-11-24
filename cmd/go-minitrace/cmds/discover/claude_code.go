@@ -25,6 +25,8 @@ type ClaudeCodeSettings struct {
 	CwdContains string `glazed:"cwd-contains"`
 	Since       string `glazed:"since"`
 	ActiveSince string `glazed:"active-since"`
+	// IncludeSubagents lists each kept session's subagent transcripts after it.
+	IncludeSubagents bool `glazed:"include-subagents"`
 }
 
 func NewClaudeCodeGlazeCommand() (*ClaudeCodeCommand, error) {
@@ -43,14 +45,22 @@ func NewClaudeCodeGlazeCommand() (*ClaudeCodeCommand, error) {
 		cmds.WithLong(`
 Discover Claude Code sessions under a projects directory.
 
-This mirrors the Python adapter's session discovery rules:
+Discovery rules:
 - JSONL v2 transcripts are preferred
-- subagent transcripts are ignored at this layer
 - older dir-v1 sessions with tool-results/ are included when no JSONL transcript exists
+- subagent transcripts (<session>/subagents/**/agent-<id>.jsonl) are listed only with
+  --include-subagents, right after their parent session
+
+With --include-subagents every row carries session_kind (primary or subagent),
+parent_session_id and agent_type. A subagent follows its parent's selection:
+--cwd-contains, --since and --active-since filter parents, and every subagent of
+a kept parent is listed. The source_path column of subagent rows can go into a
+--source-list for convert claude-code, which also expands subagents by default.
 
 Examples:
   go-minitrace discover claude-code --source-dir ~/.claude/projects
   go-minitrace discover claude-code --source-dir /tmp/claude-projects --output json
+  go-minitrace discover claude-code --cwd-contains my-repo --include-subagents --fields session_kind,id,parent_session_id,source_path
 `),
 		cmds.WithFlags(
 			append(append([]*fields.Definition{
@@ -59,6 +69,12 @@ Examples:
 					fields.TypeString,
 					fields.WithDefault("~/.claude/projects"),
 					fields.WithHelp("Claude Code projects directory"),
+				),
+				fields.New(
+					"include-subagents",
+					fields.TypeBool,
+					fields.WithDefault(false),
+					fields.WithHelp("Also list each kept session's subagent transcripts, with session_kind, parent_session_id and agent_type columns"),
 				),
 			}, filterFlags()...), activityFilterFlags()...)...,
 		),
@@ -109,8 +125,44 @@ func (c *ClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, vals *val
 			types.MRP("started_at", locator.StartedAt),
 			types.MRP("last_activity_at", locator.LastActivityAt),
 		)
+		if !settings_.IncludeSubagents {
+			if err := gp.AddRow(ctx, row); err != nil {
+				return err
+			}
+			continue
+		}
+		row.Set("session_kind", "primary")
+		row.Set("parent_session_id", "")
+		row.Set("agent_type", "")
 		if err := gp.AddRow(ctx, row); err != nil {
 			return err
+		}
+		subagents, err := claudecode.SubagentsForSession(locator)
+		if err != nil {
+			return err
+		}
+		for _, subagent := range subagents {
+			if activeSince != nil {
+				lastActivityAt, err := claudecode.LastActivityAt(subagent.SourcePath)
+				if err != nil {
+					return err
+				}
+				subagent.LastActivityAt = lastActivityAt
+			}
+			subRow := types.NewRow(
+				types.MRP("id", subagent.AgentID),
+				types.MRP("format_hint", "jsonl-v2+subagent"),
+				types.MRP("source_path", subagent.SourcePath),
+				types.MRP("cwd", subagent.Cwd),
+				types.MRP("started_at", subagent.StartedAt),
+				types.MRP("last_activity_at", subagent.LastActivityAt),
+				types.MRP("session_kind", "subagent"),
+				types.MRP("parent_session_id", locator.ID),
+				types.MRP("agent_type", subagent.AgentType),
+			)
+			if err := gp.AddRow(ctx, subRow); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

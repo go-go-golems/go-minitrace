@@ -35,6 +35,7 @@ Converted archives are loaded into one table per entity, keyed by `session_id`:
 - **`turn_tool_calls`** — join table linking turns to their tool calls with an ordinal.
 - **`files`** — one row per file path touched by a tool call.
 - **`annotations`**, **`handovers`**, **`metrics`**, **`attachments`**, **`events`** — one row per annotation/handover/session-metrics/attachment/event.
+- **`context_loads`** — one row per instruction or guidance file injected into the model context (Claude Code `nested_memory`, `instructions`, `invoked_skill`), with path, size, hash, the first turn that sees it and the tool call that triggered it.
 
 Because the interesting fields are real columns, most queries need no JSON extraction and no casting:
 
