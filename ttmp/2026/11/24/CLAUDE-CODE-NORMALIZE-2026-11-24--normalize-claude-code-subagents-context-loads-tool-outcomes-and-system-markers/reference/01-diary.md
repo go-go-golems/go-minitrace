@@ -347,3 +347,14 @@ subagent was published with the wrong `predecessor_session`.
 ### What didn't work
 - `PATH=$HOME/go/bin:$PATH GOTOOLCHAIN=local make lint` used Homebrew's Go 1.27.1, and golangci-lint
   failed with `export data version 4 is greater than maximum supported version 2`: environment, not code.
+
+### Addendum: a pre-push hook the free goreleaser can run
+
+Pushing the review fix failed in the pre-push `release` hook: `make goreleaser` ran
+`goreleaser release --skip=sign --snapshot --clean --single-target`, and
+`--single-target` exists on `release` only in GoReleaser Pro. No free release from v2.12.0 through
+v2.20.3 has it there; it exists on `goreleaser build`. Releases run in CI with
+`distribution: goreleaser-pro`, so the local hook only has to show the config still builds. The
+target is now `goreleaser build --snapshot --clean --single-target`, and the unused `GORELEASER_ARGS`
+and `GORELEASER_TARGET` are gone. `make goreleaser` with the free 2.20.3: `build succeeded after 35s`, rc 0.
+The same Makefile lines come from the go-go-golems-project-setup scaffold and appear in 19 local repos.
