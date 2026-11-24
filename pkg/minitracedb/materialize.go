@@ -98,6 +98,11 @@ func MaterializeSession(ctx context.Context, db *sql.DB, session *minitrace.Sess
 			return err
 		}
 	}
+	for i, load := range session.ContextLoads {
+		if err := insertContextLoad(ctx, tx, session.ID, load, i); err != nil {
+			return err
+		}
+	}
 	if err := insertHandover(ctx, tx, session.ID, "received", session.Handover.Received); err != nil {
 		return err
 	}
@@ -174,12 +179,14 @@ func insertToolCall(ctx context.Context, tx *sql.Tx, sessionID string, toolCall 
 		"command", "justification", "arguments_json", "success", "outcome_status", "result", "error", "exit_code", "duration_ms", "truncated",
 		"full_bytes", "full_hash", "full_reference", "redacted", "content_origin", "position_in_session", "tools_before_json", "time_since_last_user",
 		"framework_metadata_json", "spawned_agent_type", "spawned_agent_task_scope", "spawned_agent_sub_session_id", "spawned_agent_outcome_summary", "raw_json", "record_kind", "source_ordinal", "output_status",
+		"outcome_reason",
 	}
 	args := []any{
 		sessionID, toolCall.ID, nullableIntPointer(toolCall.EmittingTurnIndex), nullableString(toolCall.Timestamp), toolCall.ToolName, toolCall.OperationType, nullableString(toolCall.Input.FilePath),
 		nullableString(toolCall.Input.Command), nullableString(toolCall.Input.Justification), jsonNullable(toolCall.Input.Arguments), nullableBoolPointer(toolCall.Output.Success), string(toolCall.Output.OutcomeStatus()), nullableString(toolCall.Output.Result), nullableString(toolCall.Output.Error), nullableIntPointer(toolCall.Output.ExitCode), nullableIntPointer(toolCall.Output.DurationMS), boolInt(toolCall.Output.Truncated),
 		nullableIntPointer(toolCall.Output.FullBytes), nullableString(toolCall.Output.FullHash), nullableString(toolCall.Output.FullReference), nullableBoolPointer(toolCall.Output.Redacted), nullableString(toolCall.Output.ContentOrigin), nullableFloat(toolCall.Context.PositionInSession), jsonNullable(toolCall.Context.ToolsBefore), nullableFloat(toolCall.Context.TimeSinceLastUser),
 		jsonNullable(toolCall.FrameworkMetadata), spawnedAgentString(toolCall.SpawnedAgent, "type"), spawnedAgentString(toolCall.SpawnedAgent, "scope"), spawnedAgentString(toolCall.SpawnedAgent, "sub_session"), spawnedAgentString(toolCall.SpawnedAgent, "outcome"), mustJSON(toolCall), toolCall.EffectiveRecordKind(), ordinal, nullableStringValue(string(toolCall.Output.Status)),
+		nullableStringValue(toolCall.Output.Reason),
 	}
 	if err := insertRow(ctx, tx, "tool_calls", columns, args...); err != nil {
 		return fmt.Errorf("insert tool call %s/%s: %w", sessionID, toolCall.ID, err)
@@ -320,18 +327,37 @@ func insertAttachment(ctx context.Context, tx *sql.Tx, sessionID string, attachm
 	return nil
 }
 
+func insertContextLoad(ctx context.Context, tx *sql.Tx, sessionID string, load minitrace.ContextLoad, ordinal int) error {
+	loadID := load.ID
+	if loadID == "" {
+		loadID = fmt.Sprintf("context-load-%06d", ordinal)
+	}
+	columns := []string{
+		"session_id", "load_id", "ordinal", "timestamp", "turn_index", "tool_call_id", "attachment_id", "kind", "path", "display_path", "name", "file_type",
+		"content_chars", "content_bytes", "content_sha256", "differs_from_disk",
+	}
+	args := []any{
+		sessionID, loadID, ordinal, nullableString(load.Timestamp), nullableIntPointer(load.TurnIndex), nullableString(load.ToolCallID), nullableString(load.AttachmentID), load.Kind, nullableStringValue(load.Path), nullableStringValue(load.DisplayPath), nullableStringValue(load.Name), nullableStringValue(load.FileType),
+		load.ContentChars, load.ContentBytes, nullableStringValue(load.ContentSHA256), nullableBoolPointer(load.DiffersFromDisk),
+	}
+	if err := insertRow(ctx, tx, "context_loads", columns, args...); err != nil {
+		return fmt.Errorf("insert context load %s/%s: %w", sessionID, loadID, err)
+	}
+	return nil
+}
+
 func insertMetrics(ctx context.Context, tx *sql.Tx, session *minitrace.Session) error {
 	columns := []string{
 		"session_id", "turn_count", "tool_call_count", "read_count", "modify_count", "create_count", "execute_count", "delegate_count",
 		"read_ratio", "time_to_first_action", "idle_ratio", "total_input_tokens", "total_output_tokens", "total_cache_read_tokens", "total_cache_creation_tokens",
 		"total_reasoning_tokens", "total_tool_tokens", "session_cost", "subagent_count", "subagent_tool_calls", "model_switches", "unique_models",
-		"median_response_tokens", "max_response_tokens", "raw_json",
+		"median_response_tokens", "max_response_tokens", "compaction_count", "total_turn_duration_ms", "raw_json",
 	}
 	args := []any{
 		session.ID, session.Metrics.TurnCount, session.Metrics.ToolCallCount, session.Metrics.ReadCount, session.Metrics.ModifyCount, session.Metrics.CreateCount, session.Metrics.ExecuteCount, session.Metrics.DelegateCount,
 		nullableFloat(session.Metrics.ReadRatio), nullableFloat(session.Metrics.TimeToFirstAction), nullableFloat(session.Metrics.IdleRatio), nullableIntPointer(session.Metrics.TotalInputTokens), nullableIntPointer(session.Metrics.TotalOutputTokens), nullableIntPointer(session.Metrics.TotalCacheReadTokens), nullableIntPointer(session.Metrics.TotalCacheCreationTokens),
 		nullableIntPointer(session.Metrics.TotalReasoningTokens), nullableIntPointer(session.Metrics.TotalToolTokens), nullableFloat(session.Metrics.SessionCost), session.Metrics.SubagentCount, session.Metrics.SubagentToolCalls, nullableIntPointer(session.Metrics.ModelSwitches), nullableIntPointer(session.Metrics.UniqueModels),
-		nullableIntPointer(session.Metrics.MedianResponseTokens), nullableIntPointer(session.Metrics.MaxResponseTokens), mustJSON(session.Metrics),
+		nullableIntPointer(session.Metrics.MedianResponseTokens), nullableIntPointer(session.Metrics.MaxResponseTokens), nullableIntPointer(session.Metrics.CompactionCount), nullableIntPointer(session.Metrics.TotalTurnDurationMS), mustJSON(session.Metrics),
 	}
 	columns = append(columns, activityColumnNames...)
 	args = append(args, activityValues(session)...)

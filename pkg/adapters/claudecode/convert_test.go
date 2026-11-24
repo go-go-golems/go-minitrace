@@ -381,7 +381,7 @@ func TestAdjustSubagentSessionAndParentLinking(t *testing.T) {
 		t.Fatalf("expected predecessor parent-1, got %+v", child.Coordination.PredecessorSession)
 	}
 
-	LinkParentSubagents(&parent, []string{"agent-123"})
+	LinkParentSubagents(&parent, []SubagentLink{{SessionID: "agent-123", Inferable: true}})
 	if parent.ToolCalls[0].SpawnedAgent == nil || parent.ToolCalls[0].SpawnedAgent.SubSessionID == nil || *parent.ToolCalls[0].SpawnedAgent.SubSessionID != "agent-123" {
 		t.Fatalf("expected parent tool call to backlink subagent, got %+v", parent.ToolCalls[0].SpawnedAgent)
 	}

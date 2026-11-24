@@ -3,7 +3,6 @@ package convert
 import (
 	"context"
 	"path/filepath"
-	"sort"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -31,6 +30,7 @@ type ConvertClaudeCodeSettings struct {
 	SourceList     string   `glazed:"source-list"`
 	OutputDir      string   `glazed:"output-dir"`
 	DryRun         bool     `glazed:"dry-run"`
+	NoSubagents    bool     `glazed:"no-subagents"`
 }
 
 func NewConvertClaudeCodeGlazeCommand() (*ConvertClaudeCodeCommand, error) {
@@ -52,12 +52,20 @@ Convert Claude Code sessions into minitrace JSON files.
 The current implementation supports:
   - Claude Code JSONL v2 transcripts
   - Claude Code dir-v1 tool-results sessions
+  - subagent transcripts (<session>/subagents/**/agent-<id>.jsonl), converted as
+    separate sessions linked to their parent
+
+Explicit sources (--source-session, --source-list) also convert the subagents
+stored next to each listed transcript unless --no-subagents is set. A listed
+agent-<id>.jsonl path converts as a subagent of the session directory that
+contains it, and a path listed twice converts once.
 
 Examples:
   go-minitrace convert claude-code --source-dir ~/.claude/projects --output-dir ./output
   go-minitrace convert claude-code --source-dir ~/.claude/projects --dry-run --output yaml
   go-minitrace convert claude-code --source-session ~/.claude/projects/my-project/0123456789abcdef0123456789abcdef.jsonl --output-dir ./output
   go-minitrace convert claude-code --source-list ./sessions.txt --output-dir ./output
+  go-minitrace convert claude-code --source-list ./sessions.txt --no-subagents --output-dir ./output
 `),
 		cmds.WithFlags(
 			fields.New("source-dir", fields.TypeString, fields.WithDefault("~/.claude/projects"), fields.WithHelp("Claude Code projects directory")),
@@ -65,6 +73,7 @@ Examples:
 			fields.New("source-list", fields.TypeString, fields.WithDefault(""), fields.WithHelp("File with newline-separated Claude Code session paths; blank lines and # comments are ignored")),
 			fields.New("output-dir", fields.TypeString, fields.WithDefault("./output"), fields.WithHelp("Target minitrace archive directory")),
 			fields.New("dry-run", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Inspect sources without writing output")),
+			fields.New("no-subagents", fields.TypeBool, fields.WithDefault(false), fields.WithHelp("Do not convert the subagent transcripts stored next to explicit --source-session/--source-list transcripts")),
 		),
 		cmds.WithSections(glazedSection, commandSettingsSection),
 	)
@@ -87,13 +96,9 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 	var locators []adapters.SessionLocator
 	var subagentLocators []claudecode.SubagentLocator
 	if len(explicitPaths) > 0 {
-		locators = make([]adapters.SessionLocator, 0, len(explicitPaths))
-		for _, path := range explicitPaths {
-			locator, err := claudecode.LocateSession(path)
-			if err != nil {
-				return err
-			}
-			locators = append(locators, locator)
+		locators, subagentLocators, err = locateExplicitClaudeSources(explicitPaths, !settings_.NoSubagents)
+		if err != nil {
+			return err
 		}
 	} else {
 		locators, err = claudecode.Discover(settings_.SourceDir)
@@ -129,9 +134,9 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 	}
 
 	subagents := make([]convertedSubagent, 0, len(subagentLocators))
-	subagentIDsByParent := map[string][]string{}
+	linksByParent := map[string][]claudecode.SubagentLink{}
 	for _, locator := range subagentLocators {
-		session, resolvedAgentID, err := claudecode.ConvertSubagentLocator(locator)
+		session, link, err := claudecode.ConvertSubagentLocator(locator)
 		if err != nil {
 			return errors.Wrapf(err, "converting Claude Code subagent %s before publication", locator.SourcePath)
 		}
@@ -139,12 +144,11 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 			return errors.Wrapf(err, "fingerprinting Claude Code subagent %s", locator.SourcePath)
 		}
 		subagents = append(subagents, convertedSubagent{locator: locator, session: session})
-		subagentIDsByParent[locator.ParentSessionID] = append(subagentIDsByParent[locator.ParentSessionID], resolvedAgentID)
+		linksByParent[locator.ParentSessionID] = append(linksByParent[locator.ParentSessionID], link)
 	}
-	for parentSessionID, subagentIDs := range subagentIDsByParent {
+	for parentSessionID, links := range linksByParent {
 		if parent := primaryByID[parentSessionID]; parent != nil {
-			sort.Strings(subagentIDs)
-			claudecode.LinkParentSubagents(parent, subagentIDs)
+			claudecode.LinkParentSubagents(parent, links)
 		}
 	}
 
@@ -221,6 +225,50 @@ func (c *ConvertClaudeCodeCommand) RunIntoGlazeProcessor(ctx context.Context, va
 	}
 
 	return nil
+}
+
+// locateExplicitClaudeSources resolves explicit paths into primary and
+// subagent locators. Listed agent-<id>.jsonl files are subagents; with
+// expandSubagents each primary also contributes the subagents stored next to
+// it. A transcript reached twice is converted once.
+func locateExplicitClaudeSources(paths []string, expandSubagents bool) ([]adapters.SessionLocator, []claudecode.SubagentLocator, error) {
+	locators := make([]adapters.SessionLocator, 0, len(paths))
+	subagents := []claudecode.SubagentLocator{}
+	seenSubagents := map[string]struct{}{}
+	addSubagent := func(locator claudecode.SubagentLocator) {
+		key := filepath.Clean(locator.SourcePath)
+		if _, ok := seenSubagents[key]; ok {
+			return
+		}
+		seenSubagents[key] = struct{}{}
+		subagents = append(subagents, locator)
+	}
+	for _, path := range paths {
+		if claudecode.IsSubagentTranscriptPath(path) {
+			locator, err := claudecode.LocateSubagent(path)
+			if err != nil {
+				return nil, nil, err
+			}
+			addSubagent(locator)
+			continue
+		}
+		locator, err := claudecode.LocateSession(path)
+		if err != nil {
+			return nil, nil, err
+		}
+		locators = append(locators, locator)
+		if !expandSubagents {
+			continue
+		}
+		children, err := claudecode.SubagentsForSession(locator)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, child := range children {
+			addSubagent(child)
+		}
+	}
+	return locators, subagents, nil
 }
 
 func NewClaudeCodeCommand() (*cobra.Command, error) {

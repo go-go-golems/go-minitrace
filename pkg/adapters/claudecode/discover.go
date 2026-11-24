@@ -10,12 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type SubagentLocator struct {
-	AgentID         string
-	ParentSessionID string
-	SourcePath      string
-}
-
 func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
 	root, err := expandHome(sourceDir)
 	if err != nil {
@@ -34,7 +28,7 @@ func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
 		if filepath.Ext(path) != ".jsonl" {
 			return nil
 		}
-		if strings.Contains(path, string(filepath.Separator)+"subagents"+string(filepath.Separator)) {
+		if isUnderSubagentsDir(path) {
 			return nil
 		}
 
@@ -95,6 +89,9 @@ func LocateSession(path string) (adapters.SessionLocator, error) {
 	if err != nil {
 		return adapters.SessionLocator{}, errors.Wrapf(err, "claude-code source session %s", path)
 	}
+	if !st.IsDir() && IsSubagentTranscriptPath(root) {
+		return adapters.SessionLocator{}, errors.Errorf("claude-code source session %s is a subagent transcript; use LocateSubagent", path)
+	}
 	if st.IsDir() {
 		return adapters.SessionLocator{
 			ID:         filepath.Base(root),
@@ -117,10 +114,6 @@ func locatorForJSONLFile(sid, path string) adapters.SessionLocator {
 	}
 }
 
-// readSessionHeader cheaply extracts the working directory and its timestamp
-// from the leading records of a Claude Code JSONL transcript. The first
-// record is often a file-history-snapshot without cwd, so the scan keeps
-// going until a record carrying cwd shows up, bounded by a line and byte cap.
 // LastActivityAt returns the latest valid timestamp from a Claude Code JSONL
 // v2 transcript. Snapshot and progress records are ignored to match conversion.
 func LastActivityAt(path string) (string, error) {
@@ -134,6 +127,10 @@ func LastActivityAt(path string) (string, error) {
 	})
 }
 
+// readSessionHeader cheaply extracts the working directory and its timestamp
+// from the leading records of a Claude Code JSONL transcript. The first
+// record is often a file-history-snapshot without cwd, so the scan keeps
+// going until a record carrying cwd shows up, bounded by a line and byte cap.
 func readSessionHeader(path string) (string, string) {
 	var cwd, startedAt string
 	_ = adapters.ScanJSONLHead(path, adapters.HeadMaxLines, adapters.HeadMaxBytes, func(record map[string]any) bool {
@@ -146,57 +143,6 @@ func readSessionHeader(path string) (string, string) {
 		return true
 	})
 	return cwd, startedAt
-}
-
-func DiscoverSubagents(sourceDir string) ([]SubagentLocator, error) {
-	root, err := expandHome(sourceDir)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := []SubagentLocator{}
-	err = filepath.WalkDir(root, func(path string, d os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if d.IsDir() || filepath.Ext(path) != ".jsonl" {
-			return nil
-		}
-		subagentNeedle := string(filepath.Separator) + "subagents" + string(filepath.Separator)
-		if !strings.Contains(path, subagentNeedle) {
-			return nil
-		}
-
-		parts := strings.Split(path, string(filepath.Separator))
-		subagentIndex := -1
-		for i, part := range parts {
-			if part == "subagents" {
-				subagentIndex = i
-				break
-			}
-		}
-		if subagentIndex <= 0 {
-			return nil
-		}
-
-		ret = append(ret, SubagentLocator{
-			AgentID:         strings.TrimSuffix(filepath.Base(path), ".jsonl"),
-			ParentSessionID: parts[subagentIndex-1],
-			SourcePath:      path,
-		})
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	sort.Slice(ret, func(i, j int) bool {
-		if ret[i].ParentSessionID == ret[j].ParentSessionID {
-			return ret[i].SourcePath < ret[j].SourcePath
-		}
-		return ret[i].ParentSessionID < ret[j].ParentSessionID
-	})
-	return ret, nil
 }
 
 func expandHome(path string) (string, error) {

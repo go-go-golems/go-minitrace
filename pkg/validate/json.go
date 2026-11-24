@@ -115,6 +115,9 @@ func validateFile(path string) Result {
 	if attachments, ok := session["attachments"]; ok {
 		errs = append(errs, validateAttachments(attachments)...)
 	}
+	if loads, ok := session["context_loads"]; ok {
+		errs = append(errs, validateIDKindArray("context_loads", loads, "context load")...)
+	}
 	if len(errs) > 0 {
 		result.Valid = false
 		result.Error = strings.Join(errs, "; ")

@@ -2,13 +2,16 @@
 // what was "in scope": every tool call, file touched, and skill signal from
 // the last compaction boundary up to that turn.
 //
-// See design-doc/01 (GOGO-MINITRACE-HISTORY-VERBS-2026-07-20). There is no
-// single ground-truth "compaction happened here" column, so two independent
-// signals are combined: (1) a continuation-summary turn ("This session is
-// being continued...", direct textual marker), and (2) a >80% cache_read
-// collapse between consecutive assistant API calls (api-calls.js's
-// heuristic). In `auto` mode the LATER of the two candidate boundaries wins
-// — the most recent compaction is what is actually still live.
+// See design-doc/01 (GOGO-MINITRACE-HISTORY-VERBS-2026-07-20). When the
+// source records compaction boundaries (Claude Code system/compact_boundary,
+// materialized as events kind = 'compaction' whose turn_index is the first
+// turn after the boundary), the latest marker at or before the target turn is
+// the boundary. Without markers two heuristic signals are combined:
+// (1) a continuation-summary turn ("This session is being continued...",
+// direct textual marker), and (2) a >80% cache_read collapse between
+// consecutive assistant API calls (api-calls.js's heuristic). In `auto` mode
+// a marker wins; otherwise the LATER heuristic boundary wins — the most
+// recent compaction is what is actually still live.
 
 const completeRows = function(result) {
   if (result.error || !result.complete) {
@@ -70,7 +73,7 @@ __section__("contextwindowopts", {
   fields: {
     session: { type: "string", help: "Session ID", required: true },
     turn: { type: "int", help: "Target turn_index", required: true },
-    boundaryMethod: { type: "string", default: "auto", help: "auto | summary-only | cache-collapse-only" },
+    boundaryMethod: { type: "string", default: "auto", help: "auto | marker-only | summary-only | cache-collapse-only" },
   },
 });
 
@@ -83,8 +86,20 @@ function contextWindow(contextwindowopts) {
   if (target === undefined || target === null) throw new Error("--turn is required");
   const db = openDb();
   try {
+    let markerBoundary = null;
+    if (method === "auto" || method === "marker-only") {
+      const rows = completeRows(db.execute(mt.sql`
+        SELECT turn_index FROM events
+        WHERE session_id = ${sid} AND kind = 'compaction'
+          AND turn_index IS NOT NULL AND turn_index <= ${target}
+        ORDER BY turn_index DESC
+        LIMIT 1
+      `.build()));
+      if (rows.length) markerBoundary = rows[0].turn_index;
+    }
+
     let summaryBoundary = null;
-    if (method === "auto" || method === "summary-only") {
+    if ((method === "auto" && markerBoundary == null) || method === "summary-only") {
       const rows = completeRows(db.execute(mt.sql`
         SELECT turn_index, timestamp FROM turns
         WHERE session_id = ${sid} AND role = 'user'
@@ -97,7 +112,7 @@ function contextWindow(contextwindowopts) {
     }
 
     let collapseBoundary = null;
-    if (method === "auto" || method === "cache-collapse-only") {
+    if ((method === "auto" && markerBoundary == null) || method === "cache-collapse-only") {
       const assistantRows = completeRows(db.execute(mt.sql`
         SELECT turn_index, COALESCE(output_tokens,0) AS out, COALESCE(cache_read_tokens,0) AS cr,
                COALESCE(cache_creation_tokens,0) AS cc
@@ -113,7 +128,9 @@ function contextWindow(contextwindowopts) {
     }
 
     let boundary, boundarySource;
-    if (method === "summary-only") { boundary = summaryBoundary ?? 0; boundarySource = summaryBoundary != null ? "summary" : "session-start"; }
+    if (markerBoundary != null) { boundary = markerBoundary; boundarySource = "compact-boundary"; }
+    else if (method === "marker-only") { boundary = 0; boundarySource = "session-start"; }
+    else if (method === "summary-only") { boundary = summaryBoundary ?? 0; boundarySource = summaryBoundary != null ? "summary" : "session-start"; }
     else if (method === "cache-collapse-only") { boundary = collapseBoundary ?? 0; boundarySource = collapseBoundary != null ? "cache-collapse" : "session-start"; }
     else {
       const candidates = [summaryBoundary, collapseBoundary].filter((x) => x != null);
@@ -163,7 +180,7 @@ function contextWindow(contextwindowopts) {
       target_turn: target,
       boundary_turn: boundary,
       boundary_source: boundarySource,
-      boundary_candidates: { summary: summaryBoundary, cache_collapse: collapseBoundary },
+      boundary_candidates: { compact_boundary: markerBoundary, summary: summaryBoundary, cache_collapse: collapseBoundary },
       window_size_turns: target - boundary,
       tool_calls: calls,
       files_touched: Object.values(filesMap),

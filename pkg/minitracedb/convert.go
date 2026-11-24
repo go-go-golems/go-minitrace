@@ -84,7 +84,7 @@ func LoadSessionContentAuto(payload []byte, opts LoadOptions) (*LoadedSession, e
 		session, err = codex.ConvertRecords(records, fallbackID, opts.SourcePath, "unknown-jsonl")
 	case "claude-code-jsonl":
 		adapter = "claude-code"
-		session, err = claudecode.ConvertRecords(records, fallbackID, opts.SourcePath)
+		session, err = claudecode.ConvertTranscript(records, fallbackID, opts.SourcePath)
 	case "copilot-jsonl":
 		adapter = "copilot"
 		workspace, _ := copilot.ReadWorkspace(filepath.Join(filepath.Dir(opts.SourcePath), "workspace.yaml"))
@@ -95,7 +95,45 @@ func LoadSessionContentAuto(payload []byte, opts LoadOptions) (*LoadedSession, e
 	if err != nil {
 		return nil, fmt.Errorf("convert %s as %s: %w", source, format, err)
 	}
-	return &LoadedSession{Session: session, Format: format, Adapter: adapter, Diagnostics: []ConversionDiagnostic{{Source: source, Severity: "info", Format: format, Adapter: adapter, RecordRows: len(records), Message: "converted source into minitrace session"}}}, nil
+	diagnostic := ConversionDiagnostic{Source: source, Severity: "info", Format: format, Adapter: adapter, RecordRows: len(records), Message: "converted source into minitrace session"}
+	if format == "claude-code-jsonl" && !hasClaudeConversationRecord(records) {
+		diagnostic.Severity = "warning"
+		diagnostic.Message = "converted Claude Code transcript without user or assistant records (metadata-only stub, for example left by /resume)"
+	}
+	return &LoadedSession{Session: session, Format: format, Adapter: adapter, Diagnostics: []ConversionDiagnostic{diagnostic}}, nil
+}
+
+// claudeCodeMetadataRecordTypes are Claude Code record types that carry no
+// conversation but identify the format. A transcript left behind by /resume
+// can consist of nothing else.
+var claudeCodeMetadataRecordTypes = map[string]struct{}{
+	"permission-mode":       {},
+	"last-prompt":           {},
+	"cost-state":            {},
+	"mode":                  {},
+	"ai-title":              {},
+	"file-history-snapshot": {},
+	"attachment":            {},
+	"queue-operation":       {},
+	"summary":               {},
+}
+
+func isClaudeCodeMetadataRecord(record map[string]any) bool {
+	t := stringValue(record["type"])
+	if t == "system" {
+		return stringValue(record["subtype"]) != "" && stringValue(record["uuid"]) != ""
+	}
+	_, ok := claudeCodeMetadataRecordTypes[t]
+	return ok && stringValue(record["sessionId"]) != ""
+}
+
+func hasClaudeConversationRecord(records []map[string]any) bool {
+	for _, record := range records {
+		if t := stringValue(record["type"]); t == "user" || t == "assistant" {
+			return true
+		}
+	}
+	return false
 }
 
 func DetectJSONLFormat(records []map[string]any) string {
@@ -118,6 +156,13 @@ func DetectJSONLFormat(records []map[string]any) string {
 			if record["data"] != nil {
 				return "copilot-jsonl"
 			}
+		}
+	}
+	// Only after no record matched a conversation shape: metadata-only Claude
+	// Code transcripts still identify themselves by sessionId-bearing records.
+	for _, record := range records {
+		if isClaudeCodeMetadataRecord(record) {
+			return "claude-code-jsonl"
 		}
 	}
 	return "unknown-jsonl"

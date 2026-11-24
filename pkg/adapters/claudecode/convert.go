@@ -43,25 +43,87 @@ func ConvertLocator(locator adapters.SessionLocator) (*minitrace.Session, error)
 	}
 }
 
-func ConvertSubagentLocator(locator SubagentLocator) (*minitrace.Session, string, error) {
+// ConvertSubagentLocator converts one subagent transcript and returns the
+// link its parent needs for spawned_agent.sub_session_id.
+func ConvertSubagentLocator(locator SubagentLocator) (*minitrace.Session, SubagentLink, error) {
 	records, err := parseJSONLFile(locator.SourcePath)
 	if err != nil {
-		return nil, "", err
+		return nil, SubagentLink{}, err
 	}
 	if len(records) == 0 {
-		return nil, "", errors.New("empty subagent transcript")
+		return nil, SubagentLink{}, errors.New("empty subagent transcript")
 	}
 
-	first := records[0]
-	agentID := firstNonEmpty(stringValue(first["agentId"]), locator.AgentID)
-	slug := stringValue(first["slug"])
-
+	identity, _ := subagentIdentityFromRecords(records)
+	agentID := firstNonEmpty(identity.agentID, locator.AgentID)
 	session, err := ConvertRecords(records, agentID, locator.SourcePath)
 	if err != nil {
-		return nil, "", err
+		return nil, SubagentLink{}, err
 	}
-	AdjustSubagentSession(session, agentID, locator.ParentSessionID, slug)
-	return session, agentID, nil
+	AdjustSubagentSession(session, agentID, firstNonEmpty(locator.ParentSessionID, identity.parentSessionID), identity.slug)
+	annotateSubagentMeta(session, locator)
+	link := SubagentLink{SessionID: agentID, ToolUseID: locator.ToolUseID, Inferable: !locator.HasMeta}
+	if session.Timing.StartedAt != nil {
+		link.StartedAt = *session.Timing.StartedAt
+	}
+	return session, link, nil
+}
+
+// ConvertTranscript converts a Claude Code JSONL transcript whose role is not
+// known in advance. A transcript of sidechain records carrying an agentId is a
+// subagent: it takes the agent id as session id and links to the sessionId it
+// records as parent, exactly like a subagent found through its directory.
+func ConvertTranscript(records []map[string]any, fallbackID, sourcePath string) (*minitrace.Session, error) {
+	identity, ok := subagentIdentityFromRecords(records)
+	if !ok {
+		return ConvertRecords(records, fallbackID, sourcePath)
+	}
+	session, err := ConvertRecords(records, identity.agentID, sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	AdjustSubagentSession(session, identity.agentID, identity.parentSessionID, identity.slug)
+	return session, nil
+}
+
+type subagentIdentity struct {
+	agentID         string
+	parentSessionID string
+	slug            string
+}
+
+// subagentIdentityFromRecords reads the identity of a subagent transcript
+// from its first conversation record.
+func subagentIdentityFromRecords(records []map[string]any) (subagentIdentity, bool) {
+	for _, record := range records {
+		recordType := stringValue(record["type"])
+		if recordType != "user" && recordType != "assistant" {
+			continue
+		}
+		agentID := stringValue(record["agentId"])
+		if !boolValue(record["isSidechain"]) || agentID == "" {
+			return subagentIdentity{}, false
+		}
+		return subagentIdentity{agentID: agentID, parentSessionID: stringValue(record["sessionId"]), slug: stringValue(record["slug"])}, true
+	}
+	return subagentIdentity{}, false
+}
+
+func annotateSubagentMeta(session *minitrace.Session, locator SubagentLocator) {
+	config, _ := session.OperationalContext.FrameworkConfig.(map[string]any)
+	if config == nil {
+		config = map[string]any{}
+	}
+	if locator.AgentType != "" {
+		config["agent_type"] = locator.AgentType
+	}
+	if locator.Description != "" {
+		config["agent_description"] = locator.Description
+	}
+	if locator.ToolUseID != "" {
+		config["parent_tool_use_id"] = locator.ToolUseID
+	}
+	session.OperationalContext.FrameworkConfig = config
 }
 
 func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*minitrace.Session, error) {
@@ -80,6 +142,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 	allTimestamps := make([]time.Time, 0, len(records))
 	pendingToolCalls := map[string]minitrace.ToolCall{}
 	tokenTotals := &minitrace.TokenTotals{}
+	signals := newSignalState()
 
 	// The first record is often a file-history-snapshot without cwd/version/
 	// gitBranch, so scan records in order and take the first non-empty value.
@@ -111,6 +174,9 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 	var sessionModel *string
 	aiTitle := ""
 	frameworkConfig := map[string]any{}
+	// A forked subagent's transcript starts with a fork-context-ref record and
+	// then repeats the parent's Agent call that spawned it.
+	forkAgentID := ""
 
 	for _, record := range records {
 		captureClaudeSessionMetadata(frameworkConfig, record)
@@ -127,6 +193,12 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 		timestampPtr := optionalString(timestamp)
 
 		switch recordType {
+		case "fork-context-ref":
+			forkAgentID = stringValue(record["agentId"])
+			if parentSessionID := stringValue(record["parentSessionId"]); parentSessionID != "" {
+				frameworkConfig["fork_parent_session_id"] = parentSessionID
+			}
+			continue
 		case "mode":
 			if mode := stringValue(record["mode"]); mode != "" {
 				frameworkConfig["mode"] = mode
@@ -154,10 +226,19 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 			attachment := buildClaudeAttachment(record, attachmentCounter)
 			event := buildClaudeAttachmentEvent(record, attachment, len(events))
 			attachment.EventID = &event.ID
+			if uuid := stringValue(record["uuid"]); uuid != "" {
+				signals.attachmentParent[uuid] = stringValue(record["parentUuid"])
+			}
+			signals.addContextLoads(record, attachment.ID, turnIndex)
+			signals.applyHookSignal(&event, mapValue(record["attachment"]))
 			attachments = append(attachments, attachment)
 			events = append(events, event)
 			continue
 		case "system":
+			if event, ok := signals.systemMarkerEvent(record, len(events), turnIndex); ok {
+				events = append(events, event)
+				continue
+			}
 			message := mapValue(record["message"])
 			content := flattenClaudeText(message["content"])
 			source := ptr("framework")
@@ -191,6 +272,11 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 						hasToolResults = true
 						toolUseID := stringValue(block["tool_use_id"])
 						if pending, ok := pendingToolCalls[toolUseID]; ok {
+							if uuid := stringValue(record["uuid"]); uuid != "" {
+								if _, seen := signals.toolResultByRecord[uuid]; !seen {
+									signals.toolResultByRecord[uuid] = toolUseID
+								}
+							}
 							resultText := stringifyContent(block["content"])
 							truncated, fullBytes, fullHash := minitrace.TruncateContent(resultText, minitrace.TruncateLimit)
 							pending.Output.SetSuccess(!boolValue(block["is_error"]))
@@ -217,6 +303,13 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 								pending.Timestamp = timestampPtr
 							}
 							applyClaudeToolUseResult(&pending, record["toolUseResult"], boolValue(block["is_error"]))
+							linkSpawnedAgentFromResult(&pending, record["toolUseResult"])
+							if forkAgentID != "" && pending.SpawnedAgent != nil && pending.SpawnedAgent.SubSessionID == nil && strings.HasPrefix(resultText, "Fork started") {
+								self := forkAgentID
+								pending.SpawnedAgent.SubSessionID = &self
+								pending.FrameworkMetadata = mergeMetadataMap(pending.FrameworkMetadata, map[string]any{"fork_spawn_echo": true})
+							}
+							classifyClaudeToolOutcome(&pending, resultText, boolValue(block["is_error"]))
 							pending.FrameworkMetadata = mergeMetadataMap(pending.FrameworkMetadata, claudeToolResultMetadata(record))
 							toolCalls = append(toolCalls, pending)
 							delete(pendingToolCalls, toolUseID)
@@ -322,6 +415,7 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 						toolCall.SpawnedAgent = spawned
 					}
 					pendingToolCalls[toolCallID] = toolCall
+					signals.knownToolCalls[toolCallID] = struct{}{}
 					toolIDs = append(toolIDs, toolCallID)
 				}
 			}
@@ -372,6 +466,8 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 		annotations = append(annotations, annotation)
 	}
 
+	signals.applyHookBlocks(toolCalls)
+
 	sort.Slice(toolCalls, func(i, j int) bool {
 		left := ""
 		if toolCalls[i].Timestamp != nil {
@@ -420,8 +516,20 @@ func ConvertRecords(records []map[string]any, sessionID, sourcePath string) (*mi
 	session.ToolCalls = toolCalls
 	session.Events = events
 	session.Attachments = attachments
+	session.ContextLoads = signals.finishContextLoads(len(turns))
 	session.Annotations = annotations
 	session.Metrics = minitrace.ComputeMetrics(turns, toolCalls, timing, countSubagents(toolCalls), tokenTotals)
+	if signals.compactions > 0 {
+		session.Metrics.CompactionCount = ptr(signals.compactions)
+		for i := range events {
+			if events[i].Kind == "compaction" && events[i].TurnIndex != nil && *events[i].TurnIndex >= len(turns) {
+				events[i].TurnIndex = nil
+			}
+		}
+	}
+	if signals.turnDurations > 0 {
+		session.Metrics.TotalTurnDurationMS = ptr(signals.turnDurationMS)
+	}
 	session.Flags.ContainsPII = containsPII
 	session.Flags.ForResearch = quality == "A" && !containsPII
 	session.Flags.NeedsCleaning = quality != "A" || containsPII
@@ -538,25 +646,6 @@ func AdjustSubagentSession(session *minitrace.Session, agentID, parentSessionID,
 	}
 	config["parent_session"] = parentSessionID
 	session.OperationalContext.FrameworkConfig = config
-}
-
-func LinkParentSubagents(session *minitrace.Session, subagentIDs []string) {
-	if session == nil || len(subagentIDs) == 0 {
-		return
-	}
-
-	index := 0
-	for i := range session.ToolCalls {
-		if session.ToolCalls[i].SpawnedAgent == nil {
-			continue
-		}
-		if index >= len(subagentIDs) {
-			return
-		}
-		subSessionID := subagentIDs[index]
-		session.ToolCalls[i].SpawnedAgent.SubSessionID = &subSessionID
-		index++
-	}
 }
 
 func parseJSONLFile(path string) ([]map[string]any, error) {
@@ -873,6 +962,17 @@ func buildSpawnedAgent(toolName string, toolInput map[string]any) *minitrace.Spa
 	}
 }
 
+// linkSpawnedAgentFromResult links a delegating tool call to its subagent
+// session through the agentId Claude Code reports in the tool result.
+func linkSpawnedAgentFromResult(toolCall *minitrace.ToolCall, raw any) {
+	if toolCall.SpawnedAgent == nil || toolCall.SpawnedAgent.SubSessionID != nil {
+		return
+	}
+	if agentID := stringValue(mapValue(raw)["agentId"]); agentID != "" {
+		toolCall.SpawnedAgent.SubSessionID = &agentID
+	}
+}
+
 func buildUsage(usage map[string]any, tokenTotals *minitrace.TokenTotals) *minitrace.Usage {
 	if len(usage) == 0 {
 		return nil
@@ -1008,6 +1108,7 @@ func applyClaudeToolUseResult(toolCall *minitrace.ToolCall, raw any, isError boo
 			errText := "interrupted by user"
 			toolCall.Output.Error = &errText
 			toolCall.Output.SetSuccess(false)
+			toolCall.Output.Reason = minitrace.ToolOutcomeReasonInterrupted
 			metadata["interrupted"] = true
 		}
 		// No numeric exit-code field has been observed in real transcripts
