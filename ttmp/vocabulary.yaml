@@ -55,6 +55,10 @@ topics:
       description: go-minitrace structured query-command repositories (SQL/JS)
     - slug: skills
       description: Claude/Codex/Pi agent skills
+    - slug: claude-code
+      description: Claude Code transcripts and adapter
+    - slug: adapters
+      description: Source-format adapters
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
