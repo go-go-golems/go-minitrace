@@ -8,12 +8,22 @@ Topics:
 DocType: design-doc
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://cmd/go-minitrace/cmds/discover/claude_code.go
+      Note: --include-subagents
+    - Path: repo://pkg/adapters/claudecode/signals.go
+      Note: context loads, hook events, outcome reasons, system markers
+    - Path: repo://pkg/adapters/claudecode/subagents.go
+      Note: subagent discovery and native parent linking
+    - Path: repo://pkg/minitracedb/convert.go
+      Note: autoConvert subagent and stub detection
+    - Path: repo://pkg/minitracedb/schema.go
+      Note: context_loads table, outcome_reason, metrics columns
 ExternalSources: []
-Summary: "Normalize Claude Code subagents for explicit sources, guidance loads (context_loads table), tool outcome reasons, hook events, compaction boundaries and turn durations."
+Summary: Normalize Claude Code subagents for explicit sources, guidance loads (context_loads table), tool outcome reasons, hook events, compaction boundaries and turn durations.
 LastUpdated: 2026-11-24T14:30:42.533552-05:00
-WhatFor: "Design record for the Claude Code normalization PR"
-WhenToUse: "Before changing the Claude Code adapter, context_loads, outcome_reason or Claude Code event kinds"
+WhatFor: Design record for the Claude Code normalization PR
+WhenToUse: Before changing the Claude Code adapter, context_loads, outcome_reason or Claude Code event kinds
 ---
 
 # Claude Code normalization design
