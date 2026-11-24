@@ -7,4 +7,4 @@
 - [x] compaction and turn_duration events, metrics, context-window <!-- t:5ja3 -->
 - [x] Metadata-only stub transcripts convert under autoConvert <!-- t:79pl -->
 - [x] Docs, skills, fixtures, tests, lint <!-- t:0asz -->
-- [ ] Push, open PR, make install <!-- t:wsz0 -->
+- [x] Push, open PR, make install <!-- t:wsz0 -->
