@@ -50,12 +50,17 @@ func IsSubagentTranscriptPath(path string) bool {
 }
 
 func isUnderSubagentsDir(path string) bool {
-	return subagentsIndex(strings.Split(filepath.Clean(path), string(filepath.Separator))) > 0
+	return subagentsIndex(strings.Split(filepath.Clean(path), string(filepath.Separator))) >= 0
 }
 
+// subagentsIndex returns the index of the subagents directory nearest the
+// file named by parts (its last element), or -1. It searches from the file
+// outward: a directory above the projects tree may itself be called
+// subagents, and the parent session id is the component just above the
+// innermost one.
 func subagentsIndex(parts []string) int {
-	for i, part := range parts {
-		if part == subagentsDirName {
+	for i := len(parts) - 2; i >= 0; i-- {
+		if parts[i] == subagentsDirName {
 			return i
 		}
 	}

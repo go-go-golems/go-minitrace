@@ -28,7 +28,9 @@ func Discover(sourceDir string) ([]adapters.SessionLocator, error) {
 		if filepath.Ext(path) != ".jsonl" {
 			return nil
 		}
-		if isUnderSubagentsDir(path) {
+		// Relative to the walk root: an ancestor of the projects dir named
+		// subagents must not hide every primary transcript.
+		if rel, err := filepath.Rel(root, path); err == nil && isUnderSubagentsDir(rel) {
 			return nil
 		}
 

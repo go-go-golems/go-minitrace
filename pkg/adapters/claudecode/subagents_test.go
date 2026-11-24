@@ -1,6 +1,7 @@
 package claudecode
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -34,6 +35,52 @@ func TestSubagentsForSessionReadsMetaAndSkipsWorkflowJournal(t *testing.T) {
 	none, err := SubagentsForSession(adapters.SessionLocator{ID: fixtureStubID, FormatHint: "jsonl-v2", SourcePath: filepath.Join(dir, fixtureStubID+".jsonl")})
 	if err != nil || len(none) != 0 {
 		t.Fatalf("session without subagents directory: %+v, %v", none, err)
+	}
+}
+
+// A projects tree may itself sit below a directory named subagents; the
+// parent session is the component above the subagents dir nearest the
+// transcript, and primaries must still be discovered.
+func TestSubagentParentUsesInnermostSubagentsDir(t *testing.T) {
+	projectsDir := filepath.Join(t.TempDir(), "subagents", "projects")
+	projectDir := filepath.Join(projectsDir, "-tmp-demo")
+	if err := os.CopyFS(projectDir, os.DirFS(fixtureProjectDir(t))); err != nil {
+		t.Fatalf("copying fixture: %v", err)
+	}
+
+	locator, err := LocateSubagent(filepath.Join(projectDir, fixtureParentID, "subagents", "agent-a1111111111111111.jsonl"))
+	if err != nil {
+		t.Fatalf("LocateSubagent: %v", err)
+	}
+	if locator.ParentSessionID != fixtureParentID {
+		t.Fatalf("LocateSubagent parent = %q, want %q", locator.ParentSessionID, fixtureParentID)
+	}
+
+	discovered, err := DiscoverSubagents(projectsDir)
+	if err != nil {
+		t.Fatalf("DiscoverSubagents: %v", err)
+	}
+	if len(discovered) != 2 {
+		t.Fatalf("DiscoverSubagents = %+v, want 2 subagents", discovered)
+	}
+	for _, d := range discovered {
+		if d.ParentSessionID != fixtureParentID {
+			t.Fatalf("DiscoverSubagents parent = %q, want %q", d.ParentSessionID, fixtureParentID)
+		}
+	}
+
+	primaries, err := Discover(projectsDir)
+	if err != nil {
+		t.Fatalf("Discover: %v", err)
+	}
+	found := false
+	for _, p := range primaries {
+		if p.ID == fixtureParentID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Discover below a subagents ancestor = %+v, want the fixture parent", primaries)
 	}
 }
 

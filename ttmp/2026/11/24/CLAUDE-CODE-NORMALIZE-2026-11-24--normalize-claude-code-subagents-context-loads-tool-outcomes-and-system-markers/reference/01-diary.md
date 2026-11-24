@@ -318,3 +318,32 @@ https://github.com/go-go-golems/go-minitrace/pull/36 (not merged). Ran `make ins
   `LEFTHOOK_EXCLUDE=release`; the hook's lint and test steps still ran and passed.
 - `make install` runs `go generate`, which regenerated the stale `pkg/nativeevidence/logcopter.go`
   and `pkg/queryplan/logcopter.go` as untracked files; left uncommitted (pre-existing on main).
+
+## Step 5: Review fix — the innermost subagents directory names the parent
+
+Codex review on PR #36 (comment 4685788129, `pkg/adapters/claudecode/subagents.go:77`): `subagentsIndex`
+returned the first path component named `subagents`. With an ancestor of that name
+(`/data/subagents/project/<parent>/subagents/agent-a.jsonl`), the parent id came out as `project`, and the
+subagent was published with the wrong `predecessor_session`.
+
+### Prompt Context
+**User prompt (verbatim):** "Address code review issue: https://github.com/go-go-golems/go-minitrace/pull/36"
+**Assistant interpretation:** Fix the review finding on PR #36, including other places with the same defect, and update the PR.
+
+### What I did
+- `subagentsIndex` now searches from the file outward, skipping the file name itself. This fixes
+  `LocateSubagent` and `DiscoverSubagents`, which both take the parent from `parts[index-1]`.
+- The same class in `Discover`: its primary walk skipped any `.jsonl` whose absolute path had a
+  `subagents` component, so a projects dir below an ancestor named `subagents` would yield no primaries.
+  It now tests the path relative to the walk root. `isUnderSubagentsDir` accepts index 0 to match.
+- `TestSubagentParentUsesInnermostSubagentsDir` copies the fixture project under `<tmp>/subagents/projects/`
+  and checks `LocateSubagent`, `DiscoverSubagents` and `Discover`.
+
+### What worked
+- With the fix stashed, the new test fails: `LocateSubagent parent = "001", want "11111111-1111-4111-8111-111111111111"`. With it, it passes.
+- `go test ./...` passes (24 packages).
+- `make lint` reports 0 issues with the go1.26.6 toolchain (`PATH=<toolchain>/bin:~/go/bin:$PATH GOTOOLCHAIN=local GOROOT=<toolchain>`).
+
+### What didn't work
+- `PATH=$HOME/go/bin:$PATH GOTOOLCHAIN=local make lint` used Homebrew's Go 1.27.1, and golangci-lint
+  failed with `export data version 4 is greater than maximum supported version 2`: environment, not code.
