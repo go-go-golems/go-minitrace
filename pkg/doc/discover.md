@@ -77,8 +77,20 @@ go-minitrace discover claude-code --output json
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--source-dir` | `~/.claude/projects` | Directory to scan |
+| `--include-subagents` | `false` | Also list each kept session's subagent transcripts right after it |
 
-This finds JSONL v2 transcripts and dir-v1 tool-results sessions. Subagent files within `subagents/` subdirectories are discovered as well.
+This finds JSONL v2 transcripts and dir-v1 tool-results sessions. Subagent transcripts (`<session>/subagents/**/agent-<id>.jsonl`) are listed only with `--include-subagents`. Then every row carries `session_kind` (`primary` or `subagent`), `parent_session_id` and `agent_type` (from the subagent's `agent-<id>.meta.json`), and subagent rows use `format_hint: jsonl-v2+subagent`.
+
+A subagent follows its parent's selection: `--cwd-contains`, `--since` and `--active-since` filter parent sessions, every subagent of a kept parent is listed, and no subagent of a dropped parent is. `last_activity_at` of a subagent row is filled when `--active-since` is set.
+
+```bash
+# Parents and subagents of one repository, ready for a source list
+go-minitrace discover claude-code --cwd-contains my-repo --include-subagents --output json \
+  | jq -r '.[].source_path' > /tmp/sessions.txt
+go-minitrace convert claude-code --source-list /tmp/sessions.txt --output-dir ./output
+```
+
+`convert claude-code` expands subagents of listed parents by default, so a list of parent paths alone converts the same sessions.
 
 ## discover codex
 

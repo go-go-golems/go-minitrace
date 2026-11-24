@@ -52,10 +52,15 @@ go-minitrace convert claude-code --dry-run
 | `--source-list` | | File with newline-separated session paths |
 | `--output-dir` | `./output` | Target archive directory |
 | `--dry-run` | `false` | Preview without writing |
+| `--no-subagents` | `false` | Do not convert the subagents stored next to explicit `--source-session` / `--source-list` transcripts |
 
-**What it reads**: JSONL v2 transcripts, dir-v1 tool-results sessions, and subagent transcript files found in `subagents/` subdirectories.
+**What it reads**: JSONL v2 transcripts, dir-v1 tool-results sessions, and subagent transcripts (`<session>/subagents/**/agent-<id>.jsonl`, including workflow subagents under `subagents/workflows/`). Other JSONL files under `subagents/`, such as workflow `journal.jsonl`, are not transcripts and are skipped.
 
-**Subagent handling**: When a session contains subagent transcripts, each subagent becomes its own minitrace session with `source_format: claude-code-jsonl-v2+subagent`. The parent session's `Agent` tool call carries a `spawned_agent` field linking to the subagent's session ID.
+**Subagent handling**: Each subagent becomes its own minitrace session with id `<agentId>`, `source_format: claude-code-jsonl-v2+subagent` and `predecessor_session` set to the parent session id. `--source-dir` scans find every subagent. Explicit sources expand each listed transcript's `<stem>/subagents/` directory by default; a listed `agent-<id>.jsonl` path converts as a subagent of the session directory that contains it, and a transcript reached twice converts once. The parent's `Agent` tool call links to the subagent through `spawned_agent.sub_session_id`, resolved from the native `toolUseResult.agentId`, then from the subagent's `agent-<id>.meta.json` `toolUseId`; only transcripts without either fall back to start order. Fork subagents repeat their own spawning `Agent` call; that echo links to the fork itself and carries `framework_metadata.fork_spawn_echo = true`.
+
+**Normalized signals**: Claude Code conversion also fills the `context_loads` table (CLAUDE.md, `.claude/rules/` and instruction files injected into context), `tool_calls.outcome_reason` (hook blocks, permission and classifier denials, user rejections), `events` of kind `hook`, `compaction` and `turn_duration`, and the `metrics.compaction_count` / `total_turn_duration_ms` columns. `system` records with subtype `compact_boundary`, `turn_duration` or `stop_hook_summary` are events, not turns. See `go-minitrace help minitrace-schema`.
+
+**Metadata-only transcripts**: a file without user or assistant records (for example the stub `/resume` leaves) converts to a session with no conversation turns; `autoConvert` reports it as a `warning` diagnostic instead of failing format detection.
 
 **Source format values**: `claude-code-jsonl-v2` for main sessions, `claude-code-jsonl-v2+subagent` for subagent sessions.
 

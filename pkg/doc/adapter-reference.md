@@ -64,14 +64,17 @@ The primary JSONL converters (`pi`, `codex`, `claude-code`) convert their select
 
 Claude Code stores one JSONL file per session. Each line is a JSON event with a type field. The adapter processes:
 
-- **Conversation messages** → turns (user, assistant, system)
+- **Conversation messages** → turns (user, assistant, system; `system` records with subtype `compact_boundary`, `turn_duration` or `stop_hook_summary` become events instead)
 - **Tool use blocks** → tool calls with operation type mapping
 - **Tool result blocks** → tool call outputs with success/error status and derived `duration_ms`
 - **`toolUseResult` payloads** → structured output mapping (see below)
 - **Usage metadata** → per-turn token counts (input, output, cache_read, cache_creation)
 - **Subagent directories** → separate minitrace sessions with parent backlinking
 - **Lifecycle records** → source events where they do not fit turns or tool calls
-- **Attachment records** → attachment references plus optional timeline events
+- **Attachment records** → attachment references plus optional timeline events; hook attachments become `hook` events
+- **Guidance attachments** (`nested_memory`, `instructions`, `invoked_skills`) → `context_loads[]`
+- **Denial and block texts in tool results** → `tool_calls[].output.reason`
+- **Metadata-only transcripts** (no user/assistant records, e.g. a `/resume` stub) → a session without conversation turns
 
 Additionally, dir-v1 tool-results sessions (an older format that stores tool results in a directory structure) are detected and converted.
 
@@ -93,7 +96,10 @@ Additionally, dir-v1 tool-results sessions (an older format that stores tool res
 | `turns[].thinking` | Extracted from cleartext thinking blocks if present; signature-only thinking blocks are counted in `turns[].framework_metadata.signed_thinking_blocks` |
 | `turns[].usage` | Per-message token counts |
 | `tool_calls[].output.duration_ms` | Derived: tool-result timestamp minus tool-use timestamp |
-| `events[]` | Source lifecycle records such as mode, permission-mode, title, and attachment events |
+| `events[]` | Source lifecycle records such as mode, permission-mode, title, and attachment events; `hook`, `compaction` and `turn_duration` events (see `go-minitrace help minitrace-schema`) |
+| `context_loads[]` | `nested_memory` (`attachment.path`, `attachment.content.{content,type,contentDiffersFromDisk}`, `displayPath`), `instructions` (`attachment.files[].{path,type,content}`), `invoked_skills` (`attachment.skills[].{name,path,content}`) |
+| `tool_calls[].output.reason` | Tool-result text prefixes: hook block, permission/classifier denial, classifier no-verdict, user rejection, `<tool_use_error>`, worktree-isolation guard; `toolUseResult.interrupted` |
+| `metrics.compaction_count` / `metrics.total_turn_duration_ms` | Count of `compact_boundary` records / sum of `turn_duration.durationMs` |
 | `attachments[]` | Attachment references with media/name/path-like metadata when available |
 
 ### toolUseResult mapping
@@ -119,13 +125,13 @@ Content origin is classified separately: `mcp__`-prefixed tools → `mcp_server`
 
 ### Subagent handling
 
-When a session directory contains a `subagents/` subdirectory, each subagent JSONL file becomes its own minitrace session. The parent session's `Agent`/`Task` tool call receives a `spawned_agent` field with the subagent's `sub_session_id`, and `metrics.subagent_count` reflects the real number of spawned agents. The subagent session's title is prefixed with `[subagent]`; its `framework_config.parent_session` points back at the parent, and `coordination.predecessor_session` is set to the parent session ID so parent-child traversal works through the normalized schema.
+When a session directory contains a `subagents/` subdirectory, each `agent-<id>.jsonl` transcript below it (including `subagents/workflows/*/`) becomes its own minitrace session with id `<agentId>`; other JSONL files there, such as workflow `journal.jsonl`, are skipped. This applies to `--source-dir` scans and, unless `--no-subagents` is set, to explicit `--source-session` / `--source-list` transcripts. The parent session's `Agent`/`Task` tool call receives a `spawned_agent` field with the subagent's `sub_session_id`, resolved from `toolUseResult.agentId` on the parent's tool result, then from the subagent's `agent-<id>.meta.json` `toolUseId`, and by start order only for subagents without a meta file. `metrics.subagent_count` reflects the real number of spawned agents. A raw subagent transcript loaded through `autoConvert` (sidechain records with an `agentId`) converts the same way, so parent and subagent link without a batch. The subagent session's title is prefixed with `[subagent]`; its `framework_config.parent_session` points back at the parent, and `coordination.predecessor_session` is set to the parent session ID so parent-child traversal works through the normalized schema.
 
 ### Preserved framework-specific metadata
 
-- `operational_context.framework_config`: `entrypoint`, `agent_id`, `session_id`, `parent_uuid`, `is_sidechain`, `user_type`, `attribution_agent`, `mode`, `permission_mode`, `ai_title`
+- `operational_context.framework_config`: `entrypoint`, `agent_id`, `session_id`, `parent_uuid`, `is_sidechain`, `user_type`, `attribution_agent`, `mode`, `permission_mode`, `ai_title`; subagents also `parent_session`, `agent_type`, `agent_description`, `parent_tool_use_id` (from `agent-<id>.meta.json`), forks `fork_parent_session_id`
 - `turns[].framework_metadata`: `entrypoint`, `slug`, `agent_id`, `session_id`, `parent_uuid`, `is_sidechain`, `attribution_agent`, `stop_reason`, `stop_sequence`, `cache_creation`, `signed_thinking_blocks`, `thinking_signature_present`
-- `tool_calls[].framework_metadata`: `caller`, tool-result record context, `tool_use_result`, `interrupted`
+- `tool_calls[].framework_metadata`: `caller`, tool-result record context, `tool_use_result`, `interrupted`, `fork_spawn_echo`
 
 ### What is not preserved
 

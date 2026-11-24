@@ -39,6 +39,9 @@ The session is the root object in each `.minitrace.json` file.
 | `handover` | object | Session handover documents |
 | `turns` | array | Conversation turns in order |
 | `tool_calls` | array | Every tool invocation with input and output |
+| `events` | array? | Explicit timeline events from the source (hooks, compactions, turn durations, mode changes) |
+| `attachments` | array? | Source attachments and artifact references |
+| `context_loads` | array? | Instruction and guidance files injected into the model context (see below) |
 | `outcome` | object? | Success/failure of the session |
 | `annotations` | array | Human or automated annotations |
 | `metrics` | object | Computed summary metrics |
@@ -118,7 +121,7 @@ The conversation transcript as an ordered array. Each turn is one message from a
 |-------|------|-------------|
 | `index` | int | Zero-based position in the turn sequence |
 | `timestamp` | string? | RFC 3339 timestamp of this turn |
-| `role` | string | `user`, `assistant`, or `system` |
+| `role` | string | `user`, `assistant`, or `system`. Claude Code `system` records with subtype `compact_boundary`, `turn_duration` or `stop_hook_summary` are events, not turns, so they do not count toward `turn_count` |
 | `source` | string? | Origin detail: `human`, `tool_result`, etc. |
 | `model` | string? | Model that generated this turn (assistant turns) |
 | `content_type` | string? | MIME type hint for the content |
@@ -186,7 +189,8 @@ Do not assume every tool uses the same nested keys. When in doubt, inspect a bou
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `success` | bool | Whether the tool call succeeded |
+| `success` | bool | Whether the tool call succeeded. A Claude Code call a PreToolUse hook blocked is `false` (the command never ran) |
+| `reason` | string? | Why, when the source says so (SQL `tool_calls.outcome_reason`); see below |
 | `result` | string? | Output text (truncated to 10 KB if larger) |
 | `error` | string? | Error message if the call failed |
 | `exit_code` | int? | Process exit code when the source exposes one (native for codex exec events; parsed from the `"Error: Exit code N"` result string for claude-code) |
@@ -197,6 +201,26 @@ Do not assume every tool uses the same nested keys. When in doubt, inspect a bou
 | `full_reference` | string? | External reference to the full output |
 | `redacted` | bool? | Whether the output was redacted |
 | `content_origin` | string? | Where the content came from |
+
+`output.reason` values (Claude Code; the tool-result text is matched by prefix, so output that quotes these phrases is not misread):
+
+| Value | Native signal |
+|-------|---------------|
+| `hook_blocked` | `The command did not run. A PreToolUse hook blocked it...`, or a PreToolUse `hook_blocking_error` attachment for the call |
+| `classifier_denied` | `Permission for this action was denied by the Claude Code auto mode classifier...` |
+| `permission_denied` | `Permission to use <Tool> with command ...` (permission rules) |
+| `classifier_no_verdict` | `The server-side auto mode classifier gave no verdict...` |
+| `user_rejected` | `The user doesn't want to proceed with this tool use...` / `...take this action right now...` |
+| `interrupted` | `toolUseResult.interrupted` |
+| `tool_use_error` | `<tool_use_error>...` (harness validation: file not read, string not found, blocked sleep) |
+| `harness_blocked` | `This agent is isolated in the worktree...` (worktree isolation guard) |
+
+Every value except `interrupted` means the tool never ran, so `duration_ms` for those calls measures permission, classifier or hook waiting time, not execution. For calls that did run, `duration_ms` still includes any permission prompt before execution: Claude Code records no approval timestamp.
+
+```sql
+SELECT outcome_reason, count(*) AS calls, sum(duration_ms) / 1000 AS waited_s
+FROM tool_calls WHERE outcome_reason IS NOT NULL GROUP BY 1 ORDER BY 2 DESC;
+```
 
 Adapters differ in how much of this they can populate — see the fidelity matrix in `go-minitrace help adapter-reference`. Claude Code additionally preserves the full `toolUseResult` payload (stderr, interruption flags, structured results) under `tool_calls[].framework_metadata.tool_use_result`.
 
@@ -258,6 +282,8 @@ Computed summary statistics. These are calculated during conversion from the tur
 | `unique_models` | int? | Distinct models used |
 | `median_response_tokens` | int? | Median output tokens per assistant turn |
 | `max_response_tokens` | int? | Maximum output tokens in any assistant turn |
+| `compaction_count` | int? | Context compactions the source recorded (Claude Code `compact_boundary`); absent when none |
+| `total_turn_duration_ms` | int? | Sum of source-reported turn durations (Claude Code `turn_duration`); absent when none |
 
 ## Annotations
 
@@ -347,6 +373,62 @@ FROM annotations
 ORDER BY session_id;
 ```
 
+## Events
+
+`events[]` holds explicit timeline records from the source. The normalized `events` table also contains derived rows for every turn (`kind = 'turn'`), tool call (`tool_call`) and annotation (`annotation`). Claude Code adds:
+
+| `kind` | Source | `turn_index` | `framework_metadata` |
+|--------|--------|--------------|----------------------|
+| `hook` | `hook_success`, `hook_non_blocking_error`, `hook_blocking_error`, `hook_additional_context`, `hook_cancelled` attachments; `system/stop_hook_summary` | — (`tool_call_id` names the hooked call when the source does) | `hook_type`, `hook_event`, `hook_name`, `command`, `exit_code`, `duration_ms`, `permission_decision`, `permission_decision_reason`; stop hooks: `commands`, `hook_count`, `hook_errors`, `prevented_continuation`, `stop_reason` |
+| `compaction` | `system/compact_boundary` | first turn after the boundary | `trigger` (`auto`/`manual`), `pre_tokens`, `post_tokens`, `duration_ms` |
+| `turn_duration` | `system/turn_duration` | the turn it closes | `duration_ms`, `message_count` |
+| `attachment` | other attachment records | — | `attachment_type` |
+| `mode_change`, `permission_mode_change`, `title_change` | `mode`, `permission-mode`, `ai-title` records | — | — |
+
+Hook events keep their `attachment_id`, so the `attachments` row still carries the raw record. Severity is `error` for blocking hooks and stop hooks that prevented continuation, `warning` for non-blocking hook errors.
+
+```sql
+-- Wall time per user turn versus time spent inside tools
+SELECT e.session_id, e.turn_index,
+       json_extract(e.framework_metadata_json, '$.duration_ms') AS turn_ms
+FROM events e WHERE e.kind = 'turn_duration' ORDER BY turn_ms DESC LIMIT 10;
+
+-- Compactions with their token drop
+SELECT session_id, turn_index, json_extract(framework_metadata_json, '$.pre_tokens') AS pre,
+       json_extract(framework_metadata_json, '$.post_tokens') AS post
+FROM events WHERE kind = 'compaction';
+```
+
+## Context loads
+
+`context_loads[]` (SQL table `context_loads`) has one entry per instruction or guidance file the framework injected into the model context. Content stays in the source attachment; the load records size and hash.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | `<attachment id>:<n>` (SQL `load_id`) |
+| `timestamp` | string? | When the load was recorded |
+| `turn_index` | int? | First turn emitted after the load, i.e. the first turn whose context includes it; absent when no turn follows |
+| `tool_call_id` | string? | Tool call whose result triggered the load (Claude Code `nested_memory`, resolved through `parentUuid`) |
+| `attachment_id` | string? | The `attachments` row that carried it |
+| `kind` | string | `nested_memory` (path-scoped CLAUDE.md / `.claude/rules/*.md`), `instructions` (session-start and post-compaction instruction files), `invoked_skill` (skill bodies re-injected after compaction) |
+| `path` | string? | Home-normalized path (`~/...`); for `invoked_skill` the native skill locator such as `userSettings:diary` |
+| `display_path` | string? | Source display path (`nested_memory`) |
+| `name` | string? | Skill name for `invoked_skill`, else the file base name |
+| `file_type` | string? | Source file type: `Project`, `User`, `Local`, `AutoMem`, ... |
+| `content_chars` | int | Unicode code points of the injected content |
+| `content_bytes` | int | UTF-8 bytes of the injected content |
+| `content_sha256` | string? | Hex SHA-256 of the injected content |
+| `differs_from_disk` | bool? | Source reports the injected text differs from the file on disk (SQL 0/1) |
+
+```sql
+-- Which rule files load most often, and which tools trigger them
+SELECT c.path, t.tool_name, count(*) AS loads, sum(c.content_chars) AS chars
+FROM context_loads c
+LEFT JOIN tool_calls t ON t.session_id = c.session_id AND t.tool_call_id = c.tool_call_id
+WHERE c.kind = 'nested_memory'
+GROUP BY 1, 2 ORDER BY loads DESC LIMIT 20;
+```
+
 ## Coordination
 
 Multi-session coordination metadata.
@@ -354,7 +436,7 @@ Multi-session coordination metadata.
 | Field | Type | Description |
 |-------|------|-------------|
 | `project_id` | string? | Project this session belongs to |
-| `predecessor_session` | string? | Previous session in a chain |
+| `predecessor_session` | string? | Previous session in a chain; for a Claude Code subagent, the parent session id |
 | `concurrent_sessions` | int? | How many sessions were running simultaneously |
 | `human_attention` | string | Level of human oversight: `active`, `background`, `unknown` |
 

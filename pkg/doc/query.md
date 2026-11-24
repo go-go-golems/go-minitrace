@@ -37,7 +37,7 @@ For the full structured-command authoring and repository-loading guide, see `go-
 When you run `query run`, go-minitrace:
 
 1. Expands the archive globs and fingerprints the matching `.minitrace.json` files
-2. Builds (or reuses from cache) a normalized SQLite database with one table per entity: `sessions`, `turns`, `tool_calls`, `turn_tool_calls`, `files`, `annotations`, `handovers`, `metrics`, `attachments`, `events`
+2. Builds (or reuses from cache) a normalized SQLite database with one table per entity: `sessions`, `turns`, `tool_calls`, `turn_tool_calls`, `files`, `annotations`, `handovers`, `metrics`, `attachments`, `events`, `context_loads`
 3. Runs either a named preset, inline SQL, or a SQL file through the sandboxed read-only query runner
 4. Streams results through Glazed for output formatting
 
@@ -138,7 +138,8 @@ The database has one table per minitrace entity:
 | `handovers` | Received/produced handover documents per session |
 | `metrics` | Wide per-session metrics: tokens, timing, subagents, model switches |
 | `attachments` | Artifact references (images, files) linked to turns, tool calls, or events |
-| `events` | Timeline events such as compactions, mode changes, or rate-limit snapshots |
+| `events` | Timeline events such as compactions, hooks, turn durations, mode changes, or rate-limit snapshots |
+| `context_loads` | Instruction and guidance files injected into the model context (Claude Code CLAUDE.md, rules, instruction files, re-injected skills) |
 
 Fields that used to require `UNNEST` on JSON arrays are now plain rows in child tables keyed by `session_id`:
 
